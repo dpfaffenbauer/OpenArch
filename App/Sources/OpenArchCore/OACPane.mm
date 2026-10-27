@@ -31,6 +31,7 @@
                       line:(NSInteger)line;
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
+- (void)oac_willToggleFullScreen;
 @end
 
 namespace {
@@ -43,29 +44,43 @@ NSMapTable<NSWindow*, OACPane*>* PanesByWindow() {
   return table;
 }
 
-// A pane's window may become key (it takes the keyboard) but never main, so
-// OpenArch's window stays the main window and keeps its window buttons
-// active while a page has focus. Patched once per Chrome window class, for
-// pane windows only; popups and DevTools windows keep Chrome's behavior.
-// (Subclassing the window at runtime would break KVO on it.)
-void KeepParentMain(NSWindow* window) {
+// Pane windows are Chrome's windows with two changes, patched once per
+// Chrome window class and for pane windows only (popups and DevTools keep
+// Chrome's behavior; subclassing at runtime would break KVO on them):
+// - They may become key (they take the keyboard) but never main, so
+//   OpenArch's window stays main and keeps active window buttons.
+// - When a page goes full screen, the window leaves OpenArch's window for
+//   its own full screen space, like a Chrome window, and comes back after.
+void PatchPaneWindowClass(NSWindow* window) {
   static NSMutableSet<Class>* patched = [NSMutableSet set];
   Class cls = [window class];
   if ([patched containsObject:cls]) {
     return;
   }
   [patched addObject:cls];
-  SEL selector = @selector(canBecomeMainWindow);
-  Method method = class_getInstanceMethod(cls, selector);
-  BOOL (*original)(id, SEL) = (BOOL (*)(id, SEL))method_getImplementation(method);
-  IMP replacement = imp_implementationWithBlock(^BOOL(NSWindow* self) {
+
+  SEL canBecomeMain = @selector(canBecomeMainWindow);
+  Method mainMethod = class_getInstanceMethod(cls, canBecomeMain);
+  BOOL (*originalMain)(id, SEL) = (BOOL (*)(id, SEL))method_getImplementation(mainMethod);
+  IMP mainReplacement = imp_implementationWithBlock(^BOOL(NSWindow* self) {
     if ([PanesByWindow() objectForKey:self]) {
       return NO;
     }
-    return original(self, selector);
+    return originalMain(self, canBecomeMain);
   });
-  if (!class_addMethod(cls, selector, replacement, method_getTypeEncoding(method))) {
-    method_setImplementation(method, replacement);
+  if (!class_addMethod(cls, canBecomeMain, mainReplacement, method_getTypeEncoding(mainMethod))) {
+    method_setImplementation(mainMethod, mainReplacement);
+  }
+
+  SEL toggle = @selector(toggleFullScreen:);
+  Method toggleMethod = class_getInstanceMethod(cls, toggle);
+  void (*originalToggle)(id, SEL, id) = (void (*)(id, SEL, id))method_getImplementation(toggleMethod);
+  IMP toggleReplacement = imp_implementationWithBlock(^(NSWindow* self, id sender) {
+    [[PanesByWindow() objectForKey:self] oac_willToggleFullScreen];
+    originalToggle(self, toggle, sender);
+  });
+  if (!class_addMethod(cls, toggle, toggleReplacement, method_getTypeEncoding(toggleMethod))) {
+    method_setImplementation(toggleMethod, toggleReplacement);
   }
 }
 
@@ -455,6 +470,9 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   BOOL _wantsVisible;
   BOOL _creating;
   BOOL _closed;
+  // A page has the window full screen, outside OpenArch's window.
+  BOOL _fullScreen;
+  id _fullScreenObserver;
   NSString* _faviconURL;
 }
 
@@ -534,7 +552,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 - (void)attach {
   NSWindow* parent = _parent;
   NSWindow* window = _window;
-  if (!parent || !window) {
+  if (!parent || !window || _fullScreen) {
     return;
   }
   [window setFrame:[parent convertRectToScreen:_frame] display:NO];
@@ -557,7 +575,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   _frame = frame;
   NSWindow* parent = _parent;
   NSWindow* window = _window;
-  if (!_isVisible || !parent || !window) {
+  if (!_isVisible || !parent || !window || _fullScreen) {
     return;
   }
   [window setFrame:[parent convertRectToScreen:frame] display:YES];
@@ -721,7 +739,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   _window = nsWindow;
   if (nsWindow) {
     [PanesByWindow() setObject:self forKey:nsWindow];
-    KeepParentMain(nsWindow);
+    PatchPaneWindowClass(nsWindow);
     nsWindow.hasShadow = NO;
     nsWindow.movable = NO;
     // Part of OpenArch's window, not a window of its own.
@@ -854,6 +872,46 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url {
   if ([self.delegate respondsToSelector:@selector(pane:mainFrameLoadStarted:url:)]) {
     [self.delegate pane:self mainFrameLoadStarted:started url:url];
+  }
+}
+
+// Entering: the window leaves OpenArch's window and may go full screen on
+// its own. Leaving: once AppKit is done, it goes back in place.
+- (void)oac_willToggleFullScreen {
+  NSWindow* window = _window;
+  if (!window || _fullScreen || (window.styleMask & NSWindowStyleMaskFullScreen)) {
+    return;
+  }
+  _fullScreen = YES;
+  [window.parentWindow removeChildWindow:window];
+  window.collectionBehavior =
+      (window.collectionBehavior & ~NSWindowCollectionBehaviorFullScreenAuxiliary) |
+      NSWindowCollectionBehaviorFullScreenPrimary;
+  NSView* content = window.contentView;
+  content.layer.cornerRadius = 0;
+  __weak OACPane* weakSelf = self;
+  _fullScreenObserver = [NSNotificationCenter.defaultCenter
+      addObserverForName:NSWindowDidExitFullScreenNotification
+                  object:window
+                   queue:NSOperationQueue.mainQueue
+              usingBlock:^(NSNotification*) {
+                [weakSelf oac_didExitFullScreen];
+              }];
+}
+
+- (void)oac_didExitFullScreen {
+  [NSNotificationCenter.defaultCenter removeObserver:_fullScreenObserver];
+  _fullScreenObserver = nil;
+  _fullScreen = NO;
+  NSWindow* window = _window;
+  window.collectionBehavior =
+      (window.collectionBehavior & ~NSWindowCollectionBehaviorFullScreenPrimary) |
+      NSWindowCollectionBehaviorFullScreenAuxiliary;
+  [self applyCornerRadius];
+  NSWindow* parent = _parent;
+  if (_isVisible && parent && window) {
+    [window setFrame:[parent convertRectToScreen:_frame] display:YES];
+    [parent addChildWindow:window ordered:NSWindowAbove];
   }
 }
 

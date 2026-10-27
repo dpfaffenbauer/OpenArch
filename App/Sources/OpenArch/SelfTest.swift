@@ -39,6 +39,10 @@ final class SelfTest {
             marketingScreens()
             return
         }
+        if CommandLine.arguments.contains("--fullscreen-test") {
+            fullscreenTest()
+            return
+        }
         populate()
         let steps: [(Double, String, () -> Void)] = [
             (0.5, "today tab", { self.selectToday() }),
@@ -713,6 +717,44 @@ final class SelfTest {
             self.expect(self.browser.state.space.today.allTabs.count == before + 1 && moved?.pane?.isVisible == true
                         && moved?.currentURL.contains("example.com/little") == true,
                         "\"In Space öffnen\" moves the page into the main window (\(moved?.currentURL ?? "-"))")
+        }
+    }
+
+    /// Full screen, visibly (it takes over the screen, so it is not part of
+    /// the background self-test): a page going full screen leaves the window
+    /// and comes back, and the window itself goes full screen with its tabs.
+    private func fullscreenTest() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate()
+        browser.window?.orderFrontRegardless()
+        populate()
+        let tab = browser.openInNewTab("https://example.com/fullscreen")
+        func paneInPlace() -> Bool {
+            guard let (_, expected) = browser.expectedPaneFrames.first, let window = tab.pane?.window else { return false }
+            return window.parent === browser.window && abs(window.frame.minX - expected.minX) < 2 && abs(window.frame.width - expected.width) < 2
+        }
+        after(3) { tab.pane?.executeJavaScript("document.documentElement.requestFullscreen()", userGesture: true) }
+        after(6.5) {
+            let window = tab.pane?.window
+            self.expect(window?.styleMask.contains(.fullScreen) == true && window?.parent == nil,
+                        "a page going full screen gets its own full screen space")
+            tab.pane?.executeJavaScript("document.exitFullscreen()")
+        }
+        after(10) {
+            self.expect(tab.pane?.window?.styleMask.contains(.fullScreen) == false && paneInPlace(),
+                        "after full screen the page is back in the window")
+            self.browser.window?.toggleFullScreen(nil)
+        }
+        after(14) {
+            self.expect(self.browser.window?.styleMask.contains(.fullScreen) == true && paneInPlace(),
+                        "the window goes full screen with its tab in place")
+            self.browser.window?.toggleFullScreen(nil)
+        }
+        after(18) {
+            self.expect(self.browser.window?.styleMask.contains(.fullScreen) == false && paneInPlace(),
+                        "leaving full screen keeps the tab in place")
+            Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+            Self.quit()
         }
     }
 
