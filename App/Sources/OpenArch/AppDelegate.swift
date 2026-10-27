@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 pendingURLs = []
                 offerArcImportOnFirstRun()
                 importArcFaviconsOnce()
+                Updater.shared.start()
                 if let result = ArcProfileImport.takeResult() {
                     let alert = NSAlert()
                     alert.messageText = "Import aus Arc"
@@ -52,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         library?.save()
+        if !selfTest { Updater.shared.installOnQuit() }
         return .terminateNow
     }
 

@@ -41,6 +41,9 @@ struct SidebarView: View {
                 .padding(.bottom, 12)
             }
             .scrollIndicators(.never)
+            if case .ready = Updater.shared.phase {
+                UpdateBanner(theme: theme)
+            }
             SpaceBar(browser: browser, theme: theme)
         }
         .padding(.horizontal, 8)
@@ -48,6 +51,31 @@ struct SidebarView: View {
         .foregroundStyle(theme.foreground)
         .environment(\.colorScheme, theme.colorScheme)
         .tint(theme.foreground)
+    }
+}
+
+/// A downloaded update, like Arc's "Restart to update" at the bottom.
+private struct UpdateBanner: View {
+    let theme: SpaceTheme
+    @State private var hovering = false
+
+    var body: some View {
+        Button { Updater.shared.installAndRelaunch() } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle.fill").font(.system(size: 14))
+                Text("Update bereit").font(.system(size: 12.5, weight: .semibold))
+                Spacer()
+                Text("Neu starten").font(.system(size: 12, weight: .medium)).opacity(0.75)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(RoundedRectangle(cornerRadius: 9).fill(hovering ? theme.tileHover : theme.tile))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help("Installiert die neue Version und startet OpenArch neu. Tabs bleiben erhalten.")
+        .padding(.top, 6)
     }
 }
 

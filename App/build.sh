@@ -10,6 +10,9 @@ NAME="OpenArch"
 APP="$APP_DIR/build/$NAME.app"
 BUNDLE_ID="dev.openarch.browser"
 VERSION="0.1.0"
+# CI sets these; local builds are build 0 and never update themselves.
+BUILD="${OPENARCH_BUILD:-0}"
+COMMIT="${OPENARCH_COMMIT:-$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo dev)}"
 
 "$ROOT/scripts/fetch-cef.sh"
 "$ROOT/scripts/patch-cef.sh"
@@ -37,7 +40,7 @@ write_plist() {
   <key>CFBundleDisplayName</key><string>$4</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
-  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
@@ -58,6 +61,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resourc
 install_file "$BIN/$NAME" "$APP/Contents/MacOS/$NAME"
 write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <key>NSPrincipalClass</key><string>OACApplication</string>
+  <key>OpenArchCommit</key><string>$COMMIT</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleURLTypes</key>
   <array><dict>

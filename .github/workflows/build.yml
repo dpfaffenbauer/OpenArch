@@ -35,6 +35,8 @@ jobs:
           key: cef-${{ runner.arch }}-${{ hashFiles('scripts/fetch-cef.sh', 'scripts/patch-cef.*') }}
 
       - name: Build OpenArch.app
+        env:
+          OPENARCH_BUILD: ${{ github.run_number }}
         run: CONFIG=release App/build.sh
 
       # Drives the real UI in the background. Needs network access (it opens
@@ -68,9 +70,16 @@ jobs:
           cef="$(cat Vendor/cef/.version)"
           notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Unsigned: after downloading, run
           xattr -dr com.apple.quarantine OpenArch.app"
+          # What OpenArch's updater reads; uploaded after the zip it points to.
+          cat > latest.json <<JSON
+          {"build": ${{ github.run_number }}, "commit": "$(git rev-parse --short HEAD)", "chromium": "$cef",
+           "sha256": "$(shasum -a 256 OpenArch.zip | cut -d' ' -f1)", "size": $(stat -f%z OpenArch.zip),
+           "url": "https://github.com/${{ github.repository }}/releases/download/nightly/OpenArch.zip"}
+          JSON
           if gh release view nightly >/dev/null 2>&1; then
             gh release upload nightly OpenArch.zip --clobber
             gh release edit nightly --notes "$notes"
           else
             gh release create nightly OpenArch.zip --prerelease --title "OpenArch Nightly" --notes "$notes"
           fi
+          gh release upload nightly latest.json --clobber

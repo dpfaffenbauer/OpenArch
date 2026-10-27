@@ -61,6 +61,7 @@ final class SelfTest {
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
+            (37, "updater", { self.updaterTest() }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -705,6 +706,46 @@ final class SelfTest {
             self.expect(self.browser.state.space.today.allTabs.count == before + 1 && moved?.pane?.isVisible == true
                         && moved?.currentURL.contains("example.com/little") == true,
                         "\"In Space öffnen\" moves the page into the main window (\(moved?.currentURL ?? "-"))")
+        }
+    }
+
+    /// A fake newer build behind a local latest.json: the updater downloads,
+    /// verifies and unpacks it, and refuses one with a wrong checksum.
+    private func updaterTest() {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-update-test-\(UUID().uuidString)")
+        let app = folder.appendingPathComponent("build/OpenArch.app/Contents")
+        try? FileManager.default.createDirectory(at: app, withIntermediateDirectories: true)
+        let plist: [String: Any] = ["CFBundleIdentifier": Bundle.main.bundleIdentifier ?? "", "CFBundleVersion": "999"]
+        (plist as NSDictionary).write(to: app.appendingPathComponent("Info.plist"), atomically: true)
+        let zip = folder.appendingPathComponent("OpenArch.zip")
+        let ditto = Process()
+        ditto.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        ditto.arguments = ["-c", "-k", "--keepParent", folder.appendingPathComponent("build/OpenArch.app").path, zip.path]
+        try? ditto.run()
+        ditto.waitUntilExit()
+        func manifest(_ name: String, sha: String) -> String {
+            let url = folder.appendingPathComponent(name)
+            let json = #"{"build": 999, "commit": "test", "sha256": "\#(sha)", "url": "\#(zip.absoluteString)"}"#
+            try? json.write(to: url, atomically: true, encoding: .utf8)
+            return url.absoluteString
+        }
+        let sha = (try? Updater.sha256(of: zip)) ?? ""
+        let good = Updater()
+        good.manifestURL = manifest("latest.json", sha: sha)
+        good.check()
+        after(3) {
+            self.expect(good.phase == .ready(999), "the updater downloads, verifies and unpacks a newer build (\(good.phase))")
+            let bad = Updater()
+            bad.manifestURL = manifest("tampered.json", sha: String(repeating: "0", count: 64))
+            bad.check()
+            after(3) {
+                if case .failed = bad.phase {
+                    self.expect(true, "the updater refuses a download with the wrong checksum")
+                } else {
+                    self.expect(false, "the updater refuses a download with the wrong checksum (\(bad.phase))")
+                }
+                try? FileManager.default.removeItem(at: folder)
+            }
         }
     }
 

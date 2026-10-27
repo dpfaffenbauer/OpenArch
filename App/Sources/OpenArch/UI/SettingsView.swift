@@ -319,14 +319,30 @@ private struct ImportPage: View {
 
 private struct AboutPage: View {
     let app: AppDelegate
+    @Bindable var updater = Updater.shared
 
     var body: some View {
         HStack(spacing: 16) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 64, height: 64)
             VStack(alignment: .leading, spacing: 4) {
                 Text("OpenArch").font(.system(size: 22, weight: .bold))
-                Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev") · Chromium \(OACEngine.versionString)")
+                Text("Version \(updater.versionDescription) · Chromium \(OACEngine.versionString)")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+        }
+        Section(title: "Updates",
+                footer: "OpenArch lädt neue Nightly-Builds von GitHub, prüft ihre Prüfsumme und tauscht sich beim nächsten Beenden aus.") {
+            Row(symbol: "arrow.down.circle", color: .green, title: "Automatisch aktualisieren",
+                detail: "Sucht beim Start und alle sechs Stunden nach einer neuen Version.") {
+                Toggle("", isOn: $updater.isEnabled).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "clock.arrow.circlepath", color: .gray, title: updateTitle, detail: updateDetail, showsDivider: false) {
+                if case .ready = updater.phase {
+                    Button("Neu starten") { updater.installAndRelaunch() }
+                } else {
+                    Button("Jetzt prüfen") { updater.check() }
+                        .disabled(updater.phase == .checking || isDownloading)
+                }
             }
         }
         Section(title: "Daten") {
@@ -340,6 +356,30 @@ private struct AboutPage: View {
                 detail: "github.com/dpfaffenbauer/OpenArch", showsDivider: false) {
                 Button("Öffnen") { app.browser?.openInNewTab("https://github.com/dpfaffenbauer/OpenArch") }
             }
+        }
+    }
+
+    private var isDownloading: Bool {
+        if case .downloading = updater.phase { return true }
+        return false
+    }
+
+    private var updateTitle: String {
+        switch updater.phase {
+        case .idle: "Updates"
+        case .checking: "Suche nach Updates …"
+        case .upToDate: "OpenArch ist aktuell"
+        case .downloading(let progress): "Lade Update … \(Int(progress * 100)) %"
+        case .ready(let build): "Nightly \(build) ist bereit"
+        case .failed: "Update nicht möglich"
+        }
+    }
+
+    private var updateDetail: String? {
+        switch updater.phase {
+        case .ready: "Wird beim Neustart oder beim nächsten Beenden installiert."
+        case .failed(let message): message
+        default: updater.lastCheck.map { "Zuletzt geprüft: \($0.formatted(date: .omitted, time: .shortened))" }
         }
     }
 }
