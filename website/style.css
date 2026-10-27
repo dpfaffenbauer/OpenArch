@@ -24,6 +24,7 @@
   --wide: 76rem;
   --column: 40rem;
   --gutter: clamp(1.25rem, 4vw, 3rem);
+  --bar: 5rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -72,6 +73,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--bar);
 }
 
 body {
@@ -132,7 +134,7 @@ a {
   position: absolute;
   left: 1rem;
   top: -4rem;
-  z-index: 10;
+  z-index: 30;
   padding: 0.6rem 1rem;
   border-radius: 8px;
   background: var(--ink);
@@ -267,15 +269,53 @@ kbd {
   font-size: 0.95rem;
 }
 
+/* Top bar: stays at the top while the page scrolls. It sits over the hero
+   (the hero starts under it), so at the very top it is just the green. */
+
+.topbar {
+  --text: var(--ink);
+  --button-text: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--bar);
+  margin-bottom: calc(-1 * var(--bar));
+  color: var(--text);
+  transition: background-color 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.topbar[data-state="hero"],
+.topbar[data-state="page"] {
+  -webkit-backdrop-filter: saturate(1.4) blur(14px);
+  backdrop-filter: saturate(1.4) blur(14px);
+}
+
+.topbar[data-state="hero"] {
+  background: color-mix(in oklab, var(--green) 92%, transparent);
+  box-shadow: 0 1px 0 rgba(27, 29, 26, 0.12);
+}
+
+.topbar[data-state="page"] {
+  --text: inherit;
+  --button-text: inherit;
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  box-shadow: 0 1px 0 var(--line);
+}
+
 /* Hero */
+
+.hero {
+  padding-top: var(--bar);
+}
 
 .nav {
   display: flex;
   align-items: center;
   gap: 2rem;
   max-width: var(--wide);
+  height: 100%;
   margin: 0 auto;
-  padding: 1.25rem var(--gutter);
+  padding: 0 var(--gutter);
 }
 
 .brand {

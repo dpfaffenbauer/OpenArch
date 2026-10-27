@@ -21,8 +21,8 @@
 <body>
   <a class="skip" href="#main">Skip to content</a>
 
-  <div class="hero grain">
-    <header class="nav">
+  <header class="topbar" data-state="top">
+    <div class="nav">
       <a class="brand" href="#main" translate="no"><img src="assets/icon.png" alt="" width="30" height="30">OpenArch</a>
       <nav aria-label="Sections">
         <a href="#import">Import</a>
@@ -32,7 +32,10 @@
         <a href="https://github.com/dpfaffenbauer/OpenArch">GitHub</a>
       </nav>
       <a class="button small" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip">Download</a>
-    </header>
+    </div>
+  </header>
+
+  <div class="hero grain">
 
     <main id="main">
       <section class="intro">
@@ -114,7 +117,7 @@
         <div><dt>Peek</dt><dd>Links from pinned tabs and favorites to other sites open in a card over the page. Keep it as a tab, put it next to the page, or press Esc.</dd></div>
         <div><dt>Boosts</dt><dd>Recolor a site, give it another font, zap what annoys you with a click, or add your own CSS and JavaScript.</dd></div>
         <div><dt>Site search</dt><dd>Type <kbd>yt</kbd>, <kbd>gh</kbd> or a site’s name in the command bar, press <kbd>Tab</kbd>, and search that site directly.</dd></div>
-        <div><dt>Link rules</dt><dd>Links from Mail or Slack go straight to the right space: github.com to Work, the rest to Little OpenArch.</dd></div>
+        <div><dt>Link rules</dt><dd>Links from Mail or Slack go straight to the right space: github.com to Work, Google Docs to Little OpenArch, the rest to a new tab.</dd></div>
         <div><dt>Media controls</dt><dd>Whatever plays in another tab shows at the bottom of the sidebar. A video you leave keeps playing in picture-in-picture.</dd></div>
         <div><dt>Hover sidebar</dt><dd>Hide the sidebar for more room. Touch the window’s left edge and it floats back over the page.</dd></div>
         <div><dt>Windows and private windows</dt><dd>A second window shares your spaces and tabs. A private window keeps nothing once you close it.</dd></div>
@@ -236,6 +239,17 @@
   </footer>
 
   <script>
+    // The bar stays at the top: clear at the very top, green over the hero,
+    // the page's own color after it.
+    const topbar = document.querySelector('.topbar');
+    const hero = document.querySelector('.hero');
+    const placeBar = () => {
+      topbar.dataset.state = window.scrollY < 4 ? 'top'
+        : hero.getBoundingClientRect().bottom > topbar.offsetHeight ? 'hero' : 'page';
+    };
+    addEventListener('scroll', placeBar, { passive: true });
+    placeBar();
+
     document.querySelectorAll('[data-copy]').forEach((button) => {
       button.addEventListener('click', async () => {
         const text = document.getElementById(button.dataset.copy).textContent;
