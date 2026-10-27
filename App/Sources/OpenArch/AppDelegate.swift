@@ -7,7 +7,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let selfTest: Bool
     private(set) var library: Library!
     private(set) var history: History!
-    private(set) var browser: BrowserWindowController?
+    /// All browser windows, the first one opened at launch.
+    private(set) var browsers: [BrowserWindowController] = []
+    private weak var lastActiveBrowser: BrowserWindowController?
+
+    /// The window menu commands act on: the one used last.
+    var browser: BrowserWindowController? {
+        lastActiveBrowser ?? browsers.first
+    }
+
+    /// The last normal window: links from other apps, Little OpenArch and
+    /// tabs Chrome opens by itself go there, never into a private window.
+    var mainBrowser: BrowserWindowController? {
+        if let last = lastActiveBrowser, !last.isPrivate { return last }
+        return browsers.first { !$0.isPrivate }
+    }
     private var settingsWindow: NSWindow?
     private var pendingURLs: [String] = []
     private var test: SelfTest?
@@ -26,8 +40,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         history = History()
         OACEngine.whenReady { [self] in
             let browser = BrowserWindowController(library: library, history: history)
-            self.browser = browser
-            BoostStore.shared.onChange = { [weak self] boost in self?.browser?.applyBoost(boost) }
+            browsers = [browser]
+            BoostStore.shared.onChange = { [weak self] boost in
+                for browser in self?.browsers ?? [] { browser.applyBoost(boost) }
+            }
+            OACPane.externalTabHandler = { [weak self] url in
+                MainActor.assumeIsolated { _ = self?.mainBrowser?.openInNewTab(url) }
+            }
             browser.showWindow(nil)
             if selfTest {
                 test = SelfTest(browser: browser)
@@ -59,8 +78,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        browser?.showWindow(nil)
+        mainBrowser?.showWindow(nil)
         return true
+    }
+
+    // MARK: Windows
+
+    /// ⌘N and ⌘⇧N: another window on the same spaces and tabs, or a private
+    /// one. It opens with the command bar, like a new tab.
+    @discardableResult
+    func openWindow(isPrivate: Bool) -> BrowserWindowController {
+        let browser = BrowserWindowController(library: library, history: history, isPrivate: isPrivate,
+                                              cascadingFrom: self.browser?.window)
+        browsers.append(browser)
+        lastActiveBrowser = browser
+        browser.showWindow(nil)
+        browser.layoutContent()
+        browser.commandBar.show(mode: .newTab)
+        return browser
+    }
+
+    @objc func newWindow(_ sender: Any?) { openWindow(isPrivate: false) }
+    @objc func newPrivateWindow(_ sender: Any?) { openWindow(isPrivate: true) }
+    @objc func closeWindow(_ sender: Any?) { (NSApp.keyWindow?.parent ?? NSApp.mainWindow)?.performClose(nil) }
+
+    func browserBecameActive(_ browser: BrowserWindowController) {
+        lastActiveBrowser = browser
+    }
+
+    /// The last normal window only hides (its tabs keep running); private
+    /// windows and further normal windows close.
+    func browserMayClose(_ browser: BrowserWindowController) -> Bool {
+        browser.isPrivate || browsers.filter { !$0.isPrivate }.count > 1
+    }
+
+    func browserDidClose(_ browser: BrowserWindowController) {
+        browsers.removeAll { $0 === browser }
+        if lastActiveBrowser === browser { lastActiveBrowser = nil }
     }
 
     /// Links opened from other apps (when OpenArch is the default browser).
@@ -76,7 +130,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// A link from another app: a matching link rule decides the space,
     /// otherwise Little OpenArch or the current space.
     func openExternal(_ url: String) {
-        guard let browser else { return }
+        guard let browser = mainBrowser else { return }
         if let rule = library.settings.linkRules.first(where: { $0.matches(url) }) {
             if let id = rule.spaceID, let space = library.space(id: id) {
                 browser.showWindow(nil)
@@ -149,7 +203,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func importFromArc(_ sender: Any?) {
-        guard let browser else { return }
+        guard let browser = mainBrowser else { return }
         do {
             let (data, summary) = try ArcImporter.load()
             let alert = NSAlert()
@@ -171,6 +225,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if choice == .alertFirstButtonReturn, !quitArcIfNeeded() {
                 return
             }
+            // The library is replaced; further windows would show spaces
+            // that no longer exist.
+            for other in browsers where other !== browser { other.window?.performClose(nil) }
             browser.prepareForLibraryReplacement()
             library.replace(with: data)
             ArcFavicons.importIcons(for: ArcFavicons.urls(in: library))
@@ -320,7 +377,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func javaScriptConsole(_ sender: Any?) { browser?.runChromeCommand(.devToolsConsole) }
     @objc func inspectElement(_ sender: Any?) { browser?.runChromeCommand(.devToolsInspect) }
     @objc func savePage(_ sender: Any?) { browser?.runChromeCommand(.savePage) }
-    @objc func newIncognitoWindow(_ sender: Any?) { browser?.runChromeCommand(.newIncognitoWindow) }
+
     @objc func focusSplit(_ sender: NSMenuItem) { browser?.focusSplitPane(sender.tag) }
     @objc func nextSplit(_ sender: Any?) { browser?.focusAdjacentSplitPane(1) }
     @objc func previousSplit(_ sender: Any?) { browser?.focusAdjacentSplitPane(-1) }
@@ -375,12 +432,14 @@ enum MainMenu {
 
         main.addItem(submenu("Ablage", [
             item("Neuer Tab", #selector(AppDelegate.newTab(_:)), "t"),
+            item("Neues Fenster", #selector(AppDelegate.newWindow(_:)), "n"),
+            item("Neues privates Fenster", #selector(AppDelegate.newPrivateWindow(_:)), "n", [.command, .shift]),
             item("Neues Little-OpenArch-Fenster", #selector(AppDelegate.newLittleOpenArch(_:)), "n", [.command, .option]),
-            item("Neues Inkognito-Fenster", #selector(AppDelegate.newIncognitoWindow(_:)), "n", [.command, .shift]),
             item("Adresse öffnen …", #selector(AppDelegate.openLocation(_:)), "l"),
             item("Neuer Ordner", #selector(AppDelegate.newFolder(_:))),
             .separator(),
             item("Tab schließen", #selector(AppDelegate.closeTab(_:)), "w"),
+            item("Fenster schließen", #selector(AppDelegate.closeWindow(_:)), "w", [.command, .shift]),
             item("Geschlossenen Tab wieder öffnen", #selector(AppDelegate.reopenTab(_:)), "t", [.command, .shift]),
             item("Heute aufräumen", #selector(AppDelegate.clearToday(_:)), "k", [.command, .shift]),
             .separator(),

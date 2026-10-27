@@ -19,7 +19,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     /// Opens a Little OpenArch window, with |url| or with an address field.
     @discardableResult
     static func show(url: String?, app: AppDelegate) -> LittleOpenArchWindowController? {
-        guard let browser = app.browser else { return nil }
+        guard let browser = app.mainBrowser else { return nil }
         let controller = LittleOpenArchWindowController(url: url, space: browser.state.space, app: app)
         open.append(controller)
         if AppPaths.isSelfTest {
@@ -117,7 +117,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     /// Moves the page into the main window, in the current space (or one
     /// with the same profile, so logins stay the same).
     func moveToSpace() {
-        guard let browser = app.browser, let window else { return }
+        guard let browser = app.mainBrowser, let window else { return }
         let space = browser.state.space.profileID == profileID ? browser.state.space
             : (app.library.spaces.first { $0.profileID == profileID } ?? browser.state.space)
         transferred = true
@@ -168,8 +168,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     /// Links that want a new tab go to the main window.
     func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
-        app.browser?.openInNewTab(url, select: !background)
-        if !background { app.browser?.showWindow(nil) }
+        app.mainBrowser?.openInNewTab(url, select: !background)
+        if !background { app.mainBrowser?.showWindow(nil) }
     }
 
     func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {

@@ -10,6 +10,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     let library: Library
     let history: History
     let state: BrowserState
+    /// A private window: its own in-memory profile, no history, and tabs
+    /// that are gone once it closes.
+    let isPrivate: Bool
+    private var privateProfile: OACProfile?
 
     /// Tabs whose panes are currently shown, left to right.
     private var visibleTabs: [Item] = []
@@ -30,11 +34,17 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     static let contentInset: CGFloat = 8
     static let splitGap: CGFloat = 8
 
-    init(library: Library, history: History) {
+    init(library: Library, history: History, isPrivate: Bool = false, cascadingFrom other: NSWindow? = nil) {
         self.library = library
         self.history = history
-        let space = library.space(id: library.selectedSpaceID) ?? library.spaces[0]
-        state = BrowserState(space: space)
+        self.isPrivate = isPrivate
+        if isPrivate {
+            // Not part of the library: never saved, never in the space bar.
+            state = BrowserState(space: Space(name: "Privates Fenster", icon: "eyeglasses", colorHex: "#2C2C30", profileID: ""))
+            privateProfile = OACProfile.makePrivate()
+        } else {
+            state = BrowserState(space: library.space(id: library.selectedSpaceID) ?? library.spaces[0])
+        }
 
         let window = BrowserWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1440, height: 900),
@@ -63,16 +73,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
         rootView.addSubview(sidebarEdge)
 
-        window.setFrameAutosaveName(AppPaths.isSelfTest ? "OpenArchSelfTestWindow" : "OpenArchBrowserWindow")
-        if AppPaths.isSelfTest || !window.setFrameUsingName("OpenArchBrowserWindow") {
-            window.center()
+        if let other {
+            // Further windows cascade from the current one.
+            window.setFrame(other.frame.offsetBy(dx: 30, dy: -30), display: false)
+        } else {
+            window.setFrameAutosaveName(AppPaths.isSelfTest ? "OpenArchSelfTestWindow" : "OpenArchBrowserWindow")
+            if AppPaths.isSelfTest || !window.setFrameUsingName("OpenArchBrowserWindow") {
+                window.center()
+            }
         }
         applyTheme()
         observeChanges()
         sidebarSwipe = SidebarSwipe(browser: self)
-        OACPane.externalTabHandler = { [weak self] url in
-            MainActor.assumeIsolated { _ = self?.openInNewTab(url) }
-        }
         archiveTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.archiveInactiveTabs() }
         }
@@ -337,15 +349,43 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutContent()
     }
 
-    /// The red button hides the window; tabs keep running and the Dock
-    /// icon brings it back.
+    /// The red button hides the last normal window; tabs keep running and
+    /// the Dock icon brings it back. Other windows close for good.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         // Hide the panes first: ordering out the window would detach them in
         // a way they cannot simply be ordered back from.
         hidePanesForTransition()
-        sender.orderOut(nil)
         library.save()
+        if let app = NSApp.delegate as? AppDelegate, app.browserMayClose(self) {
+            closeForGood(handingTabsTo: app.browsers.first { $0 !== self && !$0.isPrivate })
+            return true
+        }
+        sender.orderOut(nil)
         return false
+    }
+
+    /// A private window's tabs end with it; a normal window's tabs stay open
+    /// and |heir| takes over their pages.
+    private func closeForGood(handingTabsTo heir: BrowserWindowController?) {
+        archiveTimer?.invalidate()
+        commandBar.hide()
+        if isPrivate {
+            for tab in state.space.today.allTabs { unload(tab) }
+        } else if let heir {
+            for item in itemsByPane.values {
+                guard let pane = item.pane else { continue }
+                pane.hide()
+                pane.delegate = heir
+                heir.registerPane(pane, for: item)
+            }
+        }
+        itemsByPane = [:]
+        visibleTabs = []
+        (NSApp.delegate as? AppDelegate)?.browserDidClose(self)
+    }
+
+    func windowDidBecomeMain(_ notification: Notification) {
+        (NSApp.delegate as? AppDelegate)?.browserBecameActive(self)
     }
 
     // MARK: Selection
@@ -382,6 +422,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             pictureInPictureIfPlaying(old)
             old.pane?.hide()
         }
+        for tab in tabs {
+            claim(tab)
+        }
         for tab in tabs where tab.media?.pip == true {
             mediaCommand(tab, "exitpip")
         }
@@ -407,11 +450,34 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutContent()
     }
 
+    /// A tab shows in one window at a time: one shown elsewhere moves here,
+    /// and the other window shows nothing in its place.
+    private func claim(_ tab: Item) {
+        guard let pane = tab.pane, let owner = pane.delegate as? BrowserWindowController, owner !== self else { return }
+        owner.release(tab)
+        pane.delegate = self
+        itemsByPane[ObjectIdentifier(pane)] = tab
+    }
+
+    /// Gives |tab| up to another window.
+    func release(_ tab: Item) {
+        guard let pane = tab.pane else { return }
+        itemsByPane[ObjectIdentifier(pane)] = nil
+        guard visibleTabs.contains(where: { $0 === tab }) else { return }
+        pane.hide()
+        if state.activeItem === tab || visibleTabs.count == 1 {
+            showNothing()
+        } else {
+            visibleTabs.removeAll { $0 === tab }
+            layoutContent()
+        }
+    }
+
     private func ensurePane(for tab: Item) {
         guard tab.pane == nil else { return }
-        let profile = library.profile(for: tab, in: state.space)
+        let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
         let url = tab.currentURL.isEmpty ? "about:blank" : tab.currentURL
-        let pane = OACPane(profile: profile.chromium, url: url)
+        let pane = OACPane(profile: profile, url: url)
         pane.delegate = self
         pane.cornerRadius = 8
         pane.activatesOnShow = !AppPaths.isSelfTest
@@ -422,6 +488,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Closes |tab|'s pane but keeps the item (pinned tabs, favorites).
     func unload(_ tab: Item) {
+        if let owner = tab.pane?.delegate as? BrowserWindowController, owner !== self {
+            owner.release(tab)
+        }
         if let pane = tab.pane {
             itemsByPane[ObjectIdentifier(pane)] = nil
             pane.delegate = nil
@@ -440,7 +509,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func switchSpace(to space: Space, restoring: Bool = true) {
-        guard space !== state.space else { return }
+        guard space !== state.space, !isPrivate else { return }
         state.space = space
         library.selectedSpaceID = space.id
         library.setNeedsSave()
@@ -463,6 +532,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Tabs in sidebar order for the current space: favorites, pinned, today.
     var orderedTabs: [Item] {
+        if isPrivate { return flattenVisible(state.space.today.items) }
         let favorites = library.profile(id: state.space.profileID).favorites.allTabs
         let pinned = state.space.pinned.items.flatMap { item -> [Item] in
             item.kind == .folder ? (item.isExpanded ? flattenVisible(item.children) : []) : flattenVisible([item])
@@ -578,7 +648,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let wasActive = state.activeItem === item
         let neighbor = wasActive ? neighbor(forClosing: item) : nil
         if item.role == .today {
-            library.archive(item)
+            if !isPrivate { library.archive(item) }
             unload(item)
             item.detach()
         } else {
@@ -620,7 +690,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func reopenClosedTab() {
-        guard let archived = library.popArchived() else { return }
+        guard !isPrivate, let archived = library.popArchived() else { return }
         let item = openInNewTab(archived.url)
         item.savedTitle = archived.title
     }
@@ -632,11 +702,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private func archiveInactiveTabs() {
         let hours = library.settings.archiveAfterHours
-        guard hours > 0 else { return }
+        guard hours > 0, !isPrivate else { return }
         let cutoff = Date().addingTimeInterval(-Double(hours) * 3600)
         for space in library.spaces {
+            // Not what any window shows right now.
             for tab in space.today.allTabs where tab.lastActiveAt < cutoff && tab !== state.activeItem
-                && !visibleTabs.contains(where: { $0 === tab }) {
+                && tab.pane?.isVisible != true {
                 library.archive(tab)
                 unload(tab)
                 tab.detach()
@@ -648,6 +719,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     // MARK: Pinning, favorites, folders, splits
 
     func pin(_ item: Item, into folder: Item? = nil) {
+        guard !isPrivate else { return }
         let anchor = item.split ?? item
         if anchor.role != .pinned {
             anchor.savedURL = anchor.kind == .tab ? anchor.currentURL : anchor.savedURL
@@ -672,7 +744,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func addToFavorites(_ item: Item) {
-        guard item.kind == .tab else { return }
+        guard item.kind == .tab, !isPrivate else { return }
         let favorites = library.profile(id: state.space.profileID).favorites
         if item.split != nil {
             // Take the tab out of the split view first.
@@ -922,10 +994,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func toggleChromeToolbar() {
         library.settings.showChromeToolbar.toggle()
         let visible = library.settings.showChromeToolbar
-        for container in library.allContainers {
-            for tab in container.allTabs {
-                tab.pane?.toolbarVisible = visible
-            }
+        let windows = (NSApp.delegate as? AppDelegate)?.browsers ?? [self]
+        for tab in windows.flatMap(\.allTabs) {
+            tab.pane?.toolbarVisible = visible
         }
         library.setNeedsSave()
     }
@@ -947,7 +1018,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func pane(_ pane: OACPane, titleDidChange title: String) {
         guard let item = item(for: pane) else { return }
         item.liveTitle = title
-        history.updateTitle(url: item.currentURL, title: title)
+        if !isPrivate { history.updateTitle(url: item.currentURL, title: title) }
         library.setNeedsSave()
     }
 
@@ -957,14 +1028,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             item.media = nil  // Another site; its player reports anew.
         }
         item.liveURL = url
-        history.recordVisit(url: url, title: nil)
+        if !isPrivate { history.recordVisit(url: url, title: nil) }
         library.setNeedsSave()
     }
 
     func pane(_ pane: OACPane, faviconDidChange favicon: NSImage) {
         guard let item = item(for: pane) else { return }
         item.favicon = favicon
-        FaviconStore.shared.store(favicon, forURL: item.currentURL)
+        if !isPrivate { FaviconStore.shared.store(favicon, forURL: item.currentURL) }
     }
 
     func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
@@ -1060,8 +1131,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             openChromePage("chrome://bookmarks")
         case .clearBrowsingData:
             openChromePage("chrome://settings/clearBrowserData")
-        case .newWindow, .closeWindow, .showBookmarkBar:
-            break  // One window with OpenArch's own sidebar.
+        case .newWindow:
+            (NSApp.delegate as? AppDelegate)?.openWindow(isPrivate: false)
+        case .newIncognitoWindow:
+            (NSApp.delegate as? AppDelegate)?.openWindow(isPrivate: true)
+        case .closeWindow:
+            window?.performClose(nil)
+        case .showBookmarkBar:
+            break  // OpenArch's sidebar instead.
         default:
             if (OACChromeCommand.selectTab0.rawValue...OACChromeCommand.selectTab7.rawValue).contains(commandID) {
                 selectTab(at: commandID - OACChromeCommand.selectTab0.rawValue)
@@ -1083,7 +1160,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// A changed boost reaches the open tabs of its site at once.
     func applyBoost(_ boost: Boost) {
-        for tab in library.allContainers.flatMap(\.allTabs) where tab.pane != nil && boost.applies(to: tab.currentURL) {
+        for tab in allTabs where tab.pane != nil && boost.applies(to: tab.currentURL) {
             tab.pane?.executeJavaScript(BoostStore.script(for: boost))
         }
     }
@@ -1123,8 +1200,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// The tab whose media the sidebar shows controls for: something playing
     /// (or paused) in a tab that is not on screen right now.
+    /// Every tab this window can show: the library's, or a private
+    /// window's own.
+    var allTabs: [Item] {
+        isPrivate ? state.space.today.allTabs : library.allContainers.flatMap(\.allTabs)
+    }
+
     var nowPlaying: Item? {
-        library.allContainers.flatMap(\.allTabs)
+        allTabs
             .filter { tab in tab.pane != nil && tab.media != nil && !visibleTabs.contains { $0 === tab } }
             .max { lhs, rhs in
                 if lhs.media?.playing != rhs.media?.playing { return rhs.media?.playing == true }

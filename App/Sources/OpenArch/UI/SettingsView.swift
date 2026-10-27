@@ -202,7 +202,7 @@ private struct GeneralPage: View {
             Row(symbol: "sidebar.left", color: .purple, title: "Breite",
                 detail: "Auch durch Ziehen am Rand der Sidebar; ganz nach links zieht sie zu.", showsDivider: false) {
                 Slider(value: $library.settings.sidebarWidth, in: 200...440, step: 10).frame(width: 160)
-                    .onChange(of: library.settings.sidebarWidth) { app.browser?.layoutContent() }
+                    .onChange(of: library.settings.sidebarWidth) { app.browsers.forEach { $0.layoutContent() } }
             }
         }
         SiteSearchSection(library: library)

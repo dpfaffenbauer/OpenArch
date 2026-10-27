@@ -102,7 +102,7 @@ extension BrowserWindowController {
         let tabs = state.space.today.allTabs
         let activeWasToday = tabs.contains { $0 === state.activeItem }
         for tab in tabs {
-            library.archive(tab)
+            if !isPrivate { library.archive(tab) }
             unload(tab)
         }
         for item in state.space.today.items {

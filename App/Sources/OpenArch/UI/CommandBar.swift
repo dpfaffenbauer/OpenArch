@@ -319,6 +319,10 @@ final class CommandBarModel {
     }
 
     private func matchingTabs(_ text: String) -> [Item] {
+        if browser.isPrivate {
+            // Normal tabs would move into the private window.
+            return browser.state.space.today.allTabs.filter { matches(text, $0.displayTitle, $0.currentURL) }
+        }
         let profileFavorites = browser.library.profile(id: browser.state.space.profileID).favorites.allTabs
         let spaces = [browser.state.space] + browser.library.spaces.filter { $0 !== browser.state.space }
         let all = profileFavorites + spaces.flatMap { $0.today.allTabs + $0.pinned.allTabs }
@@ -404,7 +408,7 @@ final class CommandBarModel {
                 commands.append(unsplit)
             }
         }
-        for space in browser.library.spaces where space !== browser.state.space {
+        for space in browser.library.spaces where space !== browser.state.space && !browser.isPrivate {
             let switchSpace: Command = ("Zu Space „\(space.name)“ wechseln", "square.stack", nil, { browser.switchSpace(to: space) })
             commands.append(switchSpace)
         }

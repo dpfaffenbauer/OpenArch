@@ -14,6 +14,10 @@ NS_SWIFT_UI_ACTOR
 /// object for the same directory.
 + (OACProfile*)profileWithDirectoryName:(NSString*)directoryName;
 
+/// A new private profile for a private window: kept in memory only, so
+/// cookies, history and cache are gone once its tabs close.
++ (OACProfile*)makePrivateProfile;
+
 - (instancetype)init NS_UNAVAILABLE;
 
 @property(readonly, copy) NSString* directoryName;

@@ -108,6 +108,15 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   return profile;
 }
 
++ (OACProfile*)makePrivateProfile {
+  OACProfile* profile = [[OACProfile alloc] initWithDirectoryName:@""];
+  // No cache path: Chromium keeps the profile in memory (incognito).
+  CefRequestContextSettings settings;
+  profile->_context =
+      CefRequestContext::CreateContext(settings, new ProfileHandler(profile));
+  return profile;
+}
+
 - (instancetype)initWithDirectoryName:(NSString*)directoryName {
   if ((self = [super init])) {
     _directoryName = [directoryName copy];

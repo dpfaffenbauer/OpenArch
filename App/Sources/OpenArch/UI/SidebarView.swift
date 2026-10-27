@@ -35,9 +35,13 @@ struct SidebarView: View {
             }
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 10) {
-                    FavoritesGrid(browser: browser, theme: theme)
-                    SpaceHeader(browser: browser, space: space, theme: theme)
-                    PinnedSection(browser: browser, space: space, theme: theme)
+                    if browser.isPrivate {
+                        PrivateHeader(theme: theme)
+                    } else {
+                        FavoritesGrid(browser: browser, theme: theme)
+                        SpaceHeader(browser: browser, space: space, theme: theme)
+                        PinnedSection(browser: browser, space: space, theme: theme)
+                    }
                     TodaySection(browser: browser, space: space, theme: theme)
                 }
                 .padding(.bottom, 12)
@@ -49,13 +53,37 @@ struct SidebarView: View {
             if case .ready = Updater.shared.phase {
                 UpdateBanner(theme: theme)
             }
-            SpaceBar(browser: browser, theme: theme)
+            if browser.isPrivate {
+                Spacer().frame(height: 12)
+            } else {
+                SpaceBar(browser: browser, theme: theme)
+            }
         }
         .padding(.horizontal, 8)
         .ignoresSafeArea()
         .foregroundStyle(theme.foreground)
         .environment(\.colorScheme, theme.colorScheme)
         .tint(theme.foreground)
+    }
+}
+
+/// A private window has no spaces, favorites or pinned tabs, only this.
+private struct PrivateHeader: View {
+    let theme: SpaceTheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Privates Fenster", systemImage: "eyeglasses")
+                .font(.system(size: 13, weight: .semibold))
+            Text("Kein Verlauf, keine Cookies auf der Festplatte. Alles ist weg, sobald du das Fenster schließt.")
+                .font(.system(size: 11.5))
+                .foregroundStyle(theme.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10).fill(theme.tile))
     }
 }
 

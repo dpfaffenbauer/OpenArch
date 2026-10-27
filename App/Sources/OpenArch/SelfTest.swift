@@ -68,6 +68,7 @@ final class SelfTest {
             (43.6, "media", { self.mediaTest() }),
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
+            (64.5, "windows", { self.windowsTest() }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -78,7 +79,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(64.5) {
+            after(70.5) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -89,7 +90,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 69 : 64) {
+        after(CommandLine.arguments.contains("--arc") ? 75 : 70) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -910,6 +911,38 @@ final class SelfTest {
             self.expect(!self.browser.peek.isOpen && active?.role == .today && active?.currentURL.contains("iana.org") == true,
                         "Peek becomes a tab with the same page")
             if let active { self.browser.close(active) }
+        }
+    }
+
+    /// ⌘N opens a window on the same tabs; a tab moves to the window that
+    /// shows it; closing the window hands its tabs back. A private window
+    /// keeps no history, uses an in-memory profile and takes its tabs along.
+    private func windowsTest() {
+        guard let app = NSApp.delegate as? AppDelegate, let shown = browser.state.activeItem else {
+            return expect(false, "a tab to share between windows")
+        }
+        let second = app.openWindow(isPrivate: false)
+        second.commandBar.hide()
+        expect(app.browsers.count == 2 && second.state.space === browser.state.space, "⌘N opens a second window on the same space")
+        second.select(shown)
+        expect(second.shownTabs.contains { $0 === shown } && !browser.shownTabs.contains { $0 === shown }
+               && shown.pane?.window?.parent === second.window && browser.state.activeItem == nil,
+               "a tab moves to the window that shows it")
+        second.window?.performClose(nil)
+        expect(app.browsers.count == 1 && shown.pane?.delegate === browser && shown.pane != nil,
+               "closing the second window keeps its tabs open for the first")
+        browser.select(shown)
+        expect(shown.pane?.window?.parent === browser.window, "the tab shows in the first window again")
+
+        let privateWindow = app.openWindow(isPrivate: true)
+        privateWindow.commandBar.hide()
+        let tab = privateWindow.openInNewTab("https://example.com/private-window")
+        after(3) {
+            self.expect(tab.pane?.profile.directoryName == "" && self.library.space(containing: tab) == nil
+                        && self.browser.history.search("private-window", limit: 5).isEmpty && tab.currentURL.contains("private-window"),
+                        "a private window loads pages in its own profile without history")
+            privateWindow.window?.performClose(nil)
+            self.expect(tab.pane == nil && app.browsers.count == 1, "closing the private window ends its tabs")
         }
     }
 
