@@ -22,6 +22,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private let sidebarHandle = SplitDividerView()
     private let sidebarEdge = SidebarEdgeView()
     private(set) lazy var floatingSidebar = FloatingSidebar(browser: self)
+    private(set) lazy var peek = PeekController(browser: self)
     private(set) lazy var commandBar = CommandBarController(browser: self)
     private(set) var sidebarSwipe: SidebarSwipe?
     private var archiveTimer: Timer?
@@ -167,6 +168,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutDividers(frames: frames, content: content)
         layoutFocusRing(frames: frames)
         floatingSidebar.layout()
+        peek.layout()
     }
 
     private func paneFrames(in rect: NSRect) -> [NSRect] {
@@ -310,6 +312,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private func hidePanesForTransition() {
         commandBar.hide()
         floatingSidebar.hide()
+        peek.close()
         for tab in visibleTabs {
             tab.pane?.hide()
         }
@@ -363,6 +366,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             return
         case .tab:
             break
+        }
+        if peek.isOpen {
+            peek.close()
         }
         if let space = library.space(containing: item), space !== state.space {
             switchSpace(to: space, restoring: false)
@@ -969,7 +975,24 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+        if !background, let source = item(for: pane), shouldPeek(url, from: source) {
+            peek.open(url, from: source)
+            return
+        }
         openInNewTab(url, after: item(for: pane), select: !background)
+    }
+
+    func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {
+        guard let source = item(for: pane), shouldPeek(url, from: source) else { return false }
+        peek.open(url, from: source)
+        return true
+    }
+
+    /// Pinned tabs and favorites keep their page: links to other sites
+    /// open in Peek.
+    private func shouldPeek(_ url: String, from source: Item) -> Bool {
+        library.settings.peek && (source.role == .pinned || source.role == .favorites)
+            && url.hasPrefix("http") && !PeekController.sameSite(url, source.savedURL)
     }
 
     func paneDidBecomeActive(_ pane: OACPane) {

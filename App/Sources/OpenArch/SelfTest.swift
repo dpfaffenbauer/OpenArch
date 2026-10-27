@@ -67,6 +67,7 @@ final class SelfTest {
             (37, "updater", { self.updaterTest() }),
             (43.6, "media", { self.mediaTest() }),
             (50.5, "boosts", { self.boostTest() }),
+            (56, "peek", { self.peekTest() }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -77,7 +78,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(57) {
+            after(64.5) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -88,7 +89,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 61 : 56.5) {
+        after(CommandLine.arguments.contains("--arc") ? 69 : 64) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -884,6 +885,31 @@ final class SelfTest {
             dialog.cacheDisplay(in: dialog.bounds, to: bitmap)
             try? bitmap.representation(using: .png, properties: [:])?
                 .write(to: AppPaths.support.appendingPathComponent("profile-dialog.png"))
+        }
+    }
+
+    /// A click in a pinned tab on a link to another site opens Peek; the
+    /// card becomes a today tab with the same page.
+    private func peekTest() {
+        guard let pinned = browser.state.space.pinned.allTabs.first(where: { $0.currentURL.contains("example.com") }) else {
+            return expect(false, "a pinned example.com tab for Peek")
+        }
+        browser.select(pinned)
+        expect(!PeekController.sameSite("https://example.com/a", "https://www.iana.org")
+               && PeekController.sameSite("https://gist.github.com", "https://github.com/x")
+               && PeekController.sameSite("https://a.bbc.co.uk", "https://www.bbc.co.uk"), "Peek tells sites apart")
+        after(2.5) {
+            pinned.pane?.executeJavaScript("document.querySelector('a[href]').click()", userGesture: true)
+        }
+        after(5) {
+            self.expect(self.browser.peek.isOpen && self.browser.peek.model.url.contains("iana.org")
+                        && pinned.currentURL.contains("example.com"),
+                        "a link in a pinned tab to another site opens in Peek (\(self.browser.peek.model.url))")
+            self.browser.peek.openAsTab()
+            let active = self.browser.state.activeItem
+            self.expect(!self.browser.peek.isOpen && active?.role == .today && active?.currentURL.contains("iana.org") == true,
+                        "Peek becomes a tab with the same page")
+            if let active { self.browser.close(active) }
         }
     }
 

@@ -297,6 +297,8 @@ struct Settings: Codable, Equatable {
     var linkRules: [LinkRule] = []
     /// A playing video moves to picture-in-picture when you switch tabs.
     var autoPictureInPicture = true
+    /// Links from pinned tabs and favorites to other sites open in Peek.
+    var peek = true
 
     init() {}
 
@@ -313,6 +315,7 @@ struct Settings: Codable, Equatable {
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture
+        peek = try container.decodeIfPresent(Bool.self, forKey: .peek) ?? defaults.peek
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
