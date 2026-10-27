@@ -26,7 +26,7 @@
       <a class="brand" href="#main" translate="no"><img src="assets/icon.png" alt="" width="30" height="30">OpenArch</a>
       <nav aria-label="Sections">
         <a href="#import">Import</a>
-        <a href="#spaces">Features</a>
+        <a href="#details">Features</a>
         <a href="#shortcuts">Shortcuts</a>
         <a href="#agents">For developers</a>
         <a href="https://github.com/dpfaffenbauer/OpenArch">GitHub</a>
@@ -106,6 +106,23 @@
     </section>
   </div>
 
+  <section class="details" id="details" aria-labelledby="details-title">
+    <div class="column wide">
+      <h2 id="details-title">The details that made Arc feel like Arc.</h2>
+      <p class="intro-text">The small things you miss within a day of switching browsers are in OpenArch too.</p>
+      <dl class="features">
+        <div><dt>Peek</dt><dd>Links from pinned tabs and favorites to other sites open in a card over the page. Keep it as a tab, put it next to the page, or press Esc.</dd></div>
+        <div><dt>Boosts</dt><dd>Recolor a site, give it another font, zap what annoys you with a click, or add your own CSS and JavaScript.</dd></div>
+        <div><dt>Site search</dt><dd>Type <kbd>yt</kbd>, <kbd>gh</kbd> or a site’s name in the command bar, press <kbd>Tab</kbd>, and search that site directly.</dd></div>
+        <div><dt>Link rules</dt><dd>Links from Mail or Slack go straight to the right space: github.com to Work, the rest to Little OpenArch.</dd></div>
+        <div><dt>Media controls</dt><dd>Whatever plays in another tab shows at the bottom of the sidebar. A video you leave keeps playing in picture-in-picture.</dd></div>
+        <div><dt>Hover sidebar</dt><dd>Hide the sidebar for more room. Touch the window’s left edge and it floats back over the page.</dd></div>
+        <div><dt>Windows and private windows</dt><dd>A second window shares your spaces and tabs. A private window keeps nothing once you close it.</dd></div>
+        <div><dt>Updates by themselves</dt><dd>OpenArch fetches each new build, checks it and installs it the next time you quit.</dd></div>
+      </dl>
+    </div>
+  </section>
+
   <section class="shortcuts" id="shortcuts" aria-labelledby="shortcuts-title">
     <div class="column wide">
       <h2 id="shortcuts-title">Your hands already know it.</h2>
@@ -123,8 +140,11 @@
         <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>L</kbd></dt><dd>Library: media, downloads, spaces, archive</dd></div>
         <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>K</kbd></dt><dd>Clear today’s tabs</dd></div>
         <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>T</kbd></dt><dd>Reopen a closed tab</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>N</kbd></dt><dd>New window on the same spaces</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>N</kbd></dt><dd>Private window</dd></div>
+        <div><dt><kbd>⌃</kbd><kbd>⌘</kbd><kbd>B</kbd></dt><dd>Boost the site you are on</dd></div>
       </dl>
-      <p class="meta">Peek, Boosts, site search and link rules are in too. Not there yet: Easels and Notes.</p>
+      <p class="meta">Not there yet: Easels and Notes.</p>
     </div>
   </section>
 
@@ -135,7 +155,7 @@
       <ul class="chips" aria-label="Extensions tested in OpenArch">
         <li>1Password</li><li>uBlock Origin Lite</li><li>Tampermonkey</li><li>React Developer Tools</li><li>MetaMask</li><li>Wappalyzer</li>
       </ul>
-      <p>New Chromium releases arrive by themselves: a daily job builds OpenArch with each stable version and publishes it when everything works.</p>
+      <p>New Chromium releases arrive by themselves: a daily job builds OpenArch with each stable version, publishes it when everything works, and OpenArch installs it the next time you quit.</p>
     </div>
   </section>
 
@@ -181,7 +201,11 @@
       </details>
       <details>
         <summary>macOS says it can’t check OpenArch for malware.</summary>
-        <p>Early builds are not notarized yet. Unzip OpenArch, move it to Applications, then run <code>xattr -dr com.apple.quarantine /Applications/OpenArch.app</code> in Terminal, or allow it under System Settings › Privacy &amp; Security.</p>
+        <p>Early builds are not notarized yet. Unzip OpenArch, move it to Applications, then run <code>xattr -dr com.apple.quarantine /Applications/OpenArch.app</code> in Terminal, or allow it under System Settings › Privacy &amp; Security. You only do this once: updates install themselves.</p>
+      </details>
+      <details>
+        <summary>How does OpenArch update?</summary>
+        <p>It checks GitHub for a new build at launch and every six hours, downloads it, verifies its checksum and swaps itself the next time you quit or restart. You can turn this off under Settings › Info.</p>
       </details>
       <details>
         <summary>What language is the interface in?</summary>

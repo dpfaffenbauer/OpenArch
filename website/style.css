@@ -560,6 +560,38 @@ kbd {
   font-weight: 520;
 }
 
+/* Details: the features, as a quiet two-column list */
+
+.details {
+  --surface: var(--soft-panel);
+  padding: clamp(5rem, 9vw, 8rem) var(--gutter);
+}
+
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(24rem, 100%), 1fr));
+  column-gap: 3.5rem;
+  margin: 2.5rem 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.features div {
+  padding: 1.35rem 0 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.features dt {
+  margin-bottom: 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 680;
+  font-variation-settings: "wdth" 106;
+}
+
+.features dd {
+  margin: 0;
+  color: var(--text-soft);
+}
+
 /* Extensions */
 
 .extensions {
