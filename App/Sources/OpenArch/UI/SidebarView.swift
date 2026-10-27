@@ -17,10 +17,13 @@ struct SidebarView: View {
                 sidebar
             }
         }
+        .ignoresSafeArea()
         // Follows the fingers during a swipe between spaces.
         .offset(x: offset)
         .opacity(1 - min(0.6, abs(offset) / 220))
-        .clipped()
+        // Clip the swipe to the sidebar, but up into the transparent title
+        // bar: plain .clipped() cut off the top row next to the window buttons.
+        .mask { Rectangle().ignoresSafeArea() }
     }
 
     private var sidebar: some View {
