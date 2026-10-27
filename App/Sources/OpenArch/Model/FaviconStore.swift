@@ -53,11 +53,8 @@ final class FaviconStore {
         Task {
             for candidate in candidates {
                 guard let url = URL(string: candidate) else { continue }
-                var request = URLRequest(url: url, timeoutInterval: 8)
-                request.setValue("image/*", forHTTPHeaderField: "Accept")
-                guard let (data, response) = try? await URLSession.shared.data(for: request),
-                      (response as? HTTPURLResponse)?.statusCode == 200,
-                      let image = NSImage(data: data), image.isValid, image.size.width > 0
+                let (data, status) = await ChromiumFetch.get(url)
+                guard status == 200, let data, let image = NSImage(data: data), image.isValid, image.size.width > 0
                 else { continue }
                 images[host] = image
                 version += 1

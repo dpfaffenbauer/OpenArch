@@ -1,0 +1,489 @@
+/* OpenArch website. One family (Archivo) in two widths; the arch-framed
+   screenshot in the hero is the one bold element, everything else stays
+   quiet. Colors come from the app: the lavender space color, the icon's
+   iris, and the second space's apricot. */
+
+:root {
+  --lavender: #9c99ba;
+  --lavender-soft: #e8e6f0;
+  --paper: #f6f5fa;
+  --ink: #1e1b2e;
+  --ink-soft: #4d4963;
+  --line: rgba(30, 27, 46, 0.14);
+  --iris: #5b49e0;
+  --apricot: #e5a33b;
+  --radius: 12px;
+  --column: 38rem;
+  --wide: 60rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  font-variation-settings: "wdth" 100;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--iris);
+  text-underline-offset: 0.18em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--iris);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+h1,
+h2 {
+  margin: 0 0 1rem;
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(3rem, 8.5vw, 6.75rem);
+  font-variation-settings: "wdth" 125;
+}
+
+h2 {
+  font-size: clamp(2rem, 4.2vw, 3.1rem);
+  font-variation-settings: "wdth" 118;
+  margin-bottom: 1.25rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+code,
+kbd {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Navigation */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.25rem clamp(1rem, 4vw, 3rem);
+  background: var(--lavender);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 1.15rem;
+  font-variation-settings: "wdth" 118;
+  text-decoration: none;
+}
+
+.nav nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: auto;
+}
+
+.nav nav a {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav nav a:hover {
+  text-decoration: underline;
+}
+
+/* Buttons */
+
+.button {
+  display: inline-block;
+  padding: 0.9rem 1.5rem;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 650;
+  font-variation-settings: "wdth" 108;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button.ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.button.small {
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* Hero: the screenshot sits in an arch, like the app icon. */
+
+.hero {
+  background: var(--lavender);
+  padding: clamp(3rem, 8vw, 6.5rem) clamp(1rem, 4vw, 3rem) 0;
+  overflow: hidden;
+}
+
+.hero-text {
+  max-width: 62rem;
+  margin: 0 auto clamp(3rem, 6vw, 4.5rem);
+}
+
+.lead {
+  max-width: 40rem;
+  font-size: clamp(1.1rem, 1.6vw, 1.3rem);
+  line-height: 1.55;
+  margin-top: 1.75rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 2rem 0 1rem;
+}
+
+.fine {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+/* A flat (segmental) arch above the window: tall enough at the top that
+   the screenshot's corners stay inside the curve. */
+.arch {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: clamp(56px, 10.5vw, 132px) clamp(8px, 1.4vw, 16px) 0;
+  background: var(--paper);
+  border-radius: 50% 50% 0 0 / 20% 20% 0 0;
+  animation: rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.arch img {
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(3rem);
+  }
+}
+
+/* Sections */
+
+section:not(.hero) {
+  padding: clamp(4.5rem, 10vw, 7.5rem) clamp(1rem, 4vw, 3rem);
+}
+
+.column {
+  max-width: var(--column);
+  margin: 0 auto;
+}
+
+.column.wide {
+  max-width: var(--wide);
+}
+
+.column > p {
+  max-width: var(--column);
+}
+
+.checklist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 2rem;
+  margin: 2rem 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 550;
+}
+
+.checklist li {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.checklist li::before {
+  content: "✓";
+  color: var(--iris);
+  font-weight: 800;
+}
+
+.compare {
+  background: var(--lavender-soft);
+}
+
+table {
+  width: 100%;
+  margin: 2.25rem 0 0;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  font-weight: 750;
+  font-variation-settings: "wdth" 112;
+  padding: 0 1rem 0.75rem 0;
+  border-bottom: 2px solid var(--ink);
+}
+
+td {
+  padding: 0.85rem 1rem 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+td:first-child {
+  width: 34%;
+  font-weight: 600;
+}
+
+tr.missing td {
+  color: var(--ink-soft);
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  font-size: 0.8em;
+  line-height: 1.5;
+}
+
+.shot {
+  max-width: 68rem;
+  margin: clamp(3rem, 6vw, 4.5rem) auto 0;
+}
+
+.shot img {
+  border-radius: 14px;
+  box-shadow: 0 2.5rem 4rem -2rem rgba(30, 27, 46, 0.45);
+}
+
+.names {
+  font-weight: 650;
+  font-variation-settings: "wdth" 110;
+  font-size: 1.2rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.agents {
+  background: var(--lavender-soft);
+}
+
+.code {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1rem 1rem 1rem 1.25rem;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.code code {
+  flex: 1;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.code button {
+  flex: none;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(246, 245, 250, 0.4);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.yours dl {
+  display: grid;
+  grid-template-columns: minmax(10rem, 16rem) 1fr;
+  gap: 1.25rem 2rem;
+  margin: 2rem 0 0;
+}
+
+.yours dt {
+  font-weight: 700;
+}
+
+.yours dd {
+  margin: 0;
+}
+
+.yours code,
+.faq code {
+  font-size: 0.88em;
+}
+
+.faq details {
+  border-top: 1px solid var(--line);
+  padding: 1rem 0;
+}
+
+.faq details:last-of-type {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary::after {
+  content: "+";
+  font-weight: 400;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.faq details[open] summary::after {
+  content: "–";
+}
+
+.faq details p {
+  margin: 0.75rem 0 0;
+  color: var(--ink-soft);
+}
+
+.closing {
+  background: var(--apricot);
+  text-align: center;
+}
+
+.closing h2 {
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  font-variation-settings: "wdth" 125;
+  margin-bottom: 2rem;
+}
+
+footer {
+  padding: 2.5rem clamp(1rem, 4vw, 3rem) 3rem;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+footer p {
+  max-width: var(--wide);
+  margin: 0 auto 0.5rem;
+}
+
+/* Small screens */
+
+@media (max-width: 760px) {
+  .nav nav {
+    display: none;
+  }
+
+  .nav .button {
+    margin-left: auto;
+  }
+
+  .checklist {
+    grid-template-columns: 1fr;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tr {
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  td {
+    padding: 0;
+    border: 0;
+  }
+
+  td:first-child {
+    width: auto;
+    margin-bottom: 0.2rem;
+  }
+
+  .yours dl {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .yours dd {
+    margin-bottom: 1rem;
+  }
+
+  .code {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .arch {
+    animation: none;
+  }
+
+  .button {
+    transition: none;
+  }
+}

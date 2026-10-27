@@ -25,6 +25,20 @@ final class SelfTest {
             popupTest()
             return
         }
+        if let index = CommandLine.arguments.firstIndex(of: "--show"), index + 1 < CommandLine.arguments.count {
+            // Just one tab with this page, for driving OpenArch from outside.
+            library.replace(with: LibraryData(
+                profiles: [ProfileData(id: "Default", name: "Test", favorites: [])],
+                spaces: [SpaceData(id: UUID(), name: "Test", icon: "star.fill", colorHex: "#9C99BA", profileID: "Default",
+                                   pinned: [], today: [tab(CommandLine.arguments[index + 1], "Test")])]))
+            browser.libraryWasReplaced()
+            if let item = library.spaces.first?.today.items.first { browser.select(item) }
+            return
+        }
+        if CommandLine.arguments.contains("--marketing") {
+            marketingScreens()
+            return
+        }
         populate()
         let steps: [(Double, String, () -> Void)] = [
             (0.5, "today tab", { self.selectToday() }),
@@ -70,7 +84,76 @@ final class SelfTest {
         }
         after(CommandLine.arguments.contains("--arc") ? 46 : 42.5) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
-            if !stay { NSApp.terminate(nil) }
+            if !stay { Self.quit() }
+        }
+    }
+
+    // MARK: Screenshots for the website
+
+    /// Demo content (no personal data) in the states the website shows.
+    /// Prints "STEP shot <name>" when a state is ready to be captured.
+    private func marketingScreens() {
+        func tab(_ url: String, _ title: String) -> ItemData { ItemData(id: UUID(), kind: .tab, title: title, url: url) }
+        func folder(_ name: String, _ children: [ItemData], icon: String? = nil) -> ItemData {
+            ItemData(id: UUID(), kind: .folder, customTitle: name, children: children, isExpanded: true, icon: icon)
+        }
+        library.settings.showChromeToolbar = false
+        library.replace(with: LibraryData(
+            profiles: [ProfileData(id: "Default", name: "Persönlich", favorites: [
+                tab("https://github.com/", "GitHub"),
+                tab("https://www.youtube.com/", "YouTube"),
+                tab("https://en.wikipedia.org/wiki/Main_Page", "Wikipedia"),
+                tab("https://www.figma.com/", "Figma"),
+                tab("https://open.spotify.com/", "Spotify"),
+                tab("https://linear.app/", "Linear"),
+            ])],
+            spaces: [
+                SpaceData(id: UUID(), name: "Work", icon: "briefcase.fill", colorHex: "#9C99BA", profileID: "Default",
+                          pinned: [
+                              folder("OpenArch", [
+                                  tab("https://github.com/dpfaffenbauer/OpenArch", "dpfaffenbauer/OpenArch"),
+                                  tab("https://github.com/dpfaffenbauer/OpenArch/actions", "Actions"),
+                              ], icon: "bolt.fill"),
+                              folder("Reading", [
+                                  tab("https://en.wikipedia.org/wiki/Gothic_architecture", "Gothic architecture"),
+                                  tab("https://en.wikipedia.org/wiki/Roman_bridge", "Roman bridge"),
+                              ]),
+                              tab("https://developer.chrome.com/docs/extensions", "Chrome Extensions"),
+                          ],
+                          today: [
+                              tab("https://en.wikipedia.org/wiki/Arch", "Arch - Wikipedia"),
+                              tab("https://en.wikipedia.org/wiki/Keystone_(architecture)", "Keystone (architecture)"),
+                              tab("https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius", "border-radius - CSS"),
+                          ]),
+                SpaceData(id: UUID(), name: "Home", icon: "house.fill", colorHex: "#E5A33B", profileID: "Default",
+                          pinned: [], today: []),
+                SpaceData(id: UUID(), name: "Travel", icon: "airplane", colorHex: "#3FA9F5", profileID: "Default",
+                          pinned: [], today: []),
+            ]))
+        browser.libraryWasReplaced()
+        let today = library.spaces[0].today.items
+        browser.select(today[0])
+        after(7) { Swift.print("[selftest] STEP shot hero") }
+        after(10) {
+            self.browser.split(today[1], with: today[0])
+            after(5) { Swift.print("[selftest] STEP shot split") }
+        }
+        after(17) {
+            self.browser.unsplit(today[0])
+            self.browser.select(today[0])
+            self.browser.commandBar.show(mode: .newTab)
+            self.browser.commandBar.model.query = "arch"
+            after(3) { Swift.print("[selftest] STEP shot commandbar") }
+        }
+        after(22) {
+            self.browser.commandBar.hide()
+            self.browser.state.librarySection = .spaces
+            self.browser.toggleLibrary()
+            after(2) { Swift.print("[selftest] STEP shot library") }
+        }
+        after(26) {
+            Swift.print("[selftest] DONE marketing")
+            Self.quit()
         }
     }
 
@@ -125,7 +208,7 @@ final class SelfTest {
             .filter({ $0.isVisible && $0 !== browser.window && !panes.contains(ObjectIdentifier($0)) && $0.frame.width > 600 })
             .max(by: { $0.frame.width < $1.frame.width }) else {
             Swift.print("[selftest] DONE popup test")
-            NSApp.terminate(nil)
+            Self.quit()
             return
         }
         let before = Set(NSApp.windows.map(ObjectIdentifier.init))
@@ -158,7 +241,7 @@ final class SelfTest {
     private func nextPopupRound() {
         guard !popupRounds.isEmpty else {
             Swift.print("[selftest] DONE popup test")
-            NSApp.terminate(nil)
+            Self.quit()
             return
         }
         let (label, offset) = popupRounds.removeFirst()
@@ -211,6 +294,13 @@ final class SelfTest {
             }
         }
         poll()
+    }
+
+    /// Quits, and makes sure the process ends even if Chromium's shutdown
+    /// stalls (a test run must never hang a CI job).
+    static func quit() {
+        DispatchQueue.global().asyncAfter(deadline: .now() + 8) { exit(0) }
+        NSApp.terminate(nil)
     }
 
     private func expect(_ condition: Bool, _ message: String) {
@@ -267,7 +357,12 @@ final class SelfTest {
         let titles = browser.commandBar.model.results.prefix(5).map(\.title)
         expect(browser.commandBar.model.results.count >= 3, "command bar finds tabs for 'exam': \(titles)")
         expect(browser.commandBar.model.results.contains { $0.badge == "Zu Tab wechseln" }, "command bar offers 'Zu Tab wechseln'")
-        after(2) { self.browser.commandBar.hide() }
+        after(2) {
+            let searches = self.browser.commandBar.model.results.filter { $0.subtitle?.hasSuffix("-Suche") == true }
+            self.expect(searches.count > 1, "search suggestions arrive (\(searches.count - 1))")
+            self.expect(FaviconStore.shared.image(forURL: "https://www.iana.org/") != nil, "favicons load for pages that are not open")
+            self.browser.commandBar.hide()
+        }
     }
 
     private func split() {

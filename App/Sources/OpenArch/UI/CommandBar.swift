@@ -38,6 +38,7 @@ final class CommandBarController: NSObject, NSWindowDelegate {
                        display: false)
         if AppPaths.isSelfTest {
             panel.level = .normal
+            if panel.parent == nil { window.addChildWindow(panel, ordered: .above) }
             panel.order(.above, relativeTo: window.windowNumber)
         } else {
             panel.makeKeyAndOrderFront(nil)
@@ -360,7 +361,7 @@ final class CommandBarModel {
         suggestionTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled,
-                  let (data, _) = try? await URLSession.shared.data(from: endpoint),
+                  case (let data?, 200) = await ChromiumFetch.get(endpoint),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [Any],
                   json.count > 1, let list = json[1] as? [String],
                   !Task.isCancelled, let self, self.query.trimmingCharacters(in: .whitespaces) == text

@@ -35,7 +35,9 @@ if AppPaths.isSelfTest {
     // The probe extension checks extension APIs. The self-test window sits
     // behind other windows, so Chromium must not treat it as hidden, and its
     // (muted) test audio must start without a click.
-    settings.extensionPaths += AppPaths.bundledExtensions("Extensions")
+    if !arguments.contains("--marketing") && !arguments.contains("--show") {
+        settings.extensionPaths += AppPaths.bundledExtensions("Extensions")
+    }
     // --extension <dir>: more unpacked extensions; --pin-extension <id>: show
     // one in the toolbar (for the popup timing test).
     for (index, argument) in arguments.enumerated() where index + 1 < arguments.count {

@@ -1,6 +1,8 @@
 #import "OACProfile.h"
 #import "OACInternal.h"
 
+#include "include/cef_urlrequest.h"
+
 namespace {
 
 class ProfileHandler : public CefRequestContextHandler {
@@ -16,6 +18,47 @@ class ProfileHandler : public CefRequestContextHandler {
   __weak OACProfile* profile_;
 
   IMPLEMENT_REFCOUNTING(ProfileHandler);
+};
+
+class FetchClient : public CefURLRequestClient {
+ public:
+  explicit FetchClient(void (^completion)(NSData*, NSInteger))
+      : completion_([completion copy]), data_([NSMutableData data]) {}
+
+  void OnRequestComplete(CefRefPtr<CefURLRequest> request) override {
+    CefRefPtr<CefResponse> response = request->GetResponse();
+    const bool ok = request->GetRequestStatus() == UR_SUCCESS && response;
+    completion_(ok ? data_ : nil, ok ? response->GetStatus() : 0);
+    completion_ = nil;
+  }
+
+  void OnUploadProgress(CefRefPtr<CefURLRequest> request,
+                        int64_t current,
+                        int64_t total) override {}
+  void OnDownloadProgress(CefRefPtr<CefURLRequest> request,
+                          int64_t current,
+                          int64_t total) override {}
+
+  void OnDownloadData(CefRefPtr<CefURLRequest> request,
+                      const void* data,
+                      size_t data_length) override {
+    [data_ appendBytes:data length:data_length];
+  }
+
+  bool GetAuthCredentials(bool isProxy,
+                          const CefString& host,
+                          int port,
+                          const CefString& realm,
+                          const CefString& scheme,
+                          CefRefPtr<CefAuthCallback> callback) override {
+    return false;
+  }
+
+ private:
+  void (^completion_)(NSData*, NSInteger);
+  NSMutableData* data_;
+
+  IMPLEMENT_REFCOUNTING(FetchClient);
 };
 
 NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
@@ -91,6 +134,17 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   for (dispatch_block_t block in pending) {
     block();
   }
+}
+
+- (void)fetchURL:(NSString*)url
+      completion:(void (^)(NSData* _Nullable, NSInteger))completion {
+  [self whenReady:^{
+    CefRefPtr<CefRequest> request = CefRequest::Create();
+    request->SetURL(url.UTF8String);
+    request->SetMethod("GET");
+    request->SetFlags(UR_FLAG_ALLOW_STORED_CREDENTIALS);
+    CefURLRequest::Create(request, new FetchClient(completion), self->_context);
+  }];
 }
 
 - (CefRefPtr<CefRequestContext>)cefContext {

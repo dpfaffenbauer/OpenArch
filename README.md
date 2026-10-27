@@ -116,6 +116,7 @@ Lessons learned on the way:
 ## Layout
 
 - `App/`: the browser
+- `website/`: the website, published by `.github/workflows/pages.yml`
 - `scripts/fetch-cef.sh`: downloads the pinned CEF binary distribution into `Vendor/cef`
 - `scripts/update-cef.sh`: moves the pin to the newest stable CEF build
 - `scripts/patch-cef.swift`: lowers CEF's 2 s wait before extension popups appear
