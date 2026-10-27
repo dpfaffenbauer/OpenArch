@@ -4,26 +4,47 @@ import UniformTypeIdentifiers
 
 /// Sidebar actions: drag and drop, spaces, tidying up.
 extension BrowserWindowController {
-    /// Handles a drop of a sidebar item (its id as text) or a link.
+    /// Handles a drop of a sidebar item (its id as text) or a link: from a
+    /// page, another app, or a file from Finder.
     @discardableResult
     func handleDrop(_ providers: [NSItemProvider], target: DropTarget) -> Bool {
         loadDroppedString(providers) { string in
             if let id = UUID(uuidString: string), let item = self.library.item(id: id) {
                 self.move(item, to: target)
-            } else if let url = URL(string: string), ["http", "https"].contains(url.scheme ?? "") {
-                let item = Item.tab(url: string)
+            } else if let url = Self.droppedLink(string) {
+                let item = Item.tab(url: url)
                 self.state.space.today.insert(item, at: 0)
                 self.move(item, to: target)
+                self.select(item)
             }
         }
     }
 
     @discardableResult
     func handleDrop(_ providers: [NSItemProvider], toSpace space: Space) -> Bool {
-        loadDroppedString(providers) { string in
-            guard let id = UUID(uuidString: string), let item = self.library.item(id: id) else { return }
-            self.moveToSpace(item, space)
+        loadDroppedString(providers) { self.drop($0, toSpace: space) }
+    }
+
+    /// A tab dropped on a space's icon moves there; a link opens there.
+    func drop(_ string: String, toSpace space: Space) {
+        if let id = UUID(uuidString: string), let item = library.item(id: id) {
+            moveToSpace(item, space)
+        } else if let url = Self.droppedLink(string) {
+            switchSpace(to: space)
+            openInNewTab(url)
         }
+    }
+
+    /// A dropped string worth a tab: a web or file address, or one without
+    /// its scheme ("example.com/page"). Other text is not.
+    static func droppedLink(_ string: String) -> String? {
+        let text = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let url = URL(string: text), let scheme = url.scheme?.lowercased(), ["http", "https", "file"].contains(scheme) {
+            return text
+        }
+        guard !text.isEmpty, !text.contains(where: \.isWhitespace), let url = URL(string: "https://" + text),
+              url.host()?.contains(".") == true else { return nil }
+        return url.absoluteString
     }
 
     private func loadDroppedString(_ providers: [NSItemProvider], _ handler: @escaping @MainActor (String) -> Void) -> Bool {
@@ -38,6 +59,15 @@ extension BrowserWindowController {
                 Task { @MainActor in wrapped(string) }
             }
             BrowserWindowController.tabDropHandled = true
+            return true
+        }
+        // Links from pages, Safari, Mail and files from Finder come as URLs,
+        // often without any text.
+        if let provider = providers.first(where: { $0.canLoadObject(ofClass: NSURL.self) }) {
+            _ = provider.loadObject(ofClass: NSURL.self) { object, _ in
+                guard let string = (object as? NSURL)?.absoluteString else { return }
+                Task { @MainActor in wrapped(string) }
+            }
             return true
         }
         guard let provider = providers.first(where: { $0.canLoadObject(ofClass: NSString.self) }) else { return false }

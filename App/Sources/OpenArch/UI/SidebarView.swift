@@ -50,6 +50,11 @@ struct SidebarView: View {
                 .padding(.bottom, 12)
             }
             .scrollIndicators(.never)
+            // The free space under the tabs takes drops too: they go last.
+            .contentShape(Rectangle())
+            .onDrop(of: UTType.sidebarDrops, isTargeted: nil) { providers in
+                browser.handleDrop(providers, target: .end(space.today))
+            }
             if let playing = browser.nowPlaying {
                 MediaCard(browser: browser, item: playing, theme: theme)
             }
@@ -291,7 +296,7 @@ private struct FavoritesGrid: View {
             }
         }
         .background(RoundedRectangle(cornerRadius: 10).fill(dropTargeted ? theme.hover : .clear))
-        .onDrop(of: [.openArchTab, .plainText], isTargeted: $dropTargeted) { providers in
+        .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
             browser.handleDrop(providers, target: .end(favorites))
         }
     }
@@ -327,7 +332,7 @@ private struct FavoriteTile: View {
             browser.beginTabDrag(item)
             return tabDragProvider(item)
         }
-        .onDrop(of: [.openArchTab, .plainText], isTargeted: nil) { providers in
+        .onDrop(of: UTType.sidebarDrops, isTargeted: nil) { providers in
             browser.handleDrop(providers, target: .before(item))
         }
         .contextMenu {
@@ -412,7 +417,7 @@ private struct PinnedSection: View {
                     }
                 }
                 .background(RoundedRectangle(cornerRadius: 8).fill(dropTargeted ? theme.hover : .clear))
-                .onDrop(of: [.openArchTab, .plainText], isTargeted: $dropTargeted) { providers in
+                .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
                     browser.handleDrop(providers, target: .end(space.pinned))
                 }
         }
@@ -462,7 +467,7 @@ private struct FolderRow: View {
         .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { browser.select(item) } }
         .onHover { hovering = $0 }
         .onDrag { tabDragProvider(item) }
-        .onDrop(of: [.openArchTab, .plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
+        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
         .contextMenu {
             Button("Umbenennen") { browser.state.renamingItemID = item.id }
             Button("Neuer Unterordner") { browser.newFolder(in: item) }
@@ -514,7 +519,7 @@ private struct TabRow: View {
             browser.beginTabDrag(item)
             return tabDragProvider(item)
         }
-        .onDrop(of: [.openArchTab, .plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
         .contextMenu { TabContextMenu(browser: browser, item: item) }
         .help(item.currentURL)
     }
@@ -549,7 +554,7 @@ private struct SplitRow: View {
         .rowStyle(depth: depth, isActive: isShown, hovering: hovering, theme: theme, dropZone: dropZone, horizontalPadding: 3)
         .onHover { hovering = $0 }
         .onDrag { tabDragProvider(item) }
-        .onDrop(of: [.openArchTab, .plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
         .help("Split View")
     }
 }
@@ -637,11 +642,14 @@ private struct TodaySection: View {
             .frame(height: 16)
             .padding(.horizontal, 8)
             .onHover { hoveringHeader = $0 }
-            .onDrop(of: [.openArchTab, .plainText], isTargeted: $dropTargeted) { providers in
+            .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
                 browser.handleDrop(providers, target: .end(space.today))
             }
 
             NewTabRow(browser: browser, theme: theme)
+                .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                    browser.handleDrop(providers, target: space.today.items.first.map { .before($0) } ?? .end(space.today))
+                }
             ForEach(space.today.items) { item in
                 SidebarNode(browser: browser, item: item, theme: theme, depth: 0)
             }
@@ -726,7 +734,7 @@ private struct SpaceButton: View {
             .onTapGesture { browser.switchSpace(to: space) }
             .onHover { hovering = $0 }
             .help(index < 9 ? "\(space.name) (⌃\(index + 1))" : space.name)
-            .onDrop(of: [.openArchTab, .plainText], isTargeted: nil) { providers in
+            .onDrop(of: UTType.sidebarDrops, isTargeted: nil) { providers in
                 browser.handleDrop(providers, toSpace: space)
             }
             .contextMenu {
@@ -898,7 +906,9 @@ private struct RowDropDelegate: DropDelegate {
     func dropEntered(info: DropInfo) { zone = zone(for: info) }
     func dropUpdated(info: DropInfo) -> DropProposal? {
         zone = zone(for: info)
-        return DropProposal(operation: .move)
+        // Our own tabs move; a page or another app only lets its links be
+        // copied, and a move would be refused.
+        return DropProposal(operation: info.hasItemsConforming(to: [.openArchTab]) ? .move : .copy)
     }
     func dropExited(info: DropInfo) { zone = nil }
 
@@ -910,7 +920,7 @@ private struct RowDropDelegate: DropDelegate {
         case .into: target = .into(item)
         }
         zone = nil
-        return browser.handleDrop(info.itemProviders(for: [.openArchTab, .plainText]), target: target)
+        return browser.handleDrop(info.itemProviders(for: UTType.sidebarDrops), target: target)
     }
 }
 
@@ -918,6 +928,10 @@ extension UTType {
     /// A sidebar item being dragged: private to OpenArch, so Finder and other
     /// apps ignore it (no text clippings with an id in them).
     static let openArchTab = UTType(exportedAs: "dev.openarch.tab", conformingTo: .data)
+
+    /// What the sidebar takes: its own tabs, links (files from Finder too)
+    /// and text with an address in it.
+    static let sidebarDrops: [UTType] = [.openArchTab, .url, .plainText]
 }
 
 extension NSPasteboard.PasteboardType {
