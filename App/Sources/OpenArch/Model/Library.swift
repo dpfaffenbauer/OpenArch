@@ -1,0 +1,307 @@
+import AppKit
+import Observation
+import OpenArchCore
+
+/// Everything the user keeps: profiles, spaces, favorites, pinned folders and
+/// the open "today" tabs. Saved as JSON in Application Support.
+@MainActor @Observable
+final class Library {
+    private(set) var profiles: [Profile] = []
+    private(set) var spaces: [Space] = []
+    var settings = Settings()
+    /// Today tabs closed or archived, newest first (for ⌘⇧T and the command bar).
+    private(set) var archive: [ArchivedTab] = []
+    var selectedSpaceID: UUID?
+
+    @ObservationIgnored private var saveScheduled = false
+    @ObservationIgnored private let fileURL = AppPaths.support.appendingPathComponent("Library.json")
+
+    // MARK: Lookup
+
+    func profile(id: String) -> Profile {
+        profiles.first { $0.id == id } ?? profiles[0]
+    }
+
+    func space(id: UUID?) -> Space? {
+        spaces.first { $0.id == id }
+    }
+
+    /// Every container that can hold tabs, for searching and lookup.
+    var allContainers: [Container] {
+        profiles.map(\.favorites) + spaces.flatMap { [$0.pinned, $0.today] }
+    }
+
+    func item(id: UUID) -> Item? {
+        for container in allContainers {
+            if let item = container.find(id: id) {
+                return item
+            }
+        }
+        return nil
+    }
+
+    func space(containing item: Item) -> Space? {
+        guard let container = item.container else { return nil }
+        return spaces.first { $0.pinned === container || $0.today === container }
+    }
+
+    func profile(for item: Item, in space: Space) -> Profile {
+        if let container = item.container, let owner = profiles.first(where: { $0.favorites === container }) {
+            return owner
+        }
+        return profile(id: (self.space(containing: item) ?? space).profileID)
+    }
+
+    // MARK: Editing
+
+    @discardableResult
+    func addProfile(name: String) -> Profile {
+        var index = profiles.count
+        var directory: String
+        repeat {
+            index += 1
+            directory = "Profile \(index)"
+        } while profiles.contains { $0.id == directory }
+        let profile = Profile(id: directory, name: name)
+        profiles.append(profile)
+        setNeedsSave()
+        return profile
+    }
+
+    func renameProfile(_ profile: Profile, to name: String) {
+        profile.name = name
+        setNeedsSave()
+    }
+
+    @discardableResult
+    func addSpace(name: String, icon: String = "circle.fill", colorHex: String = "#7B6CF6", profileID: String? = nil) -> Space {
+        let space = Space(name: name, icon: icon, colorHex: colorHex, profileID: profileID ?? profiles[0].id)
+        spaces.append(space)
+        setNeedsSave()
+        return space
+    }
+
+    func removeSpace(_ space: Space) {
+        guard spaces.count > 1 else { return }
+        for item in space.pinned.allItems + space.today.allItems {
+            item.pane?.close()
+        }
+        spaces.removeAll { $0 === space }
+        setNeedsSave()
+    }
+
+    func moveSpace(_ space: Space, by offset: Int) {
+        guard let index = spaces.firstIndex(where: { $0 === space }) else { return }
+        let target = max(0, min(spaces.count - 1, index + offset))
+        spaces.move(fromOffsets: IndexSet(integer: index), toOffset: target > index ? target + 1 : target)
+        setNeedsSave()
+    }
+
+    func archive(_ item: Item) {
+        guard item.kind == .tab else { return }
+        archive.insert(ArchivedTab(title: item.displayTitle, url: item.currentURL, date: Date()), at: 0)
+        if archive.count > 500 {
+            archive.removeLast(archive.count - 500)
+        }
+    }
+
+    func popArchived() -> ArchivedTab? {
+        archive.isEmpty ? nil : archive.removeFirst()
+    }
+
+    func removeArchived(_ tab: ArchivedTab) {
+        if let index = archive.firstIndex(of: tab) {
+            archive.remove(at: index)
+            setNeedsSave()
+        }
+    }
+
+    func clearArchive() {
+        archive.removeAll()
+        setNeedsSave()
+    }
+
+    // MARK: Persistence
+
+    func setNeedsSave() {
+        guard !saveScheduled else { return }
+        saveScheduled = true
+        after(1) {
+            self.saveScheduled = false
+            self.save()
+        }
+    }
+
+    func save() {
+        let data = LibraryData(
+            profiles: profiles.map { ProfileData(id: $0.id, name: $0.name, favorites: $0.favorites.items.map(\.data)) },
+            spaces: spaces.map(\.data),
+            settings: settings,
+            archive: archive,
+            selectedSpaceID: selectedSpaceID)
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            try encoder.encode(data).write(to: fileURL, options: .atomic)
+        } catch {
+            log("could not save library: \(error)")
+        }
+    }
+
+    /// Loads the saved library, or sets up a first-run one.
+    static func load() -> Library {
+        let library = Library()
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        if let raw = try? Data(contentsOf: library.fileURL),
+           let data = try? decoder.decode(LibraryData.self, from: raw), !data.spaces.isEmpty {
+            library.apply(data)
+        } else {
+            library.profiles = [Profile(id: "Default", name: "Persönlich")]
+            library.spaces = [Space(name: "Persönlich", icon: "person.fill", colorHex: "#7B6CF6", profileID: "Default")]
+        }
+        return library
+    }
+
+    func apply(_ data: LibraryData) {
+        profiles = data.profiles.map { profileData in
+            let profile = Profile(id: profileData.id, name: profileData.name)
+            profile.favorites.replace(with: profileData.favorites.map(Item.init(data:)))
+            return profile
+        }
+        if profiles.isEmpty {
+            profiles = [Profile(id: "Default", name: "Persönlich")]
+        }
+        spaces = data.spaces.map(Space.init(data:))
+        settings = data.settings ?? Settings()
+        archive = data.archive ?? []
+        selectedSpaceID = data.selectedSpaceID
+    }
+
+    /// Replaces spaces and favorites with an import (e.g. from Arc).
+    func replace(with data: LibraryData) {
+        for container in allContainers {
+            for item in container.allItems {
+                item.pane?.close()
+            }
+        }
+        let keepSettings = settings
+        apply(data)
+        settings = keepSettings
+        setNeedsSave()
+    }
+}
+
+// MARK: - Profiles and spaces
+
+@MainActor @Observable
+final class Profile: Identifiable {
+    /// Directory name below Chromium's user data directory.
+    let id: String
+    var name: String
+    let favorites = Container(role: .favorites)
+
+    init(id: String, name: String) {
+        self.id = id
+        self.name = name
+    }
+
+    var chromium: OACProfile {
+        OACProfile(directoryName: id)
+    }
+}
+
+@MainActor @Observable
+final class Space: Identifiable {
+    let id: UUID
+    var name: String
+    /// SF Symbol name, or a single emoji.
+    var icon: String
+    var colorHex: String
+    var profileID: String
+    let pinned = Container(role: .pinned)
+    let today = Container(role: .today)
+
+    init(id: UUID = UUID(), name: String, icon: String, colorHex: String, profileID: String) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.colorHex = colorHex
+        self.profileID = profileID
+    }
+
+    /// The tab last shown in this space.
+    var activeItemID: UUID?
+
+    convenience init(data: SpaceData) {
+        self.init(id: data.id, name: data.name, icon: data.icon, colorHex: data.colorHex, profileID: data.profileID)
+        pinned.replace(with: data.pinned.map(Item.init(data:)))
+        today.replace(with: data.today.map(Item.init(data:)))
+        activeItemID = data.activeItemID
+    }
+
+    var data: SpaceData {
+        SpaceData(id: id, name: name, icon: icon, colorHex: colorHex, profileID: profileID,
+                  pinned: pinned.items.map(\.data), today: today.items.map(\.data), activeItemID: activeItemID)
+    }
+
+    var color: NSColor {
+        NSColor(hex: colorHex) ?? .systemPurple
+    }
+}
+
+struct ArchivedTab: Codable, Hashable {
+    var title: String
+    var url: String
+    var date: Date
+}
+
+struct Settings: Codable, Equatable {
+    enum SearchEngine: String, Codable, CaseIterable, Identifiable {
+        case google, duckDuckGo, ecosia, bing, kagi
+        var id: String { rawValue }
+        var name: String {
+            switch self {
+            case .google: "Google"
+            case .duckDuckGo: "DuckDuckGo"
+            case .ecosia: "Ecosia"
+            case .bing: "Bing"
+            case .kagi: "Kagi"
+            }
+        }
+        func url(for query: String) -> String {
+            let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?#"))) ?? query
+            switch self {
+            case .google: return "https://www.google.com/search?q=\(q)"
+            case .duckDuckGo: return "https://duckduckgo.com/?q=\(q)"
+            case .ecosia: return "https://www.ecosia.org/search?q=\(q)"
+            case .bing: return "https://www.bing.com/search?q=\(q)"
+            case .kagi: return "https://kagi.com/search?q=\(q)"
+            }
+        }
+    }
+
+    var searchEngine = SearchEngine.google
+    var searchSuggestions = true
+    /// Hours after which inactive today tabs are archived; 0 = never.
+    var archiveAfterHours = 12
+    var showChromeToolbar = true
+    var showSidebarAddress = false
+    var sidebarWidth = 300.0
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = Settings()
+        searchEngine = try container.decodeIfPresent(SearchEngine.self, forKey: .searchEngine) ?? defaults.searchEngine
+        searchSuggestions = try container.decodeIfPresent(Bool.self, forKey: .searchSuggestions) ?? defaults.searchSuggestions
+        archiveAfterHours = try container.decodeIfPresent(Int.self, forKey: .archiveAfterHours) ?? defaults.archiveAfterHours
+        showChromeToolbar = try container.decodeIfPresent(Bool.self, forKey: .showChromeToolbar) ?? defaults.showChromeToolbar
+        showSidebarAddress = try container.decodeIfPresent(Bool.self, forKey: .showSidebarAddress) ?? defaults.showSidebarAddress
+        sidebarWidth = try container.decodeIfPresent(Double.self, forKey: .sidebarWidth) ?? defaults.sidebarWidth
+        // 260 was the first default; Arc's rows need a bit more room.
+        if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
+    }
+}

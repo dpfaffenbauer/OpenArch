@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "OpenArch Probe",
+  "version": "1.0",
+  "description": "Spike: checks which extension APIs reach embedded Chromium browsers.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "OpenArch Probe",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "declarativeNetRequest"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "probe_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnNCwUDw0yTkkLmEB6gZdHB7bq3pmPf/aGNCOMinOthUH1RL0wX1GubMp22MCsYY6qp5W33Q6Id9JiqtWxtmdFLaX6yGoAFhXC4RxPUe7qbvtQF4ZTdCScIf7eUCW+IthouoiSouXzow425B25tN4mh+A58dE4UMA5hhPNIvzcjpUb2AKY8GluBRqavpLjFu9/PU5eoN/9i2ZEZn/8PmgRbqI2mVZFgf1/+rT/VgA8+AjdU9cHNPk/VJ8UdIJHWhmXqkJksq6OjIpqTDTVCgkPmdRspjIeSZQk2HGWI+nB4zxDzIkiHdwP6DGkvD6uw8v9AxrWORXlqdmgZ1CE5qVvQIDAQAB"
+}
