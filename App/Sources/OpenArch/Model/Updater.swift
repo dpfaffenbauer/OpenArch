@@ -155,6 +155,12 @@ final class Updater {
         install(relaunch: false)
     }
 
+    /// The new build that installs when OpenArch quits, if there is one.
+    var pendingApp: URL? {
+        guard case .ready = phase, !installing else { return nil }
+        return stagedApp
+    }
+
     private func install(relaunch: Bool) {
         guard case .ready = phase, let staged = stagedApp, !installing else { return }
         installing = true

@@ -138,8 +138,8 @@ enum AppIcons {
 
     private static var spaceHex = "#7B6CF6"
 
-    /// Picks |style|: the Dock shows it at once, and fixed designs also go on
-    /// the app in Finder (and in the Dock while OpenArch is closed).
+    /// Picks |style|: the Dock shows it at once, and it goes on the app in
+    /// Finder too (and in the Dock while OpenArch is closed).
     static func choose(_ style: AppIconStyle) {
         self.style = style
         apply(updatingBundle: true)
@@ -150,7 +150,7 @@ enum AppIcons {
     static func applyAtLaunch(spaceHex: String) {
         self.spaceHex = spaceHex
         let bundleHasIcon = FileManager.default.fileExists(atPath: Bundle.main.bundlePath + "/Icon\r")
-        apply(updatingBundle: needsBundleIcon != bundleHasIcon || needsBundleIcon)
+        apply(updatingBundle: needsBundleIcon != bundleHasIcon || style.design != nil && needsBundleIcon)
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil,
                                                queue: .main) { _ in
             MainActor.assumeIsolated { if style == .daily { apply(updatingBundle: false) } }
@@ -164,17 +164,31 @@ enum AppIcons {
         if style == .space { apply(updatingBundle: false) }
     }
 
-    /// Fixed designs other than the bundle's own go on the app in Finder;
-    /// the space color and the daily one change too often for that.
+    /// Every icon but the bundle's own goes on the app in Finder. The space
+    /// color and the daily one change too often to write each time: they
+    /// go there when OpenArch quits, as the Dock shows them last.
     private static var needsBundleIcon: Bool {
-        style.design != nil && style != .standard
+        style != .standard
     }
 
     private static func apply(updatingBundle: Bool) {
         NSApp.applicationIconImage = style == .standard ? nil : image(for: style)
-        guard updatingBundle, !AppPaths.isSelfTest else { return }
+        guard updatingBundle else { return }
+        setBundleIcon(at: Bundle.main.bundleURL)
+    }
+
+    private static func setBundleIcon(at app: URL) {
+        // The self-test leaves its own bundle alone (it checks a stand-in).
+        guard !AppPaths.isSelfTest || app.standardizedFileURL != Bundle.main.bundleURL.standardizedFileURL else { return }
         NSWorkspace.shared.setIcon(needsBundleIcon ? image(for: style, size: 1024) : nil,
-                                   forFile: Bundle.main.bundlePath, options: [])
+                                   forFile: app.path, options: [])
+    }
+
+    /// Quitting: the closed app keeps the icon the Dock showed, also on the
+    /// update about to replace it (a fresh bundle has only the standard one).
+    static func keepOnQuit(update: URL?) {
+        if style.design == nil, needsBundleIcon { setBundleIcon(at: Bundle.main.bundleURL) }
+        if let update { setBundleIcon(at: update) }
     }
 
     /// Today's design for "Jeden Tag".

@@ -102,7 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return .terminateCancel
         }
         library?.freeze()
-        if !selfTest { Updater.shared.installOnQuit() }
+        if !selfTest {
+            AppIcons.keepOnQuit(update: Updater.shared.pendingApp)
+            Updater.shared.installOnQuit()
+        }
         return .terminateNow
     }
 
