@@ -36,7 +36,9 @@ a failed workflow run. Data lives in
   Profiles keep logins (e.g. a different Google account per space), cookies,
   history, passwords and extensions apart.
 - **Command bar** (⌘T, ⌘L): URL or search with suggestions, switch to open
-  tabs, pinned tabs and favorites, history, archived tabs, commands.
+  tabs, pinned tabs and favorites, history, archived tabs, commands. A
+  sentence or a question opens a new chat on Claude or ChatGPT with it,
+  signed in as you there (your subscription, no API key; Settings › KI).
 - **Split view:** up to four tabs side by side, with resizable dividers.
   Use ⌃⇧=, or drag a tab from the sidebar onto the left or right half of
   the page.

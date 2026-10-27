@@ -409,6 +409,26 @@ private struct LinkRulesSection: View {
     }
 }
 
+/// Questions from the command bar go to a new chat on Claude or ChatGPT,
+/// signed in as you there.
+private struct AskAISection: View {
+    @Bindable var library: Library
+
+    var body: some View {
+        Section(title: "Fragen in der Befehlsleiste",
+                footer: "Ein Satz oder eine Frage in der Befehlsleiste (⌘T) öffnet mit Enter einen neuen Chat, mit deinem Login dort und damit deinem Abo, ganz ohne API-Schlüssel. Kurze Suchen bleiben bei der Suchmaschine, der Chat steht eine Zeile darunter.") {
+            Row(symbol: "bubble.left.and.text.bubble.right", color: .purple, title: "Fragen an",
+                detail: "Claude öffnet claude.ai, ChatGPT öffnet chatgpt.com.", showsDivider: false) {
+                Picker("", selection: $library.settings.askAI) {
+                    ForEach(AIChat.allCases) { Text($0.name).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+            }
+        }
+        .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
 private struct AIPage: View {
     let app: AppDelegate
     @State private var enabled = AIControl.isEnabled
@@ -417,6 +437,7 @@ private struct AIPage: View {
 
     var body: some View {
         let running = OACEngine.remoteDebuggingPort
+        AskAISection(library: app.library)
         Section(title: "KI-Steuerung",
                 footer: "OpenArch öffnet dafür Chromes DevTools-Protokoll auf 127.0.0.1. Solange das an ist, kann jedes Programm auf diesem Mac den Browser steuern, auch eingeloggte Tabs. Schalte es nur ein, wenn du es brauchst.") {
             Row(symbol: "sparkles", color: .orange, title: "KI-Steuerung erlauben",

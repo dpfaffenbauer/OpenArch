@@ -217,6 +217,10 @@ final class CommandBarModel {
             results.append(CommandResult(id: "open:\(url)", icon: .url(url), title: InternalURL.display(url),
                                          subtitle: modeVerb, action: { [unowned self] in self.open(url) }))
             seenURLs.insert(url)
+        } else if let ask = askResult(text) {
+            // A sentence or a question goes to the chat; a few words stay a
+            // search, with the chat one row down.
+            results += AIChat.readsLikeQuestion(text) ? [ask, searchResult(text)] : [searchResult(text), ask]
         } else {
             results.append(searchResult(text))
         }
@@ -289,6 +293,14 @@ final class CommandBarModel {
         case .editURL: "Öffnen"
         case .newSplit: "In Split View öffnen"
         }
+    }
+
+    /// A new chat on Claude or ChatGPT with the input as the question.
+    private func askResult(_ text: String) -> CommandResult? {
+        let chat = browser.library.settings.askAI
+        guard let url = chat.url(for: text) else { return nil }
+        return CommandResult(id: "ask:\(text)", icon: .url(url), title: text, subtitle: "\(chat.name) fragen",
+                             action: { [unowned self] in self.open(url) })
     }
 
     private func searchResult(_ text: String) -> CommandResult {

@@ -310,6 +310,8 @@ struct Settings: Codable, Equatable {
     var autoPictureInPicture = true
     /// Links from pinned tabs and favorites to other sites open in Peek.
     var peek = true
+    /// Where the command bar sends a question.
+    var askAI = AIChat.claude
 
     init() {}
 
@@ -327,6 +329,7 @@ struct Settings: Codable, Equatable {
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture
         peek = try container.decodeIfPresent(Bool.self, forKey: .peek) ?? defaults.peek
+        askAI = try container.decodeIfPresent(AIChat.self, forKey: .askAI) ?? defaults.askAI
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -360,8 +363,41 @@ struct SiteSearch: Codable, Equatable, Identifiable {
         SiteSearch(name: "MDN", keyword: "mdn", url: "https://developer.mozilla.org/search?q=%s"),
         SiteSearch(name: "npm", keyword: "npm", url: "https://www.npmjs.com/search?q=%s"),
         SiteSearch(name: "Claude", keyword: "cl", url: "https://claude.ai/new?q=%s"),
+        SiteSearch(name: "ChatGPT", keyword: "gpt", url: "https://chatgpt.com/?q=%s"),
         SiteSearch(name: "Perplexity", keyword: "pp", url: "https://www.perplexity.ai/search?q=%s"),
     ]
+}
+
+/// The chat a question from the command bar goes to: a new chat on the
+/// site, signed in as you, so it runs on your own subscription. No API key.
+enum AIChat: String, Codable, CaseIterable, Identifiable {
+    case off, claude, chatGPT
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .off: "Aus"
+        case .claude: "Claude"
+        case .chatGPT: "ChatGPT"
+        }
+    }
+
+    /// A new chat with |question| in it, or nil when off.
+    func url(for question: String) -> String? {
+        let template = switch self {
+        case .off: ""
+        case .claude: "https://claude.ai/new?q=%s"
+        case .chatGPT: "https://chatgpt.com/?q=%s"
+        }
+        guard !template.isEmpty else { return nil }
+        return SiteSearch(name: name, keyword: "", url: template).url(for: question)
+    }
+
+    /// A sentence or a question rather than a few search words.
+    static func readsLikeQuestion(_ text: String) -> Bool {
+        text.hasSuffix("?") || text.split(whereSeparator: \.isWhitespace).count >= 5
+    }
 }
 
 /// A link rule: links from other apps whose address matches |pattern| open

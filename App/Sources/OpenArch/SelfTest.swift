@@ -1011,6 +1011,25 @@ final class SelfTest {
         model.query = "wikip"
         expect(model.tab() && model.site?.name == "Wikipedia", "typing a site's name and Tab works too")
         model.reset(mode: .newTab)
+
+        // A sentence asks Claude first; a few words stay a search with the
+        // chat below; off, there is no chat at all.
+        let saved = library.settings.askAI
+        library.settings.askAI = .claude
+        model.query = "haben gestern may day geschaut, guter film, gib mir alternativen dazu"
+        expect(model.results.first?.subtitle == "Claude fragen" && model.results.dropFirst().first?.id.hasPrefix("search:") == true,
+               "a sentence in the command bar asks Claude first")
+        model.query = "may day film"
+        expect(model.results.first?.id.hasPrefix("search:") == true && model.results.dropFirst().first?.subtitle == "Claude fragen",
+               "a few words stay a search, with Claude one row down")
+        expect(AIChat.claude.url(for: "gib mir alternativen?") == "https://claude.ai/new?q=gib%20mir%20alternativen%3F"
+               && AIChat.chatGPT.url(for: "a & b") == "https://chatgpt.com/?q=a%20%26%20b",
+               "the question goes into a new chat's address, encoded")
+        library.settings.askAI = .off
+        model.query = "haben gestern may day geschaut, guter film, gib mir alternativen dazu"
+        expect(!model.results.contains { $0.id.hasPrefix("ask:") }, "with asking off, the command bar only searches")
+        library.settings.askAI = saved
+        model.reset(mode: .newTab)
     }
 
     private func floatingSidebarTest() {
