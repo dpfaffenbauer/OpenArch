@@ -1,0 +1,384 @@
+name: CEF with codecs
+
+# Builds CEF for macOS arm64 from source with the proprietary codecs (H.264,
+# AAC, HEVC) that the official builds leave out on purpose
+# (https://github.com/chromiumembedded/cef/issues/3559), makes the "minimal"
+# binary distribution scripts/fetch-cef.sh uses and publishes it, with its
+# SHA-256, as the release cef-<version>-codecs (cef-156.0.14-codecs).
+#
+# Chromium takes two to three days to build on a hosted macOS runner, but a
+# job may run for six hours. So, like ungoogled-chromium-macos, the build is a
+# chain of jobs: each one builds for about five hours, packs the whole tree
+# (sources, toolchains, the half-built out directory) into an artifact, and
+# the next job unpacks it and lets ninja carry on where it stopped. The job
+# that finishes makes the distribution; the jobs after it are skipped. The
+# work itself is in scripts/cef-codecs.sh.
+#
+# Started by hand only: Actions > CEF with codecs > Run workflow. A job that
+# fails (a lost runner, a network error) can be re-run on its own with
+# "Re-run failed jobs": the previous job's tree stays until the next one has
+# uploaded its own.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cef_version:
+        description: CEF version, as pinned in scripts/fetch-cef.sh
+        default: "156.0.14+g4fa4ab5+chromium-156.0.8078.48"
+      cef_branch:
+        description: CEF branch; empty = the Chromium build number in the version (8078)
+        default: ""
+      cef_commit:
+        description: CEF commit; empty = the hash in the version (4fa4ab5)
+        default: ""
+      gn_defines:
+        description: GN args added to, and overriding, the defaults in scripts/cef-codecs.sh
+        default: ""
+      pgo:
+        description: Optimize with Chromium's PGO profiles, as official builds do
+        type: boolean
+        default: true
+      runner:
+        description: Runner (macOS on Apple silicon)
+        default: macos-26
+
+permissions:
+  contents: write # the release
+  actions: write # deleting the intermediate artifacts
+
+concurrency:
+  group: cef-codecs
+  cancel-in-progress: false
+
+env:
+  CEF_VERSION: ${{ inputs.cef_version }}
+  CEF_BRANCH: ${{ inputs.cef_branch }}
+  CEF_COMMIT: ${{ inputs.cef_commit }}
+  GN_DEFINES_EXTRA: ${{ inputs.gn_defines }}
+  CEF_PGO: ${{ inputs.pgo }}
+  # The Xcode ungoogled-chromium builds Chromium 155 and 156 with. When the
+  # image no longer has it, the image's default Xcode is used.
+  XCODE_VERSION: "26.5"
+  # A job may run for 360 minutes. Building stops 300 minutes after the job
+  # started, which leaves time to pack and upload the tree.
+  BUILD_UNTIL_MINUTE: "300"
+  # The number of the last build job below. It fails if the build is still
+  # not done; add jobs if that happens.
+  LAST_PART: "20"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  build-01:
+    name: Fetch and build 01
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env:
+      PART: "01"
+      PREVIOUS: ""
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps:
+      - &clock
+        name: Note when the job started
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
+      - &checkout
+        uses: actions/checkout@v4
+
+      # For automate-git.py; the image's default Python is newer than
+      # depot_tools supports.
+      - &python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - &prepare
+        name: Prepare the runner (Xcode, disk space)
+        run: scripts/cef-codecs.sh prepare
+
+      - name: Fetch CEF and Chromium, patch and configure
+        run: scripts/cef-codecs.sh fetch
+
+      - &build
+        name: Build
+        id: build
+        run: scripts/cef-codecs.sh build
+
+      - &distrib
+        name: Make the minimal distribution
+        if: steps.build.outputs.status == 'finished'
+        run: scripts/cef-codecs.sh distrib
+
+      - &upload-distrib
+        name: Upload the distribution
+        if: steps.build.outputs.status == 'finished'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-distrib
+          path: ${{ runner.temp }}/cef-distrib/
+          if-no-files-found: error
+          retention-days: 30
+
+      - &save
+        name: Pack the build tree for the next job
+        if: steps.build.outputs.status == 'running'
+        run: scripts/cef-codecs.sh save
+
+      - &upload-state
+        name: Upload the build tree
+        if: steps.build.outputs.status == 'running'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cef-state-${{ env.PART }}
+          path: ${{ runner.temp }}/cef-state/
+          # Already zstd-compressed.
+          compression-level: 0
+          overwrite: true
+          if-no-files-found: error
+          retention-days: 7
+
+      - &drop-previous
+        name: Delete the previous job's build tree
+        if: steps.build.outputs.status == 'running' && env.PREVIOUS != ''
+        run: scripts/cef-codecs.sh drop-artifacts "cef-state-$PREVIOUS"
+
+      - &out-of-jobs
+        name: Give up when no job is left
+        if: steps.build.outputs.status == 'running' && env.PART == env.LAST_PART
+        run: |
+          echo "::error::Not done after $LAST_PART jobs. Add build jobs to this workflow; the tree is in the artifact cef-state-$PART."
+          exit 1
+
+  build-02:
+    name: Build 02
+    needs: build-01
+    if: needs.build-01.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env:
+      PART: "02"
+      PREVIOUS: "01"
+    outputs:
+      status: ${{ steps.build.outputs.status }}
+    steps: &resume
+      - *clock
+      - *checkout
+      - *python
+      - *prepare
+      - name: Download the previous job's build tree
+        uses: actions/download-artifact@v4
+        with:
+          name: cef-state-${{ env.PREVIOUS }}
+          path: ${{ runner.temp }}/cef-state
+      - name: Unpack it
+        run: scripts/cef-codecs.sh restore
+      - *build
+      - *distrib
+      - *upload-distrib
+      - *save
+      - *upload-state
+      - *drop-previous
+      - *out-of-jobs
+
+  # The same as build-02, each one after the one before.
+  build-03:
+    name: Build 03
+    needs: build-02
+    if: needs.build-02.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "03", PREVIOUS: "02" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-04:
+    name: Build 04
+    needs: build-03
+    if: needs.build-03.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "04", PREVIOUS: "03" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-05:
+    name: Build 05
+    needs: build-04
+    if: needs.build-04.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "05", PREVIOUS: "04" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-06:
+    name: Build 06
+    needs: build-05
+    if: needs.build-05.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "06", PREVIOUS: "05" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-07:
+    name: Build 07
+    needs: build-06
+    if: needs.build-06.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "07", PREVIOUS: "06" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-08:
+    name: Build 08
+    needs: build-07
+    if: needs.build-07.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "08", PREVIOUS: "07" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-09:
+    name: Build 09
+    needs: build-08
+    if: needs.build-08.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "09", PREVIOUS: "08" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-10:
+    name: Build 10
+    needs: build-09
+    if: needs.build-09.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "10", PREVIOUS: "09" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-11:
+    name: Build 11
+    needs: build-10
+    if: needs.build-10.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "11", PREVIOUS: "10" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-12:
+    name: Build 12
+    needs: build-11
+    if: needs.build-11.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "12", PREVIOUS: "11" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-13:
+    name: Build 13
+    needs: build-12
+    if: needs.build-12.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "13", PREVIOUS: "12" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-14:
+    name: Build 14
+    needs: build-13
+    if: needs.build-13.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "14", PREVIOUS: "13" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-15:
+    name: Build 15
+    needs: build-14
+    if: needs.build-14.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "15", PREVIOUS: "14" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-16:
+    name: Build 16
+    needs: build-15
+    if: needs.build-15.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "16", PREVIOUS: "15" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-17:
+    name: Build 17
+    needs: build-16
+    if: needs.build-16.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "17", PREVIOUS: "16" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-18:
+    name: Build 18
+    needs: build-17
+    if: needs.build-17.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "18", PREVIOUS: "17" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-19:
+    name: Build 19
+    needs: build-18
+    if: needs.build-18.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "19", PREVIOUS: "18" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  build-20:
+    name: Build 20
+    needs: build-19
+    if: needs.build-19.outputs.status == 'running'
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    env: { PART: "20", PREVIOUS: "19" }
+    outputs: { status: "${{ steps.build.outputs.status }}" }
+    steps: *resume
+
+  publish:
+    name: Publish the release
+    needs: [build-01, build-02, build-03, build-04, build-05, build-06, build-07, build-08, build-09, build-10, build-11, build-12, build-13, build-14, build-15, build-16, build-17, build-18, build-19, build-20]
+    # Runs when one build job finished and none failed.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.outputs.status, 'finished') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: cef-distrib
+          path: ${{ runner.temp }}/cef-distrib
+
+      - name: Create or update the release
+        env:
+          GH_REPO: ${{ github.repository }}
+        run: scripts/cef-codecs.sh publish
+
+      - name: Delete the remaining build trees
+        run: scripts/cef-codecs.sh drop-artifacts cef-state-
