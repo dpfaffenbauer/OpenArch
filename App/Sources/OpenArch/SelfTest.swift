@@ -2,6 +2,7 @@ import AppKit
 import CommonCrypto
 import SQLite3
 import SwiftUI
+import UniformTypeIdentifiers
 import OpenArchCore
 
 /// `--selftest`: drives the real UI through its main paths with a throwaway
@@ -43,6 +44,10 @@ final class SelfTest {
             fullscreenTest()
             return
         }
+        if CommandLine.arguments.contains("--quit-test") {
+            quitWithStuckBrowser()
+            return
+        }
         populate()
         let steps: [(Double, String, () -> Void)] = [
             (0.5, "today tab", { self.selectToday() }),
@@ -69,6 +74,7 @@ final class SelfTest {
             (36.3, "floating sidebar", { self.floatingSidebarTest() }),
             (36.35, "site search", { self.siteSearchTest() }),
             (36.38, "link rules", { self.linkRulesTest() }),
+            (36.39, "drop links", { self.dropLinks() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -919,6 +925,52 @@ final class SelfTest {
                 }
                 try? FileManager.default.removeItem(at: folder)
             }
+        }
+    }
+
+    /// Quitting ends OpenArch even when a browser never closes; an update
+    /// waits for exactly that. Run on its own (`--selftest --quit-test`):
+    /// the process has to be gone a few seconds after the STEP line.
+    private func quitWithStuckBrowser() {
+        let tab = browser.openInNewTab("https://example.com/never-closes")
+        after(3) {
+            tab.pane?.refusesToCloseForTesting = true
+            Swift.print("[selftest] STEP quit with a browser that does not close")
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Links dropped on the sidebar become tabs: as a URL (a page, Safari,
+    /// Mail), as raw URL data, and as text without a scheme. Plain words
+    /// do not, and a link dropped on a space icon opens in that space (all
+    /// at once here, so no later step starts in the wrong space).
+    private func dropLinks() {
+        let space = browser.state.space
+        let urlData = NSItemProvider()
+        urlData.registerDataRepresentation(forTypeIdentifier: UTType.url.identifier, visibility: .all) { completion in
+            completion(Data("https://example.com/dropped-data".utf8), nil)
+            return nil
+        }
+        let drops: [NSItemProvider] = [NSItemProvider(object: NSURL(string: "https://example.com/dropped-url")!), urlData,
+                                       NSItemProvider(object: "example.com/dropped-text" as NSString),
+                                       NSItemProvider(object: "just some words" as NSString)]
+        if let other = library.spaces.last(where: { $0 !== space }) {
+            browser.drop("https://example.com/dropped-space", toSpace: other)
+            expect(browser.state.space === other
+                   && other.today.allTabs.contains { $0.currentURL == "https://example.com/dropped-space" },
+                   "a link dropped on a space icon opens in that space")
+            for tab in other.today.allTabs where tab.currentURL.contains("dropped") { browser.close(tab) }
+            browser.switchSpace(to: space)
+        }
+        for provider in drops {
+            browser.handleDrop([provider], target: .end(space.today))
+        }
+        after(0.3) {
+            let urls = space.today.allTabs.map(\.currentURL)
+            self.expect(["https://example.com/dropped-url", "https://example.com/dropped-data", "https://example.com/dropped-text"]
+                            .allSatisfy(urls.contains) && !urls.contains { $0.contains("words") },
+                        "links dropped on the sidebar become tabs, plain words do not")
+            for tab in space.today.allTabs where tab.currentURL.contains("dropped") { self.browser.close(tab) }
         }
     }
 

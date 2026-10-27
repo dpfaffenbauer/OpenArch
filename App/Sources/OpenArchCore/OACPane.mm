@@ -179,7 +179,10 @@ class PaneClient : public CefClient,
         return true;
       default:
         // Real popups (window.open with features, OAuth flows) keep their
-        // opener and get a small window of their own.
+        // opener and get a small window of their own, and a client of their
+        // own: with this one the tab would take the popup for its browser,
+        // and count itself closed once the popup closes.
+        client = OACCreateDefaultClient();
         return false;
     }
   }
@@ -771,6 +774,13 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     window->AddChildViewAt(_toolbar, 0);
     _toolbar->SetVisible(_toolbarVisible);
     window->Layout();
+  }
+}
+
+- (void)setRefusesToCloseForTesting:(BOOL)refuses {
+  _refusesToCloseForTesting = refuses;
+  if (_browser) {
+    OACSetRefusesToCloseForTesting(_browser, refuses);
   }
 }
 

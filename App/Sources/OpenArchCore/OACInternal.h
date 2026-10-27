@@ -25,6 +25,10 @@ NSString* OACRootCachePath();
 void OACBrowserCreated(CefRefPtr<CefBrowser> browser);
 void OACBrowserClosed(CefRefPtr<CefBrowser> browser);
 
+/// Self-test: quitting leaves |browser| alone, as if it ignored the close,
+/// to check that OpenArch still ends.
+void OACSetRefusesToCloseForTesting(CefRefPtr<CefBrowser> browser, bool refuses);
+
 /// Client for browsers Chrome creates on its own (windows opened from
 /// Chrome UI or extensions). Only tracks them so quitting can close them.
 CefRefPtr<CefClient> OACCreateDefaultClient();

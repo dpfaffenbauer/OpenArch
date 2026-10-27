@@ -3,6 +3,7 @@
 
 #include <crt_externs.h>
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -15,8 +16,10 @@ namespace {
 
 CefScopedLibraryLoader* g_library_loader = nullptr;
 std::vector<CefRefPtr<CefBrowser>> g_browsers;
+std::set<int> g_refusing_close;  // Self-test only.
 bool g_quitting = false;
 bool g_loop_quit = false;
+bool g_loop_returned = false;
 NSString* g_root_cache_path = @"";
 bool g_ready = false;
 int g_remote_debugging_port = 0;
@@ -141,6 +144,14 @@ void OACBrowserCreated(CefRefPtr<CefBrowser> browser) {
   g_browsers.push_back(browser);
 }
 
+void OACSetRefusesToCloseForTesting(CefRefPtr<CefBrowser> browser, bool refuses) {
+  if (refuses) {
+    g_refusing_close.insert(browser->GetIdentifier());
+  } else {
+    g_refusing_close.erase(browser->GetIdentifier());
+  }
+}
+
 void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
   std::erase_if(g_browsers, [&](const CefRefPtr<CefBrowser>& candidate) {
     return candidate->IsSame(browser);
@@ -256,6 +267,7 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
 
 + (void)runMessageLoop {
   CefRunMessageLoop();
+  g_loop_returned = true;
 }
 
 + (void)quit {
@@ -263,23 +275,45 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
     return;
   }
   g_quitting = true;
+  // Chrome-style CEF ends its loop only once every browser window has
+  // closed, whatever CefQuitMessageLoop says. A browser that ignores the
+  // close would keep OpenArch running for good, and an update waiting for
+  // it to quit, so it ends the hard way if Chromium has not stopped by then.
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 6 * NSEC_PER_SEC),
+                 dispatch_get_main_queue(), ^{
+                   if (!g_loop_returned) {
+                     NSLog(@"OpenArch: Chromium did not stop, exiting");
+                     _exit(0);
+                   }
+                 });
   if (g_browsers.empty()) {
     QuitMessageLoopOnce();
     return;
   }
   auto browsers = g_browsers;
   for (auto& browser : browsers) {
+    if (g_refusing_close.count(browser->GetIdentifier())) {
+      continue;
+    }
     browser->GetHost()->CloseBrowser(true);
   }
-  // Never hang on quit if a browser fails to report back.
+  // Don't wait for a browser that fails to report back; name it, so the
+  // log says which one it was.
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 3 * NSEC_PER_SEC),
                  dispatch_get_main_queue(), ^{
-                   if (!g_browsers.empty()) {
-                     NSLog(@"OpenArch: %zu browser(s) did not close, quitting",
-                           g_browsers.size());
-                     g_browsers.clear();
-                     QuitMessageLoopOnce();
+                   if (g_browsers.empty()) {
+                     return;
                    }
+                   for (auto& browser : g_browsers) {
+                     CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+                     NSLog(@"OpenArch: did not close: %s%s",
+                           frame ? frame->GetURL().ToString().c_str() : "?",
+                           browser->IsPopup() ? " (popup)" : "");
+                   }
+                   NSLog(@"OpenArch: %zu browser(s) did not close, quitting",
+                         g_browsers.size());
+                   g_browsers.clear();
+                   QuitMessageLoopOnce();
                  });
 }
 

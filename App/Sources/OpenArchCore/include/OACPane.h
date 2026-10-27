@@ -118,6 +118,9 @@ NS_SWIFT_UI_ACTOR
 @property(nonatomic) BOOL activatesOnShow;
 /// Corner radius of the pane window's content.
 @property(nonatomic) CGFloat cornerRadius;
+/// Self-test: the browser refuses to close, like one that never finishes
+/// closing, so quitting has to get by without it.
+@property(nonatomic) BOOL refusesToCloseForTesting;
 
 /// Shows the pane over |frame| (in |window|'s coordinates), creating the
 /// browser on first use. The pane follows |window| when it moves.
