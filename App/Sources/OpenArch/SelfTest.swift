@@ -600,6 +600,20 @@ final class SelfTest {
         expect(first.today.allTabs.count == before && browser.state.activeItem?.indexInParent == index
                && browser.state.activeItem?.currentURL == tab.currentURL,
                "⌘⇧T reopens it at its old place (\(index))")
+
+        // Closing goes back to the tab used before, not to the one below:
+        // used in the order older, middle, newest, older again, newest.
+        let older = browser.openInNewTab("https://example.com/close-older")
+        let middle = browser.openInNewTab("https://example.com/close-middle")
+        let newest = browser.openInNewTab("https://example.com/close-newest")
+        browser.select(older)
+        browser.select(newest)
+        browser.closeActiveTab()
+        // (The tab below the closed one would be "middle".)
+        expect(browser.state.activeItem === older,
+               "closing a tab goes back to the one used before (\(browser.state.activeItem?.currentURL ?? "-"))")
+        browser.close(middle)
+        browser.close(older)
     }
 
     private func foldersAndPinning() {
@@ -837,6 +851,13 @@ final class SelfTest {
               let little = LittleOpenArchWindowController.show(url: "https://example.com/little", app: app) else {
             return expect(false, "Little OpenArch opens")
         }
+        // A Ctrl-click opens the link in the space, a plain click stays here.
+        let ctrlLink = "https://example.com/little-ctrl-click"
+        let opened = little.openInSpace(ctrlLink, modifiers: [.control])
+        let plain = little.openInSpace("https://example.com/little-plain", modifiers: [])
+        let inSpace = library.spaces.flatMap(\.today.allTabs).first { $0.currentURL == ctrlLink }
+        expect(opened && !plain && inSpace != nil, "a Ctrl-click in Little OpenArch opens the link in the space")
+        if let inSpace { browser.close(inSpace) }
         after(2.5) { little.load("https://example.com/little/next") }
         after(4.5) {
             self.expect(little.model.url.contains("/little/next") && little.model.canGoBack,
@@ -1253,9 +1274,16 @@ final class SelfTest {
             self.expect(tab.pane?.profile.directoryName == "" && self.library.space(containing: tab) == nil
                         && self.browser.history.search("private-window", limit: 5).isEmpty && tab.currentURL.contains("private-window"),
                         "a private window loads pages in its own profile without history")
-            privateWindow.closeActiveTab()
+            // The focus goes into the private window's page (a tab's window,
+            // which never becomes main): ⌘W acts there, not in the window
+            // that had the focus before.
+            if let first = self.browser.window, let page = tab.pane?.window {
+                app.windowBecameKey(first)
+                app.windowBecameKey(page)
+            }
+            app.closeTab(nil)
             self.expect(tab.pane == nil && app.browsers.count == 2 && privateWindow.state.activeItem == nil,
-                        "⌘W closes the private window's last tab, the window stays")
+                        "⌘W closes the tab in the window with the focus, the private window's last one; the window stays")
             privateWindow.closeActiveTab()
             self.expect(app.browsers.count == 1, "⌘W without a tab closes the window")
         }

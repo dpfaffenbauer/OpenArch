@@ -35,6 +35,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(selfTest ? .accessory : .regular)
         NSApp.mainMenu = MainMenu.build(target: self)
         ShortcutMonitor.install(target: self)
+        NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil,
+                                               queue: .main) { [weak self] note in
+            guard let number = (note.object as? NSWindow)?.windowNumber else { return }
+            MainActor.assumeIsolated {
+                if let window = NSApp.window(withWindowNumber: number) { self?.windowBecameKey(window) }
+            }
+        }
         log("Chromium \(OACEngine.versionString)")
         library = Library.load()
         history = History()
@@ -136,6 +143,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func browserBecameActive(_ browser: BrowserWindowController) {
         lastActiveBrowser = browser
+    }
+
+    /// A window became key: the browser it belongs to (a tab's window sits
+    /// on its browser window, and never becomes main itself) is the one ⌘W,
+    /// ⌘T and the other commands act on.
+    func windowBecameKey(_ window: NSWindow) {
+        let owner = window.parent ?? window
+        if let browser = browsers.first(where: { $0.window === owner }) {
+            lastActiveBrowser = browser
+        }
     }
 
     /// The last normal window only hides (its tabs keep running); private

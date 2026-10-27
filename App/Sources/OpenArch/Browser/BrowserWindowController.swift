@@ -714,10 +714,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
     }
 
-    private func neighbor(forClosing item: Item) -> Item? {
+    /// The tab shown after |item| closes: the other side of its split, else
+    /// the tab used before it, so closing tabs goes back the way you came
+    /// instead of jumping to whatever sits next to it.
+    func neighbor(forClosing item: Item) -> Item? {
         if let split = item.split {
             return split.children.first { $0 !== item }
         }
+        let previous = orderedTabs
+            .filter { $0 !== item && $0.pane != nil }
+            .max { $0.lastActiveAt < $1.lastActiveAt }
+        if let previous { return previous }
+        // Nothing else open yet: the tab below it, or above.
         if item.role == .today {
             let siblings = item.parent?.children ?? item.container?.items ?? []
             if let index = siblings.firstIndex(where: { $0 === item }) {
@@ -725,10 +733,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 if index > 0 { return siblings[index - 1] }
             }
         }
-        // Otherwise the most recently used tab that is still open.
-        return orderedTabs
-            .filter { $0 !== item && $0.pane != nil }
-            .max { $0.lastActiveAt < $1.lastActiveAt }
+        return nil
     }
 
     func reopenClosedTab() {

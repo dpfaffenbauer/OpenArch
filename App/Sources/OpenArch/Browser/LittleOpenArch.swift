@@ -165,8 +165,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     /// with the same profile, so logins stay the same).
     func moveToSpace() {
         guard let browser = app.mainBrowser, let window else { return }
-        let space = browser.state.space.profileID == profileID ? browser.state.space
-            : (app.library.spaces.first { $0.profileID == profileID } ?? browser.state.space)
+        let space = space(in: browser)
         transferred = true
         pane.hide()
         browser.adopt(pane, into: space, url: model.url, title: model.title, favicon: model.favicon)
@@ -213,10 +212,36 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         model.canGoForward = canGoForward
     }
 
+    /// The space pages from here go to: the current one, or one with the
+    /// same profile, so logins stay the same.
+    private func space(in browser: BrowserWindowController) -> Space {
+        browser.state.space.profileID == profileID ? browser.state.space
+            : (app.library.spaces.first { $0.profileID == profileID } ?? browser.state.space)
+    }
+
     /// Links that want a new tab go to the main window.
     func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
         app.mainBrowser?.openInNewTab(url, select: !background)
         if !background { app.mainBrowser?.showWindow(nil) }
+    }
+
+    func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {
+        openInSpace(url, modifiers: NSEvent.modifierFlags)
+    }
+
+    /// A link clicked with Ctrl (or ⌘) opens in the space, as a tab in the
+    /// background, and Little OpenArch stays on its page. Chromium on the
+    /// Mac only knows ⌘ for that and would follow a Ctrl-click right here.
+    func openInSpace(_ url: String, modifiers: NSEvent.ModifierFlags) -> Bool {
+        guard !modifiers.intersection([.control, .command]).isEmpty, let browser = app.mainBrowser else { return false }
+        let space = space(in: browser)
+        if space === browser.state.space {
+            browser.openInNewTab(url, select: false)
+        } else {
+            space.today.insert(Item.tab(url: url), at: 0)
+            app.library.setNeedsSave()
+        }
+        return true
     }
 
     func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
