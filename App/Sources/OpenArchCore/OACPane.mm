@@ -29,6 +29,8 @@
 - (void)oac_consoleMessage:(NSString*)message
                     source:(NSString*)source
                       line:(NSInteger)line;
+- (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
+- (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
 @end
 
 namespace {
@@ -118,7 +120,8 @@ class PaneClient : public CefClient,
                    public CefDisplayHandler,
                    public CefLoadHandler,
                    public CefCommandHandler,
-                   public CefFocusHandler {
+                   public CefFocusHandler,
+                   public CefRequestHandler {
  public:
   explicit PaneClient(OACPane* pane) : pane_(pane) {}
 
@@ -127,6 +130,7 @@ class PaneClient : public CefClient,
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
   CefRefPtr<CefCommandHandler> GetCommandHandler() override { return this; }
   CefRefPtr<CefFocusHandler> GetFocusHandler() override { return this; }
+  CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
 
   // CefLifeSpanHandler
 
@@ -232,6 +236,41 @@ class PaneClient : public CefClient,
     [pane_ oac_loadingStateDidChange:isLoading
                            canGoBack:canGoBack
                         canGoForward:canGoForward];
+  }
+
+  void OnLoadStart(CefRefPtr<CefBrowser> browser,
+                   CefRefPtr<CefFrame> frame,
+                   TransitionType transition_type) override {
+    if (frame->IsMain()) {
+      [pane_ oac_mainFrameLoadStarted:YES url:OACToNSString(frame->GetURL())];
+    }
+  }
+
+  void OnLoadEnd(CefRefPtr<CefBrowser> browser,
+                 CefRefPtr<CefFrame> frame,
+                 int httpStatusCode) override {
+    if (frame->IsMain()) {
+      [pane_ oac_mainFrameLoadStarted:NO url:OACToNSString(frame->GetURL())];
+    }
+  }
+
+  // CefRequestHandler
+
+  bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
+                      CefRefPtr<CefFrame> frame,
+                      CefRefPtr<CefRequest> request,
+                      bool user_gesture,
+                      bool is_redirect) override {
+    OACPane* pane = pane_;
+    if (!pane || !frame->IsMain() || !user_gesture || is_redirect) {
+      return false;
+    }
+    // Back/forward and reloads stay in the tab.
+    const int transition = request->GetTransitionType();
+    if ((transition & TT_FORWARD_BACK_FLAG) || (transition & TT_SOURCE_MASK) == TT_RELOAD) {
+      return false;
+    }
+    return [pane oac_shouldInterceptNavigationToURL:OACToNSString(request->GetURL())];
   }
 
   // CefCommandHandler
@@ -810,6 +849,19 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
                      (pane:consoleMessage:source:line:)]) {
     [self.delegate pane:self consoleMessage:message source:source line:line];
   }
+}
+
+- (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url {
+  if ([self.delegate respondsToSelector:@selector(pane:mainFrameLoadStarted:url:)]) {
+    [self.delegate pane:self mainFrameLoadStarted:started url:url];
+  }
+}
+
+- (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url {
+  if ([self.delegate respondsToSelector:@selector(pane:shouldInterceptNavigationToURL:)]) {
+    return [self.delegate pane:self shouldInterceptNavigationToURL:url];
+  }
+  return NO;
 }
 
 @end

@@ -66,6 +66,7 @@ final class SelfTest {
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
             (43.6, "media", { self.mediaTest() }),
+            (50.5, "boosts", { self.boostTest() }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -76,7 +77,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(52) {
+            after(57) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -87,7 +88,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 56 : 51.5) {
+        after(CommandLine.arguments.contains("--arc") ? 61 : 56.5) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -886,7 +887,38 @@ final class SelfTest {
         }
     }
 
+    private var boostChecks: [String] = []
+
+    /// A boost recolors the page background and zaps the paragraphs, live and
+    /// again after a reload; deleting it restores the page.
+    private func boostTest() {
+        guard let tab = browser.state.activeItem, let editor = BoostPanelController.show(for: tab, browser: browser)?.model else {
+            return expect(false, "the boost editor opens")
+        }
+        let probe = "console.debug('__selftest_boost__ ' + getComputedStyle(document.body).backgroundColor + ' ' + getComputedStyle(document.querySelector('p') || document.body).display)"
+        editor.boost.css = "body { background: rgb(1, 2, 3) !important; }"
+        editor.zapped("p")
+        after(0.5) { tab.pane?.executeJavaScript(probe) }
+        after(1) { tab.pane?.reload() }
+        after(4) { tab.pane?.executeJavaScript(probe) }
+        after(4.5) {
+            self.expect(self.boostChecks.count == 2 && self.boostChecks.allSatisfy { $0 == "rgb(1, 2, 3) none" },
+                        "a boost restyles the page live and after reloading (\(self.boostChecks))")
+            editor.delete()
+            self.boostChecks = []
+            tab.pane?.executeJavaScript(probe)
+        }
+        after(5.2) {
+            self.expect(self.boostChecks.first.map { !$0.hasPrefix("rgb(1, 2, 3)") } ?? false,
+                        "deleting the boost restores the page (\(self.boostChecks))")
+        }
+    }
+
     func consoleMessage(_ message: String, from item: Item?) {
+        if message.hasPrefix("__selftest_boost__ ") {
+            boostChecks.append(String(message.dropFirst("__selftest_boost__ ".count)))
+            return
+        }
         if message.hasPrefix("[selftest-probe]") || message.hasPrefix("[probe] checks") {
             Swift.print("[selftest] \(item?.displayTitle ?? "?"): \(message)")
             if message.hasPrefix("[selftest-probe]"), message.contains("\"tabs\"") {

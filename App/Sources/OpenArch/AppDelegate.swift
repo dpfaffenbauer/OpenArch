@@ -27,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         OACEngine.whenReady { [self] in
             let browser = BrowserWindowController(library: library, history: history)
             self.browser = browser
+            BoostStore.shared.onChange = { [weak self] boost in self?.browser?.applyBoost(boost) }
             browser.showWindow(nil)
             if selfTest {
                 test = SelfTest(browser: browser)
@@ -250,6 +251,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleSidebar(_ sender: Any?) { browser?.toggleSidebar() }
     @objc func toggleLibrary(_ sender: Any?) { browser?.toggleLibrary() }
     @objc func toggleToolbar(_ sender: Any?) { browser?.toggleChromeToolbar() }
+    @objc func editBoost(_ sender: Any?) { browser?.editBoost() }
     @objc func splitView(_ sender: Any?) { browser?.splitWithNewTab() }
     @objc func unsplitView(_ sender: Any?) { browser?.unsplit() }
     @objc func copyURL(_ sender: Any?) {
@@ -411,6 +413,7 @@ enum MainMenu {
             item("Bibliothek", #selector(AppDelegate.toggleLibrary(_:)), "l", [.command, .shift]),
             item("Bibliothek", #selector(AppDelegate.toggleLibrary(_:)), "b", [.command, .option], hidden: true),
             item("Chrome-Toolbar ein-/ausblenden", #selector(AppDelegate.toggleToolbar(_:)), "d", [.command, .shift]),
+            item("Boost bearbeiten …", #selector(AppDelegate.editBoost(_:)), "b", [.command, .control]),
             .separator(),
             item("Neu laden", #selector(AppDelegate.reload(_:)), "r"),
             item("Neu laden ohne Cache", #selector(AppDelegate.reloadHard(_:)), "r", [.command, .shift]),

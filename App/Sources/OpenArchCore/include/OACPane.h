@@ -80,6 +80,11 @@ NS_SWIFT_UI_ACTOR
               line:(NSInteger)line;
 /// The browser is gone (closed by the page, a crash or -close).
 - (void)paneDidClose:(OACPane*)pane;
+/// A new document started (YES) or finished (NO) loading in the main frame.
+- (void)pane:(OACPane*)pane mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
+/// A link the user clicked is about to replace the page. Return YES to
+/// take it over (the navigation is cancelled), e.g. to show it in Peek.
+- (BOOL)pane:(OACPane*)pane shouldInterceptNavigationToURL:(NSString*)url;
 @end
 
 /// One Chrome tab. It is hosted in its own borderless Chrome-style window

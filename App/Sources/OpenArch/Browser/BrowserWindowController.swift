@@ -1049,7 +1049,37 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return true
     }
 
+    func pane(_ pane: OACPane, mainFrameLoadStarted started: Bool, url: String) {
+        // Boosts go in as early as the page allows and again once it is
+        // complete (the style sheet is replaced, the script runs once).
+        if let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
+           !boost.styleSheet.isEmpty || !boost.javaScript.isEmpty {
+            pane.executeJavaScript(BoostStore.script(for: boost))
+        }
+    }
+
+    /// A changed boost reaches the open tabs of its site at once.
+    func applyBoost(_ boost: Boost) {
+        for tab in library.allContainers.flatMap(\.allTabs) where tab.pane != nil && boost.applies(to: tab.currentURL) {
+            tab.pane?.executeJavaScript(BoostStore.script(for: boost))
+        }
+    }
+
+    func editBoost() {
+        guard let active = state.activeItem else { return }
+        BoostPanelController.show(for: active, browser: self)
+    }
+
     func pane(_ pane: OACPane, consoleMessage message: String, source: String, line: Int) {
+        let zapPrefix = "__openarch_zap__"
+        if message.hasPrefix(zapPrefix), let editor = BoostPanelController.current?.model, editor.item === item(for: pane) {
+            if message.hasPrefix(zapPrefix + " ") {
+                editor.zapped(String(message.dropFirst(zapPrefix.count + 1)))
+            } else if message == zapPrefix + "-done" {
+                editor.isZapping = false
+            }
+            return
+        }
         let mediaPrefix = "__openarch_media__ "
         if message.hasPrefix(mediaPrefix), let item = item(for: pane) {
             item.media = try? JSONDecoder().decode(MediaState.self, from: Data(message.dropFirst(mediaPrefix.count).utf8))

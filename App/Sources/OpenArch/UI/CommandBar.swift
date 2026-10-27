@@ -396,6 +396,7 @@ final class CommandBarModel {
                 ("Entwicklertools", "hammer", "⌥⌘I", { active.pane?.showDevTools() }),
                 ("Neu laden", "arrow.clockwise", "⌘R", { active.pane?.reload() }),
                 ("Tab duplizieren", "plus.square.on.square", nil, { browser.duplicate(active) }),
+                ("Boost bearbeiten", "paintbrush", "⌃⌘B", { browser.editBoost() }),
             ]
             commands += tabCommands
             if active.split != nil {
