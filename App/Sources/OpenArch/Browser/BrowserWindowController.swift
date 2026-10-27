@@ -135,6 +135,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private func applyTheme() {
         let theme = SpaceTheme(hex: state.space.colorHex)
         window?.backgroundColor = isFrontmost ? theme.base : theme.inactiveBase
+        if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
+            AppIcons.spaceDidChange(state.space.colorHex)
+        }
         window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
         focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
         floatingSidebar.applyTheme()

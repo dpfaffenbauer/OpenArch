@@ -71,6 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 offerArcImportOnFirstRun()
                 importArcFaviconsOnce()
                 Updater.shared.start()
+                AppIcons.applyAtLaunch(spaceHex: browser.state.space.colorHex)
                 if let result = ArcProfileImport.takeResult() {
                     let alert = NSAlert()
                     alert.messageText = "Import aus Arc"

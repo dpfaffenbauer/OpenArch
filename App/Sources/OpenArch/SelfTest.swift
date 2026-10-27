@@ -908,6 +908,24 @@ final class SelfTest {
         if let app = NSApp.delegate as? AppDelegate {
             library.settings.linkRules = [LinkRule(pattern: "github.com", spaceID: library.spaces.first?.id),
                                           LinkRule(pattern: "*.atlassian.net")]
+            // All Dock icons side by side, to look at.
+            let sheet = NSImage(size: NSSize(width: 128 * AppIconStyle.allCases.count, height: 128), flipped: false) { _ in
+                for (index, style) in AppIconStyle.allCases.enumerated() {
+                    AppIcons.image(for: style, size: 128).draw(in: NSRect(x: index * 128, y: 0, width: 128, height: 128))
+                }
+                return true
+            }
+            if let tiff = sheet.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff) {
+                try? bitmap.representation(using: .png, properties: [:])?.write(to: AppPaths.support.appendingPathComponent("app-icons.png"))
+            }
+            expect(AppIconStyle.allCases.allSatisfy { AppIcons.image(for: $0, size: 64).isValid }, "every Dock icon style renders")
+            let picker = NSHostingView(rootView: AppIconSection().padding(24).frame(width: 640))
+            picker.frame = NSRect(origin: .zero, size: picker.fittingSize)
+            picker.layoutSubtreeIfNeeded()
+            if let bitmap = picker.bitmapImageRepForCachingDisplay(in: picker.bounds) {
+                picker.cacheDisplay(in: picker.bounds, to: bitmap)
+                try? bitmap.representation(using: .png, properties: [:])?.write(to: AppPaths.support.appendingPathComponent("settings-app-icon.png"))
+            }
             for page in [SettingsPage.general, .links, .about] {
                 let settings = NSHostingView(rootView: SettingsView(app: app, page: page))
                 settings.frame = NSRect(x: 0, y: 0, width: 640, height: 580)

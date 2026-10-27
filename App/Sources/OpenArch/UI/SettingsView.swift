@@ -205,8 +205,42 @@ private struct GeneralPage: View {
                     .onChange(of: library.settings.sidebarWidth) { app.browsers.forEach { $0.layoutContent() } }
             }
         }
+        AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
+/// The Dock icon, like Arc's icon choice.
+struct AppIconSection: View {
+    @State private var selection = AppIcons.style
+
+    var body: some View {
+        Section(title: "App-Symbol",
+                footer: "„Space-Farbe“ nimmt im Dock die Farbe des Space an, in dem du gerade bist. Die festen Farben gelten auch für OpenArch im Finder.") {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 56), spacing: 4)], spacing: 10) {
+                ForEach(AppIconStyle.allCases) { style in
+                    Button {
+                        selection = style
+                        AppIcons.choose(style)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(nsImage: AppIcons.image(for: style, size: 128))
+                                .resizable()
+                                .frame(width: 48, height: 48)
+                                .padding(3)
+                                .background(RoundedRectangle(cornerRadius: 12)
+                                    .strokeBorder(Color.accentColor, lineWidth: selection == style ? 2.5 : 0))
+                            Text(style.name).font(.system(size: 10.5, weight: selection == style ? .semibold : .regular))
+                                .lineLimit(1)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(12)
+        }
     }
 }
 
