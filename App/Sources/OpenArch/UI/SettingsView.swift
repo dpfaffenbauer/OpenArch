@@ -162,6 +162,7 @@ private struct GeneralPage: View {
                 Toggle("", isOn: $library.settings.searchSuggestions).labelsHidden().toggleStyle(.switch)
             }
         }
+        SiteSearchSection(library: library)
         Section(title: "Tabs") {
             Row(symbol: "archivebox", color: .orange, title: "Tabs unter dem Strich archivieren",
                 detail: "Nicht angeheftete Tabs, die so lange nicht benutzt wurden, wandern ins Archiv (⌘⇧T holt sie zurück).") {
@@ -193,6 +194,44 @@ private struct GeneralPage: View {
             }
         }
         .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
+/// Sites to search straight from the command bar: keyword, Tab, query.
+private struct SiteSearchSection: View {
+    @Bindable var library: Library
+
+    var body: some View {
+        Section(title: "Seitensuche",
+                footer: "In der Befehlsleiste das Kürzel oder den Namen tippen und Tab drücken, dann den Suchbegriff. %s steht für den Suchbegriff.") {
+            ForEach($library.settings.siteSearches) { $site in
+                HStack(spacing: 8) {
+                    TextField("Name", text: $site.name).frame(width: 110)
+                    TextField("Kürzel", text: $site.keyword).frame(width: 56)
+                    TextField("https://…?q=%s", text: $site.url)
+                    Button {
+                        library.settings.siteSearches.removeAll { $0.id == site.id }
+                    } label: {
+                        Image(systemName: "minus.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Entfernen")
+                }
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 12))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+            }
+            HStack {
+                Button("Seite hinzufügen") {
+                    library.settings.siteSearches.append(SiteSearch(name: "", keyword: "", url: "https://"))
+                }
+                Spacer()
+                Button("Standard wiederherstellen") { library.settings.siteSearches = SiteSearch.defaults }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
     }
 }
 

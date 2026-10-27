@@ -59,6 +59,7 @@ final class SelfTest {
             (36, "audio indicator", { self.audioIndicator() }),
             (36.2, "internal urls", { self.internalURLs() }),
             (36.3, "floating sidebar", { self.floatingSidebarTest() }),
+            (36.35, "site search", { self.siteSearchTest() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -748,6 +749,24 @@ final class SelfTest {
                 try? FileManager.default.removeItem(at: folder)
             }
         }
+    }
+
+    /// "yt" + Tab searches YouTube; Backspace in the empty field leaves.
+    private func siteSearchTest() {
+        let model = browser.commandBar.model
+        model.reset(mode: .newTab)
+        model.query = "yt"
+        let offered = model.results.contains { $0.title == "YouTube durchsuchen" }
+        let entered = model.tab()
+        model.query = "lofi beats"
+        let url = model.results.first?.subtitle
+        expect(offered && entered && model.site?.name == "YouTube" && url == "YouTube durchsuchen",
+               "the command bar searches YouTube after yt + Tab")
+        model.query = ""
+        expect(model.leaveSite() && model.site == nil, "Backspace leaves the site search")
+        model.query = "wikip"
+        expect(model.tab() && model.site?.name == "Wikipedia", "typing a site's name and Tab works too")
+        model.reset(mode: .newTab)
     }
 
     private func floatingSidebarTest() {

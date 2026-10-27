@@ -291,6 +291,8 @@ struct Settings: Codable, Equatable {
     var sidebarWidth = 300.0
     /// Links from other apps open in a Little OpenArch window, like in Arc.
     var openLinksInLittleOpenArch = true
+    /// Sites to search from the command bar: keyword or name, then Tab.
+    var siteSearches = SiteSearch.defaults
 
     init() {}
 
@@ -304,7 +306,40 @@ struct Settings: Codable, Equatable {
         showSidebarAddress = try container.decodeIfPresent(Bool.self, forKey: .showSidebarAddress) ?? defaults.showSidebarAddress
         sidebarWidth = try container.decodeIfPresent(Double.self, forKey: .sidebarWidth) ?? defaults.sidebarWidth
         openLinksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .openLinksInLittleOpenArch) ?? defaults.openLinksInLittleOpenArch
+        siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
+}
+
+/// A site the command bar can search directly: "yt" + Tab, then the query.
+struct SiteSearch: Codable, Equatable, Identifiable {
+    var id = UUID()
+    var name: String
+    var keyword: String
+    /// The search URL with %s where the query goes.
+    var url: String
+
+    func url(for query: String) -> String {
+        let q = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?#"))) ?? query
+        return url.replacingOccurrences(of: "%s", with: q)
+    }
+
+    var host: String {
+        URL(string: url.replacingOccurrences(of: "%s", with: ""))?.host() ?? ""
+    }
+
+    static let defaults: [SiteSearch] = [
+        SiteSearch(name: "YouTube", keyword: "yt", url: "https://www.youtube.com/results?search_query=%s"),
+        SiteSearch(name: "Google", keyword: "g", url: "https://www.google.com/search?q=%s"),
+        SiteSearch(name: "Wikipedia", keyword: "w", url: "https://de.wikipedia.org/w/index.php?search=%s"),
+        SiteSearch(name: "GitHub", keyword: "gh", url: "https://github.com/search?q=%s"),
+        SiteSearch(name: "Google Maps", keyword: "maps", url: "https://www.google.com/maps/search/%s"),
+        SiteSearch(name: "Amazon", keyword: "amz", url: "https://www.amazon.de/s?k=%s"),
+        SiteSearch(name: "Stack Overflow", keyword: "so", url: "https://stackoverflow.com/search?q=%s"),
+        SiteSearch(name: "MDN", keyword: "mdn", url: "https://developer.mozilla.org/search?q=%s"),
+        SiteSearch(name: "npm", keyword: "npm", url: "https://www.npmjs.com/search?q=%s"),
+        SiteSearch(name: "Claude", keyword: "cl", url: "https://claude.ai/new?q=%s"),
+        SiteSearch(name: "Perplexity", keyword: "pp", url: "https://www.perplexity.ai/search?q=%s"),
+    ]
 }

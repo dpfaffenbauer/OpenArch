@@ -111,6 +111,8 @@ final class CommandBarModel {
     }
     private(set) var results: [CommandResult] = []
     var selection = 0
+    /// The site being searched after "yt" + Tab; shown as a chip.
+    private(set) var site: SiteSearch?
     /// Bumped to make the field select its text (⌘L).
     private(set) var selectAllToken = 0
     @ObservationIgnored private var suggestions: [String] = []
@@ -121,7 +123,8 @@ final class CommandBarModel {
     }
 
     var placeholder: String {
-        switch mode {
+        if let site { return "\(site.name) durchsuchen …" }
+        return switch mode {
         case .newTab: "Suchen oder URL eingeben …"
         case .editURL: "URL bearbeiten …"
         case .newSplit: "Neben dem aktuellen Tab öffnen …"
@@ -130,6 +133,7 @@ final class CommandBarModel {
 
     func reset(mode: CommandBarController.Mode) {
         self.mode = mode
+        site = nil
         suggestions = []
         if case .editURL = mode, let url = browser.state.activeItem?.currentURL {
             query = InternalURL.display(url)
@@ -139,6 +143,42 @@ final class CommandBarModel {
         }
         selection = 0
         rebuild()
+    }
+
+    /// Tab: searches the site the input names (keyword or name), like
+    /// Arc. Returns false when there is none, so Tab moves the selection.
+    func tab() -> Bool {
+        guard site == nil, let candidate = siteCandidate(query.trimmingCharacters(in: .whitespaces)) else { return false }
+        enterSite(candidate)
+        return true
+    }
+
+    func enterSite(_ candidate: SiteSearch) {
+        site = candidate
+        suggestions = []
+        query = ""
+        selection = 0
+        rebuild()
+    }
+
+    /// Backspace in the empty field leaves the site search.
+    func leaveSite() -> Bool {
+        guard site != nil, query.isEmpty else { return false }
+        site = nil
+        rebuild()
+        return true
+    }
+
+    /// An exact keyword wins; otherwise a site whose name starts with the input.
+    private func siteCandidate(_ text: String) -> SiteSearch? {
+        let lower = text.lowercased()
+        guard !lower.isEmpty, !lower.contains(" ") else { return nil }
+        let sites = browser.library.settings.siteSearches
+        if let exact = sites.first(where: { $0.keyword.lowercased() == lower || $0.name.lowercased() == lower }) {
+            return exact
+        }
+        guard lower.count >= 2 else { return nil }
+        return sites.first { $0.name.lowercased().hasPrefix(lower) }
     }
 
     func moveSelection(_ delta: Int) {
@@ -161,6 +201,12 @@ final class CommandBarModel {
         var results: [CommandResult] = []
         var seenURLs = Set<String>()
 
+        if let site {
+            self.results = siteResults(site, text)
+            selection = min(selection, max(0, self.results.count - 1))
+            return
+        }
+
         if text.isEmpty {
             results += recentTabs()
             self.results = results
@@ -173,6 +219,11 @@ final class CommandBarModel {
             seenURLs.insert(url)
         } else {
             results.append(searchResult(text))
+        }
+        if let candidate = siteCandidate(text) {
+            results.append(CommandResult(id: "site:\(candidate.id)", icon: .url(candidate.url), title: "\(candidate.name) durchsuchen",
+                                         subtitle: candidate.keyword.isEmpty ? nil : "Kürzel: \(candidate.keyword)", badge: "Tab",
+                                         action: { [unowned self] in self.enterSite(candidate) }))
         }
 
         let tabs = matchingTabs(text).prefix(5)
@@ -209,6 +260,27 @@ final class CommandBarModel {
         }
         self.results = results
         selection = min(selection, max(0, results.count - 1))
+    }
+
+    private func siteResults(_ site: SiteSearch, _ text: String) -> [CommandResult] {
+        guard !text.isEmpty else { return [] }
+        var results = [CommandResult(id: "sitesearch:\(text)", icon: .url(site.url), title: text,
+                                     subtitle: "\(site.name) durchsuchen",
+                                     action: { [unowned self] in self.open(site.url(for: text)) })]
+        let host = site.host.replacingOccurrences(of: "www.", with: "")
+        for entry in browser.history.search(text, limit: 20) where !host.isEmpty && entry.url.contains(host) {
+            results.append(CommandResult(id: "history:\(entry.url)", icon: .url(entry.url),
+                                         title: entry.title.isEmpty ? entry.url : entry.title,
+                                         subtitle: Self.shortURL(entry.url),
+                                         action: { [unowned self] in self.open(entry.url) }))
+            if results.count >= 5 { break }
+        }
+        for suggestion in suggestions.prefix(5) where suggestion.lowercased() != text.lowercased() {
+            results.append(CommandResult(id: "sitesearch:\(suggestion)", icon: .symbol("magnifyingglass"), title: suggestion,
+                                         subtitle: "\(site.name) durchsuchen",
+                                         action: { [unowned self] in self.open(site.url(for: suggestion)) }))
+        }
+        return results
     }
 
     private var modeVerb: String {
@@ -445,6 +517,13 @@ struct CommandBarView: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 15, weight: .medium))
                         .opacity(0.6)
+                    if let site = model.site {
+                        Text(site.name)
+                            .font(.system(size: 13.5, weight: .semibold))
+                            .padding(.horizontal, 9)
+                            .frame(height: 26)
+                            .background(RoundedRectangle(cornerRadius: 7).fill(Color.accentColor.opacity(0.22)))
+                    }
                     CommandField(model: model, controller: controller)
                         .frame(height: 24)
                 }
@@ -600,8 +679,12 @@ private struct CommandField: NSViewRepresentable {
             switch selector {
             case #selector(NSResponder.moveUp(_:)):
                 model.moveSelection(-1)
-            case #selector(NSResponder.moveDown(_:)), #selector(NSResponder.insertTab(_:)):
+            case #selector(NSResponder.moveDown(_:)):
                 model.moveSelection(1)
+            case #selector(NSResponder.insertTab(_:)):
+                if !model.tab() { model.moveSelection(1) }
+            case #selector(NSResponder.deleteBackward(_:)):
+                return model.leaveSite()
             case #selector(NSResponder.insertNewline(_:)):
                 model.run()
             case #selector(NSResponder.cancelOperation(_:)):
