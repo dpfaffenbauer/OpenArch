@@ -133,11 +133,15 @@ final class PeekController: NSObject, OACPaneDelegate {
     }
 
     func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
-        if commandID == OACChromeCommand.closeTab.rawValue {
+        switch OACChromeCommand(rawValue: commandID) {
+        case .closeTab:
             close()
-            return true
+        case .exit:
+            NSApp.terminate(nil)
+        default:
+            return false
         }
-        return false
+        return true
     }
 
     func paneDidClose(_ pane: OACPane) {

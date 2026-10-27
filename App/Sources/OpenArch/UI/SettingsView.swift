@@ -350,8 +350,8 @@ private struct LinksPage: View {
         LinkRulesSection(library: library)
         Section(title: "Links aus anderen Apps") {
             Row(symbol: "macwindow.on.rectangle", color: .pink, title: "In Little OpenArch öffnen",
-                detail: "Links aus Mail, Slack & Co. öffnen in einem kleinen Fenster. Von dort holst du sie mit einem Klick in einen Space.") {
-                Toggle("", isOn: $library.settings.openLinksInLittleOpenArch).labelsHidden().toggleStyle(.switch)
+                detail: "Aus: Links aus Mail, Slack & Co. öffnen als neuer Tab im Fenster. An: in einem kleinen Fenster, aus dem du sie mit einem Klick in einen Space holst.") {
+                Toggle("", isOn: $library.settings.linksInLittleOpenArch).labelsHidden().toggleStyle(.switch)
             }
             DefaultBrowserRow(app: app, showsDivider: false)
         }

@@ -298,8 +298,10 @@ struct Settings: Codable, Equatable {
     var showChromeToolbar = true
     var showSidebarAddress = false
     var sidebarWidth = 300.0
-    /// Links from other apps open in a Little OpenArch window, like in Arc.
-    var openLinksInLittleOpenArch = true
+    /// Links from other apps open in a Little OpenArch window, as in Arc,
+    /// instead of a new tab in the window. (A new key: the old one was on by
+    /// default, and links now go to the window unless this is chosen.)
+    var linksInLittleOpenArch = false
     /// Sites to search from the command bar: keyword or name, then Tab.
     var siteSearches = SiteSearch.defaults
     /// Where links from other apps go, by address; the first match wins.
@@ -320,7 +322,7 @@ struct Settings: Codable, Equatable {
         showChromeToolbar = try container.decodeIfPresent(Bool.self, forKey: .showChromeToolbar) ?? defaults.showChromeToolbar
         showSidebarAddress = try container.decodeIfPresent(Bool.self, forKey: .showSidebarAddress) ?? defaults.showSidebarAddress
         sidebarWidth = try container.decodeIfPresent(Double.self, forKey: .sidebarWidth) ?? defaults.sidebarWidth
-        openLinksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .openLinksInLittleOpenArch) ?? defaults.openLinksInLittleOpenArch
+        linksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .linksInLittleOpenArch) ?? defaults.linksInLittleOpenArch
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture

@@ -87,7 +87,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// ⌘Q goes through OpenArch's shortcuts, so neither the page nor
+    /// Chrome's own handling of the key can swallow it.
+    @objc func quit(_ sender: Any?) {
+        NSApp.terminate(sender)
+    }
+
+    /// Set by the self-test: a quit is noted instead of carried out.
+    var quitProbe: (() -> Void)?
+
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if let quitProbe {
+            quitProbe()
+            return .terminateCancel
+        }
         library?.save()
         if !selfTest { Updater.shared.installOnQuit() }
         return .terminateNow
@@ -156,11 +169,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             } else {
                 LittleOpenArchWindowController.show(url: url, app: self)
             }
-        } else if library.settings.openLinksInLittleOpenArch {
+        } else if library.settings.linksInLittleOpenArch {
             LittleOpenArchWindowController.show(url: url, app: self)
         } else {
             browser.showWindow(nil)
             browser.openInNewTab(url)
+            if !selfTest { NSApp.activate() }
         }
     }
 
@@ -463,7 +477,7 @@ enum MainMenu {
             item("Andere ausblenden", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option], toDelegate: false),
             item("Alle einblenden", #selector(NSApplication.unhideAllApplications(_:)), toDelegate: false),
             .separator(),
-            item("OpenArch beenden", #selector(NSApplication.terminate(_:)), "q", toDelegate: false),
+            item("OpenArch beenden", #selector(AppDelegate.quit(_:)), "q"),
         ]))
 
         main.addItem(submenu("Ablage", [

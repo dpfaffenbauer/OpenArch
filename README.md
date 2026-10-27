@@ -51,7 +51,8 @@ a failed workflow run. Data lives in
   ⌘⇧J, ⌃Tab, ⌘1–9, ⌃1–9, ⌘⌥←/→, ⌃⇧= / ⌃⇧-, ⌃⇧1–4, ⌘⇧⌥C and more. They take
   precedence over the page, like in Arc.
 - **Little OpenArch** (⌥⌘N): a small window for quick links. Links from
-  other apps open there too. It has back, forward and reload, and the puzzle
+  other apps open as a new tab in the window, or there if you turn it on
+  under Settings › Links. It has back, forward and reload, and the puzzle
   button shows Chrome's toolbar with your extensions. "In Space öffnen" moves
   the page into the main window without reloading it.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's

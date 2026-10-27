@@ -1032,7 +1032,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         showToast("Link als Markdown kopiert")
     }
 
-    private var toast: ToastWindow?
+    private(set) var toast: ToastWindow?
 
     func showToast(_ text: String) {
         guard let window else { return }

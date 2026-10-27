@@ -225,6 +225,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
             window?.close()
         case .focusLocation:
             editAddress()
+        case .exit:
+            NSApp.terminate(nil)
         default:
             return false
         }

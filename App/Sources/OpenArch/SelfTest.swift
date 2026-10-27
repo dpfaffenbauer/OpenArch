@@ -51,6 +51,7 @@ final class SelfTest {
             (15, "second space", { self.secondSpace() }),
             (18, "shortcuts", { self.shortcuts() }),
             (20.5, "copy link", { self.copyLinkShortcut() }),
+            (20.6, "quit shortcut", { self.quitShortcut() }),
             (20.7, "external link", { self.externalLink() }),
             (24.5, "drag out", { self.dragOutTest() }),
             (21, "close and reopen", { self.closeAndReopen() }),
@@ -498,8 +499,16 @@ final class SelfTest {
     private func externalLink() {
         guard let app = NSApp.delegate as? AppDelegate else { return }
         let before = LittleOpenArchWindowController.openCount
-        app.application(NSApp, open: [URL(string: "https://example.com/from-another-app")!])
-        expect(LittleOpenArchWindowController.openCount == before + 1, "a link from another app opens in Little OpenArch")
+        let url = "https://example.com/from-another-app"
+        app.application(NSApp, open: [URL(string: url)!])
+        expect(LittleOpenArchWindowController.openCount == before && browser.state.activeItem?.currentURL == url,
+               "a link from another app opens as a new tab in the window")
+        if browser.state.activeItem?.currentURL == url { browser.closeActiveTab() }
+        library.settings.linksInLittleOpenArch = true
+        app.application(NSApp, open: [URL(string: url)!])
+        expect(LittleOpenArchWindowController.openCount == before + 1,
+               "with the setting on, it opens in Little OpenArch")
+        library.settings.linksInLittleOpenArch = false
         LittleOpenArchWindowController.closeAll()
     }
 
@@ -542,6 +551,31 @@ final class SelfTest {
         copyPasteboard.clearContents()
         let handled = ShortcutMonitor.handle(event, target: app)
         expect(handled && copyPasteboard.string(forType: .string) == url, "⌘⇧C copies the address (\(url))")
+        // "Link kopiert" has to be in front of the page, not behind it.
+        let toast = browser.toast, page = browser.activePane?.window
+        expect(toast?.isVisible == true && page != nil && toast!.orderedIndex < page!.orderedIndex,
+               "⌘⇧C shows „Link kopiert“ above the page")
+    }
+
+    /// ⌘Q quits through OpenArch's own shortcuts, so a page or Chrome cannot
+    /// keep it; Chrome's own quit command from a Little OpenArch tab too.
+    private func quitShortcut() {
+        guard let app = NSApp.delegate as? AppDelegate,
+              let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command], timestamp: 0,
+                                           windowNumber: browser.window?.windowNumber ?? 0, context: nil, characters: "q",
+                                           charactersIgnoringModifiers: "q", isARepeat: false, keyCode: 12) else {
+            return expect(false, "⌘Q test setup")
+        }
+        var quits = 0
+        app.quitProbe = { quits += 1 }
+        let handled = ShortcutMonitor.handle(event, target: app)
+        expect(handled && quits == 1, "⌘Q quits OpenArch")
+        if let little = LittleOpenArchWindowController.show(url: "https://example.com/little-quit", app: app) {
+            _ = little.pane(little.shownPane, handleChromeCommand: OACChromeCommand.exit.rawValue)
+            expect(quits == 2, "Chrome's quit command from Little OpenArch quits too")
+        }
+        app.quitProbe = nil
+        LittleOpenArchWindowController.closeAll()
     }
 
     private func closeAndReopen() {
