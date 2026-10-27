@@ -75,6 +75,12 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
     <key>LSItemContentTypes</key><array><string>public.html</string><string>public.xhtml</string></array>
     <key>LSHandlerRank</key><string>Default</string>
   </dict></array>
+  <key>UTExportedTypeDeclarations</key>
+  <array><dict>
+    <key>UTTypeIdentifier</key><string>dev.openarch.tab</string>
+    <key>UTTypeDescription</key><string>OpenArch tab</string>
+    <key>UTTypeConformsTo</key><array><string>public.data</string></array>
+  </dict></array>
   <key>NSCameraUsageDescription</key><string>Websites can ask to use your camera.</string>
   <key>NSMicrophoneUsageDescription</key><string>Websites can ask to use your microphone.</string>
   <key>NSLocationUsageDescription</key><string>Websites can ask for your location.</string>"

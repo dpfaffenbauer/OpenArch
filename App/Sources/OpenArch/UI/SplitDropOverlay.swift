@@ -48,7 +48,7 @@ final class SplitDropView: NSView {
 
     override init(frame: NSRect) {
         super.init(frame: frame)
-        registerForDraggedTypes([.string])
+        registerForDraggedTypes([.openArchTab])
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -74,8 +74,9 @@ final class SplitDropView: NSView {
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         let leading = zone(for: sender) == .leading
         zone = nil
-        guard let string = sender.draggingPasteboard.string(forType: .string),
-              let id = UUID(uuidString: string) else { return false }
+        guard let data = sender.draggingPasteboard.data(forType: .openArchTab),
+              let id = UUID(uuidString: String(decoding: data, as: UTF8.self)) else { return false }
+        BrowserWindowController.tabDropHandled = true
         return onDrop?(id, leading) ?? false
     }
 

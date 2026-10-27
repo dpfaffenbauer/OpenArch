@@ -52,6 +52,7 @@ final class SelfTest {
             (18, "shortcuts", { self.shortcuts() }),
             (20.5, "copy link", { self.copyLinkShortcut() }),
             (20.7, "external link", { self.externalLink() }),
+            (24.5, "drag out", { self.dragOutTest() }),
             (21, "close and reopen", { self.closeAndReopen() }),
             (23, "folders and pinning", { self.foldersAndPinning() }),
             (25, "arc import (dry run)", { self.arcImport() }),
@@ -500,6 +501,33 @@ final class SelfTest {
         app.application(NSApp, open: [URL(string: "https://example.com/from-another-app")!])
         expect(LittleOpenArchWindowController.openCount == before + 1, "a link from another app opens in Little OpenArch")
         LittleOpenArchWindowController.closeAll()
+    }
+
+    /// A today tab dragged out of the sidebar onto the desktop becomes a
+    /// Little OpenArch window there, keeping its page; a pinned tab stays and
+    /// opens a copy.
+    private func dragOutTest() {
+        let tab = browser.openInNewTab("https://example.com/drag-out")
+        after(2.5) {
+            guard let pane = tab.pane, let screen = self.browser.window?.screen?.visibleFrame else {
+                return self.expect(false, "a tab to drag out")
+            }
+            let point = NSPoint(x: screen.midX, y: screen.midY)
+            self.browser.openInSeparateWindow(tab, at: point)
+            let little = LittleOpenArchWindowController.all.last
+            self.expect(little?.shownPane === pane && pane.window?.parent === little?.window
+                        && !self.browser.state.space.today.allTabs.contains { $0 === tab }
+                        && little?.window?.frame.contains(NSPoint(x: point.x, y: point.y - 10)) == true,
+                        "a tab dragged out of the sidebar opens with its page in its own window where it was dropped")
+            let pinnedCount = self.browser.state.space.pinned.allTabs.count
+            if let pinned = self.browser.state.space.pinned.allTabs.first {
+                self.browser.openInSeparateWindow(pinned, at: point)
+                self.expect(self.browser.state.space.pinned.allTabs.count == pinnedCount
+                            && LittleOpenArchWindowController.all.last?.shownPane !== pinned.pane,
+                            "a pinned tab dragged out stays pinned and opens a copy")
+            }
+            LittleOpenArchWindowController.closeAll()
+        }
     }
 
     /// ⌘⇧C reaches OpenArch (not the page or Chrome's inspector) and copies

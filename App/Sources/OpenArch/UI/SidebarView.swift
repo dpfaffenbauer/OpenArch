@@ -291,7 +291,7 @@ private struct FavoritesGrid: View {
             }
         }
         .background(RoundedRectangle(cornerRadius: 10).fill(dropTargeted ? theme.hover : .clear))
-        .onDrop(of: [.plainText], isTargeted: $dropTargeted) { providers in
+        .onDrop(of: [.openArchTab, .plainText], isTargeted: $dropTargeted) { providers in
             browser.handleDrop(providers, target: .end(favorites))
         }
     }
@@ -325,9 +325,9 @@ private struct FavoriteTile: View {
         .help(item.displayTitle)
         .onDrag {
             browser.beginTabDrag(item)
-            return NSItemProvider(object: item.id.uuidString as NSString)
+            return tabDragProvider(item)
         }
-        .onDrop(of: [.plainText], isTargeted: nil) { providers in
+        .onDrop(of: [.openArchTab, .plainText], isTargeted: nil) { providers in
             browser.handleDrop(providers, target: .before(item))
         }
         .contextMenu {
@@ -412,7 +412,7 @@ private struct PinnedSection: View {
                     }
                 }
                 .background(RoundedRectangle(cornerRadius: 8).fill(dropTargeted ? theme.hover : .clear))
-                .onDrop(of: [.plainText], isTargeted: $dropTargeted) { providers in
+                .onDrop(of: [.openArchTab, .plainText], isTargeted: $dropTargeted) { providers in
                     browser.handleDrop(providers, target: .end(space.pinned))
                 }
         }
@@ -461,8 +461,8 @@ private struct FolderRow: View {
         .rowStyle(depth: depth, isActive: false, hovering: hovering, theme: theme, dropZone: dropZone)
         .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { browser.select(item) } }
         .onHover { hovering = $0 }
-        .onDrag { NSItemProvider(object: item.id.uuidString as NSString) }
-        .onDrop(of: [.plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
+        .onDrag { tabDragProvider(item) }
+        .onDrop(of: [.openArchTab, .plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
         .contextMenu {
             Button("Umbenennen") { browser.state.renamingItemID = item.id }
             Button("Neuer Unterordner") { browser.newFolder(in: item) }
@@ -512,9 +512,9 @@ private struct TabRow: View {
         .onHover { hovering = $0 }
         .onDrag {
             browser.beginTabDrag(item)
-            return NSItemProvider(object: item.id.uuidString as NSString)
+            return tabDragProvider(item)
         }
-        .onDrop(of: [.plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .onDrop(of: [.openArchTab, .plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
         .contextMenu { TabContextMenu(browser: browser, item: item) }
         .help(item.currentURL)
     }
@@ -548,8 +548,8 @@ private struct SplitRow: View {
         }
         .rowStyle(depth: depth, isActive: isShown, hovering: hovering, theme: theme, dropZone: dropZone, horizontalPadding: 3)
         .onHover { hovering = $0 }
-        .onDrag { NSItemProvider(object: item.id.uuidString as NSString) }
-        .onDrop(of: [.plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .onDrag { tabDragProvider(item) }
+        .onDrop(of: [.openArchTab, .plainText], delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
         .help("Split View")
     }
 }
@@ -637,7 +637,7 @@ private struct TodaySection: View {
             .frame(height: 16)
             .padding(.horizontal, 8)
             .onHover { hoveringHeader = $0 }
-            .onDrop(of: [.plainText], isTargeted: $dropTargeted) { providers in
+            .onDrop(of: [.openArchTab, .plainText], isTargeted: $dropTargeted) { providers in
                 browser.handleDrop(providers, target: .end(space.today))
             }
 
@@ -726,7 +726,7 @@ private struct SpaceButton: View {
             .onTapGesture { browser.switchSpace(to: space) }
             .onHover { hovering = $0 }
             .help(index < 9 ? "\(space.name) (⌃\(index + 1))" : space.name)
-            .onDrop(of: [.plainText], isTargeted: nil) { providers in
+            .onDrop(of: [.openArchTab, .plainText], isTargeted: nil) { providers in
                 browser.handleDrop(providers, toSpace: space)
             }
             .contextMenu {
@@ -910,8 +910,29 @@ private struct RowDropDelegate: DropDelegate {
         case .into: target = .into(item)
         }
         zone = nil
-        return browser.handleDrop(info.itemProviders(for: [.plainText]), target: target)
+        return browser.handleDrop(info.itemProviders(for: [.openArchTab, .plainText]), target: target)
     }
+}
+
+extension UTType {
+    /// A sidebar item being dragged: private to OpenArch, so Finder and other
+    /// apps ignore it (no text clippings with an id in them).
+    static let openArchTab = UTType(exportedAs: "dev.openarch.tab", conformingTo: .data)
+}
+
+extension NSPasteboard.PasteboardType {
+    static let openArchTab = NSPasteboard.PasteboardType("dev.openarch.tab")
+}
+
+/// What dragging a sidebar item carries: its id, as OpenArch's own type.
+func tabDragProvider(_ item: Item) -> NSItemProvider {
+    let provider = NSItemProvider()
+    let id = Data(item.id.uuidString.utf8)
+    provider.registerDataRepresentation(forTypeIdentifier: UTType.openArchTab.identifier, visibility: .all) { completion in
+        completion(id, nil)
+        return nil
+    }
+    return provider
 }
 
 @MainActor

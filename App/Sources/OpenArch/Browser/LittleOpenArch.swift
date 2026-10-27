@@ -19,9 +19,35 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     /// Opens a Little OpenArch window, with |url| or with an address field.
     @discardableResult
-    static func show(url: String?, app: AppDelegate) -> LittleOpenArchWindowController? {
+    static func show(url: String?, app: AppDelegate, at point: NSPoint? = nil) -> LittleOpenArchWindowController? {
         guard let browser = app.mainBrowser else { return nil }
         let controller = LittleOpenArchWindowController(url: url, space: browser.state.space, app: app)
+        return present(controller, at: point, editing: url == nil)
+    }
+
+    /// A tab dragged out of the sidebar: its page moves into the window as
+    /// it is.
+    @discardableResult
+    static func show(adopting pane: OACPane, url: String, title: String, favicon: NSImage?, space: Space,
+                     app: AppDelegate, at point: NSPoint?) -> LittleOpenArchWindowController? {
+        let controller = LittleOpenArchWindowController(url: url, space: space, app: app, pane: pane)
+        controller.model.title = title
+        controller.model.favicon = favicon
+        controller.model.canGoBack = pane.canGoBack
+        controller.model.canGoForward = pane.canGoForward
+        return present(controller, at: point, editing: false)
+    }
+
+    private static func present(_ controller: LittleOpenArchWindowController, at point: NSPoint?,
+                                editing: Bool) -> LittleOpenArchWindowController {
+        if let point, let window = controller.window {
+            // Under the mouse, on whichever screen that is, and fully on it.
+            let screen = NSScreen.screens.first { $0.frame.contains(point) }?.visibleFrame ?? window.frame
+            var frame = window.frame
+            frame.origin.x = min(max(point.x - 160, screen.minX), screen.maxX - frame.width)
+            frame.origin.y = min(max(point.y - frame.height + 20, screen.minY), screen.maxY - frame.height)
+            window.setFrame(frame, display: false)
+        }
         open.append(controller)
         if AppPaths.isSelfTest {
             // The background self-test never puts a window in front.
@@ -30,7 +56,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
             controller.showWindow(nil)
         }
         controller.layout()
-        if url == nil {
+        if editing {
             controller.model.isEditing = true
         }
         return controller
@@ -42,16 +68,21 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         for controller in open { controller.window?.close() }
     }
 
+    /// The pane a Little OpenArch window shows (self-test).
+    var shownPane: OACPane { pane }
+
+    static var all: [LittleOpenArchWindowController] { open }
+
     /// The Little OpenArch window the user is working in, if any.
     static var current: LittleOpenArchWindowController? {
         guard let key = NSApp.keyWindow else { return nil }
         return open.first { $0.window === key || $0.pane.window === key }
     }
 
-    private init(url: String?, space: Space, app: AppDelegate) {
+    private init(url: String?, space: Space, app: AppDelegate, pane existing: OACPane? = nil) {
         self.app = app
         profileID = space.profileID
-        pane = OACPane(profile: app.library.profile(id: space.profileID).chromium, url: url ?? "about:blank")
+        pane = existing ?? OACPane(profile: app.library.profile(id: space.profileID).chromium, url: url ?? "about:blank")
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)

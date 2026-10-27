@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import UniformTypeIdentifiers
 
 /// Sidebar actions: drag and drop, spaces, tidying up.
 extension BrowserWindowController {
@@ -26,10 +27,23 @@ extension BrowserWindowController {
     }
 
     private func loadDroppedString(_ providers: [NSItemProvider], _ handler: @escaping @MainActor (String) -> Void) -> Bool {
+        let wrapped: @MainActor (String) -> Void = { string in
+            // A sidebar item landed in a window: no separate window for it.
+            if UUID(uuidString: string) != nil { BrowserWindowController.tabDropHandled = true }
+            handler(string)
+        }
+        if let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.openArchTab.identifier) }) {
+            _ = provider.loadDataRepresentation(forTypeIdentifier: UTType.openArchTab.identifier) { data, _ in
+                guard let string = data.flatMap({ String(data: $0, encoding: .utf8) }) else { return }
+                Task { @MainActor in wrapped(string) }
+            }
+            BrowserWindowController.tabDropHandled = true
+            return true
+        }
         guard let provider = providers.first(where: { $0.canLoadObject(ofClass: NSString.self) }) else { return false }
         _ = provider.loadObject(ofClass: NSString.self) { object, _ in
             guard let string = (object as? NSString).map(String.init) else { return }
-            Task { @MainActor in handler(string) }
+            Task { @MainActor in wrapped(string) }
         }
         return true
     }

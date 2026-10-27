@@ -865,20 +865,64 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Called when a tab starts being dragged out of the sidebar: shows drop
     /// zones over the page until the drag ends.
+    /// Set when a dragged sidebar item lands in an OpenArch window.
+    static var tabDropHandled = false
+
     func beginTabDrag(_ item: Item) {
-        guard item.kind == .tab, let window, !visibleTabs.isEmpty else { return }
-        let overlay = splitDropOverlay ?? SplitDropOverlay(browser: self)
-        splitDropOverlay = overlay
-        overlay.show(over: window.convertToScreen(contentRect), above: window)
+        guard item.kind == .tab, let window else { return }
+        Self.tabDropHandled = false
+        if !visibleTabs.isEmpty {
+            let overlay = splitDropOverlay ?? SplitDropOverlay(browser: self)
+            splitDropOverlay = overlay
+            overlay.show(over: window.convertToScreen(contentRect), above: window)
+        }
         // Drag sessions run their own event loop; this fires once it is over.
         dragWatch?.invalidate()
-        dragWatch = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+        dragWatch = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
-                guard NSEvent.pressedMouseButtons == 0 else { return }
-                self?.dragWatch?.invalidate()
-                self?.splitDropOverlay?.hide()
+                guard let self, NSEvent.pressedMouseButtons == 0 else { return }
+                self.dragWatch?.invalidate()
+                self.splitDropOverlay?.hide()
+                // Dropped where no OpenArch window took it (the desktop, the
+                // other screen): the tab opens there in a window of its own.
+                let point = NSEvent.mouseLocation
+                if !Self.tabDropHandled, !Self.isOverOpenArchWindow(point) {
+                    self.openInSeparateWindow(item, at: point)
+                }
             }
         }
+    }
+
+    static func isOverOpenArchWindow(_ point: NSPoint) -> Bool {
+        NSApp.windows.contains { $0.isVisible && $0.alphaValue > 0 && $0.frame.contains(point) }
+    }
+
+    /// Like Arc: a tab dragged out of the sidebar becomes a window of its
+    /// own (Little OpenArch) where it was dropped. A today tab takes its page
+    /// along without reloading; pinned tabs and favorites stay and open a copy.
+    func openInSeparateWindow(_ item: Item, at point: NSPoint?) {
+        guard item.kind == .tab, !isPrivate, let app = NSApp.delegate as? AppDelegate else { return }
+        let url = item.currentURL
+        guard item.role == .today, let pane = item.pane else {
+            LittleOpenArchWindowController.show(url: url, app: app, at: point)
+            return
+        }
+        let wasActive = state.activeItem === item
+        let next = wasActive ? neighbor(forClosing: item) : nil
+        itemsByPane[ObjectIdentifier(pane)] = nil
+        visibleTabs.removeAll { $0 === item }
+        pane.hide()
+        let title = item.displayTitle, favicon = item.favicon
+        item.pane = nil
+        item.detach()
+        if wasActive {
+            if let next { select(next) } else { showNothing() }
+        } else {
+            layoutContent()
+        }
+        library.setNeedsSave()
+        LittleOpenArchWindowController.show(adopting: pane, url: url, title: title, favicon: favicon, space: state.space,
+                                            app: app, at: point)
     }
 
     /// A tab dropped on the left or right half of the page.
