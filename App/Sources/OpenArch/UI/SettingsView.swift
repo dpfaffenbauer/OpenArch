@@ -149,11 +149,39 @@ private struct Row<Control: View>: View {
 
 // MARK: - Pages
 
+/// Whether OpenArch is the Mac's browser, and the button to make it so.
+private struct DefaultBrowserRow: View {
+    let app: AppDelegate
+    var showsDivider = true
+    @State private var isDefault = DefaultBrowser.isDefault
+
+    var body: some View {
+        Row(symbol: "globe", color: .blue, title: "Standardbrowser",
+            detail: isDefault ? "OpenArch ist dein Standardbrowser: Links aus anderen Apps öffnen hier."
+                : "Damit Links aus Mail, Slack und anderen Apps in OpenArch öffnen.",
+            showsDivider: showsDivider) {
+            if isDefault {
+                Label("Aktiv", systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.system(size: 12, weight: .semibold))
+            } else {
+                Button("Als Standard festlegen") {
+                    DefaultBrowser.makeDefault { _ in isDefault = DefaultBrowser.isDefault }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            isDefault = DefaultBrowser.isDefault
+        }
+    }
+}
+
 private struct GeneralPage: View {
     let app: AppDelegate
     @Bindable var library: Library
 
     var body: some View {
+        Section(title: "Browser") {
+            DefaultBrowserRow(app: app, showsDivider: false)
+        }
         Section(title: "Suchen") {
             Row(symbol: "magnifyingglass", color: .blue, title: "Suchmaschine",
                 detail: "Für Suchen aus der Befehlsleiste (⌘T).") {
@@ -325,10 +353,7 @@ private struct LinksPage: View {
                 detail: "Links aus Mail, Slack & Co. öffnen in einem kleinen Fenster. Von dort holst du sie mit einem Klick in einen Space.") {
                 Toggle("", isOn: $library.settings.openLinksInLittleOpenArch).labelsHidden().toggleStyle(.switch)
             }
-            Row(symbol: "globe", color: .blue, title: "Standardbrowser",
-                detail: "Damit Links aus anderen Apps in OpenArch landen.", showsDivider: false) {
-                Button("Als Standard festlegen") { app.setAsDefaultBrowser(nil) }
-            }
+            DefaultBrowserRow(app: app, showsDivider: false)
         }
         .onChange(of: library.settings) { library.setNeedsSave() }
     }

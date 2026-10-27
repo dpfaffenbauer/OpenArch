@@ -51,6 +51,7 @@ final class SelfTest {
             (15, "second space", { self.secondSpace() }),
             (18, "shortcuts", { self.shortcuts() }),
             (20.5, "copy link", { self.copyLinkShortcut() }),
+            (20.7, "external link", { self.externalLink() }),
             (21, "close and reopen", { self.closeAndReopen() }),
             (23, "folders and pinning", { self.foldersAndPinning() }),
             (25, "arc import (dry run)", { self.arcImport() }),
@@ -489,6 +490,16 @@ final class SelfTest {
         browser.showWindow(nil)
         expect(browser.window?.isVisible == true && shown.window?.isVisible == true,
                "the window comes back with its panes")
+    }
+
+    /// A link from another app (as macOS hands it over when OpenArch is the
+    /// default browser) opens in Little OpenArch.
+    private func externalLink() {
+        guard let app = NSApp.delegate as? AppDelegate else { return }
+        let before = LittleOpenArchWindowController.openCount
+        app.application(NSApp, open: [URL(string: "https://example.com/from-another-app")!])
+        expect(LittleOpenArchWindowController.openCount == before + 1, "a link from another app opens in Little OpenArch")
+        LittleOpenArchWindowController.closeAll()
     }
 
     /// ⌘⇧C reaches OpenArch (not the page or Chrome's inspector) and copies

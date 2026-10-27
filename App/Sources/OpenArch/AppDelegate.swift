@@ -72,6 +72,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 importArcFaviconsOnce()
                 Updater.shared.start()
                 AppIcons.applyAtLaunch(spaceHex: browser.state.space.colorHex)
+                // After the Arc import question, not on top of it.
+                after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
                 if let result = ArcProfileImport.takeResult() {
                     let alert = NSAlert()
                     alert.messageText = "Import aus Arc"
@@ -293,9 +295,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func setAsDefaultBrowser(_ sender: Any?) {
-        let url = Bundle.main.bundleURL
-        NSWorkspace.shared.setDefaultApplication(at: url, toOpenURLsWithScheme: "http") { _ in }
-        NSWorkspace.shared.setDefaultApplication(at: url, toOpenURLsWithScheme: "https") { _ in }
+        DefaultBrowser.makeDefault { success in
+            guard !success else { return }
+            let alert = NSAlert()
+            alert.messageText = "OpenArch ist nicht Standardbrowser geworden."
+            alert.informativeText = "macOS hat die Änderung nicht übernommen. Du kannst OpenArch auch unter Systemeinstellungen › Schreibtisch & Dock › Standard-Webbrowser auswählen."
+            alert.runModal()
+        }
+    }
+
+    /// Once, after the first launch: links from other apps are what makes
+    /// OpenArch your browser.
+    private func offerDefaultBrowserOnce() {
+        let key = "didOfferDefaultBrowser"
+        guard !UserDefaults.standard.bool(forKey: key), !DefaultBrowser.isDefault else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        let alert = NSAlert()
+        alert.messageText = "OpenArch als Standardbrowser verwenden?"
+        alert.informativeText = "Dann öffnen Links aus Mail, Slack und anderen Apps in OpenArch, in Little OpenArch oder nach deinen Link-Regeln direkt im richtigen Space."
+        alert.addButton(withTitle: "Als Standard festlegen")
+        alert.addButton(withTitle: "Nicht jetzt")
+        if alert.runModal() == .alertFirstButtonReturn {
+            setAsDefaultBrowser(nil)
+        }
     }
 
     @objc func newTab(_ sender: Any?) { browser?.commandBar.show(mode: .newTab) }

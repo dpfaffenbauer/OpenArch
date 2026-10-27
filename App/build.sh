@@ -72,7 +72,8 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <array><dict>
     <key>CFBundleTypeName</key><string>HTML document</string>
     <key>CFBundleTypeRole</key><string>Viewer</string>
-    <key>LSItemContentTypes</key><array><string>public.html</string></array>
+    <key>LSItemContentTypes</key><array><string>public.html</string><string>public.xhtml</string></array>
+    <key>LSHandlerRank</key><string>Default</string>
   </dict></array>
   <key>NSCameraUsageDescription</key><string>Websites can ask to use your camera.</string>
   <key>NSMicrophoneUsageDescription</key><string>Websites can ask to use your microphone.</string>

@@ -36,6 +36,12 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         return controller
     }
 
+    static var openCount: Int { open.count }
+
+    static func closeAll() {
+        for controller in open { controller.window?.close() }
+    }
+
     /// The Little OpenArch window the user is working in, if any.
     static var current: LittleOpenArchWindowController? {
         guard let key = NSApp.keyWindow else { return nil }
