@@ -5,6 +5,8 @@ sidebar with favorites, pinned folders and today tabs, Spaces with their own
 profiles, a command bar, split view, and real Chrome extensions.
 
 Status: early, but usable as a daily browser for testing.
+[Download the latest release](https://github.com/dpfaffenbauer/OpenArch/releases/latest)
+(Apple silicon, macOS 15 or later) or see [openarch.app](https://openarch.app).
 
 ## Build and run
 

@@ -9,7 +9,7 @@ CONFIG="${CONFIG:-debug}"
 NAME="OpenArch"
 APP="$APP_DIR/build/$NAME.app"
 BUNDLE_ID="dev.openarch.browser"
-VERSION="0.1.0"
+VERSION="${OPENARCH_VERSION:-0.1.0}"
 # CI sets these; local builds are build 0 and never update themselves.
 BUILD="${OPENARCH_BUILD:-0}"
 COMMIT="${OPENARCH_COMMIT:-$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo dev)}"

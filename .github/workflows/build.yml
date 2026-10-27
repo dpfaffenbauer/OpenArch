@@ -3,6 +3,8 @@ name: Build
 on:
   push:
     branches: [main]
+    # v0.1.0 and so on: builds that version and publishes a release.
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -37,7 +39,9 @@ jobs:
       - name: Build OpenArch.app
         env:
           OPENARCH_BUILD: ${{ github.run_number }}
-        run: CONFIG=release App/build.sh
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then export OPENARCH_VERSION="${GITHUB_REF_NAME#v}"; fi
+          CONFIG=release App/build.sh
 
       # Drives the real UI in the background. Needs network access (it opens
       # example.com and friends); reported, but not yet allowed to fail the
@@ -83,3 +87,16 @@ jobs:
             gh release create nightly OpenArch.zip --prerelease --title "OpenArch Nightly" --notes "$notes"
           fi
           gh release upload nightly latest.json --clobber
+
+      # A version tag: the release, with notes from .github/release-notes.
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes=".github/release-notes/$GITHUB_REF_NAME.md"
+          [ -f "$notes" ] || notes=/dev/null
+          # Same file name in every release: releases/latest/download/OpenArch.zip
+          # always points to the newest one.
+          gh release create "$GITHUB_REF_NAME" OpenArch.zip --title "OpenArch $version" --notes-file "$notes" --verify-tag
