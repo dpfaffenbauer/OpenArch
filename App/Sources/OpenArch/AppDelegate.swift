@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 test?.start()
             } else {
                 browser.restoreSession()
-                for url in pendingURLs { browser.openInNewTab(url) }
+                for url in pendingURLs { openExternal(url) }
                 pendingURLs = []
                 offerArcImportOnFirstRun()
                 importArcFaviconsOnce()
@@ -65,15 +65,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Links opened from other apps (when OpenArch is the default browser).
     func application(_ application: NSApplication, open urls: [URL]) {
         let strings = urls.map(\.absoluteString)
-        guard let browser else {
+        guard browser != nil else {
             pendingURLs += strings
             return
         }
-        if library.settings.openLinksInLittleOpenArch {
-            for url in strings { LittleOpenArchWindowController.show(url: url, app: self) }
+        for url in strings { openExternal(url) }
+    }
+
+    /// A link from another app: a matching link rule decides the space,
+    /// otherwise Little OpenArch or the current space.
+    func openExternal(_ url: String) {
+        guard let browser else { return }
+        if let rule = library.settings.linkRules.first(where: { $0.matches(url) }) {
+            if let id = rule.spaceID, let space = library.space(id: id) {
+                browser.showWindow(nil)
+                browser.switchSpace(to: space, restoring: false)
+                browser.openInNewTab(url)
+                if !selfTest { NSApp.activate() }
+            } else {
+                LittleOpenArchWindowController.show(url: url, app: self)
+            }
+        } else if library.settings.openLinksInLittleOpenArch {
+            LittleOpenArchWindowController.show(url: url, app: self)
         } else {
             browser.showWindow(nil)
-            for url in strings { browser.openInNewTab(url) }
+            browser.openInNewTab(url)
         }
     }
 

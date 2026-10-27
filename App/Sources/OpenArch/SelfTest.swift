@@ -60,6 +60,7 @@ final class SelfTest {
             (36.2, "internal urls", { self.internalURLs() }),
             (36.3, "floating sidebar", { self.floatingSidebarTest() }),
             (36.35, "site search", { self.siteSearchTest() }),
+            (36.38, "link rules", { self.linkRulesTest() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -751,6 +752,27 @@ final class SelfTest {
         }
     }
 
+    /// Link rules: patterns match by host, wildcard and path, and a link
+    /// from another app lands in the rule's space.
+    private func linkRulesTest() {
+        let rule = LinkRule(pattern: "example.org")
+        let wildcard = LinkRule(pattern: "*.atlassian.net")
+        let path = LinkRule(pattern: "docs.google.com/spreadsheets")
+        expect(rule.matches("https://www.example.org/a") && rule.matches("https://sub.example.org")
+               && !rule.matches("https://notexample.org") && wildcard.matches("https://acme.atlassian.net/browse/X-1")
+               && !wildcard.matches("https://atlassian.com") && path.matches("https://docs.google.com/spreadsheets/d/1")
+               && !path.matches("https://docs.google.com/document/d/1"),
+               "link rules match by host, subdomain, wildcard and path")
+        guard let app = NSApp.delegate as? AppDelegate, let target = library.spaces.last else { return }
+        let before = browser.state.space
+        library.settings.linkRules = [LinkRule(pattern: "example.org", spaceID: target.id)]
+        app.openExternal("https://example.org/from-mail")
+        expect(browser.state.space === target && target.today.allTabs.contains { $0.currentURL == "https://example.org/from-mail" },
+               "a link from another app follows its rule into the space „\(target.name)“")
+        library.settings.linkRules = []
+        browser.switchSpace(to: before)
+    }
+
     /// "yt" + Tab searches YouTube; Backspace in the empty field leaves.
     private func siteSearchTest() {
         let model = browser.commandBar.model
@@ -806,6 +828,21 @@ final class SelfTest {
             let url = AppPaths.support.appendingPathComponent("space-editor.png")
             try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
             Swift.print("[selftest] space editor rendered \(Int(host.fittingSize.width))x\(Int(host.fittingSize.height)) to \(url.path)")
+        }
+        if let app = NSApp.delegate as? AppDelegate {
+            library.settings.linkRules = [LinkRule(pattern: "github.com", spaceID: library.spaces.first?.id),
+                                          LinkRule(pattern: "*.atlassian.net")]
+            for page in [SettingsPage.general, .links, .about] {
+                let settings = NSHostingView(rootView: SettingsView(app: app, page: page))
+                settings.frame = NSRect(x: 0, y: 0, width: 640, height: 580)
+                settings.layoutSubtreeIfNeeded()
+                if let bitmap = settings.bitmapImageRepForCachingDisplay(in: settings.bounds) {
+                    settings.cacheDisplay(in: settings.bounds, to: bitmap)
+                    try? bitmap.representation(using: .png, properties: [:])?
+                        .write(to: AppPaths.support.appendingPathComponent("settings-\(page.rawValue).png"))
+                }
+            }
+            library.settings.linkRules = []
         }
         let dialog = NSHostingView(rootView: ProfileDialogView(existing: [], onCancel: {}, onCreate: { _ in }))
         dialog.frame = NSRect(origin: .zero, size: dialog.fittingSize)

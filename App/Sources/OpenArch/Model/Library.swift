@@ -293,6 +293,8 @@ struct Settings: Codable, Equatable {
     var openLinksInLittleOpenArch = true
     /// Sites to search from the command bar: keyword or name, then Tab.
     var siteSearches = SiteSearch.defaults
+    /// Where links from other apps go, by address; the first match wins.
+    var linkRules: [LinkRule] = []
 
     init() {}
 
@@ -307,6 +309,7 @@ struct Settings: Codable, Equatable {
         sidebarWidth = try container.decodeIfPresent(Double.self, forKey: .sidebarWidth) ?? defaults.sidebarWidth
         openLinksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .openLinksInLittleOpenArch) ?? defaults.openLinksInLittleOpenArch
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
+        linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -342,4 +345,35 @@ struct SiteSearch: Codable, Equatable, Identifiable {
         SiteSearch(name: "Claude", keyword: "cl", url: "https://claude.ai/new?q=%s"),
         SiteSearch(name: "Perplexity", keyword: "pp", url: "https://www.perplexity.ai/search?q=%s"),
     ]
+}
+
+/// A link rule: links from other apps whose address matches |pattern| open
+/// in a space (or in Little OpenArch when |spaceID| is nil).
+struct LinkRule: Codable, Equatable, Identifiable {
+    var id = UUID()
+    /// "github.com" (and its subdomains), "*.atlassian.net",
+    /// "docs.google.com/spreadsheets" (a path prefix).
+    var pattern: String
+    var spaceID: UUID?
+
+    func matches(_ url: String) -> Bool {
+        guard let components = URLComponents(string: url), let rawHost = components.host?.lowercased() else { return false }
+        var text = pattern.trimmingCharacters(in: .whitespaces).lowercased()
+        for scheme in ["https://", "http://"] where text.hasPrefix(scheme) { text.removeFirst(scheme.count) }
+        if text.hasPrefix("www.") { text.removeFirst(4) }
+        guard !text.isEmpty else { return false }
+        let host = rawHost.hasPrefix("www.") ? String(rawHost.dropFirst(4)) : rawHost
+        let parts = text.split(separator: "/", maxSplits: 1).map(String.init)
+        let hostPattern = parts[0]
+        let hostMatches: Bool
+        if hostPattern.contains("*") {
+            let regex = "^" + NSRegularExpression.escapedPattern(for: hostPattern).replacingOccurrences(of: "\\*", with: ".*") + "$"
+            hostMatches = host.range(of: regex, options: .regularExpression) != nil
+        } else {
+            hostMatches = host == hostPattern || host.hasSuffix("." + hostPattern)
+        }
+        guard hostMatches else { return false }
+        guard parts.count > 1, !parts[1].isEmpty else { return true }
+        return components.path.lowercased().hasPrefix("/" + parts[1])
+    }
 }

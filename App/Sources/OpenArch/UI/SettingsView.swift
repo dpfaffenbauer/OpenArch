@@ -5,7 +5,12 @@ import SwiftUI
 /// Settings in Arc's style: a tab bar with icons, options in rounded cards.
 struct SettingsView: View {
     let app: AppDelegate
-    @State private var page = SettingsPage.general
+    @State private var page: SettingsPage
+
+    init(app: AppDelegate, page: SettingsPage = .general) {
+        self.app = app
+        _page = State(initialValue: page)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -162,7 +167,6 @@ private struct GeneralPage: View {
                 Toggle("", isOn: $library.settings.searchSuggestions).labelsHidden().toggleStyle(.switch)
             }
         }
-        SiteSearchSection(library: library)
         Section(title: "Tabs") {
             Row(symbol: "archivebox", color: .orange, title: "Tabs unter dem Strich archivieren",
                 detail: "Nicht angeheftete Tabs, die so lange nicht benutzt wurden, wandern ins Archiv (⌘⇧T holt sie zurück).") {
@@ -193,6 +197,7 @@ private struct GeneralPage: View {
                     .onChange(of: library.settings.sidebarWidth) { app.browser?.layoutContent() }
             }
         }
+        SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }
     }
 }
@@ -272,6 +277,7 @@ private struct LinksPage: View {
     @Bindable var library: Library
 
     var body: some View {
+        LinkRulesSection(library: library)
         Section(title: "Links aus anderen Apps") {
             Row(symbol: "macwindow.on.rectangle", color: .pink, title: "In Little OpenArch öffnen",
                 detail: "Links aus Mail, Slack & Co. öffnen in einem kleinen Fenster. Von dort holst du sie mit einem Klick in einen Space.") {
@@ -283,6 +289,53 @@ private struct LinksPage: View {
             }
         }
         .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
+/// Link rules: links from other apps go straight to a space by address.
+private struct LinkRulesSection: View {
+    @Bindable var library: Library
+
+    var body: some View {
+        Section(title: "Link-Regeln",
+                footer: "Links aus anderen Apps, die zu einer Regel passen, öffnen direkt im gewählten Space. Die erste passende Regel gilt. Beispiele: github.com (mit Subdomains), *.atlassian.net, docs.google.com/spreadsheets.") {
+            if library.settings.linkRules.isEmpty {
+                Text("Noch keine Regeln.").font(.system(size: 12)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+            }
+            ForEach($library.settings.linkRules) { $rule in
+                HStack(spacing: 8) {
+                    TextField("github.com", text: $rule.pattern).textFieldStyle(.roundedBorder)
+                    Image(systemName: "arrow.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                    Picker("", selection: $rule.spaceID) {
+                        Text("Little OpenArch").tag(UUID?.none)
+                        ForEach(library.spaces) { space in
+                            Text(space.name).tag(UUID?.some(space.id))
+                        }
+                    }
+                    .labelsHidden().frame(width: 170)
+                    Button {
+                        library.settings.linkRules.removeAll { $0.id == rule.id }
+                    } label: {
+                        Image(systemName: "minus.circle.fill").foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Regel entfernen")
+                }
+                .font(.system(size: 12))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 6)
+            }
+            HStack {
+                Button("Regel hinzufügen") {
+                    library.settings.linkRules.append(LinkRule(pattern: "", spaceID: library.spaces.first?.id))
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
     }
 }
 
