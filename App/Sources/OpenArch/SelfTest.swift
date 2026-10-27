@@ -983,8 +983,11 @@ final class SelfTest {
             self.expect(tab.pane?.profile.directoryName == "" && self.library.space(containing: tab) == nil
                         && self.browser.history.search("private-window", limit: 5).isEmpty && tab.currentURL.contains("private-window"),
                         "a private window loads pages in its own profile without history")
-            privateWindow.window?.performClose(nil)
-            self.expect(tab.pane == nil && app.browsers.count == 1, "closing the private window ends its tabs")
+            privateWindow.closeActiveTab()
+            self.expect(tab.pane == nil && app.browsers.count == 2 && privateWindow.state.activeItem == nil,
+                        "⌘W closes the private window's last tab, the window stays")
+            privateWindow.closeActiveTab()
+            self.expect(app.browsers.count == 1, "⌘W without a tab closes the window")
         }
     }
 

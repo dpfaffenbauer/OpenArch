@@ -666,9 +666,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         library.setNeedsSave()
     }
 
+    /// ⌘W closes the tab, or the window once no tab is left to close.
     func closeActiveTab() {
         if let active = state.activeItem {
             close(active)
+        } else {
+            window?.performClose(nil)
         }
     }
 
