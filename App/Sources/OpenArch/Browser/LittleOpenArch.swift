@@ -1,0 +1,249 @@
+import AppKit
+import Observation
+import OpenArchCore
+import SwiftUI
+
+/// Little OpenArch: a small window for a quick look, e.g. links from other apps.
+/// "In Space öffnen" moves the page, as it is, into the main window.
+@MainActor
+final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate, OACPaneDelegate {
+    private static var open: [LittleOpenArchWindowController] = []
+
+    private unowned let app: AppDelegate
+    private let pane: OACPane
+    private let profileID: String
+    let model = LittleOpenArchModel()
+    private var transferred = false
+    static let barHeight: CGFloat = 40
+
+    /// Opens a Little OpenArch window, with |url| or with an address field.
+    @discardableResult
+    static func show(url: String?, app: AppDelegate) -> LittleOpenArchWindowController? {
+        guard let browser = app.browser else { return nil }
+        let controller = LittleOpenArchWindowController(url: url, space: browser.state.space, app: app)
+        open.append(controller)
+        controller.showWindow(nil)
+        controller.layout()
+        if url == nil {
+            controller.model.isEditing = true
+        }
+        return controller
+    }
+
+    /// The Little OpenArch window the user is working in, if any.
+    static var current: LittleOpenArchWindowController? {
+        guard let key = NSApp.keyWindow else { return nil }
+        return open.first { $0.window === key || $0.pane.window === key }
+    }
+
+    private init(url: String?, space: Space, app: AppDelegate) {
+        self.app = app
+        profileID = space.profileID
+        pane = OACPane(profile: app.library.profile(id: space.profileID).chromium, url: url ?? "about:blank")
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
+                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                              backing: .buffered, defer: false)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 480, height: 320)
+        let theme = SpaceTheme(hex: space.colorHex)
+        window.backgroundColor = theme.base
+        window.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
+        // Cascade from the last Little OpenArch window, or sit at the screen's center.
+        if let last = Self.open.last?.window {
+            window.setFrameTopLeftPoint(NSPoint(x: last.frame.minX + 28, y: last.frame.maxY - 28))
+        } else {
+            window.center()
+        }
+        super.init(window: window)
+        window.delegate = self
+        model.url = url ?? ""
+        let bar = NSHostingView(rootView: LittleOpenArchBar(controller: self, theme: theme))
+        bar.sizingOptions = []
+        window.contentView?.addSubview(bar)
+        pane.delegate = self
+        pane.cornerRadius = 8
+        pane.toolbarVisible = false
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    private var paneFrame: NSRect {
+        guard let bounds = window?.contentView?.bounds else { return .zero }
+        return NSRect(x: 6, y: 6, width: bounds.width - 12, height: bounds.height - Self.barHeight - 6)
+    }
+
+    func layout() {
+        guard let window, let content = window.contentView else { return }
+        content.subviews.first?.frame = NSRect(x: 0, y: content.bounds.height - Self.barHeight,
+                                               width: content.bounds.width, height: Self.barHeight)
+        if pane.isVisible {
+            pane.setFrame(paneFrame)
+        } else {
+            pane.show(in: window, frame: paneFrame)
+        }
+    }
+
+    func windowDidResize(_ notification: Notification) { layout() }
+    func windowDidMove(_ notification: Notification) { layout() }
+
+    func windowWillClose(_ notification: Notification) {
+        if !transferred {
+            pane.delegate = nil
+            pane.close()
+        }
+        Self.open.removeAll { $0 === self }
+    }
+
+    // MARK: Actions
+
+    func load(_ input: String) {
+        let text = input.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return }
+        let url = CommandBarModel.url(fromInput: text) ?? app.library.settings.searchEngine.url(for: text)
+        model.isEditing = false
+        pane.loadURL(url)
+        pane.focus()
+    }
+
+    /// Moves the page into the main window, in the current space (or one
+    /// with the same profile, so logins stay the same).
+    func moveToSpace() {
+        guard let browser = app.browser, let window else { return }
+        let space = browser.state.space.profileID == profileID ? browser.state.space
+            : (app.library.spaces.first { $0.profileID == profileID } ?? browser.state.space)
+        transferred = true
+        pane.hide()
+        browser.adopt(pane, into: space, url: model.url, title: model.title, favicon: model.favicon)
+        window.close()
+        browser.showWindow(nil)
+    }
+
+    func copyLink() {
+        OpenArch.copy(model.url)
+        model.copied = true
+        after(1.5) { self.model.copied = false }
+    }
+
+    func reload() { pane.reload() }
+    func goBack() { pane.goBack() }
+    func goForward() { pane.goForward() }
+    func showDevTools() { pane.showDevTools() }
+    func runChromeCommand(_ command: OACChromeCommand) { pane.executeChromeCommand(command.rawValue) }
+    func editAddress() { model.isEditing = true }
+
+    // MARK: OACPaneDelegate
+
+    func pane(_ pane: OACPane, titleDidChange title: String) { model.title = title }
+
+    func pane(_ pane: OACPane, addressDidChange url: String) {
+        model.url = url
+        app.history.recordVisit(url: url, title: nil)
+    }
+
+    func pane(_ pane: OACPane, faviconDidChange favicon: NSImage) {
+        model.favicon = favicon
+        FaviconStore.shared.store(favicon, forURL: model.url)
+    }
+
+    func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
+        model.isLoading = isLoading
+    }
+
+    /// Links that want a new tab go to the main window.
+    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+        app.browser?.openInNewTab(url, select: !background)
+        if !background { app.browser?.showWindow(nil) }
+    }
+
+    func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
+        switch OACChromeCommand(rawValue: commandID) {
+        case .closeTab, .closeWindow:
+            window?.close()
+        case .focusLocation:
+            editAddress()
+        default:
+            return false
+        }
+        return true
+    }
+
+    func paneDidClose(_ pane: OACPane) {
+        if !transferred { window?.close() }
+    }
+}
+
+@MainActor @Observable
+final class LittleOpenArchModel {
+    var url = ""
+    var title = ""
+    var favicon: NSImage?
+    var isLoading = false
+    var isEditing = false
+    var copied = false
+}
+
+private struct LittleOpenArchBar: View {
+    let controller: LittleOpenArchWindowController
+    let theme: SpaceTheme
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        let model = controller.model
+        HStack(spacing: 8) {
+            Spacer().frame(width: 66)
+            if model.isEditing {
+                TextField("Suchen oder URL eingeben", text: $text)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 13))
+                    .focused($focused)
+                    .onAppear {
+                        text = model.url == "about:blank" ? "" : model.url
+                        focused = true
+                    }
+                    .onSubmit { controller.load(text) }
+                    .onExitCommand { model.isEditing = false }
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(RoundedRectangle(cornerRadius: 7).fill(theme.tile))
+            } else {
+                Group {
+                    if let favicon = model.favicon {
+                        Image(nsImage: favicon).resizable().frame(width: 14, height: 14)
+                    } else if model.isLoading {
+                        ProgressView().controlSize(.mini)
+                    }
+                    Text(displayAddress(model.url))
+                        .font(.system(size: 12.5, weight: .medium))
+                        .lineLimit(1)
+                        .opacity(0.85)
+                }
+                .onTapGesture { model.isEditing = true }
+                .help("Adresse bearbeiten (⌘L)")
+            }
+            Spacer(minLength: 8)
+            IconButton(symbol: model.copied ? "checkmark" : "link", help: "Link kopieren") { controller.copyLink() }
+            Button { controller.moveToSpace() } label: {
+                Label("In Space öffnen", systemImage: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(RoundedRectangle(cornerRadius: 7).fill(theme.tile))
+            }
+            .buttonStyle(.plain)
+            .disabled(model.url.isEmpty || model.url == "about:blank")
+            .help("Ins Hauptfenster holen")
+        }
+        .padding(.trailing, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .foregroundStyle(theme.foreground)
+        .environment(\.colorScheme, theme.colorScheme)
+    }
+
+    private func displayAddress(_ url: String) -> String {
+        guard !url.isEmpty, url != "about:blank" else { return "Little OpenArch" }
+        return CommandBarModel.shortURL(url)
+    }
+}

@@ -262,7 +262,11 @@ class PaneClient : public CefClient,
       return;
     }
     std::string url = browser->GetMainFrame()->GetURL().ToString();
-    if (url.empty() || url == "about:blank") {
+    if (url == "about:blank" && OACRemoteDebuggingEnabled()) {
+      // A blank page from a DevTools client (AI control): leave it in its
+      // own window so the client keeps its handle on it.
+      url = "devtools://keep";
+    } else if (url.empty() || url == "about:blank") {
       return;  // Wait for the real address.
     }
     adopting_.erase(pending);

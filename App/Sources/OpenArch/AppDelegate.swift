@@ -63,12 +63,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Links opened from other apps (when OpenArch is the default browser).
     func application(_ application: NSApplication, open urls: [URL]) {
         let strings = urls.map(\.absoluteString)
-        if let browser {
+        guard let browser else {
+            pendingURLs += strings
+            return
+        }
+        if library.settings.openLinksInLittleOpenArch {
+            for url in strings { LittleOpenArchWindowController.show(url: url, app: self) }
+        } else {
             browser.showWindow(nil)
             for url in strings { browser.openInNewTab(url) }
-        } else {
-            pendingURLs += strings
         }
+    }
+
+    @objc func newLittleOpenArch(_ sender: Any?) {
+        LittleOpenArchWindowController.show(url: nil, app: self)
+    }
+
+    /// Restarts OpenArch (e.g. after turning on AI control).
+    func relaunch() {
+        library.save()
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/sh")
+        task.arguments = ["-c", "while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done; /usr/bin/open \"$0\"", Bundle.main.bundleURL.path]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 
     /// Libraries imported before favicons were part of the import.
@@ -97,8 +116,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showSettings(_ sender: Any?) {
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 460),
-                                  styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 580),
+                                  styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
             window.title = "OpenArch-Einstellungen"
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: SettingsView(app: self))
@@ -188,10 +209,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func newTab(_ sender: Any?) { browser?.commandBar.show(mode: .newTab) }
-    @objc func openLocation(_ sender: Any?) { browser?.commandBar.show(mode: .editURL) }
+    @objc func openLocation(_ sender: Any?) {
+        if let little = LittleOpenArchWindowController.current { return little.editAddress() }
+        browser?.commandBar.show(mode: .editURL)
+    }
     @objc func closeTab(_ sender: Any?) {
         if let key = NSApp.keyWindow, key === settingsWindow {
             key.close()
+        } else if let little = LittleOpenArchWindowController.current {
+            little.window?.close()
         } else {
             browser?.closeActiveTab()
         }
@@ -208,20 +234,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleToolbar(_ sender: Any?) { browser?.toggleChromeToolbar() }
     @objc func splitView(_ sender: Any?) { browser?.splitWithNewTab() }
     @objc func unsplitView(_ sender: Any?) { browser?.unsplit() }
-    @objc func copyURL(_ sender: Any?) { browser?.copyURL() }
-    @objc func reload(_ sender: Any?) { browser?.reload() }
-    @objc func reloadHard(_ sender: Any?) { browser?.runChromeCommand(.reloadBypassingCache) }
-    @objc func goBack(_ sender: Any?) { browser?.goBack() }
-    @objc func goForward(_ sender: Any?) { browser?.goForward() }
-    @objc func find(_ sender: Any?) { browser?.runChromeCommand(.find) }
-    @objc func findNext(_ sender: Any?) { browser?.runChromeCommand(.findNext) }
-    @objc func findPrevious(_ sender: Any?) { browser?.runChromeCommand(.findPrevious) }
-    @objc func zoomIn(_ sender: Any?) { browser?.runChromeCommand(.zoomPlus) }
-    @objc func zoomOut(_ sender: Any?) { browser?.runChromeCommand(.zoomMinus) }
-    @objc func zoomReset(_ sender: Any?) { browser?.runChromeCommand(.zoomNormal) }
-    @objc func printPage(_ sender: Any?) { browser?.runChromeCommand(.print) }
-    @objc func devTools(_ sender: Any?) { browser?.activePane?.showDevTools() }
-    @objc func viewSource(_ sender: Any?) { browser?.runChromeCommand(.viewSource) }
+    @objc func copyURL(_ sender: Any?) {
+        if let little = LittleOpenArchWindowController.current { return little.copyLink() }
+        browser?.copyURL()
+    }
+    @objc func reload(_ sender: Any?) {
+        if let little = LittleOpenArchWindowController.current { return little.reload() }
+        browser?.reload()
+    }
+    @objc func reloadHard(_ sender: Any?) { chromeCommand(.reloadBypassingCache) }
+    @objc func goBack(_ sender: Any?) {
+        if let little = LittleOpenArchWindowController.current { return little.goBack() }
+        browser?.goBack()
+    }
+    @objc func goForward(_ sender: Any?) {
+        if let little = LittleOpenArchWindowController.current { return little.goForward() }
+        browser?.goForward()
+    }
+    @objc func find(_ sender: Any?) { chromeCommand(.find) }
+    @objc func findNext(_ sender: Any?) { chromeCommand(.findNext) }
+    @objc func findPrevious(_ sender: Any?) { chromeCommand(.findPrevious) }
+    @objc func zoomIn(_ sender: Any?) { chromeCommand(.zoomPlus) }
+    @objc func zoomOut(_ sender: Any?) { chromeCommand(.zoomMinus) }
+    @objc func zoomReset(_ sender: Any?) { chromeCommand(.zoomNormal) }
+    @objc func printPage(_ sender: Any?) { chromeCommand(.print) }
+    @objc func devTools(_ sender: Any?) {
+        if let little = LittleOpenArchWindowController.current { return little.showDevTools() }
+        browser?.activePane?.showDevTools()
+    }
+    @objc func viewSource(_ sender: Any?) { chromeCommand(.viewSource) }
+
+    /// A Chrome command for the page in front: Little OpenArch or the main window.
+    private func chromeCommand(_ command: OACChromeCommand) {
+        if let little = LittleOpenArchWindowController.current {
+            little.runChromeCommand(command)
+        } else {
+            browser?.runChromeCommand(command)
+        }
+    }
     @objc func toggleFullScreen(_ sender: Any?) { browser?.window?.toggleFullScreen(nil) }
     @objc func showHistory(_ sender: Any?) { browser?.openChromePage("chrome://history") }
     @objc func showDownloads(_ sender: Any?) { browser?.openChromePage("chrome://downloads") }
@@ -305,6 +355,7 @@ enum MainMenu {
 
         main.addItem(submenu("Ablage", [
             item("Neuer Tab", #selector(AppDelegate.newTab(_:)), "t"),
+            item("Neues Little-OpenArch-Fenster", #selector(AppDelegate.newLittleOpenArch(_:)), "n", [.command, .option]),
             item("Neues Inkognito-Fenster", #selector(AppDelegate.newIncognitoWindow(_:)), "n", [.command, .shift]),
             item("Adresse öffnen …", #selector(AppDelegate.openLocation(_:)), "l"),
             item("Neuer Ordner", #selector(AppDelegate.newFolder(_:))),

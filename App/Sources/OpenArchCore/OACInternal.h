@@ -15,6 +15,9 @@
 /// Whether Chromium's global context (and the default profile) is ready.
 bool OACEngineIsReady();
 
+/// Whether the DevTools protocol port is open (AI / automation control).
+bool OACRemoteDebuggingEnabled();
+
 /// Directory passed as root_cache_path; profiles must live below it.
 NSString* OACRootCachePath();
 

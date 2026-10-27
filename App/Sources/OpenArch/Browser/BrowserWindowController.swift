@@ -920,6 +920,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         itemsByPane[ObjectIdentifier(pane)]
     }
 
+    func registerPane(_ pane: OACPane, for item: Item) {
+        itemsByPane[ObjectIdentifier(pane)] = item
+    }
+
     func pane(_ pane: OACPane, titleDidChange title: String) {
         guard let item = item(for: pane) else { return }
         item.liveTitle = title
@@ -952,8 +956,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func paneDidBecomeActive(_ pane: OACPane) {
-        guard let item = item(for: pane), item !== state.activeItem,
-              visibleTabs.contains(where: { $0 === item }) else { return }
+        guard let item = item(for: pane), item !== state.activeItem else { return }
+        guard visibleTabs.contains(where: { $0 === item }) else {
+            // Brought to the front from outside (an AI agent via DevTools,
+            // an extension): show it in the window.
+            select(item)
+            return
+        }
         item.lastActiveAt = Date()
         state.activeItem = item
         state.space.activeItemID = item.id

@@ -48,14 +48,25 @@ a failed workflow run. Data lives in
   the library. Arc's shortcuts are there too: ⌘T, ⌘L, ⌘S, ⌘D, ⌘⇧K, ⌘⇧L,
   ⌘⇧J, ⌃Tab, ⌘1–9, ⌃1–9, ⌘⌥←/→, ⌃⇧= / ⌃⇧-, ⌃⇧1–4, ⌘⇧⌥C and more. They take
   precedence over the page, like in Arc.
+- **Little OpenArch** (⌥⌘N): a small window for quick links. Links from
+  other apps open there too. "In Space öffnen" moves the page into the main
+  window without reloading it.
+- **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
+  DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
+  browser and its tabs:
+  `claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222`.
+  An antenna icon in the sidebar shows while the port is open.
+- **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
 - **Real Chrome tabs:** extensions incl. popups, `chrome.tabs`, side panels,
   `declarativeNetRequest`, native messaging. Also DevTools, find, zoom,
   downloads, printing, the password manager and chrome:// pages.
 - **Housekeeping:** today tabs are archived after 12 hours (configurable),
   and ⌘⇧T reopens closed tabs.
 - **Import from Arc:** spaces, favorites, pinned folders, today tabs and split
-  views, read from Arc's `StorableSidebar.json`. "Extensions › Extensions aus
-  Arc" creates a folder with a Web Store link per Arc extension.
+  views (from Arc's `StorableSidebar.json`). "Alles übernehmen" also brings
+  logins and cookies, saved passwords, history, website data and the
+  installed extensions with their settings. Arc's profile is cloned, and
+  encrypted values are re-encrypted with OpenArch's key.
 - **Default browser:** OpenArch can be set as the default browser and opens
   links from other apps.
 
@@ -98,8 +109,8 @@ Lessons learned on the way:
   for Chromium forks is not available.
 - **Focus appearance.** While a page has focus, the window buttons look
   inactive, because the page lives in a child window.
-- **Not built yet:** Little Arc, Peek, Boosts, Easels, multiple windows, and
-  showing a collapsed sidebar by hovering at the window edge.
+- **Not built yet:** Peek, Boosts, Easels, multiple windows, and showing a
+  collapsed sidebar by hovering at the window edge.
 - **Untested:** window full screen and HTML full screen.
 
 ## Layout

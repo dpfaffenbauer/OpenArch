@@ -46,6 +46,7 @@ final class SelfTest {
             (36.2, "internal urls", { self.internalURLs() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
+            (36.8, "little openarch", { self.littleOpenArch() }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -555,6 +556,22 @@ final class SelfTest {
         sqlite3_close(handle)
         let roundTrip = ArcProfileImport.aes(CCOperation(kCCDecrypt), stored.dropFirst(3), key: openArchKey)
         expect(converted == 1 && failed == 0 && roundTrip == plain, "Arc values are re-encrypted with OpenArch's key")
+    }
+
+    /// Opens a link in Little OpenArch, then moves it into the main window.
+    private func littleOpenArch() {
+        guard let app = NSApp.delegate as? AppDelegate,
+              let little = LittleOpenArchWindowController.show(url: "https://example.com/little", app: app) else {
+            return expect(false, "Little OpenArch opens")
+        }
+        after(3) {
+            let before = self.browser.state.space.today.allTabs.count
+            little.moveToSpace()
+            let moved = self.browser.state.activeItem
+            self.expect(self.browser.state.space.today.allTabs.count == before + 1 && moved?.pane?.isVisible == true
+                        && moved?.currentURL.contains("example.com/little") == true,
+                        "\"In Space öffnen\" moves the page into the main window (\(moved?.currentURL ?? "-"))")
+        }
     }
 
     private func internalURLs() {

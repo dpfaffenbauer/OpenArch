@@ -19,6 +19,7 @@ bool g_quitting = false;
 bool g_loop_quit = false;
 NSString* g_root_cache_path = @"";
 bool g_ready = false;
+int g_remote_debugging_port = 0;
 NSMutableArray<dispatch_block_t>* g_ready_blocks;
 
 void QuitMessageLoopOnce() {
@@ -112,6 +113,10 @@ bool OACEngineIsReady() {
   return g_ready;
 }
 
+bool OACRemoteDebuggingEnabled() {
+  return g_remote_debugging_port > 0;
+}
+
 NSString* OACRootCachePath() {
   return g_root_cache_path;
 }
@@ -195,6 +200,7 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
   settings.no_sandbox = true;
   settings.persist_session_cookies = true;
   settings.remote_debugging_port = (int)engineSettings.remoteDebuggingPort;
+  g_remote_debugging_port = settings.remote_debugging_port;
   CefString(&settings.root_cache_path) = g_root_cache_path.UTF8String;
   CefString(&settings.cache_path) =
       [g_root_cache_path stringByAppendingPathComponent:@"Default"].UTF8String;
@@ -255,6 +261,10 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
 
 + (void)shutdown {
   CefShutdown();
+}
+
++ (NSInteger)remoteDebuggingPort {
+  return g_remote_debugging_port;
 }
 
 + (NSString*)versionString {

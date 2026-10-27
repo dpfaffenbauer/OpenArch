@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchCore
 
 /// Sidebar actions: drag and drop, spaces, tidying up.
 extension BrowserWindowController {
@@ -31,6 +32,24 @@ extension BrowserWindowController {
             Task { @MainActor in handler(string) }
         }
         return true
+    }
+
+    /// Takes over a pane that lives elsewhere (Little OpenArch) as a new
+    /// today tab, without reloading the page.
+    func adopt(_ pane: OACPane, into space: Space, url: String, title: String, favicon: NSImage?) {
+        let item = Item.tab(url: url, title: title)
+        item.pane = pane
+        item.liveURL = url
+        item.liveTitle = title
+        item.favicon = favicon
+        pane.delegate = self
+        pane.cornerRadius = 8
+        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.toolbarVisible = library.settings.showChromeToolbar
+        registerPane(pane, for: item)
+        space.today.insert(item, at: 0)
+        select(item)
+        library.setNeedsSave()
     }
 
     func restoreArchived(_ tab: ArchivedTab) {

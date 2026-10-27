@@ -291,6 +291,9 @@ final class CommandBarModel {
         typealias Command = (String, String, String?, @MainActor () -> Void)
         var commands: [Command] = [
             ("Neuer Space", "plus.square.on.square", nil, { browser.addSpace() }),
+            ("Little OpenArch", "macwindow.on.rectangle", "⌥⌘N", {
+                if let app = NSApp.delegate as? AppDelegate { LittleOpenArchWindowController.show(url: nil, app: app) }
+            }),
             ("Space bearbeiten", "paintpalette", nil, { browser.state.editingSpaceID = browser.state.space.id }),
             ("Neues Profil", "person.crop.circle.badge.plus", nil, {
                 if let profile = ProfileDialog.run(library: browser.library, over: browser.window) {

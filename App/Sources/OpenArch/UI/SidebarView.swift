@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchCore
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -61,6 +62,13 @@ private struct SidebarTopBar: View {
         HStack(spacing: 0) {
             Spacer().frame(width: 72)
             IconButton(symbol: "sidebar.left", help: "Sidebar ausblenden (⌘S)") { browser.toggleSidebar() }
+            if OACEngine.remoteDebuggingPort > 0 {
+                Image(systemName: "antenna.radiowaves.left.and.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.leading, 4)
+                    .help("KI-Steuerung aktiv: Chrome DevTools Protocol auf 127.0.0.1:\(OACEngine.remoteDebuggingPort)")
+            }
             Spacer()
             IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.goBack() }
                 .disabled(!(active?.canGoBack ?? false))

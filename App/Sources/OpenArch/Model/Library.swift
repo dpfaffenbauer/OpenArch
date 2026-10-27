@@ -289,6 +289,8 @@ struct Settings: Codable, Equatable {
     var showChromeToolbar = true
     var showSidebarAddress = false
     var sidebarWidth = 300.0
+    /// Links from other apps open in a Little OpenArch window, like in Arc.
+    var openLinksInLittleOpenArch = true
 
     init() {}
 
@@ -301,6 +303,7 @@ struct Settings: Codable, Equatable {
         showChromeToolbar = try container.decodeIfPresent(Bool.self, forKey: .showChromeToolbar) ?? defaults.showChromeToolbar
         showSidebarAddress = try container.decodeIfPresent(Bool.self, forKey: .showSidebarAddress) ?? defaults.showSidebarAddress
         sidebarWidth = try container.decodeIfPresent(Double.self, forKey: .sidebarWidth) ?? defaults.sidebarWidth
+        openLinksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .openLinksInLittleOpenArch) ?? defaults.openLinksInLittleOpenArch
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

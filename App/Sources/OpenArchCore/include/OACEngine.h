@@ -36,6 +36,8 @@ NS_SWIFT_UI_ACTOR
 + (void)shutdown;
 
 @property(class, readonly) NSString* versionString;
+/// The DevTools protocol port (0 when remote control is off).
+@property(class, readonly) NSInteger remoteDebuggingPort;
 
 @end
 

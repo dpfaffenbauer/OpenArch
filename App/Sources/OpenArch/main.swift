@@ -58,6 +58,9 @@ if AppPaths.isSelfTest {
 }
 if let index = arguments.firstIndex(of: "--remote-debugging-port"), index + 1 < arguments.count {
     settings.remoteDebuggingPort = Int(arguments[index + 1]) ?? 0
+} else if !AppPaths.isSelfTest {
+    // Settings › KI-Steuerung: the DevTools protocol for AI agents.
+    settings.remoteDebuggingPort = AIControl.port
 }
 guard OACEngine.start(with: settings) else {
     fatalError("Chromium failed to start")
