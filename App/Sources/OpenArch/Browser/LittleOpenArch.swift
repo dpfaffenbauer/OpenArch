@@ -22,7 +22,12 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         guard let browser = app.browser else { return nil }
         let controller = LittleOpenArchWindowController(url: url, space: browser.state.space, app: app)
         open.append(controller)
-        controller.showWindow(nil)
+        if AppPaths.isSelfTest {
+            // The background self-test never puts a window in front.
+            controller.window?.orderBack(nil)
+        } else {
+            controller.showWindow(nil)
+        }
         controller.layout()
         if url == nil {
             controller.model.isEditing = true
@@ -64,6 +69,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         window.contentView?.addSubview(bar)
         pane.delegate = self
         pane.cornerRadius = 8
+        pane.activatesOnShow = !AppPaths.isSelfTest
         pane.toolbarVisible = false
         model.toolbarVisible = false
     }
@@ -259,6 +265,9 @@ private struct LittleOpenArchBar: View {
         }
         .padding(.trailing, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The bar sits in the transparent title bar, next to the window
+        // buttons; without this SwiftUI pushes it below the title bar.
+        .ignoresSafeArea()
         .foregroundStyle(theme.foreground)
         .environment(\.colorScheme, theme.colorScheme)
     }
