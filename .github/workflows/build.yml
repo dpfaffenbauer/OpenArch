@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          brew list ninja >/dev/null 2>&1 || brew install ninja
+
+      # CEF (~350 MB) and its wrapper library only change with the pinned
+      # version or the patch.
+      - name: Cache CEF
+        uses: actions/cache@v4
+        with:
+          path: Vendor/cef
+          key: cef-${{ runner.arch }}-${{ hashFiles('scripts/fetch-cef.sh', 'scripts/patch-cef.*') }}
+
+      - name: Build OpenArch.app
+        run: CONFIG=release App/build.sh
+
+      # Drives the real UI in the background. Needs network access (it opens
+      # example.com and friends); reported, but not yet allowed to fail the
+      # build while it proves itself on hosted runners.
+      - name: Self-test
+        continue-on-error: true
+        run: |
+          App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest > selftest.log 2>&1 &
+          pid=$!
+          for i in $(seq 1 120); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+          kill $pid 2>/dev/null || true
+          grep "\[selftest\]" selftest.log || true
+          grep -q "DONE failures=0" selftest.log
+
+      - name: Package
+        run: ditto -c -k --keepParent App/build/OpenArch.app OpenArch.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenArch
+          path: OpenArch.zip
+          retention-days: 14
+
+      # The newest build of main, for downloading without building.
+      - name: Update the "nightly" release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cef="$(cat Vendor/cef/.version)"
+          notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Unsigned: after downloading, run
+          xattr -dr com.apple.quarantine OpenArch.app"
+          if gh release view nightly >/dev/null 2>&1; then
+            gh release upload nightly OpenArch.zip --clobber
+            gh release edit nightly --notes "$notes"
+          else
+            gh release create nightly OpenArch.zip --prerelease --title "OpenArch Nightly" --notes "$notes"
+          fi

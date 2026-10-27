@@ -14,7 +14,15 @@ open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, runs behind other windows
 ```
 
-Requires Xcode 16+ (Swift 6), CMake and Ninja. Data lives in
+Requires Xcode 16+ (Swift 6), CMake and Ninja.
+
+GitHub Actions builds every push (`.github/workflows/build.yml`) and keeps
+the newest build of `main` as the
+[nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly).
+Once a day, `update-cef.yml` checks for a newer stable CEF (Chromium) build.
+When there is one, it builds OpenArch with it, commits the update to `main`
+and publishes a new nightly. A failed build stops the update and shows up as
+a failed workflow run. Data lives in
 `~/Library/Application Support/OpenArch` (`Library.json` for the sidebar,
 `Chromium/` for Chromium's profiles).
 
@@ -98,4 +106,6 @@ Lessons learned on the way:
 
 - `App/`: the browser
 - `scripts/fetch-cef.sh`: downloads the pinned CEF binary distribution into `Vendor/cef`
+- `scripts/update-cef.sh`: moves the pin to the newest stable CEF build
+- `scripts/patch-cef.swift`: lowers CEF's 2 s wait before extension popups appear
 - `spikes/01-cef/`: first spike, CEF embedded in AppKit ([results](spikes/01-cef/RESULTS.md))
