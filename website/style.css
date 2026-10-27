@@ -1,25 +1,25 @@
 /* OpenArch website.
    The page reads like flipping through spaces: sections take the colors of
-   OpenArch's spaces (lavender Work, apricot Home, sky Travel) with Arc's
+   OpenArch's spaces (green Work, apricot Home, sky Travel) with Arc's
    grain, and each shows OpenArch in that space. The arch from the app icon
    frames the opening and the closing. One family, Archivo, in two widths. */
 
 :root {
-  --ink: #1e1b2e;
-  --paper: #f6f5fa;
-  --lavender: #9c99ba;
+  --ink: #1b1d1a;
+  --paper: #f6f6f2;
+  --green: #55b860;
   --apricot: #e5a33b;
   --sky: #3fa9f5;
-  --iris: #5140d9;
+  --accent: #1f7a3a;
 
   /* What a section draws with; colored sections set their own. */
   --surface: var(--paper);
   --raised: #ffffff;
   --text: var(--ink);
-  --text-soft: #4b475f;
-  --line: rgba(30, 27, 46, 0.14);
+  --text-soft: #4a4c47;
+  --line: rgba(27, 29, 26, 0.14);
   --button-text: var(--paper);
-  --soft-panel: #e9e7f1;
+  --soft-panel: #ebebe5;
 
   --wide: 76rem;
   --column: 40rem;
@@ -28,13 +28,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #15131d;
-    --raised: #221f2d;
-    --text: #eceaf4;
-    --text-soft: #b6b1cc;
-    --line: rgba(236, 234, 244, 0.16);
-    --button-text: #15131d;
-    --soft-panel: #1d1a27;
+    --surface: #141513;
+    --raised: #20221f;
+    --text: #edede8;
+    --text-soft: #b3b5ae;
+    --line: rgba(237, 237, 232, 0.16);
+    --button-text: #141513;
+    --soft-panel: #1a1c19;
   }
 }
 
@@ -44,14 +44,14 @@
 .closing {
   --text: var(--ink);
   --button-text: var(--paper);
-  --line: rgba(30, 27, 46, 0.2);
+  --line: rgba(27, 29, 26, 0.2);
 }
 
 .hero,
 .work,
 .closing {
-  --surface: var(--lavender);
-  --text-soft: color-mix(in oklab, var(--ink) 84%, var(--lavender));
+  --surface: var(--green);
+  --text-soft: color-mix(in oklab, var(--ink) 84%, var(--green));
 }
 
 .home {
@@ -100,6 +100,13 @@ img {
   height: auto;
 }
 
+a,
+button,
+summary {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 a {
   color: inherit;
   text-decoration-thickness: 1px;
@@ -107,9 +114,18 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid var(--iris);
+  outline: 3px solid var(--accent);
   outline-offset: 3px;
   border-radius: 6px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .skip {
@@ -141,7 +157,7 @@ a {
   pointer-events: none;
   opacity: 0.32;
   mix-blend-mode: multiply;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.48 0 0 0 0 0.6 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* Type */
@@ -196,10 +212,10 @@ kbd {
   min-width: 1.85em;
   margin: 0 0.12em;
   padding: 0.1em 0.45em 0.15em;
-  border: 1px solid rgba(30, 27, 46, 0.2);
+  border: 1px solid rgba(27, 29, 26, 0.2);
   border-bottom-width: 3px;
   border-radius: 7px;
-  background: #fdfdff;
+  background: #ffffff;
   color: var(--ink);
   font-family: "Archivo", system-ui, sans-serif;
   font-size: 0.82em;
@@ -223,11 +239,21 @@ kbd {
   font-weight: 650;
   font-variation-settings: "wdth" 106;
   text-decoration: none;
-  transition: transform 0.15s ease-out;
+  transition: transform 0.15s ease-out, background-color 0.15s ease-out;
 }
 
-.button:hover {
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .button:hover {
+    transform: translateY(-1px);
+  }
+
+  .button.ghost:hover {
+    background: color-mix(in oklab, var(--text) 8%, transparent);
+  }
+}
+
+.button:active {
+  transform: translateY(1px);
 }
 
 .button.ghost {
@@ -330,6 +356,22 @@ kbd {
   }
 }
 
+.intro > * {
+  animation: arrive 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.intro > :nth-child(2) { animation-delay: 0.06s; }
+.intro > :nth-child(3) { animation-delay: 0.12s; }
+.intro > :nth-child(4) { animation-delay: 0.18s; }
+.intro > :nth-child(5) { animation-delay: 0.24s; }
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
 /* Import */
 
 .import {
@@ -344,7 +386,7 @@ kbd {
   }
 
   .import {
-    --surface: #15131d;
+    --surface: #141513;
   }
 }
 
@@ -383,23 +425,21 @@ kbd {
 }
 
 .checklist li::before {
-  content: "✓";
-  display: inline-grid;
-  place-items: center;
+  content: "";
   flex: none;
   width: 1.7rem;
   height: 1.7rem;
   border-radius: 50%;
-  background: color-mix(in oklab, var(--iris) 14%, transparent);
-  color: var(--iris);
-  font-size: 0.85rem;
-  font-weight: 800;
+  background: color-mix(in oklab, var(--accent) 14%, transparent)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%231f7a3a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 0.95rem no-repeat;
 }
 
 @media (prefers-color-scheme: dark) {
   .checklist li::before {
-    color: #b7adff;
-    background: rgba(183, 173, 255, 0.14);
+    background: rgba(143, 217, 154, 0.14)
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.5l3 3 6-7' fill='none' stroke='%238fd99a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+      center / 0.95rem no-repeat;
   }
 }
 
@@ -459,7 +499,10 @@ kbd {
   width: 118%;
   max-width: none;
   border-radius: 14px;
-  box-shadow: 0 2.5rem 5rem -2rem color-mix(in oklab, var(--ink) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--ink) 12%, transparent),
+    0 0.25rem 0.75rem color-mix(in oklab, var(--ink) 10%, transparent),
+    0 2.5rem 5rem -2rem color-mix(in oklab, var(--ink) 55%, var(--surface));
 }
 
 .window.left img {
@@ -559,8 +602,8 @@ kbd {
   padding: 1.1rem 1.1rem 1.1rem 1.35rem;
   border-radius: 14px;
   background: var(--ink);
-  color: #e9e7f3;
-  box-shadow: inset 0 0 0 1px rgba(236, 234, 244, 0.08);
+  color: #e8e9e4;
+  box-shadow: inset 0 0 0 1px rgba(237, 237, 232, 0.08);
 }
 
 .terminal code {
@@ -572,14 +615,14 @@ kbd {
 
 .terminal code::before {
   content: "$ ";
-  color: #9c99ba;
+  color: var(--green);
 }
 
 .terminal button {
   flex: none;
   min-height: 2.25rem;
   padding: 0 0.9rem;
-  border: 1px solid rgba(233, 231, 243, 0.35);
+  border: 1px solid rgba(232, 233, 228, 0.35);
   border-radius: 8px;
   background: transparent;
   color: inherit;
@@ -697,12 +740,12 @@ footer p {
 @media (prefers-color-scheme: dark) {
   .closing-arch,
   footer {
-    --surface: #15131d;
-    background: #15131d;
-    color: #eceaf4;
-    --text: #eceaf4;
-    --text-soft: #b6b1cc;
-    --button-text: #15131d;
+    --surface: #141513;
+    background: #141513;
+    color: #edede8;
+    --text: #edede8;
+    --text-soft: #b3b5ae;
+    --button-text: #141513;
   }
 }
 
@@ -746,6 +789,17 @@ footer p {
   .terminal {
     flex-direction: column;
   }
+
+  .terminal button,
+  .button.small {
+    min-height: 2.75rem;
+  }
+}
+
+@media (pointer: fine) {
+  html {
+    overscroll-behavior-y: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -753,7 +807,8 @@ footer p {
     scroll-behavior: auto;
   }
 
-  .portal {
+  .portal,
+  .intro > * {
     animation: none;
   }
 

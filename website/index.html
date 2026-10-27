@@ -7,12 +7,13 @@
   <meta name="description" content="Arc's sidebar, Spaces and command bar as an open-source browser for Mac, built on real Chrome. Move your spaces, logins and extensions over from Arc in one step.">
   <meta property="og:title" content="OpenArch">
   <meta property="og:description" content="Arc closes. OpenArch opens. The open-source sidebar browser for Mac, on real Chrome.">
-  <meta property="og:image" content="assets/hero.jpg">
+  <meta property="og:image" content="https://dpfaffenbauer.github.io/OpenArch/assets/hero.jpg">
   <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#55b860">
   <link rel="icon" href="assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..115,400..800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,7 +21,7 @@
 
   <div class="hero grain">
     <header class="nav">
-      <a class="brand" href="#main"><img src="assets/icon.png" alt="" width="30" height="30">OpenArch</a>
+      <a class="brand" href="#main" translate="no"><img src="assets/icon.png" alt="" width="30" height="30">OpenArch</a>
       <nav aria-label="Sections">
         <a href="#import">Import</a>
         <a href="#spaces">Features</a>
@@ -33,18 +34,18 @@
 
     <main id="main">
       <section class="intro">
-        <p class="notice">Arc stops working on December 22, 2026.</p>
+        <p class="notice">Arc stops working on December&nbsp;22, 2026.</p>
         <h1>Arc closes.<br>OpenArch opens.</h1>
         <p class="lead">The sidebar browser you know, rebuilt as open source on real Chrome. Spaces, favorites, the command bar and every extension, with your Arc data moved over in one step.</p>
         <div class="actions">
           <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/OpenArch.zip">Download for Mac</a>
           <a class="button ghost" href="https://github.com/dpfaffenbauer/OpenArch">Source on GitHub</a>
         </div>
-        <p class="meta">Free and MIT licensed. Early build for macOS 15 or later on Apple silicon.</p>
+        <p class="meta">Free and MIT licensed. Early build for macOS&nbsp;15 or later on Apple silicon.</p>
       </section>
 
       <figure class="portal">
-        <img src="assets/hero.jpg" width="2400" height="1500" alt="OpenArch with a lavender sidebar: favorite sites, pinned folders, open tabs, and a Wikipedia article about arches">
+        <img src="assets/hero.jpg" width="2400" height="1500" fetchpriority="high" alt="OpenArch with a green sidebar: favorite sites, pinned folders, open tabs, and a Wikipedia article about arches">
       </figure>
     </main>
   </div>
@@ -98,7 +99,7 @@
         <p>Each space has its own color, pinned folders and tabs. Give it its own profile and it keeps its own logins, cookies and extensions too, so work and private Google accounts never mix. Swipe sideways over the sidebar to move between them.</p>
       </div>
       <figure class="window right">
-        <img src="assets/library.jpg" width="2400" height="1500" loading="lazy" alt="The library in the lavender Work space, listing the spaces Work, Home and Travel">
+        <img src="assets/library.jpg" width="2400" height="1500" loading="lazy" alt="The library in the green Work space, listing the spaces Work, Home and Travel">
       </figure>
     </section>
   </div>
@@ -141,9 +142,10 @@
       <h2 id="agents-title">Let your agent drive.</h2>
       <p>Turn on AI control and OpenArch opens Chrome’s DevTools protocol on your Mac. Claude Code, Playwright or Puppeteer can then open pages, click, fill in forms, read the console and take screenshots, in your real browser with your logins. One line connects Claude Code:</p>
       <div class="terminal">
-        <code id="mcp">claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222</code>
+        <code id="mcp" translate="no">claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222</code>
         <button type="button" data-copy="mcp">Copy</button>
       </div>
+      <p class="visually-hidden" role="status" id="copy-status"></p>
       <p class="meta">Off by default. While it is on, an antenna in the sidebar says so, because any program on your Mac could then steer the browser.</p>
     </div>
   </section>
@@ -185,7 +187,7 @@
       </details>
       <details>
         <summary>Does it run on Intel Macs?</summary>
-        <p>Not yet. Builds are for Apple silicon and macOS 15 or later.</p>
+        <p>Not yet. Builds are for Apple silicon and macOS&nbsp;15 or later.</p>
       </details>
       <details>
         <summary>What happens to my Arc data?</summary>
@@ -211,12 +213,15 @@
     document.querySelectorAll('[data-copy]').forEach((button) => {
       button.addEventListener('click', async () => {
         const text = document.getElementById(button.dataset.copy).textContent;
+        const status = document.getElementById('copy-status');
         try {
           await navigator.clipboard.writeText(text);
-          button.textContent = 'Copied';
+          button.textContent = status.textContent = 'Copied';
         } catch {
           button.textContent = 'Select and copy';
+          status.textContent = 'Copying failed. Select the command and copy it.';
         }
+        setTimeout(() => { button.textContent = 'Copy'; status.textContent = ''; }, 2500);
       });
     });
   </script>

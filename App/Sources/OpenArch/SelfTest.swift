@@ -113,7 +113,7 @@ final class SelfTest {
                 tab("https://linear.app/", "Linear"),
             ])],
             spaces: [
-                SpaceData(id: UUID(), name: "Work", icon: "briefcase.fill", colorHex: "#9C99BA", profileID: "Default",
+                SpaceData(id: UUID(), name: "Work", icon: "briefcase.fill", colorHex: "#55B860", profileID: "Default",
                           pinned: [
                               folder("OpenArch", [
                                   tab("https://github.com/dpfaffenbauer/OpenArch", "dpfaffenbauer/OpenArch"),
