@@ -21,6 +21,7 @@ NSString* g_root_cache_path = @"";
 bool g_ready = false;
 int g_remote_debugging_port = 0;
 NSMutableArray<dispatch_block_t>* g_ready_blocks;
+void (^g_relaunch_handler)(NSArray<NSString*>*) = nil;
 
 void QuitMessageLoopOnce() {
   if (g_loop_quit) {
@@ -97,6 +98,21 @@ class OACApp : public CefApp, public CefBrowserProcessHandler {
 
   CefRefPtr<CefClient> GetDefaultClient() override {
     return OACCreateDefaultClient();
+  }
+
+  bool OnAlreadyRunningAppRelaunch(CefRefPtr<CefCommandLine> command_line,
+                                   const CefString& current_directory) override {
+    if (!g_relaunch_handler) {
+      return false;
+    }
+    std::vector<CefString> arguments;
+    command_line->GetArguments(arguments);
+    NSMutableArray<NSString*>* list = [NSMutableArray array];
+    for (const auto& argument : arguments) {
+      [list addObject:OACToNSString(argument)];
+    }
+    g_relaunch_handler(list);
+    return true;
   }
 
  private:
@@ -217,6 +233,14 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
                                    engineSettings.useMockKeychain,
                                    std::move(extra_switches)));
   return CefInitialize(main_args, settings, app.get(), nullptr);
+}
+
++ (void (^)(NSArray<NSString*>*))relaunchHandler {
+  return g_relaunch_handler;
+}
+
++ (void)setRelaunchHandler:(void (^)(NSArray<NSString*>*))handler {
+  g_relaunch_handler = [handler copy];
 }
 
 + (void)whenReady:(dispatch_block_t)block {

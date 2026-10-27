@@ -7,7 +7,9 @@ enum AppPaths {
     static let support: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         let url = base.appendingPathComponent(isSelfTest ? "OpenArch SelfTest" : "OpenArch", isDirectory: true)
-        if isSelfTest {
+        // A fresh folder per test run; --keep-data starts a second instance on
+        // the running test's data (the second-launch test).
+        if isSelfTest && !CommandLine.arguments.contains("--keep-data") {
             try? FileManager.default.removeItem(at: url)
         }
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)

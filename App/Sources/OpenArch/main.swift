@@ -65,7 +65,21 @@ if let index = arguments.firstIndex(of: "--remote-debugging-port"), index + 1 < 
     settings.remoteDebuggingPort = AIControl.port
 }
 guard OACEngine.start(with: settings) else {
-    fatalError("Chromium failed to start")
+    // Usually another OpenArch (say, a second copy of the app) already uses
+    // this profile folder; Chromium has handed it this launch. Bring it to
+    // the front and leave quietly.
+    let others = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+        .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
+    if let running = others.first {
+        if !AppPaths.isSelfTest { running.activate() }
+        print("[OpenArch] already running as \(running.processIdentifier), handed the launch over")
+        exit(0)
+    }
+    let alert = NSAlert()
+    alert.messageText = "OpenArch konnte Chromium nicht starten."
+    alert.informativeText = "Starte OpenArch bitte noch einmal. Wenn es wieder passiert, hilft ein Neustart des Macs."
+    alert.runModal()
+    exit(1)
 }
 OACEngine.runMessageLoop()
 OACEngine.shutdown()

@@ -39,6 +39,11 @@ NS_SWIFT_UI_ACTOR
 /// The DevTools protocol port (0 when remote control is off).
 @property(class, readonly) NSInteger remoteDebuggingPort;
 
+/// OpenArch was launched again while running (Chromium allows one process
+/// per profile folder): the new launch's arguments arrive here and the new
+/// process exits. Without a handler Chromium opens a plain Chrome window.
+@property(class, nonatomic, copy, nullable) void (^relaunchHandler)(NSArray<NSString*>* arguments);
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -38,6 +38,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         log("Chromium \(OACEngine.versionString)")
         library = Library.load()
         history = History()
+        // A second launch (another copy of the app, or `open` again) ends up
+        // here: show the window and open any links it carried.
+        OACEngine.relaunchHandler = { [weak self] arguments in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                log("launched again with \(arguments)")
+                for url in arguments where url.hasPrefix("http://") || url.hasPrefix("https://") {
+                    self.openExternal(url)
+                }
+                self.mainBrowser?.showWindow(nil)
+                if !self.selfTest { NSApp.activate() }
+            }
+        }
         OACEngine.whenReady { [self] in
             let browser = BrowserWindowController(library: library, history: history)
             browsers = [browser]
