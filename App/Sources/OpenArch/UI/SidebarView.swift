@@ -901,13 +901,22 @@ private extension View {
             .overlay(alignment: .trailing) {
                 if dropZone == .split {
                     Image(systemName: "rectangle.split.2x1")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(theme.foreground.opacity(0.8))
-                        .padding(.trailing, 10)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(theme.foreground)
+                        .padding(.horizontal, 7)
+                        .frame(height: 22)
+                        .background(Capsule().fill(theme.selection))
+                        .padding(.trailing, 6)
                 }
             }
             .contentShape(Rectangle())
     }
+}
+
+@MainActor
+private enum DropHighlights {
+    /// Per row: the pending clean-up of its drop highlight.
+    static var pending: [UUID: DispatchWorkItem] = [:]
 }
 
 /// Drops onto a row: the upper half inserts before, the lower half after,
@@ -924,14 +933,27 @@ private struct RowDropDelegate: DropDelegate {
         DropZone.at(y: info.location.y, folder: acceptsInto, tab: splits)
     }
 
-    func dropEntered(info: DropInfo) { zone = zone(for: info) }
+    func dropEntered(info: DropInfo) { show(zone(for: info)) }
     func dropUpdated(info: DropInfo) -> DropProposal? {
-        zone = zone(for: info)
+        show(zone(for: info))
         // Our own tabs move; a page or another app only lets its links be
         // copied, and a move would be refused.
         return DropProposal(operation: info.hasItemsConforming(to: [.openArchTab]) ? .move : .copy)
     }
     func dropExited(info: DropInfo) { zone = nil }
+
+    /// SwiftUI does not always say when a drag has left a row, and the
+    /// highlight stayed: it goes once the updates (several a second while a
+    /// drag is over the row) stop coming.
+    private func show(_ newZone: DropZone) {
+        zone = newZone
+        let binding = $zone
+        let id = item.id
+        DropHighlights.pending[id]?.cancel()
+        let clear = DispatchWorkItem { binding.wrappedValue = nil }
+        DropHighlights.pending[id] = clear
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: clear)
+    }
 
     func performDrop(info: DropInfo) -> Bool {
         let target: BrowserWindowController.DropTarget
