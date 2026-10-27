@@ -22,7 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let last = lastActiveBrowser, !last.isPrivate { return last }
         return browsers.first { !$0.isPrivate }
     }
-    private var settingsWindow: NSWindow?
+    private(set) var settingsWindow: NSWindow?
     private var pendingURLs: [String] = []
     private var test: SelfTest?
 
@@ -229,7 +229,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.center()
             settingsWindow = window
         }
-        settingsWindow?.makeKeyAndOrderFront(nil)
+        if selfTest {
+            settingsWindow?.orderBack(nil)
+        } else {
+            settingsWindow?.makeKeyAndOrderFront(nil)
+        }
     }
 
     @objc func importFromArc(_ sender: Any?) {

@@ -1030,6 +1030,17 @@ final class SelfTest {
                         .write(to: AppPaths.support.appendingPathComponent("settings-\(page.rawValue).png"))
                 }
             }
+            // The real window too: its title bar is part of the content area.
+            app.showSettings(nil)
+            if let window = app.settingsWindow, let content = window.contentView {
+                content.layoutSubtreeIfNeeded()
+                if let bitmap = content.bitmapImageRepForCachingDisplay(in: content.bounds) {
+                    content.cacheDisplay(in: content.bounds, to: bitmap)
+                    try? bitmap.representation(using: .png, properties: [:])?
+                        .write(to: AppPaths.support.appendingPathComponent("settings-window.png"))
+                }
+                window.close()
+            }
             library.settings.linkRules = []
         }
         let dialog = NSHostingView(rootView: ProfileDialogView(existing: [], onCancel: {}, onCreate: { _ in }))

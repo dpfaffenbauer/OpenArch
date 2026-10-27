@@ -19,7 +19,9 @@ struct SettingsView: View {
                     SettingsTab(page: item, isSelected: page == item) { page = item }
                 }
             }
-            .padding(.top, 34)
+            // Just under the window buttons: the view runs under the
+            // transparent title bar instead of starting below it.
+            .padding(.top, 38)
             .padding(.bottom, 12)
             Divider().opacity(0.5)
             ScrollView {
@@ -37,6 +39,7 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .ignoresSafeArea(.container, edges: .top)
         .frame(width: 640, height: 580)
         .background(.background)
     }
