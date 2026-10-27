@@ -88,8 +88,10 @@ enum ArcImporter {
                 }
                 let total = fractions.reduce(0, +)
                 fractions = fractions.map { $0 / max(total, 0.01) }
+                // Arc's "vertical" layout puts the tabs one above the other.
                 return ItemData(id: uuid, kind: .split, customTitle: title, children: children,
-                                splitFractions: fractions)
+                                splitFractions: fractions,
+                                splitStacked: split["layoutOrientation"] as? String == "vertical" ? true : nil)
             }
             return nil
         }

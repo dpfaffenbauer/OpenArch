@@ -676,6 +676,28 @@ final class SelfTest {
         browser.dropForSplit(other, leading: true)
         expect(other.split != nil && other.split?.children.first === other && other.split?.children.last === base,
                "dropping a tab on the left half splits it in on the left")
+
+        // The top and bottom halves stack the tabs: the dropped one on top,
+        // both as wide as the page; the menu puts them side by side again.
+        let page = NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let zones = [NSPoint(x: 600, y: 780), NSPoint(x: 600, y: 20), NSPoint(x: 20, y: 400), NSPoint(x: 1180, y: 400)]
+            .map { SplitDropView.zone(at: $0, in: page) }
+        expect(zones == [.top, .bottom, .leading, .trailing], "the drop zones are the page's four halves (\(zones))")
+        let lower = browser.openInNewTab("https://example.org/lower")
+        let upper = browser.openInNewTab("https://example.com/upper", select: false)
+        browser.dropForSplit(upper, leading: true, stacked: true)
+        let content = browser.contentRect
+        var frames = browser.paneFrames(in: content)
+        expect(upper.split?.splitStacked == true && upper.split?.children.first === upper && upper.split?.children.last === lower
+               && frames.count == 2 && frames[0].minY > frames[1].maxY && frames.allSatisfy { $0.width == content.width }
+               && upper.split?.data.splitStacked == true,
+               "dropping a tab on the top half stacks it above (\(frames))")
+        if let split = upper.split {
+            browser.setSplitStacked(split, false)
+            frames = browser.paneFrames(in: content)
+            expect(frames.count == 2 && frames[0].maxX < frames[1].minX && frames.allSatisfy { $0.height == content.height },
+                   "a stacked split goes side by side again")
+        }
     }
 
     private func libraryView() {
@@ -932,6 +954,9 @@ final class SelfTest {
     /// waits for exactly that. Run on its own (`--selftest --quit-test`):
     /// the process has to be gone a few seconds after the STEP line.
     private func quitWithStuckBrowser() {
+        // The script then checks that both tabs are still in the saved
+        // sidebar: quitting closes their browsers, not the tabs.
+        browser.openInNewTab("https://example.com/kept-after-quit")
         let tab = browser.openInNewTab("https://example.com/never-closes")
         after(3) {
             tab.pane?.refusesToCloseForTesting = true

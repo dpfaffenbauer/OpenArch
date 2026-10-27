@@ -197,7 +197,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         peek.layout()
     }
 
-    private func paneFrames(in rect: NSRect) -> [NSRect] {
+    func paneFrames(in rect: NSRect) -> [NSRect] {
         guard visibleTabs.count > 1, let split = visibleTabs.first?.split else {
             return visibleTabs.isEmpty ? [] : [rect]
         }
@@ -206,13 +206,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         if fractions.count != count || fractions.contains(where: { $0 <= 0 }) {
             fractions = Array(repeating: 1.0 / Double(count), count: count)
         }
-        let available = rect.width - Self.splitGap * CGFloat(count - 1)
+        // Side by side from the left, or stacked from the top.
+        let stacked = split.splitStacked
+        let length = stacked ? rect.height : rect.width
+        let available = length - Self.splitGap * CGFloat(count - 1)
         var frames: [NSRect] = []
-        var x = rect.minX
+        var offset: CGFloat = 0
         for (index, fraction) in fractions.enumerated() {
-            let width = index == count - 1 ? rect.maxX - x : (available * fraction).rounded()
-            frames.append(NSRect(x: x, y: rect.minY, width: width, height: rect.height))
-            x += width + Self.splitGap
+            let size = index == count - 1 ? length - offset : (available * fraction).rounded()
+            frames.append(stacked
+                ? NSRect(x: rect.minX, y: rect.maxY - offset - size, width: rect.width, height: size)
+                : NSRect(x: rect.minX + offset, y: rect.minY, width: size, height: rect.height))
+            offset += size + Self.splitGap
         }
         return frames
     }
@@ -228,9 +233,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         while dividers.count > needed {
             dividers.removeLast().removeFromSuperview()
         }
+        let stacked = visibleTabs.first?.split?.splitStacked == true
         for (index, divider) in dividers.enumerated() {
             divider.index = index
-            divider.frame = NSRect(x: frames[index].maxX, y: content.minY, width: Self.splitGap, height: content.height)
+            divider.stacked = stacked
+            divider.frame = stacked
+                ? NSRect(x: content.minX, y: frames[index].minY - Self.splitGap, width: content.width, height: Self.splitGap)
+                : NSRect(x: frames[index].maxX, y: content.minY, width: Self.splitGap, height: content.height)
         }
     }
 
@@ -244,19 +253,30 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         focusRing.frame = frames[index].insetBy(dx: -3, dy: -3)
     }
 
-    private func dragDivider(_ index: Int, to x: CGFloat) {
+    /// |position| is where the divider goes: an x side by side, a y stacked.
+    private func dragDivider(_ index: Int, to position: CGFloat) {
         guard let split = visibleTabs.first?.split, visibleTabs.count > index + 1 else { return }
         let content = contentRect
         let count = visibleTabs.count
-        let available = content.width - Self.splitGap * CGFloat(count - 1)
         var frames = paneFrames(in: content)
-        let minWidth: CGFloat = 240
-        let left = frames[index]
-        let right = frames[index + 1]
-        let newLeftWidth = max(minWidth, min(x - left.minX, left.width + right.width - minWidth))
-        frames[index].size.width = newLeftWidth
-        frames[index + 1].size.width = left.width + right.width - newLeftWidth
-        split.splitFractions = frames.map { Double($0.width / available) }
+        if split.splitStacked {
+            let available = content.height - Self.splitGap * CGFloat(count - 1)
+            let top = frames[index], bottom = frames[index + 1]
+            let total = top.height + bottom.height
+            let newTop = max(160, min(top.maxY - position, total - 160))
+            frames[index].size.height = newTop
+            frames[index + 1].size.height = total - newTop
+            split.splitFractions = frames.map { Double($0.height / available) }
+        } else {
+            let available = content.width - Self.splitGap * CGFloat(count - 1)
+            let minWidth: CGFloat = 240
+            let left = frames[index]
+            let right = frames[index + 1]
+            let newLeftWidth = max(minWidth, min(position - left.minX, left.width + right.width - minWidth))
+            frames[index].size.width = newLeftWidth
+            frames[index + 1].size.width = left.width + right.width - newLeftWidth
+            split.splitFractions = frames.map { Double($0.width / available) }
+        }
         layoutContent()
         library.setNeedsSave()
     }
@@ -830,21 +850,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// Puts |other| next to the active tab in a split view (or adds it to the
-    /// active split).
-    func split(_ other: Item, with base: Item? = nil, leading: Bool = false) {
+    /// active split). |leading| puts it first (left, or on top); |stacked|
+    /// arranges the split one above the other (or side by side), nil keeps
+    /// how an existing split is arranged.
+    func split(_ other: Item, with base: Item? = nil, leading: Bool = false, stacked: Bool? = nil) {
         guard let base = base ?? state.activeItem, base !== other, base.kind == .tab, other.kind == .tab else { return }
         if let split = base.split {
-            guard split.children.count < 4 else { return }
+            guard split.children.count < 4 || other.split === split else { return }
             if let container = split.container {
                 if other.split === split { other.detach() }
                 container.insert(other, into: split, at: base.indexInParent + (leading ? 0 : 1))
             }
             split.splitFractions = []
+            if let stacked { split.splitStacked = stacked }
         } else {
             guard let container = base.container else { return }
             let index = base.indexInParent
             let parent = base.parent
             let split = Item(kind: .split)
+            split.splitStacked = stacked ?? false
             container.insert(split, into: parent, at: index)
             if leading {
                 container.insert(other, into: split)
@@ -926,7 +950,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// A tab dropped on the left or right half of the page.
-    func dropForSplit(_ item: Item, leading: Bool) {
+    /// Shows a split's tabs one above the other, or side by side again.
+    func setSplitStacked(_ split: Item, _ stacked: Bool) {
+        guard split.kind == .split, split.splitStacked != stacked else { return }
+        split.splitStacked = stacked
+        split.splitFractions = []
+        layoutContent()
+        library.setNeedsSave()
+    }
+
+    /// A tab dropped on a half of the page: left or right puts it beside
+    /// the shown tab, top or bottom (|stacked|) above or below it.
+    func dropForSplit(_ item: Item, leading: Bool, stacked: Bool = false) {
         splitDropOverlay?.hide()
         var base = state.activeItem
         if base === item {
@@ -946,7 +981,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             other = Item.tab(url: item.currentURL, title: item.displayTitle)
             state.space.today.insert(other, at: 0)
         }
-        split(other, with: base, leading: leading)
+        split(other, with: base, leading: leading, stacked: stacked)
     }
 
     /// Splits the active tab with a new empty tab and opens the command bar
@@ -1155,8 +1190,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func paneDidClose(_ pane: OACPane) {
-        // The page closed itself (window.close()) or its browser went away.
-        guard let item = item(for: pane) else { return }
+        // The page closed itself (window.close()) or its browser went away;
+        // while OpenArch quits, every browser goes, and the tabs stay.
+        guard !library.isFrozen, let item = item(for: pane) else { return }
         itemsByPane[ObjectIdentifier(pane)] = nil
         item.pane = nil
         close(item)
@@ -1339,16 +1375,21 @@ final class BrowserRootView: NSView {
 /// The gap between two split panes; drag it to resize them.
 final class SplitDividerView: NSView {
     var index = 0
+    /// Between tabs one above the other: dragged up and down.
+    var stacked = false {
+        didSet { if stacked != oldValue { window?.invalidateCursorRects(for: self) } }
+    }
     var onDrag: ((Int, CGFloat) -> Void)?
 
     override func resetCursorRects() {
-        addCursorRect(bounds, cursor: .resizeLeftRight)
+        addCursorRect(bounds, cursor: stacked ? .resizeUpDown : .resizeLeftRight)
     }
 
     override func mouseDragged(with event: NSEvent) {
         guard let superview else { return }
         let point = superview.convert(event.locationInWindow, from: nil)
-        onDrag?(index, point.x - BrowserWindowController.splitGap / 2)
+        let gap = BrowserWindowController.splitGap
+        onDrag?(index, stacked ? point.y + gap / 2 : point.x - gap / 2)
     }
 }
 

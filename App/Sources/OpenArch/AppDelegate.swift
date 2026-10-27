@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             quitProbe()
             return .terminateCancel
         }
-        library?.save()
+        library?.freeze()
         if !selfTest { Updater.shared.installOnQuit() }
         return .terminateNow
     }
@@ -365,6 +365,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func editBoost(_ sender: Any?) { browser?.editBoost() }
     @objc func splitView(_ sender: Any?) { browser?.splitWithNewTab() }
     @objc func unsplitView(_ sender: Any?) { browser?.unsplit() }
+    @objc func rotateSplit(_ sender: Any?) {
+        guard let split = browser?.state.activeItem?.split else { return }
+        browser?.setSplitStacked(split, !split.splitStacked)
+    }
     @objc func copyURL(_ sender: Any?) {
         if let little = LittleOpenArchWindowController.current { return little.copyLink() }
         browser?.copyURL()
@@ -581,6 +585,7 @@ enum MainMenu {
         var splitItems = [
             item("Split View", #selector(AppDelegate.splitView(_:)), "=", [.control, .shift]),
             item("Split View aufheben", #selector(AppDelegate.unsplitView(_:)), "-", [.control, .shift]),
+            item("Übereinander anzeigen", #selector(AppDelegate.rotateSplit(_:))),
             .separator(),
             item("Nächste Seite der Split View", #selector(AppDelegate.nextSplit(_:)), "]", [.control, .shift]),
             item("Vorherige Seite der Split View", #selector(AppDelegate.previousSplit(_:)), "[", [.control, .shift]),
@@ -697,6 +702,9 @@ final class SplitMenuUpdater: NSObject, NSMenuDelegate {
             case #selector(AppDelegate.unsplitView(_:)), #selector(AppDelegate.nextSplit(_:)),
                  #selector(AppDelegate.previousSplit(_:)):
                 item.isEnabled = !sides.isEmpty
+            case #selector(AppDelegate.rotateSplit(_:)):
+                item.isEnabled = !sides.isEmpty
+                item.title = browser.state.activeItem?.split?.splitStacked == true ? "Nebeneinander anzeigen" : "Übereinander anzeigen"
             case #selector(AppDelegate.splitView(_:)):
                 item.isEnabled = browser.state.activeItem != nil && sides.count < 4
             default:

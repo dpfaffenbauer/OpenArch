@@ -588,8 +588,11 @@ private struct TabContextMenu: View {
             Button("Neuer Ordner") { browser.pin(item, into: browser.newFolder()) }
         }
         Divider()
-        if item.split != nil {
+        if let split = item.split {
             Button("Split View aufheben") { browser.unsplit(item) }
+            Button(split.splitStacked ? "Nebeneinander anzeigen" : "Übereinander anzeigen") {
+                browser.setSplitStacked(split, !split.splitStacked)
+            }
         } else {
             Button("Split View mit aktuellem Tab") { browser.split(item) }
                 .disabled(browser.state.activeItem == nil || browser.state.activeItem === item)

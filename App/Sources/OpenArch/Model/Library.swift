@@ -129,8 +129,17 @@ final class Library {
 
     // MARK: Persistence
 
+    /// Quitting: saved one last time, then left as it is while the tabs'
+    /// browsers close. Each of them would otherwise close its tab too.
+    private(set) var isFrozen = false
+
+    func freeze() {
+        save()
+        isFrozen = true
+    }
+
     func setNeedsSave() {
-        guard !saveScheduled else { return }
+        guard !saveScheduled, !isFrozen else { return }
         saveScheduled = true
         after(1) {
             self.saveScheduled = false
@@ -139,6 +148,7 @@ final class Library {
     }
 
     func save() {
+        guard !isFrozen else { return }
         let data = LibraryData(
             profiles: profiles.map { ProfileData(id: $0.id, name: $0.name, favorites: $0.favorites.items.map(\.data)) },
             spaces: spaces.map(\.data),

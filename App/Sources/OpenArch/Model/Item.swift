@@ -78,8 +78,10 @@ final class Item: Identifiable {
     var savedTitle: String
     var children: [Item] = []
     var isExpanded = true
-    /// Split views: the share of the width each child gets.
+    /// Split views: the share of the width (or height) each child gets.
     var splitFractions: [Double] = []
+    /// Split views: the tabs one above the other instead of side by side.
+    var splitStacked = false
     var lastActiveAt: Date
 
     private(set) weak var container: Container?
@@ -225,6 +227,7 @@ final class Item: Identifiable {
                   lastActiveAt: data.lastActiveAt ?? Date())
         isExpanded = data.isExpanded ?? true
         splitFractions = data.splitFractions ?? []
+        splitStacked = data.splitStacked ?? false
         icon = data.icon
     }
 
@@ -236,6 +239,7 @@ final class Item: Identifiable {
                  children: kind == .tab ? nil : children.map(\.data),
                  isExpanded: kind == .folder ? isExpanded : nil,
                  splitFractions: kind == .split && !splitFractions.isEmpty ? splitFractions : nil,
+                 splitStacked: kind == .split && splitStacked ? true : nil,
                  lastActiveAt: lastActiveAt,
                  icon: icon)
     }
@@ -278,6 +282,7 @@ struct ItemData: Codable {
     var children: [ItemData]?
     var isExpanded: Bool?
     var splitFractions: [Double]?
+    var splitStacked: Bool?
     var lastActiveAt: Date?
     var icon: String?
 }
