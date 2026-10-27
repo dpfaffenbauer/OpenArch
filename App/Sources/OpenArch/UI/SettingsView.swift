@@ -248,8 +248,8 @@ struct AppIconSection: View {
 
     var body: some View {
         Section(title: "App-Symbol",
-                footer: "„Space-Farbe“ nimmt im Dock die Farbe des Space an, in dem du gerade bist. Die festen Farben gelten auch für OpenArch im Finder.") {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 56), spacing: 4)], spacing: 10) {
+                footer: "Zwölf Wege durch den Bogen; Tunnel ist OpenArchs eigenes. „Space-Farbe“ nimmt im Dock die Farbe des Space an, in dem du gerade bist, „Jeden Tag“ nimmt jeden Tag ein anderes. Die festen Symbole gelten auch für OpenArch im Finder.") {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 10) {
                 ForEach(AppIconStyle.allCases) { style in
                     Button {
                         selection = style
@@ -259,6 +259,16 @@ struct AppIconSection: View {
                             Image(nsImage: AppIcons.image(for: style, size: 128))
                                 .resizable()
                                 .frame(width: 48, height: 48)
+                                .overlay(alignment: .bottomTrailing) {
+                                    if style == .daily {
+                                        // Today's design, marked as the changing one.
+                                        Image(systemName: "shuffle")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 18, height: 18)
+                                            .background(Circle().fill(Color.accentColor))
+                                    }
+                                }
                                 .padding(3)
                                 .background(RoundedRectangle(cornerRadius: 12)
                                     .strokeBorder(Color.accentColor, lineWidth: selection == style ? 2.5 : 0))

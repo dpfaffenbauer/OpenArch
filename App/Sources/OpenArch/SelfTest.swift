@@ -1125,6 +1125,11 @@ final class SelfTest {
                 try? bitmap.representation(using: .png, properties: [:])?.write(to: AppPaths.support.appendingPathComponent("app-icons.png"))
             }
             expect(AppIconStyle.allCases.allSatisfy { AppIcons.image(for: $0, size: 64).isValid }, "every Dock icon style renders")
+            let unreadable = AppIconStyle.allCases.filter { $0.design != nil && $0.design?.glyphImage?.isValid != true }
+            expect(unreadable.isEmpty, "every icon design's SVG reads (\(unreadable.map(\.name)))")
+            expect(AppIcons.design(for: Date()).design != nil
+                   && AppIcons.design(for: Date()) != AppIcons.design(for: Date().addingTimeInterval(86_400)),
+                   "„Jeden Tag“ picks another design tomorrow")
             let picker = NSHostingView(rootView: AppIconSection().padding(24).frame(width: 640))
             picker.frame = NSRect(origin: .zero, size: picker.fittingSize)
             picker.layoutSubtreeIfNeeded()

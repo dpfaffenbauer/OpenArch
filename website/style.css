@@ -318,14 +318,20 @@ kbd {
   padding: 0 var(--gutter);
 }
 
+/* The wordmark: "Open" light, "Arch" heavy, next to the Tunnel icon. */
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
-  font-size: 1.2rem;
-  font-weight: 760;
-  font-variation-settings: "wdth" 112;
+  gap: 0.55rem;
+  font-size: 1.3rem;
+  font-weight: 420;
+  letter-spacing: -0.03em;
+  font-variation-settings: "wdth" 104;
   text-decoration: none;
+}
+
+.brand strong {
+  font-weight: 820;
 }
 
 .nav nav {

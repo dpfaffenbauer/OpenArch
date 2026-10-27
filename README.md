@@ -83,6 +83,8 @@ a failed workflow run. Data lives in
 - **Updates:** OpenArch updates itself from the nightly release (checked
   at launch and every six hours, SHA-256 verified).
 - **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
+- **App icon:** twelve takes on the arch (Tunnel is the standard one), one
+  in the current space's color, or a different one each day.
 - **Real Chrome tabs:** extensions incl. popups, `chrome.tabs`, side panels,
   `declarativeNetRequest`, native messaging. Also DevTools, find, zoom,
   downloads, printing, the password manager and chrome:// pages.
@@ -145,4 +147,7 @@ Lessons learned on the way:
 - `scripts/fetch-cef.sh`: downloads the pinned CEF binary distribution into `Vendor/cef`
 - `scripts/update-cef.sh`: moves the pin to the newest stable CEF build
 - `scripts/patch-cef.swift`: lowers CEF's 2 s wait before extension popups appear
+- `scripts/make-icons.sh`: draws the app icon and the website's from `AppIcons.swift`
+- `scripts/cef-codecs.sh` and `.github/workflows/cef-codecs.yml`: build CEF
+  with H.264/AAC on GitHub (started by hand; takes a few days)
 - `spikes/01-cef/`: first spike, CEF embedded in AppKit ([results](spikes/01-cef/RESULTS.md))

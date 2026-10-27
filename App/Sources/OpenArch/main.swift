@@ -6,6 +6,12 @@ setvbuf(stdout, nil, _IOLBF, 0)
 let arguments = CommandLine.arguments
 AppPaths.isSelfTest = arguments.contains("--selftest")
 
+// scripts/make-icons.sh: the app icon and the website's, from AppIcons.
+if let index = arguments.firstIndex(of: "--export-icons"), index + 1 < arguments.count {
+    AppIcons.exportIcons(to: URL(fileURLWithPath: arguments[index + 1]))
+    exit(0)
+}
+
 guard OACEngine.loadFramework() else {
     fatalError("Could not load the Chromium Embedded Framework")
 }
