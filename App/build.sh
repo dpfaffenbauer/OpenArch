@@ -22,8 +22,11 @@ swift build --package-path "$APP_DIR" -c "$CONFIG"
 BIN="$(swift build --package-path "$APP_DIR" -c "$CONFIG" --show-bin-path)"
 
 # write_plist <path> <executable> <bundle id> <display name> <extra plist entries>
+# Written next to the target and moved into place, so that LaunchServices
+# never reads a half-written Info.plist of a running OpenArch (the Dock then
+# shows a blank icon).
 write_plist() {
-  cat > "$1" <<PLIST
+  cat > "$1.new" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -42,6 +45,7 @@ write_plist() {
 </dict>
 </plist>
 PLIST
+  mv -f "$1.new" "$1"
 }
 
 # Replaces a file by rename, so a running OpenArch keeps its old binary
@@ -88,5 +92,9 @@ for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
   codesign --force --sign - "$helper"
 done
 codesign --force --sign - "$APP"
+
+# Let LaunchServices (and the Dock) pick up the rebuilt bundle and its icon.
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+[ -x "$LSREGISTER" ] && "$LSREGISTER" -f "$APP"
 
 echo "Built $APP"
