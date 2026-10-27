@@ -71,7 +71,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(42) {
+            after(45) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -82,7 +82,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 46 : 42.5) {
+        after(CommandLine.arguments.contains("--arc") ? 49 : 44) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -96,6 +96,11 @@ final class SelfTest {
         func tab(_ url: String, _ title: String) -> ItemData { ItemData(id: UUID(), kind: .tab, title: title, url: url) }
         func folder(_ name: String, _ children: [ItemData], icon: String? = nil) -> ItemData {
             ItemData(id: UUID(), kind: .folder, customTitle: name, children: children, isExpanded: true, icon: icon)
+        }
+        // Sharp captures: put the window on a Retina display if there is one.
+        if let retina = NSScreen.screens.first(where: { $0.backingScaleFactor > 1 }), let window = browser.window {
+            let frame = retina.visibleFrame
+            window.setFrame(NSRect(x: frame.midX - 720, y: frame.midY - 450, width: 1440, height: 900), display: true)
         }
         library.settings.showChromeToolbar = false
         library.replace(with: LibraryData(
@@ -118,7 +123,7 @@ final class SelfTest {
                                   tab("https://en.wikipedia.org/wiki/Gothic_architecture", "Gothic architecture"),
                                   tab("https://en.wikipedia.org/wiki/Roman_bridge", "Roman bridge"),
                               ]),
-                              tab("https://developer.chrome.com/docs/extensions", "Chrome Extensions"),
+                              tab("https://news.ycombinator.com/", "Hacker News"),
                           ],
                           today: [
                               tab("https://en.wikipedia.org/wiki/Arch", "Arch - Wikipedia"),
@@ -126,32 +131,55 @@ final class SelfTest {
                               tab("https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius", "border-radius - CSS"),
                           ]),
                 SpaceData(id: UUID(), name: "Home", icon: "house.fill", colorHex: "#E5A33B", profileID: "Default",
-                          pinned: [], today: []),
+                          pinned: [
+                              folder("Recipes", [
+                                  tab("https://en.wikipedia.org/wiki/Focaccia", "Focaccia"),
+                                  tab("https://en.wikipedia.org/wiki/Ramen", "Ramen"),
+                              ]),
+                              tab("https://www.youtube.com/", "YouTube"),
+                          ],
+                          today: [
+                              tab("https://en.wikipedia.org/wiki/Sourdough", "Sourdough - Wikipedia"),
+                              tab("https://en.wikipedia.org/wiki/Bread", "Bread - Wikipedia"),
+                          ]),
                 SpaceData(id: UUID(), name: "Travel", icon: "airplane", colorHex: "#3FA9F5", profileID: "Default",
-                          pinned: [], today: []),
+                          pinned: [
+                              folder("Utah", [
+                                  tab("https://en.wikipedia.org/wiki/Delicate_Arch", "Delicate Arch"),
+                                  tab("https://en.wikipedia.org/wiki/Canyonlands_National_Park", "Canyonlands"),
+                              ]),
+                          ],
+                          today: [
+                              tab("https://en.wikipedia.org/wiki/Arches_National_Park", "Arches National Park"),
+                              tab("https://en.wikipedia.org/wiki/Moab,_Utah", "Moab, Utah"),
+                          ]),
             ]))
         browser.libraryWasReplaced()
-        let today = library.spaces[0].today.items
-        browser.select(today[0])
+        let work = library.spaces[0], home = library.spaces[1], travel = library.spaces[2]
+        browser.select(work.today.items[0])
         after(7) { Swift.print("[selftest] STEP shot hero") }
-        after(10) {
-            self.browser.split(today[1], with: today[0])
-            after(5) { Swift.print("[selftest] STEP shot split") }
+        after(9) {
+            self.browser.switchSpace(to: home)
+            self.browser.split(home.today.items[1], with: home.today.items[0])
+            after(6) { Swift.print("[selftest] STEP shot split") }
         }
         after(17) {
-            self.browser.unsplit(today[0])
-            self.browser.select(today[0])
-            self.browser.commandBar.show(mode: .newTab)
-            self.browser.commandBar.model.query = "arch"
-            after(3) { Swift.print("[selftest] STEP shot commandbar") }
+            self.browser.switchSpace(to: travel)
+            self.browser.select(travel.today.items[0])
+            after(5) {
+                self.browser.commandBar.show(mode: .newTab)
+                self.browser.commandBar.model.query = "arches"
+                after(3) { Swift.print("[selftest] STEP shot commandbar") }
+            }
         }
-        after(22) {
+        after(28) {
             self.browser.commandBar.hide()
+            self.browser.switchSpace(to: work)
             self.browser.state.librarySection = .spaces
             self.browser.toggleLibrary()
-            after(2) { Swift.print("[selftest] STEP shot library") }
+            after(3) { Swift.print("[selftest] STEP shot library") }
         }
-        after(26) {
+        after(33) {
             Swift.print("[selftest] DONE marketing")
             Self.quit()
         }
@@ -659,7 +687,18 @@ final class SelfTest {
               let little = LittleOpenArchWindowController.show(url: "https://example.com/little", app: app) else {
             return expect(false, "Little OpenArch opens")
         }
-        after(3) {
+        after(2.5) { little.load("https://example.com/little/next") }
+        after(4.5) {
+            self.expect(little.model.url.contains("/little/next") && little.model.canGoBack,
+                        "Little OpenArch follows a link and can go back (\(little.model.url))")
+            little.goBack()
+        }
+        after(6) {
+            self.expect(little.model.url.hasSuffix("/little") && little.model.canGoForward,
+                        "Little OpenArch goes back and can go forward (\(little.model.url))")
+            little.toggleToolbar()
+            self.expect(little.pane.toolbarVisible, "the puzzle button shows Chrome's toolbar with the extensions")
+            little.toggleToolbar()
             let before = self.browser.state.space.today.allTabs.count
             little.moveToSpace()
             let moved = self.browser.state.activeItem

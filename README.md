@@ -49,8 +49,9 @@ a failed workflow run. Data lives in
   ⌘⇧J, ⌃Tab, ⌘1–9, ⌃1–9, ⌘⌥←/→, ⌃⇧= / ⌃⇧-, ⌃⇧1–4, ⌘⇧⌥C and more. They take
   precedence over the page, like in Arc.
 - **Little OpenArch** (⌥⌘N): a small window for quick links. Links from
-  other apps open there too. "In Space öffnen" moves the page into the main
-  window without reloading it.
+  other apps open there too. It has back, forward and reload, and the puzzle
+  button shows Chrome's toolbar with your extensions. "In Space öffnen" moves
+  the page into the main window without reloading it.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:
@@ -103,8 +104,9 @@ Lessons learned on the way:
 - **Unsigned builds.** Builds are signed ad hoc and use Chromium's mock
   keychain, so saved cookies and passwords are not protected by the login
   keychain. A real signing identity fixes both.
-- **Logins and extensions are not migrated** from Arc. You sign in once and
-  install extensions from the Chrome Web Store, once per profile.
+- **The full Arc import is new.** Moving logins, passwords and extensions has
+  been tested on copies of Arc profiles, not yet on many real ones. Arc's own
+  data is never changed.
 - **No Widevine.** DRM video such as Netflix does not play, and Google sync
   for Chromium forks is not available.
 - **Focus appearance.** While a page has focus, the window buttons look

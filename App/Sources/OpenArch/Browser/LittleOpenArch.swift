@@ -10,7 +10,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     private static var open: [LittleOpenArchWindowController] = []
 
     private unowned let app: AppDelegate
-    private let pane: OACPane
+    let pane: OACPane
     private let profileID: String
     let model = LittleOpenArchModel()
     private var transferred = false
@@ -65,6 +65,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         pane.delegate = self
         pane.cornerRadius = 8
         pane.toolbarVisible = false
+        model.toolbarVisible = false
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -127,6 +128,12 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     }
 
     func reload() { pane.reload() }
+
+    /// Chrome's toolbar: extension buttons, downloads, site settings.
+    func toggleToolbar() {
+        model.toolbarVisible.toggle()
+        pane.toolbarVisible = model.toolbarVisible
+    }
     func goBack() { pane.goBack() }
     func goForward() { pane.goForward() }
     func showDevTools() { pane.showDevTools() }
@@ -149,6 +156,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
         model.isLoading = isLoading
+        model.canGoBack = canGoBack
+        model.canGoForward = canGoForward
     }
 
     /// Links that want a new tab go to the main window.
@@ -182,6 +191,9 @@ final class LittleOpenArchModel {
     var isLoading = false
     var isEditing = false
     var copied = false
+    var canGoBack = false
+    var canGoForward = false
+    var toolbarVisible = false
 }
 
 private struct LittleOpenArchBar: View {
@@ -194,6 +206,11 @@ private struct LittleOpenArchBar: View {
         let model = controller.model
         HStack(spacing: 8) {
             Spacer().frame(width: 66)
+            IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.goBack() }
+                .disabled(!model.canGoBack)
+            IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.goForward() }
+                .disabled(!model.canGoForward)
+            IconButton(symbol: model.isLoading ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") { controller.reload() }
             if model.isEditing {
                 TextField("Suchen oder URL eingeben", text: $text)
                     .textFieldStyle(.plain)
@@ -224,6 +241,10 @@ private struct LittleOpenArchBar: View {
                 .help("Adresse bearbeiten (⌘L)")
             }
             Spacer(minLength: 8)
+            IconButton(symbol: "puzzlepiece.extension", help: model.toolbarVisible ? "Chrome-Toolbar ausblenden" : "Extensions und Chrome-Toolbar zeigen") {
+                controller.toggleToolbar()
+            }
+            .opacity(model.toolbarVisible ? 1 : 0.8)
             IconButton(symbol: model.copied ? "checkmark" : "link", help: "Link kopieren") { controller.copyLink() }
             Button { controller.moveToSpace() } label: {
                 Label("In Space öffnen", systemImage: "arrow.up.left.and.arrow.down.right")

@@ -8,6 +8,7 @@
   <meta property="og:title" content="OpenArch">
   <meta property="og:description" content="Arc closes. OpenArch opens. The open-source sidebar browser for Mac, on real Chrome.">
   <meta property="og:image" content="assets/hero.jpg">
+  <meta name="color-scheme" content="light dark">
   <link rel="icon" href="assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,148 +16,191 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="nav">
-    <a class="brand" href="#top"><img src="assets/icon.png" alt="" width="28" height="28">OpenArch</a>
-    <nav>
-      <a href="#import">Import</a>
-      <a href="#arc">Coming from Arc</a>
-      <a href="#chrome">Extensions</a>
-      <a href="#agents">For developers</a>
-      <a href="https://github.com/dpfaffenbauer/OpenArch">GitHub</a>
-    </nav>
-    <a class="button small" href="https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/OpenArch.zip">Download</a>
-  </header>
+  <a class="skip" href="#main">Skip to content</a>
 
-  <main id="top">
-    <section class="hero">
-      <div class="hero-text">
+  <div class="hero grain">
+    <header class="nav">
+      <a class="brand" href="#main"><img src="assets/icon.png" alt="" width="30" height="30">OpenArch</a>
+      <nav aria-label="Sections">
+        <a href="#import">Import</a>
+        <a href="#spaces">Features</a>
+        <a href="#shortcuts">Shortcuts</a>
+        <a href="#agents">For developers</a>
+        <a href="https://github.com/dpfaffenbauer/OpenArch">GitHub</a>
+      </nav>
+      <a class="button small" href="https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/OpenArch.zip">Download</a>
+    </header>
+
+    <main id="main">
+      <section class="intro">
+        <p class="notice">Arc stops working on December 22, 2026.</p>
         <h1>Arc closes.<br>OpenArch opens.</h1>
-        <p class="lead">An open-source browser for Mac with the sidebar, Spaces and command bar you are used to. It runs on real Chrome, so every extension keeps working, and it takes your spaces, logins and extensions over from Arc in one step.</p>
+        <p class="lead">The sidebar browser you know, rebuilt as open source on real Chrome. Spaces, favorites, the command bar and every extension, with your Arc data moved over in one step.</p>
         <div class="actions">
           <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/OpenArch.zip">Download for Mac</a>
           <a class="button ghost" href="https://github.com/dpfaffenbauer/OpenArch">Source on GitHub</a>
         </div>
-        <p class="fine">Free and MIT licensed. Early build for macOS 15 or later on Apple silicon.</p>
+        <p class="meta">Free and MIT licensed. Early build for macOS 15 or later on Apple silicon.</p>
+      </section>
+
+      <figure class="portal">
+        <img src="assets/hero.jpg" width="2400" height="1500" alt="OpenArch with a lavender sidebar: favorite sites, pinned folders, open tabs, and a Wikipedia article about arches">
+      </figure>
+    </main>
+  </div>
+
+  <section class="import" id="import" aria-labelledby="import-title">
+    <div class="split-text">
+      <div>
+        <h2 id="import-title">Everything comes along.</h2>
+        <p>OpenArch reads your Arc data right on your Mac and takes it over: no account, no upload. Arc itself stays untouched, and if OpenArch had data before, it is kept as a backup.</p>
       </div>
-      <figure class="arch">
-        <img src="assets/hero.jpg" width="1440" height="900" alt="OpenArch with a lavender sidebar: favorites, pinned folders, open tabs, and a Wikipedia article about arches">
+      <ul class="checklist">
+        <li>Spaces with their colors and icons</li>
+        <li>Favorites</li>
+        <li>Pinned tabs, folders and subfolders</li>
+        <li>Open tabs and split views</li>
+        <li>Logins and cookies</li>
+        <li>Saved passwords</li>
+        <li>History</li>
+        <li>Extensions and their settings</li>
+      </ul>
+    </div>
+  </section>
+
+  <div id="spaces">
+    <section class="space travel grain" aria-labelledby="travel-title">
+      <div class="space-text">
+        <p class="space-name"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>Travel</p>
+        <h2 id="travel-title">⌘T finds everything.</h2>
+        <p>One field for addresses, searches, open tabs, pinned pages, history and commands. Start typing, and Enter takes you there, or straight back to the tab you already have open.</p>
+      </div>
+      <figure class="window right">
+        <img src="assets/commandbar.jpg" width="2400" height="1500" loading="lazy" alt="The command bar in the blue Travel space, searching for “arches”: a matching open tab and search suggestions">
       </figure>
     </section>
 
-    <section class="import" id="import">
-      <div class="column">
-        <h2>Everything comes along.</h2>
-        <p>Arc stops working on December 22, 2026. OpenArch reads your Arc data right on your Mac and takes it over. There is no account and nothing goes through a cloud.</p>
-        <ul class="checklist">
-          <li>Spaces with their colors and icons</li>
-          <li>Favorites</li>
-          <li>Pinned tabs, folders and subfolders</li>
-          <li>Open tabs and split views</li>
-          <li>Logins and cookies</li>
-          <li>Saved passwords</li>
-          <li>History</li>
-          <li>Extensions with their settings</li>
-        </ul>
-        <p class="fine">Arc itself stays untouched, and whatever OpenArch had before is kept as a backup.</p>
+    <section class="space home grain" aria-labelledby="home-title">
+      <figure class="window left">
+        <img src="assets/split.jpg" width="2400" height="1500" loading="lazy" alt="Split View in the orange Home space: two Wikipedia articles, Sourdough and Bread, side by side">
+      </figure>
+      <div class="space-text">
+        <p class="space-name"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>Home</p>
+        <h2 id="home-title">Two pages, one view.</h2>
+        <p>Drag a tab from the sidebar onto the page, or press <kbd>⌃</kbd><kbd>⇧</kbd><kbd>=</kbd>. Up to four pages side by side, with dividers you can drag.</p>
       </div>
     </section>
 
-    <section class="compare" id="arc">
-      <div class="column wide">
-        <h2>Coming from Arc</h2>
-        <p>The things you reach for every day work the way your hands expect, shortcuts included. Some are not there yet; this table says which.</p>
-        <table>
-          <thead>
-            <tr><th scope="col">In Arc</th><th scope="col">In OpenArch</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Spaces <kbd>⌃1</kbd>…<kbd>⌃9</kbd></td><td>Spaces, each with its own profile if you like (a second Google account, say)</td></tr>
-            <tr><td>Favorites <kbd>⌘1</kbd>…<kbd>⌘9</kbd></td><td>Favorites and tabs by number</td></tr>
-            <tr><td>Command bar <kbd>⌘T</kbd></td><td>Command bar with tab switching, history, search suggestions and commands</td></tr>
-            <tr><td>Split View <kbd>⌃⇧=</kbd></td><td>Split View, or drag a tab from the sidebar onto the page</td></tr>
-            <tr><td>Little Arc</td><td>Little OpenArch <kbd>⌥⌘N</kbd>, also for links from other apps</td></tr>
-            <tr><td>Library</td><td>Library with media, downloads, spaces and archived tabs <kbd>⌘⇧L</kbd></td></tr>
-            <tr><td>Swipe between spaces</td><td>Two fingers sideways over the sidebar</td></tr>
-            <tr><td>Tabs archive themselves</td><td>After 12 hours, or whenever you choose</td></tr>
-            <tr><td>Arc Max</td><td>Your own AI agent, see below</td></tr>
-            <tr class="missing"><td>Peek, Boosts, Easels, Notes</td><td>Not yet</td></tr>
-          </tbody>
-        </table>
+    <section class="space work grain" aria-labelledby="work-title">
+      <div class="space-text">
+        <p class="space-name"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 4h6a2 2 0 0 1 2 2v1h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3V6a2 2 0 0 1 2-2zm0 3h6V6H9z"/></svg>Work</p>
+        <h2 id="work-title">A space for every part of your day.</h2>
+        <p>Each space has its own color, pinned folders and tabs. Give it its own profile and it keeps its own logins, cookies and extensions too, so work and private Google accounts never mix. Swipe sideways over the sidebar to move between them.</p>
       </div>
-      <figure class="shot">
-        <img src="assets/commandbar.jpg" width="1440" height="900" loading="lazy" alt="The command bar searching for “arch”: open tabs to switch to, pinned pages and commands">
+      <figure class="window right">
+        <img src="assets/library.jpg" width="2400" height="1500" loading="lazy" alt="The library in the lavender Work space, listing the spaces Work, Home and Travel">
       </figure>
     </section>
+  </div>
 
-    <section class="chrome" id="chrome">
-      <div class="column">
-        <h2>Real Chrome tabs. All your extensions.</h2>
-        <p>Every tab in OpenArch is a full Chrome tab. Password managers fill in, ad blockers block, side panels open and DevTools dock, the way they do in Chrome. You install extensions from the Chrome Web Store as usual.</p>
-        <p class="names">1Password, uBlock Origin Lite, Tampermonkey, React Developer Tools, MetaMask, Wappalyzer</p>
-        <p>New Chromium releases arrive on their own: a daily job builds OpenArch with each new stable version.</p>
+  <section class="shortcuts" id="shortcuts" aria-labelledby="shortcuts-title">
+    <div class="column wide">
+      <h2 id="shortcuts-title">Your hands already know it.</h2>
+      <p class="intro-text">Arc’s shortcuts work in OpenArch, and they win over the page, just like in Arc.</p>
+      <dl class="keys">
+        <div><dt><kbd>⌘</kbd><kbd>T</kbd></dt><dd>Command bar</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>L</kbd></dt><dd>Edit the address</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>S</kbd></dt><dd>Show or hide the sidebar</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>D</kbd></dt><dd>Pin or unpin a tab</dd></div>
+        <div><dt><kbd>⌃</kbd><kbd>1</kbd>–<kbd>9</kbd></dt><dd>Go to a space</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>1</kbd>–<kbd>9</kbd></dt><dd>Go to a tab in the sidebar</dd></div>
+        <div><dt><kbd>⌃</kbd><kbd>Tab</kbd></dt><dd>Recently used tabs</dd></div>
+        <div><dt><kbd>⌃</kbd><kbd>⇧</kbd><kbd>=</kbd></dt><dd>Split View</dd></div>
+        <div><dt><kbd>⌥</kbd><kbd>⌘</kbd><kbd>N</kbd></dt><dd>Little OpenArch, a small window for quick links</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>L</kbd></dt><dd>Library: media, downloads, spaces, archive</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>K</kbd></dt><dd>Clear today’s tabs</dd></div>
+        <div><dt><kbd>⌘</kbd><kbd>⇧</kbd><kbd>T</kbd></dt><dd>Reopen a closed tab</dd></div>
+      </dl>
+      <p class="meta">Not there yet: Peek, Boosts, Easels and Notes.</p>
+    </div>
+  </section>
+
+  <section class="extensions" aria-labelledby="extensions-title">
+    <div class="column">
+      <h2 id="extensions-title">Real Chrome tabs. All your extensions.</h2>
+      <p>Every tab is a full Chrome tab, so password managers fill in, ad blockers block, side panels open and DevTools dock exactly as in Chrome. Install from the Chrome Web Store, or bring the ones you had in Arc.</p>
+      <ul class="chips" aria-label="Extensions tested in OpenArch">
+        <li>1Password</li><li>uBlock Origin Lite</li><li>Tampermonkey</li><li>React Developer Tools</li><li>MetaMask</li><li>Wappalyzer</li>
+      </ul>
+      <p>New Chromium releases arrive by themselves: a daily job builds OpenArch with each stable version and publishes it when everything works.</p>
+    </div>
+  </section>
+
+  <section class="agents" id="agents" aria-labelledby="agents-title">
+    <div class="column">
+      <h2 id="agents-title">Let your agent drive.</h2>
+      <p>Turn on AI control and OpenArch opens Chrome’s DevTools protocol on your Mac. Claude Code, Playwright or Puppeteer can then open pages, click, fill in forms, read the console and take screenshots, in your real browser with your logins. One line connects Claude Code:</p>
+      <div class="terminal">
+        <code id="mcp">claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222</code>
+        <button type="button" data-copy="mcp">Copy</button>
       </div>
-      <figure class="shot">
-        <img src="assets/split.jpg" width="1440" height="900" loading="lazy" alt="Split View with two Wikipedia articles side by side">
-      </figure>
-    </section>
+      <p class="meta">Off by default. While it is on, an antenna in the sidebar says so, because any program on your Mac could then steer the browser.</p>
+    </div>
+  </section>
 
-    <section class="agents" id="agents">
-      <div class="column">
-        <h2>Let your agent drive.</h2>
-        <p>Turn on AI control in the settings and OpenArch speaks Chrome’s DevTools protocol on your Mac. Claude Code, Playwright or Puppeteer can then open pages, click, fill in forms, read the console and take screenshots, in your real browser and with your logins. One line connects Claude Code:</p>
-        <div class="code">
-          <code id="mcp">claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222</code>
-          <button type="button" data-copy="mcp">Copy</button>
+  <section class="yours" aria-labelledby="yours-title">
+    <div class="column wide">
+      <h2 id="yours-title">No account. No cloud. Open source.</h2>
+      <div class="facts">
+        <div>
+          <h3>Stays on your Mac</h3>
+          <p>Spaces, history and profiles live in <code>~/Library/Application&nbsp;Support/OpenArch</code>.</p>
         </div>
-        <p class="fine">Off by default. While it is on, an antenna in the sidebar shows it, because any program on your Mac could then steer the browser.</p>
+        <div>
+          <h3>Nothing phones home</h3>
+          <p>OpenArch has no servers, no telemetry and no sign-in.</p>
+        </div>
+        <div>
+          <h3>Yours to change</h3>
+          <p>The whole browser is on GitHub under the MIT license.</p>
+        </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="yours">
-      <div class="column">
-        <h2>No account. No cloud. Open source.</h2>
-        <dl>
-          <dt>Your data stays on your Mac</dt>
-          <dd>Spaces, history and profiles live in <code>~/Library/Application Support/OpenArch</code>.</dd>
-          <dt>Nothing phones home</dt>
-          <dd>OpenArch has no servers, no telemetry and no sign-in.</dd>
-          <dt>Read it, build it, change it</dt>
-          <dd>The whole browser is on GitHub under the MIT license.</dd>
-        </dl>
-      </div>
-    </section>
+  <section class="faq" aria-labelledby="faq-title">
+    <div class="column">
+      <h2 id="faq-title">Questions</h2>
+      <details>
+        <summary>Is this made by The Browser Company?</summary>
+        <p>No. OpenArch is an independent open-source project. It is not affiliated with The Browser Company or Atlassian, and it contains no code from Arc.</p>
+      </details>
+      <details>
+        <summary>macOS says it can’t check OpenArch for malware.</summary>
+        <p>Early builds are not notarized yet. Unzip OpenArch, move it to Applications, then run <code>xattr -dr com.apple.quarantine /Applications/OpenArch.app</code> in Terminal, or allow it under System Settings › Privacy &amp; Security.</p>
+      </details>
+      <details>
+        <summary>What language is the interface in?</summary>
+        <p>German, for now. English is next.</p>
+      </details>
+      <details>
+        <summary>Does it run on Intel Macs?</summary>
+        <p>Not yet. Builds are for Apple silicon and macOS 15 or later.</p>
+      </details>
+      <details>
+        <summary>What happens to my Arc data?</summary>
+        <p>OpenArch only reads it. For logins and passwords, macOS asks you once whether OpenArch may use Arc’s key from your keychain.</p>
+      </details>
+    </div>
+  </section>
 
-    <section class="faq">
-      <div class="column">
-        <h2>Questions</h2>
-        <details>
-          <summary>Is this made by The Browser Company?</summary>
-          <p>No. OpenArch is an independent open-source project. It is not affiliated with The Browser Company or Atlassian, and it contains no code from Arc.</p>
-        </details>
-        <details>
-          <summary>macOS says it can’t check OpenArch for malware.</summary>
-          <p>Early builds are not notarized yet. Unzip OpenArch, move it to Applications, then run <code>xattr -dr com.apple.quarantine /Applications/OpenArch.app</code> in Terminal, or allow it under System Settings › Privacy &amp; Security.</p>
-        </details>
-        <details>
-          <summary>What language is the interface in?</summary>
-          <p>German, for now. English is next.</p>
-        </details>
-        <details>
-          <summary>Does it run on Intel Macs?</summary>
-          <p>Not yet. Builds are for Apple silicon and macOS 15 or later.</p>
-        </details>
-        <details>
-          <summary>What happens to my Arc data?</summary>
-          <p>OpenArch only reads it. For logins and passwords, macOS asks you once whether OpenArch may use Arc’s key from your keychain.</p>
-        </details>
-      </div>
-    </section>
-
-    <section class="closing">
-      <h2>Ready when Arc isn’t.</h2>
+  <section class="closing grain" aria-labelledby="closing-title">
+    <div class="closing-arch">
+      <h2 id="closing-title">Ready when Arc isn’t.</h2>
       <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/OpenArch.zip">Download for Mac</a>
-    </section>
-  </main>
+      <p class="meta">Free. Open source. Your tabs come along.</p>
+    </div>
+  </section>
 
   <footer>
     <p><a href="https://github.com/dpfaffenbauer/OpenArch">OpenArch on GitHub</a>, MIT license.</p>
