@@ -93,6 +93,25 @@ struct CommandResult: Identifiable {
     var subtitle: String?
     var badge: String?
     let action: @MainActor () -> Void
+
+    /// What the field shows while this row is picked with the arrow keys,
+    /// like Chrome's address bar: its address or its search text. Commands
+    /// and sites to search have none, and the typed text stays.
+    @MainActor var fieldText: String? {
+        guard let colon = id.firstIndex(of: ":") else { return nil }
+        let value = String(id[id.index(after: colon)...])
+        switch id[..<colon] {
+        case "open", "history", "archive":
+            return InternalURL.display(value)
+        case "search", "ask", "sitesearch":
+            return value
+        case "tab":
+            if case .item(let item) = icon { return InternalURL.display(item.currentURL) }
+            return nil
+        default:
+            return nil
+        }
+    }
 }
 
 @MainActor @Observable
@@ -105,10 +124,14 @@ final class CommandBarModel {
         didSet {
             guard query != oldValue else { return }
             selection = 0
+            shownText = nil
             rebuild()
             fetchSuggestions()
         }
     }
+    /// The picked row's text, shown in the field instead of the typed one
+    /// while the arrow keys go through the results.
+    private(set) var shownText: String?
     private(set) var results: [CommandResult] = []
     var selection = 0
     /// The site being searched after "yt" + Tab; shown as a chip.
@@ -142,7 +165,14 @@ final class CommandBarModel {
             query = ""
         }
         selection = 0
+        shownText = nil
         rebuild()
+    }
+
+    /// The mouse picks a row; the field keeps (or gets back) the typed text.
+    func hover(_ index: Int) {
+        selection = index
+        shownText = nil
     }
 
     /// Tab: searches the site the input names (keyword or name), like
@@ -184,6 +214,17 @@ final class CommandBarModel {
     func moveSelection(_ delta: Int) {
         guard !results.isEmpty else { return }
         selection = (selection + delta + results.count) % results.count
+        // The first row is what was typed; the others put their text in.
+        shownText = selection == 0 ? nil : results[selection].fieldText
+    }
+
+    /// Esc while going through the results: the typed text again. False when
+    /// it already shows, so Esc closes the bar.
+    func restoreTyped() -> Bool {
+        guard shownText != nil || selection != 0 else { return false }
+        selection = 0
+        shownText = nil
+        return true
     }
 
     func run(_ index: Int? = nil) {
@@ -557,7 +598,7 @@ struct CommandBarView: View {
                                         .id(index)
                                         .contentShape(Rectangle())
                                         .onTapGesture { model.run(index) }
-                                        .onHover { if $0 { model.selection = index } }
+                                        .onHover { if $0 { model.hover(index) } }
                                 }
                             }
                             .padding(8)
@@ -660,8 +701,11 @@ private struct CommandField: NSViewRepresentable {
 
     func updateNSView(_ field: NSTextField, context: Context) {
         field.placeholderString = model.placeholder
-        if field.stringValue != model.query {
-            field.stringValue = model.query
+        let text = model.shownText ?? model.query
+        if field.stringValue != text {
+            field.stringValue = text
+            // Typing goes on from the end, as in Chrome.
+            field.currentEditor()?.selectedRange = NSRange(location: (text as NSString).length, length: 0)
         }
         if context.coordinator.selectAllToken != model.selectAllToken || field.window?.firstResponder !== field.currentEditor() {
             context.coordinator.selectAllToken = model.selectAllToken
@@ -705,7 +749,7 @@ private struct CommandField: NSViewRepresentable {
             case #selector(NSResponder.insertNewline(_:)):
                 model.run()
             case #selector(NSResponder.cancelOperation(_:)):
-                controller.hide()
+                if !model.restoreTyped() { controller.hide() }
             default:
                 return false
             }

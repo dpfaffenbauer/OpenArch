@@ -1071,6 +1071,26 @@ final class SelfTest {
         expect(!model.results.contains { $0.id.hasPrefix("ask:") }, "with asking off, the command bar only searches")
         library.settings.askAI = saved
         model.reset(mode: .newTab)
+
+        // The arrow keys put the picked row's address in the field and leave
+        // the results as they are; the first row and Esc bring back the
+        // typed text.
+        model.query = "example"
+        let before = model.results.map(\.id)
+        if let index = model.results.firstIndex(where: { $0.id.hasPrefix("tab:") || $0.id.hasPrefix("history:") }),
+           let address = model.results[index].fieldText {
+            model.moveSelection(index)
+            let shown = model.shownText
+            model.moveSelection(-index)
+            let typedAgain = model.shownText == nil
+            model.moveSelection(index)
+            expect(shown == address && address.contains("example") && typedAgain && model.restoreTyped()
+                   && model.shownText == nil && model.query == "example" && model.results.map(\.id) == before,
+                   "the arrow keys show the picked address in the field (\(address))")
+        } else {
+            expect(false, "the command bar finds an example tab to go to")
+        }
+        model.reset(mode: .newTab)
     }
 
     private func floatingSidebarTest() {
