@@ -20,6 +20,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private var dividers: [SplitDividerView] = []
     private let focusRing = FocusRingView()
     private let sidebarHandle = SplitDividerView()
+    private let sidebarEdge = SidebarEdgeView()
+    private(set) lazy var floatingSidebar = FloatingSidebar(browser: self)
     private(set) lazy var commandBar = CommandBarController(browser: self)
     private(set) var sidebarSwipe: SidebarSwipe?
     private var archiveTimer: Timer?
@@ -57,6 +59,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         rootView.addSubview(focusRing)
         sidebarHandle.onDrag = { [weak self] _, x in self?.resizeSidebar(to: x) }
         rootView.addSubview(sidebarHandle)
+        sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
+        rootView.addSubview(sidebarEdge)
 
         window.setFrameAutosaveName(AppPaths.isSelfTest ? "OpenArchSelfTestWindow" : "OpenArchBrowserWindow")
         if AppPaths.isSelfTest || !window.setFrameUsingName("OpenArchBrowserWindow") {
@@ -109,6 +113,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         window?.backgroundColor = theme.base
         window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
         focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
+        floatingSidebar.applyTheme()
     }
 
     // MARK: Layout
@@ -144,6 +149,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible
         sidebarHandle.frame = NSRect(x: sidebarWidth - 5, y: 0, width: 8, height: max(0, bounds.height - 40))
+        sidebarEdge.isHidden = state.sidebarVisible
+        sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
         let content = contentRect
         emptyHost.frame = content
         emptyHost.isHidden = !visibleTabs.isEmpty
@@ -159,6 +166,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         layoutDividers(frames: frames, content: content)
         layoutFocusRing(frames: frames)
+        floatingSidebar.layout()
     }
 
     private func paneFrames(in rect: NSRect) -> [NSRect] {
@@ -301,6 +309,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private func hidePanesForTransition() {
         commandBar.hide()
+        floatingSidebar.hide()
         for tab in visibleTabs {
             tab.pane?.hide()
         }

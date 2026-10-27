@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 
 struct SidebarView: View {
     let browser: BrowserWindowController
+    /// Shown over the page while the sidebar is collapsed.
+    var floating = false
 
     var body: some View {
         let offset = browser.state.swipeOffset
@@ -26,7 +28,7 @@ struct SidebarView: View {
         let space = state.space
         let theme = SpaceTheme(hex: space.colorHex)
         return VStack(alignment: .leading, spacing: 0) {
-            SidebarTopBar(browser: browser, theme: theme)
+            SidebarTopBar(browser: browser, theme: theme, floating: floating)
             if browser.library.settings.showSidebarAddress {
                 AddressPill(browser: browser, theme: theme)
                     .padding(.bottom, 8)
@@ -84,12 +86,16 @@ private struct UpdateBanner: View {
 private struct SidebarTopBar: View {
     let browser: BrowserWindowController
     let theme: SpaceTheme
+    var floating = false
 
     var body: some View {
         let active = browser.state.activeItem
         HStack(spacing: 0) {
-            Spacer().frame(width: 72)
-            IconButton(symbol: "sidebar.left", help: "Sidebar ausblenden (⌘S)") { browser.toggleSidebar() }
+            // Room for the window buttons, which a floating sidebar sits below.
+            Spacer().frame(width: floating ? 4 : 72)
+            IconButton(symbol: "sidebar.left", help: floating ? "Sidebar anheften (⌘S)" : "Sidebar ausblenden (⌘S)") {
+                browser.toggleSidebar()
+            }
             if OACEngine.remoteDebuggingPort > 0 {
                 Image(systemName: "antenna.radiowaves.left.and.right")
                     .font(.system(size: 11, weight: .semibold))

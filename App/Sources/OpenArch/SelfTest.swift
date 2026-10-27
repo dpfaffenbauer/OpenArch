@@ -58,6 +58,7 @@ final class SelfTest {
             (35.5, "sidebar swipe", { self.sidebarSwipe() }),
             (36, "audio indicator", { self.audioIndicator() }),
             (36.2, "internal urls", { self.internalURLs() }),
+            (36.3, "floating sidebar", { self.floatingSidebarTest() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -746,6 +747,27 @@ final class SelfTest {
                 }
                 try? FileManager.default.removeItem(at: folder)
             }
+        }
+    }
+
+    private func floatingSidebarTest() {
+        let pane = browser.activePane
+        expect(pane?.window?.canBecomeMain == false, "tab windows never become main, so the window buttons stay active")
+        browser.toggleSidebar()
+        browser.floatingSidebar.mouseLocation = { NSPoint(x: -10_000, y: -10_000) }
+        browser.floatingSidebar.show()
+        after(0.2) {
+            let frame = self.browser.floatingSidebar.frame ?? .zero
+            self.expect(self.browser.floatingSidebar.isShown && frame.width == self.browser.sidebarWidth,
+                        "the collapsed sidebar floats over the page from the left edge (\(frame))")
+        }
+        after(1.2) {
+            self.expect(!self.browser.floatingSidebar.isShown, "the floating sidebar goes away when the mouse is elsewhere")
+            self.browser.floatingSidebar.show()
+            self.browser.toggleSidebar()
+            self.expect(!self.browser.floatingSidebar.isShown && self.browser.state.sidebarVisible,
+                        "pinning the sidebar replaces the floating one")
+            self.browser.floatingSidebar.mouseLocation = { NSEvent.mouseLocation }
         }
     }
 

@@ -1,6 +1,8 @@
 #import "OACPane.h"
 #import "OACInternal.h"
 
+#import <objc/runtime.h>
+
 #include <algorithm>
 #include <vector>
 
@@ -37,6 +39,32 @@ NSMapTable<NSWindow*, OACPane*>* PanesByWindow() {
   static NSMapTable<NSWindow*, OACPane*>* table =
       [NSMapTable weakToWeakObjectsMapTable];
   return table;
+}
+
+// A pane's window may become key (it takes the keyboard) but never main, so
+// OpenArch's window stays the main window and keeps its window buttons
+// active while a page has focus. Patched once per Chrome window class, for
+// pane windows only; popups and DevTools windows keep Chrome's behavior.
+// (Subclassing the window at runtime would break KVO on it.)
+void KeepParentMain(NSWindow* window) {
+  static NSMutableSet<Class>* patched = [NSMutableSet set];
+  Class cls = [window class];
+  if ([patched containsObject:cls]) {
+    return;
+  }
+  [patched addObject:cls];
+  SEL selector = @selector(canBecomeMainWindow);
+  Method method = class_getInstanceMethod(cls, selector);
+  BOOL (*original)(id, SEL) = (BOOL (*)(id, SEL))method_getImplementation(method);
+  IMP replacement = imp_implementationWithBlock(^BOOL(NSWindow* self) {
+    if ([PanesByWindow() objectForKey:self]) {
+      return NO;
+    }
+    return original(self, selector);
+  });
+  if (!class_addMethod(cls, selector, replacement, method_getTypeEncoding(method))) {
+    method_setImplementation(method, replacement);
+  }
 }
 
 NSWindow* WindowFromHandle(CefWindowHandle handle) {
@@ -640,6 +668,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   _window = nsWindow;
   if (nsWindow) {
     [PanesByWindow() setObject:self forKey:nsWindow];
+    KeepParentMain(nsWindow);
     nsWindow.hasShadow = NO;
     nsWindow.movable = NO;
     // Part of OpenArch's window, not a window of its own.
