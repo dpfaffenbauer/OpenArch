@@ -57,6 +57,24 @@ a failed workflow run. Data lives in
   browser and its tabs:
   `claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222`.
   An antenna icon in the sidebar shows while the port is open.
+- **Windows:** ⌘N opens another window on the same spaces and tabs; a tab
+  moves to the window that shows it. ⌘⇧N opens a private window with its
+  own in-memory profile and no history.
+- **Peek:** links from pinned tabs and favorites to other sites open in a
+  card over the page, which can become a tab or a split.
+- **Boosts** (⌃⌘B): restyle a site with a color shift, another font,
+  zapped elements and your own CSS and JavaScript.
+- **Site search:** type a site's keyword or name in the command bar and
+  press Tab (yt, gh, w, maps …); the sites are editable in Settings.
+- **Link rules:** links from other apps open in a space by address
+  (github.com, *.atlassian.net, docs.google.com/spreadsheets).
+- **Media:** controls for audio and video playing in another tab at the
+  bottom of the sidebar, and picture-in-picture when you leave a tab with a
+  video playing.
+- **Hover sidebar:** with the sidebar collapsed, the window's left edge
+  brings it back over the page.
+- **Updates:** OpenArch updates itself from the nightly release (checked
+  at launch and every six hours, SHA-256 verified).
 - **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
 - **Real Chrome tabs:** extensions incl. popups, `chrome.tabs`, side panels,
   `declarativeNetRequest`, native messaging. Also DevTools, find, zoom,
@@ -109,11 +127,9 @@ Lessons learned on the way:
   data is never changed.
 - **No Widevine.** DRM video such as Netflix does not play, and Google sync
   for Chromium forks is not available.
-- **Focus appearance.** While a page has focus, the window buttons look
-  inactive, because the page lives in a child window.
-- **Not built yet:** Peek, Boosts, Easels, multiple windows, and showing a
-  collapsed sidebar by hovering at the window edge.
-- **Untested:** window full screen and HTML full screen.
+- **Not built yet:** Easels and Notes.
+- **Full screen is new.** Video full screen gets its own space like in
+  Chrome; `--selftest --fullscreen-test` checks it visibly.
 
 ## Layout
 
