@@ -519,7 +519,7 @@ private struct TabRow: View {
             browser.beginTabDrag(item)
             return tabDragProvider(item)
         }
-        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
         .contextMenu { TabContextMenu(browser: browser, item: item) }
         .help(item.currentURL)
     }
@@ -554,7 +554,7 @@ private struct SplitRow: View {
         .rowStyle(depth: depth, isActive: isShown, hovering: hovering, theme: theme, dropZone: dropZone, horizontalPadding: 3)
         .onHover { hovering = $0 }
         .onDrag { tabDragProvider(item) }
-        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
         .help("Split View")
     }
 }
@@ -869,7 +869,16 @@ private struct AudioButton: View {
 }
 
 enum DropZone {
-    case before, after, into
+    case before, after, into, split
+
+    /// Where a drop at |y| (from a 36-point row's top) lands: the edges go
+    /// before or after the row, the middle into a folder or, on a tab, into
+    /// a split view with it.
+    static func at(y: CGFloat, folder: Bool, tab: Bool) -> DropZone {
+        if folder, y > 8, y < 24 { return .into }
+        if tab, y > 11, y < 25 { return .split }
+        return y < 16 ? .before : .after
+    }
 }
 
 private extension View {
@@ -881,11 +890,20 @@ private extension View {
             .frame(minHeight: 36)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(isActive ? theme.selection : (hovering || dropZone == .into ? theme.hover : .clear))
+                    .fill(isActive ? theme.selection
+                          : (hovering || dropZone == .into || dropZone == .split ? theme.hover : .clear))
                     .shadow(color: .black.opacity(isActive && !theme.isDark ? 0.08 : 0), radius: 1, y: 0.5))
             .overlay(alignment: dropZone == .after ? .bottom : .top) {
                 if dropZone == .before || dropZone == .after {
                     Capsule().fill(theme.foreground.opacity(0.7)).frame(height: 2).padding(.leading, CGFloat(depth) * 16)
+                }
+            }
+            .overlay(alignment: .trailing) {
+                if dropZone == .split {
+                    Image(systemName: "rectangle.split.2x1")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(theme.foreground.opacity(0.8))
+                        .padding(.trailing, 10)
                 }
             }
             .contentShape(Rectangle())
@@ -898,12 +916,12 @@ private struct RowDropDelegate: DropDelegate {
     let browser: BrowserWindowController
     let item: Item
     let acceptsInto: Bool
+    /// A tab: the middle of the row makes a split view with it.
+    var splits = false
     @Binding var zone: DropZone?
 
     private func zone(for info: DropInfo) -> DropZone {
-        let y = info.location.y
-        if acceptsInto, y > 8, y < 24 { return .into }
-        return y < 16 ? .before : .after
+        DropZone.at(y: info.location.y, folder: acceptsInto, tab: splits)
     }
 
     func dropEntered(info: DropInfo) { zone = zone(for: info) }
@@ -921,6 +939,7 @@ private struct RowDropDelegate: DropDelegate {
         case .before: target = .before(item)
         case .after: target = .after(item)
         case .into: target = .into(item)
+        case .split: target = .split(item)
         }
         zone = nil
         return browser.handleDrop(info.itemProviders(for: UTType.sidebarDrops), target: target)

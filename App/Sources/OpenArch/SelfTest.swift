@@ -698,6 +698,22 @@ final class SelfTest {
             expect(frames.count == 2 && frames[0].maxX < frames[1].minX && frames.allSatisfy { $0.height == content.height },
                    "a stacked split goes side by side again")
         }
+
+        // In the sidebar, a tab or a link dropped on the middle of a tab
+        // makes a split view with it; a row's edges still reorder.
+        expect(DropZone.at(y: 18, folder: false, tab: true) == .split && DropZone.at(y: 4, folder: false, tab: true) == .before
+               && DropZone.at(y: 32, folder: false, tab: true) == .after && DropZone.at(y: 16, folder: true, tab: false) == .into,
+               "the middle of a tab row splits, its edges reorder")
+        let left = browser.openInNewTab("https://example.org/sidebar-left", select: false)
+        let right = browser.openInNewTab("https://example.com/sidebar-right", select: false)
+        browser.handleDrop([tabDragProvider(right)], target: .split(left))
+        browser.handleDrop([NSItemProvider(object: NSURL(string: "https://example.net/sidebar-link")!)], target: .split(left))
+        after(0.5) {
+            let split = left.split
+            self.expect(split != nil && right.split === split
+                        && split?.children.contains { $0.currentURL == "https://example.net/sidebar-link" } == true,
+                        "a tab and a link dropped onto a tab in the sidebar join it in a split view")
+        }
     }
 
     private func libraryView() {

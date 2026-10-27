@@ -960,16 +960,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// A tab dropped on a half of the page: left or right puts it beside
-    /// the shown tab, top or bottom (|stacked|) above or below it.
-    func dropForSplit(_ item: Item, leading: Bool, stacked: Bool = false) {
+    /// the shown tab, top or bottom (|stacked|) above or below it. With
+    /// |target| (a tab or split dropped onto in the sidebar) it joins that
+    /// one instead, after it.
+    func dropForSplit(_ item: Item, onto target: Item? = nil, leading: Bool = false, stacked: Bool? = nil) {
         splitDropOverlay?.hide()
-        var base = state.activeItem
-        if base === item {
+        var base = target.map { $0.kind == .split ? $0.children.last : $0 } ?? state.activeItem
+        if target == nil, base === item {
             // Dragging the shown tab itself: pair it with the last one used.
             base = orderedTabs.filter { $0 !== item && $0.pane != nil }.max { $0.lastActiveAt < $1.lastActiveAt }
         }
-        guard let base, base.kind == .tab else {
-            select(item)
+        guard let base, base !== item, base.kind == .tab else {
+            if target == nil { select(item) }
             return
         }
         var other = item
@@ -1023,6 +1025,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .end(let container):
             if container.role == .favorites, item.kind != .tab { return }
             container.insert(item, at: container.role == .today ? 0 : nil)
+        case .split(let other):
+            dropForSplit(item, onto: other)
+            return
         }
         if item.role == .pinned || item.role == .favorites, item.kind == .tab {
             item.savedURL = item.currentURL
@@ -1031,7 +1036,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     enum DropTarget {
-        case before(Item), after(Item), into(Item), end(Container)
+        /// |split|: onto a tab (or split) in the sidebar, for a split view with it.
+        case before(Item), after(Item), into(Item), end(Container), split(Item)
     }
 
     // MARK: Actions on the active tab
