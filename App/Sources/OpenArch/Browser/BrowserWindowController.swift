@@ -373,7 +373,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
         let tabs = item.split?.children ?? [item]
         for old in visibleTabs where !tabs.contains(where: { $0 === old }) {
+            pictureInPictureIfPlaying(old)
             old.pane?.hide()
+        }
+        for tab in tabs where tab.media?.pip == true {
+            mediaCommand(tab, "exitpip")
         }
         visibleTabs = tabs
         for tab in tabs {
@@ -425,6 +429,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.canGoForward = false
         tab.isAudible = false
         tab.isMuted = false
+        tab.media = nil
         visibleTabs.removeAll { $0 === tab }
     }
 
@@ -942,6 +947,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func pane(_ pane: OACPane, addressDidChange url: String) {
         guard let item = item(for: pane) else { return }
+        if item.liveURL.map({ URL(string: $0)?.host() != URL(string: url)?.host() }) ?? false {
+            item.media = nil  // Another site; its player reports anew.
+        }
         item.liveURL = url
         history.recordVisit(url: url, title: nil)
         library.setNeedsSave()
@@ -1042,6 +1050,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func pane(_ pane: OACPane, consoleMessage message: String, source: String, line: Int) {
+        let mediaPrefix = "__openarch_media__ "
+        if message.hasPrefix(mediaPrefix), let item = item(for: pane) {
+            item.media = try? JSONDecoder().decode(MediaState.self, from: Data(message.dropFirst(mediaPrefix.count).utf8))
+            return
+        }
         let prefix = "__openarch_audio__ "
         if message.hasPrefix(prefix), let item = item(for: pane),
            let data = message.dropFirst(prefix.count).data(using: .utf8),
@@ -1051,6 +1064,33 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             return
         }
         SelfTest.current?.consoleMessage(message, from: item(for: pane))
+    }
+
+    // MARK: Media
+
+    /// The tab whose media the sidebar shows controls for: something playing
+    /// (or paused) in a tab that is not on screen right now.
+    var nowPlaying: Item? {
+        library.allContainers.flatMap(\.allTabs)
+            .filter { tab in tab.pane != nil && tab.media != nil && !visibleTabs.contains { $0 === tab } }
+            .max { lhs, rhs in
+                if lhs.media?.playing != rhs.media?.playing { return rhs.media?.playing == true }
+                return lhs.lastActiveAt < rhs.lastActiveAt
+            }
+    }
+
+    /// "toggle", "pip" or "exitpip", carried out by the built-in extension.
+    func mediaCommand(_ item: Item, _ command: String) {
+        item.pane?.executeJavaScript("document.dispatchEvent(new CustomEvent('openarch-media', {detail: '\(command)'}))",
+                                     userGesture: true)
+    }
+
+    /// Like Arc: leaving a tab with a video playing (with sound) keeps the
+    /// video going in picture-in-picture.
+    private func pictureInPictureIfPlaying(_ item: Item) {
+        guard library.settings.autoPictureInPicture, let media = item.media,
+              media.playing, media.video, media.audible, !media.pip else { return }
+        mediaCommand(item, "pip")
     }
 
     /// The speaker on a tab: mutes or unmutes it.

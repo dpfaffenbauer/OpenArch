@@ -295,6 +295,8 @@ struct Settings: Codable, Equatable {
     var siteSearches = SiteSearch.defaults
     /// Where links from other apps go, by address; the first match wins.
     var linkRules: [LinkRule] = []
+    /// A playing video moves to picture-in-picture when you switch tabs.
+    var autoPictureInPicture = true
 
     init() {}
 
@@ -310,6 +312,7 @@ struct Settings: Codable, Equatable {
         openLinksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .openLinksInLittleOpenArch) ?? defaults.openLinksInLittleOpenArch
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
+        autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

@@ -179,6 +179,10 @@ private struct GeneralPage: View {
                 }
                 .labelsHidden().fixedSize()
             }
+            Row(symbol: "pip", color: .pink, title: "Bild-in-Bild beim Tab-Wechsel",
+                detail: "Ein laufendes Video mit Ton spielt in einem kleinen Fenster weiter, wenn du den Tab verlässt.") {
+                Toggle("", isOn: $library.settings.autoPictureInPicture).labelsHidden().toggleStyle(.switch)
+            }
             Row(symbol: "menubar.rectangle", color: .indigo, title: "Chrome-Toolbar in Tabs",
                 detail: "Adressleiste, Extension-Symbole und Downloads über der Seite (⌘⇧D).") {
                 Toggle("", isOn: Binding(

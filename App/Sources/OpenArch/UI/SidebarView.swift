@@ -43,6 +43,9 @@ struct SidebarView: View {
                 .padding(.bottom, 12)
             }
             .scrollIndicators(.never)
+            if let playing = browser.nowPlaying {
+                MediaCard(browser: browser, item: playing, theme: theme)
+            }
             if case .ready = Updater.shared.phase {
                 UpdateBanner(theme: theme)
             }
@@ -53,6 +56,54 @@ struct SidebarView: View {
         .foregroundStyle(theme.foreground)
         .environment(\.colorScheme, theme.colorScheme)
         .tint(theme.foreground)
+    }
+}
+
+/// Media playing in another tab: play/pause, picture-in-picture, sound, and
+/// a click on the card goes to the tab.
+private struct MediaCard: View {
+    let browser: BrowserWindowController
+    let item: Item
+    let theme: SpaceTheme
+    @State private var hovering = false
+
+    var body: some View {
+        let media = item.media ?? MediaState()
+        HStack(spacing: 8) {
+            Button { browser.select(item) } label: {
+                HStack(spacing: 9) {
+                    FaviconView(item: item, size: 18)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(media.title.isEmpty ? item.displayTitle : media.title)
+                            .font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
+                        Text(media.artist.isEmpty ? CommandBarModel.shortURL(item.currentURL) : media.artist)
+                            .font(.system(size: 11)).opacity(0.65).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Zum Tab wechseln")
+            IconButton(symbol: media.playing ? "pause.fill" : "play.fill", help: media.playing ? "Pause" : "Abspielen") {
+                browser.mediaCommand(item, "toggle")
+            }
+            if media.video {
+                IconButton(symbol: media.pip ? "pip.exit" : "pip.enter", help: "Bild-in-Bild") {
+                    browser.mediaCommand(item, media.pip ? "exitpip" : "pip")
+                }
+            }
+            IconButton(symbol: item.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                       help: item.isMuted ? "Ton einschalten" : "Stummschalten") {
+                browser.toggleMute(item)
+            }
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 4)
+        .frame(height: 46)
+        .background(RoundedRectangle(cornerRadius: 10).fill(hovering ? theme.tileHover : theme.tile))
+        .onHover { hovering = $0 }
+        .padding(.top, 6)
     }
 }
 

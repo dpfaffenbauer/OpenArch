@@ -65,6 +65,7 @@ final class SelfTest {
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
+            (43.6, "media", { self.mediaTest() }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -75,7 +76,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(45) {
+            after(52) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -86,7 +87,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 49 : 44) {
+        after(CommandLine.arguments.contains("--arc") ? 56 : 51.5) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -709,6 +710,36 @@ final class SelfTest {
             self.expect(self.browser.state.space.today.allTabs.count == before + 1 && moved?.pane?.isVisible == true
                         && moved?.currentURL.contains("example.com/little") == true,
                         "\"In Space öffnen\" moves the page into the main window (\(moved?.currentURL ?? "-"))")
+        }
+    }
+
+    /// A video (from a canvas, silent) plays in a tab: OpenArch learns about
+    /// it, shows it in the sidebar once you leave the tab, and pauses it from
+    /// there. Picture-in-picture is left out: its window would pop up.
+    private func mediaTest() {
+        let previous = browser.state.activeItem
+        let tab = browser.openInNewTab("https://example.com/media")
+        library.settings.autoPictureInPicture = false
+        after(3) {
+            tab.pane?.executeJavaScript("""
+                (() => { const c = document.createElement('canvas'); c.width = 320; c.height = 180;
+                  const g = c.getContext('2d'); let i = 0;
+                  setInterval(() => { g.fillStyle = `hsl(${i++ % 360} 80% 50%)`; g.fillRect(0, 0, 320, 180); }, 50);
+                  const v = document.createElement('video'); v.srcObject = c.captureStream(20); document.body.append(v); })()
+                """)
+            after(0.5) { self.browser.mediaCommand(tab, "toggle") }
+        }
+        after(5) {
+            self.expect(tab.media?.playing == true && tab.media?.video == true,
+                        "a playing video is reported to OpenArch (\(String(describing: tab.media)))")
+            if let previous { self.browser.select(previous) }
+            self.expect(self.browser.nowPlaying === tab, "the sidebar offers controls for the video in the other tab")
+            self.browser.mediaCommand(tab, "toggle")
+        }
+        after(6.5) {
+            self.expect(tab.media?.playing == false, "the sidebar's pause button pauses it")
+            self.library.settings.autoPictureInPicture = true
+            self.browser.close(tab)
         }
     }
 

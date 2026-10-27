@@ -2,8 +2,27 @@
   "manifest_version": 3,
   "name": "OpenArch",
   "version": "1.0",
-  "description": "Built into OpenArch: tells the sidebar which tabs play audio.",
-  "background": { "service_worker": "background.js" },
-  "permissions": ["tabs", "scripting"],
-  "host_permissions": ["<all_urls>"]
+  "description": "Built into OpenArch: tells the sidebar which tabs play audio and video.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "tabs",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "media.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ]
 }

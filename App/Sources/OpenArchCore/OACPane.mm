@@ -629,6 +629,20 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   frame->ExecuteJavaScript(script.UTF8String, frame->GetURL(), 0);
 }
 
+- (void)executeJavaScript:(NSString*)script userGesture:(BOOL)userGesture {
+  if (!userGesture) {
+    [self executeJavaScript:script];
+    return;
+  }
+  if (!_browser) {
+    return;
+  }
+  CefRefPtr<CefDictionaryValue> params = CefDictionaryValue::Create();
+  params->SetString("expression", script.UTF8String);
+  params->SetBool("userGesture", true);
+  _browser->GetHost()->ExecuteDevToolsMethod(0, "Runtime.evaluate", params);
+}
+
 - (void)executeChromeCommand:(NSInteger)commandID {
   if (_browser && _browser->GetHost()->CanExecuteChromeCommand((int)commandID)) {
     _browser->GetHost()->ExecuteChromeCommand((int)commandID,

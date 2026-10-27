@@ -96,6 +96,8 @@ final class Item: Identifiable {
     /// Played sound in the last moments (reported by Chrome).
     var isAudible = false
     var isMuted = false
+    /// What the page plays, from OpenArch's built-in extension.
+    var media: MediaState?
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", customTitle: String? = nil,
          children: [Item] = [], lastActiveAt: Date = Date()) {
@@ -278,4 +280,14 @@ struct ItemData: Codable {
     var splitFractions: [Double]?
     var lastActiveAt: Date?
     var icon: String?
+}
+
+/// A page's audio or video, as its media element and Media Session report it.
+struct MediaState: Equatable, Decodable {
+    var playing = false
+    var video = false
+    var audible = false
+    var title = ""
+    var artist = ""
+    var pip = false
 }
