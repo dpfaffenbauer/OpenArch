@@ -36,6 +36,16 @@ struct SpaceTheme: Equatable {
     /// Arc keeps white text on everything but very light colors.
     var isDark: Bool { base.luminance < 0.72 }
 
+    /// Like Arc, a window that is not in front shows its space color darker
+    /// and a little grayer.
+    var inactiveBase: NSColor {
+        let dimmed = base.blended(withFraction: 0.26, of: .black) ?? base
+        guard let rgb = dimmed.usingColorSpace(.sRGB) else { return dimmed }
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        return NSColor(hue: hue, saturation: saturation * 0.85, brightness: brightness, alpha: alpha)
+    }
+
     var background: Color { Color(nsColor: base) }
     var backgroundBottom: Color {
         Color(nsColor: base.blended(withFraction: 0.18, of: isDark ? .black : .white) ?? base)

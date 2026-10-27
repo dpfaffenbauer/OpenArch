@@ -14,6 +14,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     private let profileID: String
     let model = LittleOpenArchModel()
     private var transferred = false
+    private let theme: SpaceTheme
     static let barHeight: CGFloat = 40
 
     /// Opens a Little OpenArch window, with |url| or with an address field.
@@ -53,6 +54,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 480, height: 320)
         let theme = SpaceTheme(hex: space.colorHex)
+        self.theme = theme
         window.backgroundColor = theme.base
         window.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
         // Cascade from the last Little OpenArch window, or sit at the screen's center.
@@ -93,6 +95,14 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     }
 
     func windowDidResize(_ notification: Notification) { layout() }
+    // Darker while not in front, like the main window.
+    func windowDidBecomeMain(_ notification: Notification) { applyColor() }
+    func windowDidResignMain(_ notification: Notification) { applyColor() }
+
+    private func applyColor() {
+        let front = AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
+        window?.backgroundColor = front ? theme.base : theme.inactiveBase
+    }
     func windowDidMove(_ notification: Notification) { layout() }
 
     func windowWillClose(_ notification: Notification) {

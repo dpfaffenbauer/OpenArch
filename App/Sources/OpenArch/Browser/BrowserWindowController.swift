@@ -85,6 +85,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         applyTheme()
         observeChanges()
         sidebarSwipe = SidebarSwipe(browser: self)
+        for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyTheme() }
+            }
+        }
         archiveTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.archiveInactiveTabs() }
         }
@@ -121,9 +126,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
     }
 
+    /// The window in front: OpenArch is active and this is its main window.
+    /// (The self-test and its screenshots always look like that.)
+    private var isFrontmost: Bool {
+        AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
+    }
+
     private func applyTheme() {
         let theme = SpaceTheme(hex: state.space.colorHex)
-        window?.backgroundColor = theme.base
+        window?.backgroundColor = isFrontmost ? theme.base : theme.inactiveBase
         window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
         focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
         floatingSidebar.applyTheme()
@@ -386,6 +397,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func windowDidBecomeMain(_ notification: Notification) {
         (NSApp.delegate as? AppDelegate)?.browserBecameActive(self)
+        applyTheme()
+    }
+
+    func windowDidResignMain(_ notification: Notification) {
+        applyTheme()
     }
 
     // MARK: Selection
