@@ -39,9 +39,11 @@ a failed workflow run. Data lives in
   tabs, pinned tabs and favorites, history, archived tabs, commands. A
   sentence or a question opens a new chat on Claude or ChatGPT with it,
   signed in as you there (your subscription, no API key; Settings › KI).
-- **Split view:** up to four tabs side by side, with resizable dividers.
-  Use ⌃⇧=, or drag a tab from the sidebar onto the left or right half of
-  the page.
+- **Split view:** up to four tabs side by side or one above the other,
+  with resizable dividers. Use ⌃⇧=, or drag a tab from the sidebar onto a
+  half of the page: left or right puts it beside, top or bottom above or
+  below. Links dragged from a page, Safari, Mail or Finder onto the
+  sidebar become tabs.
 - **Library** (⌥⌘B): media (images in Downloads and screenshots on the
   Desktop), downloads, spaces and archived tabs, searchable.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and
