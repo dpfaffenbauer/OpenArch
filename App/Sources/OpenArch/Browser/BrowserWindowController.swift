@@ -713,8 +713,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func reopenClosedTab() {
         guard !isPrivate, let archived = library.popArchived() else { return }
-        let item = openInNewTab(archived.url)
-        item.savedTitle = archived.title
+        restore(archived)
     }
 
     func duplicate(_ item: Item) {
@@ -978,15 +977,24 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func copyURL() {
         guard let url = state.activeItem?.currentURL else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(url, forType: .string)
+        OpenArch.copy(url)
+        showToast("Link kopiert")
     }
 
     func copyURLAsMarkdown() {
         guard let item = state.activeItem else { return }
         let title = item.displayTitle.replacingOccurrences(of: "]", with: "\\]")
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString("[\(title)](\(item.currentURL))", forType: .string)
+        OpenArch.copy("[\(title)](\(item.currentURL))")
+        showToast("Link als Markdown kopiert")
+    }
+
+    private var toast: ToastWindow?
+
+    func showToast(_ text: String) {
+        guard let window else { return }
+        let toast = self.toast ?? ToastWindow()
+        self.toast = toast
+        toast.show(text, over: window.convertToScreen(contentRect), parent: window)
     }
 
     /// ⌃⇧1…4: focus a side of the split view; ⌃⇧[ and ⌃⇧] the neighbours.

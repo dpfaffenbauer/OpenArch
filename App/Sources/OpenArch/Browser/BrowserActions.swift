@@ -54,8 +54,17 @@ extension BrowserWindowController {
 
     func restoreArchived(_ tab: ArchivedTab) {
         library.removeArchived(tab)
-        let item = openInNewTab(tab.url)
-        item.savedTitle = tab.title
+        restore(tab)
+    }
+
+    /// An archived tab comes back where it was: in its space, at its place
+    /// under the line.
+    func restore(_ archived: ArchivedTab) {
+        let item = Item.tab(url: archived.url, title: archived.title)
+        let space = isPrivate ? state.space : (library.space(id: archived.spaceID) ?? state.space)
+        space.today.insert(item, at: min(archived.index ?? 0, space.today.items.count))
+        select(item)
+        library.setNeedsSave()
     }
 
     func moveToSpace(_ item: Item, _ space: Space) {

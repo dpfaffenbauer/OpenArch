@@ -99,7 +99,13 @@ final class Library {
 
     func archive(_ item: Item) {
         guard item.kind == .tab else { return }
-        archive.insert(ArchivedTab(title: item.displayTitle, url: item.currentURL, date: Date()), at: 0)
+        // The place under the line: of the tab, or of the split it was in.
+        var root = item.split ?? item
+        while let parent = root.parent { root = parent }
+        let space = space(containing: item)
+        let index = space.map { root.container === $0.today } == true ? root.indexInParent : nil
+        archive.insert(ArchivedTab(title: item.displayTitle, url: item.currentURL, date: Date(),
+                                   spaceID: space?.id, index: index), at: 0)
         if archive.count > 500 {
             archive.removeLast(archive.count - 500)
         }
@@ -255,6 +261,9 @@ struct ArchivedTab: Codable, Hashable {
     var title: String
     var url: String
     var date: Date
+    /// Where the tab was, so ⌘⇧T puts it back there.
+    var spaceID: UUID?
+    var index: Int?
 }
 
 struct Settings: Codable, Equatable {

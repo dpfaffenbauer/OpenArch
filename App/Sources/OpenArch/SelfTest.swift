@@ -50,6 +50,7 @@ final class SelfTest {
             (9, "split view", { self.split() }),
             (15, "second space", { self.secondSpace() }),
             (18, "shortcuts", { self.shortcuts() }),
+            (20.5, "copy link", { self.copyLinkShortcut() }),
             (21, "close and reopen", { self.closeAndReopen() }),
             (23, "folders and pinning", { self.foldersAndPinning() }),
             (25, "arc import (dry run)", { self.arcImport() }),
@@ -490,16 +491,36 @@ final class SelfTest {
                "the window comes back with its panes")
     }
 
+    /// ⌘⇧C reaches OpenArch (not the page or Chrome's inspector) and copies
+    /// the address, into the self-test's own pasteboard.
+    private func copyLinkShortcut() {
+        guard let app = NSApp.delegate as? AppDelegate, let url = browser.state.activeItem?.currentURL,
+              let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0,
+                                           windowNumber: browser.window?.windowNumber ?? 0, context: nil, characters: "C",
+                                           charactersIgnoringModifiers: "c", isARepeat: false, keyCode: 8) else {
+            return expect(false, "⌘⇧C test setup")
+        }
+        copyPasteboard.clearContents()
+        let handled = ShortcutMonitor.handle(event, target: app)
+        expect(handled && copyPasteboard.string(forType: .string) == url, "⌘⇧C copies the address (\(url))")
+    }
+
     private func closeAndReopen() {
         guard let first = library.spaces.first else { return }
         browser.switchSpace(to: first)
+        // Two tabs of its own; the second one (not on top) gets closed, and
+        // ⌘⇧T has to find its place again.
+        let tab = browser.openInNewTab("https://example.com/reopen-b", select: false)
+        browser.openInNewTab("https://example.com/reopen-a", select: false)
         let before = first.today.allTabs.count
-        guard let tab = first.today.allTabs.first(where: { $0.split == nil }) ?? first.today.allTabs.first else { return }
+        let index = tab.indexInParent
         browser.select(tab)
         browser.closeActiveTab()
         expect(first.today.allTabs.count == before - 1, "closing a today tab removes it")
         browser.reopenClosedTab()
-        expect(first.today.allTabs.count == before, "⌘⇧T reopens it")
+        expect(first.today.allTabs.count == before && browser.state.activeItem?.indexInParent == index
+               && browser.state.activeItem?.currentURL == tab.currentURL,
+               "⌘⇧T reopens it at its old place (\(index))")
     }
 
     private func foldersAndPinning() {

@@ -914,7 +914,14 @@ private struct RowDropDelegate: DropDelegate {
     }
 }
 
+@MainActor
 func copy(_ string: String) {
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.setString(string, forType: .string)
+    copyPasteboard.clearContents()
+    copyPasteboard.setString(string, forType: .string)
+}
+
+/// The clipboard; the self-test copies into a pasteboard of its own instead.
+@MainActor
+var copyPasteboard: NSPasteboard {
+    AppPaths.isSelfTest ? NSPasteboard(name: NSPasteboard.Name("dev.openarch.selftest")) : .general
 }
