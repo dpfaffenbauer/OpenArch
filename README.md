@@ -50,7 +50,9 @@ run. Data lives in
   below. Links dragged from a page, Safari, Mail or Finder onto the
   sidebar become tabs.
 - **Library** (⌥⌘B): media (images in Downloads and screenshots on the
-  Desktop), downloads, spaces and archived tabs, searchable.
+  Desktop), downloads, spaces and archived tabs, searchable. A download
+  flies into the library button, a ring around it shows the progress, and
+  it bounces when the file is there.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and
   favicons taken from Arc's own icon cache. Drag the sidebar edge far to the
   left to collapse it, ⌘S brings it back.

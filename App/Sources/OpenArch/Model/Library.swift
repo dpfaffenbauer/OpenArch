@@ -363,7 +363,7 @@ struct Settings: Codable, Equatable {
 extension Settings {
     /// The settings that are Chromium preferences, in every profile.
     func applyToChromium() {
-        OACProfile.setPreference("https_only_mode_enabled", boolValue: httpsOnly)
+        OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
     }
 }
 

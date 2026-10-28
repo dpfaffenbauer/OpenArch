@@ -55,6 +55,21 @@ typedef NS_ENUM(NSInteger, OACChromeCommand) {
   OACChromeCommandTabSearch = 52500,
 };
 
+/// A download a page started. Chrome saves it in the Downloads folder and
+/// shows it in its toolbar; OpenArch gets its progress.
+@interface OACDownload : NSObject
+@property(readonly) uint32_t identifier;
+/// The file name, as far as known.
+@property(readonly, copy) NSString* fileName;
+/// Where the file goes; empty until Chrome has chosen it.
+@property(readonly, copy) NSString* path;
+/// 0–100, or -1 while the size is unknown.
+@property(readonly) NSInteger percentComplete;
+@property(readonly) BOOL isComplete;
+/// Cancelled or interrupted: it will not complete.
+@property(readonly) BOOL isFailed;
+@end
+
 NS_SWIFT_UI_ACTOR
 @protocol OACPaneDelegate <NSObject>
 @optional
@@ -162,6 +177,10 @@ NS_SWIFT_UI_ACTOR
 /// OpenArch gets the URL instead and Chrome's window is closed. Popup windows
 /// and incognito windows are left alone.
 @property(class, nonatomic, copy, nullable) void (^externalTabHandler)(NSString* url);
+
+/// Gets every download's progress, from any tab or window, including tabs
+/// that closed after starting one.
+@property(class, nonatomic, copy, nullable) void (^downloadHandler)(OACDownload* download);
 
 @end
 

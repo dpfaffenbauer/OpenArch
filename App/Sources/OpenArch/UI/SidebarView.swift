@@ -695,6 +695,9 @@ private struct SpaceBar: View {
             IconButton(symbol: "books.vertical", help: "Bibliothek: Medien, Downloads, Spaces, Archiv (⌥⌘B)") {
                 browser.toggleLibrary()
             }
+            .overlay { DownloadRing(theme: theme) }
+            .symbolEffect(.bounce, value: Downloads.shared.finished)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { browser.state.libraryButtonFrame = $0 }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {
                     ForEach(Array(browser.library.spaces.enumerated()), id: \.element.id) { index, space in
@@ -719,6 +722,35 @@ private struct SpaceBar: View {
             .help("Neuer Space")
         }
         .frame(height: 40)
+    }
+}
+
+/// Around the library button while files download: how far they are, or a
+/// turning arc while their size is unknown.
+private struct DownloadRing: View {
+    let theme: SpaceTheme
+
+    var body: some View {
+        if let overall = Downloads.shared.overall {
+            ZStack {
+                Circle().stroke(theme.foreground.opacity(0.2), lineWidth: 2)
+                if overall >= 0 {
+                    Circle().trim(from: 0, to: max(0.04, overall))
+                        .stroke(theme.foreground, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.3), value: overall)
+                } else {
+                    TimelineView(.animation) { context in
+                        Circle().trim(from: 0, to: 0.25)
+                            .stroke(theme.foreground, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                            .rotationEffect(.degrees(context.date.timeIntervalSinceReferenceDate * 360))
+                    }
+                }
+            }
+            .frame(width: 24, height: 24)
+            .allowsHitTesting(false)
+            .help("Downloads laufen")
+        }
     }
 }
 

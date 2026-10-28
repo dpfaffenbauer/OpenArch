@@ -172,6 +172,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return rect
     }
 
+    /// The library button in window coordinates (downloads fly into it); the
+    /// bottom left corner while the sidebar is hidden.
+    var libraryButtonCenter: NSPoint {
+        let frame = state.libraryButtonFrame
+        guard state.sidebarVisible, !frame.isEmpty else { return NSPoint(x: 24, y: 22) }
+        return sidebarHost.convert(NSPoint(x: frame.midX, y: frame.midY), to: nil)
+    }
+
     func layoutContent() {
         guard let window else { return }
         let bounds = rootView.bounds

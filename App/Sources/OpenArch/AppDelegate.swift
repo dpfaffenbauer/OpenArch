@@ -68,6 +68,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             OACPane.externalTabHandler = { [weak self] url in
                 MainActor.assumeIsolated { _ = self?.mainBrowser?.openInNewTab(url) }
             }
+            OACPane.downloadHandler = { [weak self] download in
+                MainActor.assumeIsolated { Downloads.shared.update(download, in: self?.mainBrowser) }
+            }
             browser.showWindow(nil)
             if selfTest {
                 test = SelfTest(browser: browser)

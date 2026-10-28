@@ -175,7 +175,7 @@ private struct MediaSection: View {
         }
         .scrollIndicators(.never)
         .overlay { EmptyHint(isEmpty: files.isLoaded && items.isEmpty, text: "Keine Bilder in Downloads oder auf dem Schreibtisch") }
-        .task { await files.reload() }
+        .task(id: Downloads.shared.finished) { await files.reload() }
     }
 }
 
@@ -206,7 +206,7 @@ private struct DownloadsSection: View {
         }
         .scrollIndicators(.never)
         .overlay { EmptyHint(isEmpty: files.isLoaded && items.isEmpty, text: "Keine Downloads") }
-        .task { await files.reload() }
+        .task(id: Downloads.shared.finished) { await files.reload() }
     }
 
     private func subtitle(_ file: LibraryFile) -> String {

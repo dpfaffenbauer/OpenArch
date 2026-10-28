@@ -35,9 +35,22 @@
 - (void)oac_devToolsResult:(int)messageID success:(BOOL)success data:(NSData*)data;
 @end
 
+@interface OACDownload ()
+@property(readwrite) uint32_t identifier;
+@property(readwrite, copy) NSString* fileName;
+@property(readwrite, copy) NSString* path;
+@property(readwrite) NSInteger percentComplete;
+@property(readwrite) BOOL isComplete;
+@property(readwrite) BOOL isFailed;
+@end
+
+@implementation OACDownload
+@end
+
 namespace {
 
 void (^g_external_tab_handler)(NSString*) = nil;
+void (^g_download_handler)(OACDownload*) = nil;
 
 NSMapTable<NSWindow*, OACPane*>* PanesByWindow() {
   static NSMapTable<NSWindow*, OACPane*>* table =
@@ -137,7 +150,8 @@ class PaneClient : public CefClient,
                    public CefLoadHandler,
                    public CefCommandHandler,
                    public CefFocusHandler,
-                   public CefRequestHandler {
+                   public CefRequestHandler,
+                   public CefDownloadHandler {
  public:
   explicit PaneClient(OACPane* pane) : pane_(pane) {}
 
@@ -147,6 +161,7 @@ class PaneClient : public CefClient,
   CefRefPtr<CefCommandHandler> GetCommandHandler() override { return this; }
   CefRefPtr<CefFocusHandler> GetFocusHandler() override { return this; }
   CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
+  CefRefPtr<CefDownloadHandler> GetDownloadHandler() override { return this; }
 
   // CefLifeSpanHandler
 
@@ -271,6 +286,38 @@ class PaneClient : public CefClient,
     if (frame->IsMain()) {
       [pane_ oac_mainFrameLoadStarted:NO url:OACToNSString(frame->GetURL())];
     }
+  }
+
+  // CefDownloadHandler
+
+  // Chrome's own handling: the Downloads folder (or "Ask where to save"),
+  // and its downloads bubble.
+  bool OnBeforeDownload(CefRefPtr<CefBrowser> browser,
+                        CefRefPtr<CefDownloadItem> download_item,
+                        const CefString& suggested_name,
+                        CefRefPtr<CefBeforeDownloadCallback> callback) override {
+    Report(download_item, OACToNSString(suggested_name));
+    return false;
+  }
+
+  void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
+                         CefRefPtr<CefDownloadItem> download_item,
+                         CefRefPtr<CefDownloadItemCallback> callback) override {
+    Report(download_item, OACToNSString(download_item->GetSuggestedFileName()));
+  }
+
+  void Report(CefRefPtr<CefDownloadItem> item, NSString* suggestedName) {
+    if (!g_download_handler || !item->IsValid()) {
+      return;
+    }
+    OACDownload* download = [[OACDownload alloc] init];
+    download.identifier = item->GetId();
+    download.path = OACToNSString(item->GetFullPath());
+    download.fileName = download.path.length ? download.path.lastPathComponent : suggestedName;
+    download.percentComplete = item->GetPercentComplete();
+    download.isComplete = item->IsComplete();
+    download.isFailed = item->IsCanceled() || item->IsInterrupted();
+    g_download_handler(download);
   }
 
   // CefRequestHandler
@@ -512,6 +559,14 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 
 + (void)setExternalTabHandler:(void (^)(NSString*))handler {
   g_external_tab_handler = [handler copy];
+}
+
++ (void (^)(OACDownload*))downloadHandler {
+  return g_download_handler;
+}
+
++ (void)setDownloadHandler:(void (^)(OACDownload*))handler {
+  g_download_handler = [handler copy];
 }
 
 - (instancetype)initWithProfile:(OACProfile*)profile url:(NSString*)url {

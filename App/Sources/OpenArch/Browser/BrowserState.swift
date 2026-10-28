@@ -19,6 +19,9 @@ final class BrowserState {
     var librarySection = LibrarySection.media
     /// Horizontal offset of the sidebar while it is being swiped.
     var swipeOffset: CGFloat = 0
+    /// The library button in the sidebar's coordinates, for downloads
+    /// flying into it.
+    @ObservationIgnored var libraryButtonFrame = CGRect.zero
 
     init(space: Space) {
         self.space = space

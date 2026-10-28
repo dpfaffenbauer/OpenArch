@@ -38,9 +38,10 @@ NS_SWIFT_UI_ACTOR
       completion:(void (^)(NSData* _Nullable data, NSInteger status))completion;
 
 /// Sets a Chromium preference (e.g. "https_only_mode_enabled") in every
-/// profile, including the ones created later. A name Chromium does not know
-/// or does not let the user change is logged and skipped.
-+ (void)setPreference:(NSString*)name boolValue:(BOOL)value;
+/// profile, including the ones created later. |value| is a boolean, number
+/// or string. A name Chromium does not know or does not let the user change
+/// is logged and skipped.
++ (void)setPreference:(NSString*)name value:(id)value;
 
 @end
 

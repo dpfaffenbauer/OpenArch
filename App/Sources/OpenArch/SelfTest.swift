@@ -21,7 +21,14 @@ final class SelfTest {
         SelfTest.current = self
     }
 
+    /// Where the self-test's downloads go, not the user's Downloads folder.
+    static let downloadFolder = AppPaths.support.appendingPathComponent("Downloads", isDirectory: true)
+
     func start() {
+        try? FileManager.default.removeItem(at: Self.downloadFolder)
+        try? FileManager.default.createDirectory(at: Self.downloadFolder, withIntermediateDirectories: true)
+        OACProfile.setPreference("download.default_directory", value: Self.downloadFolder.path)
+        OACProfile.setPreference("download.prompt_for_download", value: false)
         if CommandLine.arguments.contains("--popup-test") {
             popupTest()
             return
@@ -80,6 +87,7 @@ final class SelfTest {
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
+            (38, "downloads", { self.downloadTest() }),
             (43.6, "media", { self.mediaTest() }),
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
@@ -809,6 +817,28 @@ final class SelfTest {
                     }
                 }
             }
+        }
+    }
+
+    /// A file the page downloads lands in the download folder, and the
+    /// library hears of it (button bounce, library reload).
+    private func downloadTest() {
+        guard let tab = browser.state.activeItem else { return expect(false, "a tab to download from") }
+        let finished = Downloads.shared.finished
+        let target = browser.libraryButtonCenter
+        expect(target.x > 10 && target.x < 60 && target.y > 5 && target.y < 45,
+               "downloads fly to the library button at the bottom of the sidebar (\(Int(target.x)), \(Int(target.y)))")
+        tab.pane?.executeJavaScript("""
+            (() => { const a = document.createElement('a');
+              a.href = URL.createObjectURL(new Blob(['OpenArch download test'], {type: 'text/plain'}));
+              a.download = 'openarch-selftest.txt'; document.body.appendChild(a); a.click(); a.remove(); })()
+            """, userGesture: true)
+        after(3) {
+            let file = Self.downloadFolder.appendingPathComponent("openarch-selftest.txt")
+            let saved = (try? String(contentsOf: file, encoding: .utf8)) == "OpenArch download test"
+            self.expect(saved, "a download is saved (to the self-test's folder)")
+            self.expect(Downloads.shared.finished == finished + 1 && Downloads.shared.progress.isEmpty,
+                        "the library hears when a download finishes (\(Downloads.shared.finished - finished))")
         }
     }
 

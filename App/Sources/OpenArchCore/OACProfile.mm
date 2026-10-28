@@ -68,21 +68,29 @@ NSHashTable<OACProfile*>* AllProfiles() {
 }
 
 // Preferences for every profile (see +setPreference:boolValue:).
-NSMutableDictionary<NSString*, NSNumber*>* GlobalPreferences() {
-  static NSMutableDictionary<NSString*, NSNumber*>* preferences =
+NSMutableDictionary<NSString*, id>* GlobalPreferences() {
+  static NSMutableDictionary<NSString*, id>* preferences =
       [NSMutableDictionary dictionary];
   return preferences;
 }
 
 void ApplyPreference(CefRefPtr<CefRequestContext> context,
                      NSString* name,
-                     BOOL value) {
+                     id value) {
   if (!context || !context->CanSetPreference(name.UTF8String)) {
     NSLog(@"OpenArch: cannot set preference %@", name);
     return;
   }
   CefRefPtr<CefValue> cefValue = CefValue::Create();
-  cefValue->SetBool(value);
+  if ([value isKindOfClass:NSString.class]) {
+    cefValue->SetString([value UTF8String]);
+  } else if (CFGetTypeID((__bridge CFTypeRef)value) == CFBooleanGetTypeID()) {
+    cefValue->SetBool([value boolValue]);
+  } else if (CFNumberIsFloatType((__bridge CFNumberRef)value)) {
+    cefValue->SetDouble([value doubleValue]);
+  } else {
+    cefValue->SetInt([value intValue]);
+  }
   CefString error;
   if (!context->SetPreference(name.UTF8String, cefValue, error)) {
     NSLog(@"OpenArch: preference %@: %s", name, error.ToString().c_str());
@@ -168,8 +176,8 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   }
   _isReady = YES;
   [GlobalPreferences() enumerateKeysAndObjectsUsingBlock:^(
-                           NSString* name, NSNumber* value, BOOL* stop) {
-    ApplyPreference(self->_context, name, value.boolValue);
+                           NSString* name, id value, BOOL* stop) {
+    ApplyPreference(self->_context, name, value);
   }];
   NSArray<dispatch_block_t>* pending = [_pending copy];
   [_pending removeAllObjects];
@@ -202,8 +210,8 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   }];
 }
 
-+ (void)setPreference:(NSString*)name boolValue:(BOOL)value {
-  GlobalPreferences()[name] = @(value);
++ (void)setPreference:(NSString*)name value:(id)value {
+  GlobalPreferences()[name] = value;
   for (OACProfile* profile in AllProfiles()) {
     if (profile.isReady) {
       ApplyPreference(profile->_context, name, value);
