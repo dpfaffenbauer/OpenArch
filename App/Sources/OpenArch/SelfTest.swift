@@ -101,7 +101,7 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (64.5, "windows", { self.windowsTest() }),
-            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly() } }),
+            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly { self.devToolsDock() } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -112,7 +112,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(80.5) {
+            after(87.5) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -123,7 +123,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 85 : 80) {
+        after(CommandLine.arguments.contains("--arc") ? 92 : 87) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -580,6 +580,14 @@ final class SelfTest {
         let toast = browser.toast, page = browser.activePane?.window
         expect(toast?.isVisible == true && page != nil && toast!.orderedIndex < page!.orderedIndex,
                "⌘⇧C shows „Link kopiert“ above the page")
+        // Chrome's own Copy URL command (its ⌘⇧C) goes the same way.
+        copyPasteboard.clearContents()
+        toast?.orderOut(nil)
+        if let pane = browser.activePane {
+            _ = browser.pane(pane, handleChromeCommand: OACChromeCommand.copyURL.rawValue)
+        }
+        expect(copyPasteboard.string(forType: .string) == url && browser.toast?.isVisible == true,
+               "Chrome's Copy URL copies through OpenArch, with „Link kopiert“")
 
     }
 
@@ -944,8 +952,34 @@ final class SelfTest {
         expect(library.spaces.map(\.id) == before, "and dragged back onto the first one, the order is as before")
     }
 
+    /// DevTools dock beside the page, on the side Ansicht › DevTools anordnen
+    /// says, and the page gets its whole frame back when they close. (A
+    /// window of their own is left out: it would show on screen.)
+    private func devToolsDock() {
+        guard let pane = browser.activePane, let page = pane.window else { return expect(false, "a tab for DevTools") }
+        let content = browser.window.map { $0.convertToScreen(browser.contentRect) } ?? .zero
+        let full = page.frame
+        pane.showDevTools()
+        after(3) {
+            let right = page.frame
+            OACPane.devToolsDock = .left
+            let left = page.frame
+            OACPane.devToolsDock = .bottom
+            let bottom = page.frame
+            self.expect(right.minX == full.minX && right.width < full.width * 0.7
+                        && left.maxX == full.maxX && left.width == right.width
+                        && bottom.maxY == full.maxY && bottom.width == full.width && bottom.height < full.height * 0.7,
+                        "DevTools dock right, left and below the page (\(right), \(left), \(bottom), content \(content))")
+            OACPane.devToolsDock = .right
+            _ = pane.closeDevTools()
+            after(1.5) {
+                self.expect(page.frame == full, "closing DevTools gives the page its whole frame back (\(page.frame))")
+            }
+        }
+    }
+
     /// HTTPS-only reaches Chromium's preferences, and goes again.
-    private func httpsOnly() {
+    private func httpsOnly(then next: @escaping () -> Void) {
         library.settings.httpsOnly = true
         library.settings.applyToChromium()
         let shown = browser.state.activeItem
@@ -960,6 +994,7 @@ final class SelfTest {
                 self.library.settings.applyToChromium()
                 if let shown { self.browser.select(shown, focus: false) }
                 self.browser.close(tab)
+                next()
             }
         }
     }

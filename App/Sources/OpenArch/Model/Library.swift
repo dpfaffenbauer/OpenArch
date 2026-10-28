@@ -335,6 +335,8 @@ struct Settings: Codable, Equatable {
     /// Chromium's HTTPS-First mode: http:// addresses try https:// first and
     /// warn before loading without it.
     var httpsOnly = false
+    /// Where DevTools open (Ansicht › DevTools anordnen).
+    var devToolsDock = DevToolsDock.right
 
     init() {}
 
@@ -355,15 +357,39 @@ struct Settings: Codable, Equatable {
         askAI = try container.decodeIfPresent(AIChat.self, forKey: .askAI) ?? defaults.askAI
         sleepAfterMinutes = try container.decodeIfPresent(Int.self, forKey: .sleepAfterMinutes) ?? defaults.sleepAfterMinutes
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
+        devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
 }
 
 extension Settings {
-    /// The settings that are Chromium preferences, in every profile.
-    func applyToChromium() {
+    /// The settings that Chromium and every tab apply themselves.
+    @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
+        OACPane.devToolsDock = devToolsDock.dock
+    }
+}
+
+enum DevToolsDock: String, Codable, CaseIterable {
+    case right, left, bottom, window
+
+    var title: String {
+        switch self {
+        case .right: "Rechts"
+        case .left: "Links"
+        case .bottom: "Unten"
+        case .window: "Eigenes Fenster"
+        }
+    }
+
+    var dock: OACDevToolsDock {
+        switch self {
+        case .right: .right
+        case .left: .left
+        case .bottom: .bottom
+        case .window: .window
+        }
     }
 }
 

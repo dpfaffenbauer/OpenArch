@@ -136,6 +136,8 @@ final class PeekController: NSObject, OACPaneDelegate {
         switch OACChromeCommand(rawValue: commandID) {
         case .closeTab:
             close()
+        case .copyURL:
+            browser.copyURL()
         case .exit:
             NSApp.terminate(nil)
         default:

@@ -252,6 +252,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
             window?.close()
         case .focusLocation:
             editAddress()
+        case .copyURL:
+            copyLink()
         case .exit:
             NSApp.terminate(nil)
         default:

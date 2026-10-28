@@ -14,6 +14,7 @@
 - (void)oac_windowCreated:(CefRefPtr<CefWindow>)window;
 - (void)oac_devToolsWindowCreated:(CefRefPtr<CefWindow>)window;
 - (void)oac_devToolsWindowDestroyed;
+- (void)oac_devToolsOpenedInWindow;
 - (void)oac_otherBrowserClosed:(CefRefPtr<CefBrowser>)browser;
 - (void)oac_windowDestroyed;
 - (void)oac_browserViewAddedToWindow:(CefRefPtr<CefWindow>)window;
@@ -57,6 +58,8 @@ void (^g_download_handler)(OACDownload*) = nil;
 
 // Between the page and its docked DevTools.
 constexpr CGFloat kDevToolsGap = 6;
+
+OACDevToolsDock g_devtools_dock = OACDevToolsDockRight;
 
 NSMapTable<NSWindow*, OACPane*>* PanesByWindow() {
   static NSMapTable<NSWindow*, OACPane*>* table =
@@ -553,6 +556,11 @@ class PaneBrowserViewDelegate : public CefBrowserViewDelegate {
     if (!is_devtools || !pane) {
       return false;
     }
+    if (g_devtools_dock == OACDevToolsDockWindow) {
+      // CEF's own window, with a title bar.
+      [pane oac_devToolsOpenedInWindow];
+      return false;
+    }
     CefWindow::CreateTopLevelWindow(new DevToolsWindowDelegate(popup_browser_view, pane));
     return true;
   }
@@ -670,6 +678,10 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   // DevTools, docked beside the page in a window of their own.
   CefRefPtr<CefWindow> _devToolsCefWindow;
   __weak NSWindow* _devToolsWindow;
+  // DevTools in a window of their own are open.
+  BOOL _devToolsInWindow;
+  // Open the DevTools again once they have closed (the dock changed).
+  BOOL _reopenDevTools;
   __weak NSWindow* _window;
   __weak NSWindow* _parent;
   NSRect _frame;
@@ -1076,11 +1088,48 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   _devToolsCefWindow = nullptr;
   _devToolsWindow = nil;
   [self layoutWindows];
+  [self reopenDevToolsIfAsked];
+}
+
+- (void)oac_devToolsOpenedInWindow {
+  _devToolsInWindow = YES;
+}
+
+- (void)reopenDevToolsIfAsked {
+  if (!_reopenDevTools) {
+    return;
+  }
+  _reopenDevTools = NO;
+  __weak OACPane* weakSelf = self;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [weakSelf executeChromeCommand:OACChromeCommandDevToolsToggle];
+  });
+}
+
++ (OACDevToolsDock)devToolsDock {
+  return g_devtools_dock;
+}
+
++ (void)setDevToolsDock:(OACDevToolsDock)dock {
+  const BOOL wasWindow = g_devtools_dock == OACDevToolsDockWindow;
+  g_devtools_dock = dock;
+  for (OACPane* pane in PanesByWindow().objectEnumerator) {
+    const BOOL open = pane->_devToolsWindow != nil || pane->_devToolsInWindow;
+    if (open && wasWindow != (dock == OACDevToolsDockWindow)) {
+      pane->_reopenDevTools = [pane closeDevTools];
+    } else {
+      [pane layoutWindows];
+    }
+  }
 }
 
 // The tab's DevTools closed (from their own shortcut, or with the tab):
 // their window goes, and the page takes the whole frame again.
 - (void)oac_otherBrowserClosed:(CefRefPtr<CefBrowser>)browser {
+  if (_devToolsInWindow) {
+    _devToolsInWindow = NO;
+    [self reopenDevToolsIfAsked];
+  }
   CefRefPtr<CefWindow> window = _devToolsCefWindow;
   if (!window) {
     return;
@@ -1091,7 +1140,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 }
 
 - (BOOL)closeDevTools {
-  if (!_devToolsCefWindow || !_browser) {
+  if ((!_devToolsCefWindow && !_devToolsInWindow) || !_browser) {
     return NO;
   }
   _browser->GetHost()->CloseDevTools();
@@ -1107,22 +1156,39 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   return NO;
 }
 
-// The page on the left, DevTools on the right (40 %), both in _frame.
+// The page and its docked DevTools share _frame: DevTools take 40 % of the
+// width on the right or left, or 38 % of the height below.
 - (NSRect)pageFrame {
-  if (!_devToolsWindow) {
-    return _frame;
-  }
-  NSRect page = _frame;
-  page.size.width = floor((_frame.size.width - kDevToolsGap) * 0.6);
+  NSRect page = _frame, devTools;
+  [self splitFrame:&page devTools:&devTools];
   return page;
 }
 
 - (NSRect)devToolsFrame {
-  NSRect page = [self pageFrame];
-  NSRect devTools = _frame;
-  devTools.origin.x = NSMaxX(page) + kDevToolsGap;
-  devTools.size.width = NSMaxX(_frame) - devTools.origin.x;
+  NSRect page, devTools = _frame;
+  [self splitFrame:&page devTools:&devTools];
   return devTools;
+}
+
+- (void)splitFrame:(NSRect*)page devTools:(NSRect*)devTools {
+  *page = _frame;
+  *devTools = NSZeroRect;
+  if (!_devToolsWindow) {
+    return;
+  }
+  NSRect first, second;
+  if (g_devtools_dock == OACDevToolsDockBottom) {
+    const CGFloat height = floor((_frame.size.height - kDevToolsGap) * 0.38);
+    NSDivideRect(_frame, devTools, &second, height, NSMinYEdge);
+    NSDivideRect(second, &first, &second, kDevToolsGap, NSMinYEdge);
+    *page = second;
+    return;
+  }
+  const CGFloat width = floor((_frame.size.width - kDevToolsGap) * 0.4);
+  const NSRectEdge edge = g_devtools_dock == OACDevToolsDockLeft ? NSMinXEdge : NSMaxXEdge;
+  NSDivideRect(_frame, devTools, &second, width, edge);
+  NSDivideRect(second, &first, &second, kDevToolsGap, edge);
+  *page = second;
 }
 
 - (void)layoutWindows {

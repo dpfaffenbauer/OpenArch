@@ -1316,6 +1316,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             toggleSidebar()
         case .duplicateTab:
             if let active = state.activeItem { duplicate(active) }
+        case .copyURL:
+            // Chrome's own ⌘⇧C would copy without the "Link kopiert" toast.
+            copyURL()
         case .newSplitTab:
             splitWithNewTab()
         case .tabSearch:

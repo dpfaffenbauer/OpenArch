@@ -432,6 +432,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func zoomOut(_ sender: Any?) { chromeCommand(.zoomMinus) }
     @objc func zoomReset(_ sender: Any?) { chromeCommand(.zoomNormal) }
     @objc func printPage(_ sender: Any?) { chromeCommand(.print) }
+    @objc func setDevToolsDock(_ sender: NSMenuItem) {
+        guard DevToolsDock.allCases.indices.contains(sender.tag) else { return }
+        library.settings.devToolsDock = DevToolsDock.allCases[sender.tag]
+        library.settings.applyToChromium()
+        library.setNeedsSave()
+    }
     @objc func devTools(_ sender: Any?) {
         if let little = LittleOpenArchWindowController.current { return little.showDevTools() }
         browser?.activePane?.showDevTools()
@@ -506,6 +512,13 @@ enum MainMenu {
             return item
         }
 
+        func devToolsDockMenu() -> NSMenuItem {
+            let holder = submenu("DevTools anordnen", DevToolsDock.allCases.enumerated().map { index, dock in
+                item(dock.title, #selector(AppDelegate.setDevToolsDock(_:)), tag: index)
+            })
+            holder.submenu?.delegate = DevToolsMenuUpdater.shared
+            return holder
+        }
         func submenu(_ title: String, _ items: [NSMenuItem]) -> NSMenuItem {
             let menu = NSMenu(title: title)
             for entry in items { menu.addItem(entry) }
@@ -582,6 +595,7 @@ enum MainMenu {
             item("Originalgröße", #selector(AppDelegate.zoomReset(_:)), "0"),
             .separator(),
             item("Entwicklertools", #selector(AppDelegate.devTools(_:)), "i", [.command, .option]),
+            devToolsDockMenu(),
             item("Element untersuchen", #selector(AppDelegate.inspectElement(_:)), "c", [.command, .option]),
             item("JavaScript-Konsole", #selector(AppDelegate.javaScriptConsole(_:)), "j", [.command, .option]),
             item("Quelltext anzeigen", #selector(AppDelegate.viewSource(_:)), "u", [.command, .option]),
@@ -695,6 +709,20 @@ private func menuIcon(for item: Item) -> NSImage? {
 
 private func menuTitle(_ text: String) -> String {
     text.count > 60 ? String(text.prefix(57)) + "…" : text
+}
+
+/// Ansicht › DevTools anordnen ticks where they open now.
+@MainActor
+final class DevToolsMenuUpdater: NSObject, NSMenuDelegate {
+    static let shared = DevToolsMenuUpdater()
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        guard let dock = (NSApp.delegate as? AppDelegate)?.library.settings.devToolsDock,
+              let index = DevToolsDock.allCases.firstIndex(of: dock) else { return }
+        for item in menu.items {
+            item.state = item.tag == index ? .on : .off
+        }
+    }
 }
 
 /// ⌘1…⌘9 in the Tabs menu show the tabs they jump to.

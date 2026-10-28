@@ -171,6 +171,19 @@ NS_SWIFT_UI_ACTOR
 /// Closes the browser and its window. The delegate gets -paneDidClose:.
 - (void)close;
 
+/// Where DevTools open: docked beside the page (right, left, below) or in
+/// a window of their own.
+typedef NS_ENUM(NSInteger, OACDevToolsDock) {
+  OACDevToolsDockRight,
+  OACDevToolsDockLeft,
+  OACDevToolsDockBottom,
+  OACDevToolsDockWindow,
+};
+
+/// For every tab; open DevTools move (between docked and a window, they
+/// close and open again).
+@property(class, nonatomic) OACDevToolsDock devToolsDock;
+
 /// Closes the tab's DevTools if they are open (docked beside the page).
 - (BOOL)closeDevTools;
 /// Closes the docked DevTools that |window| shows, if it shows any.
