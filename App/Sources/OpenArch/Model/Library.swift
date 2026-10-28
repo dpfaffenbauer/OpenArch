@@ -337,6 +337,8 @@ struct Settings: Codable, Equatable {
     var httpsOnly = false
     /// Where DevTools open (Ansicht › DevTools anordnen).
     var devToolsDock = DevToolsDock.right
+    /// Sites whose links to an app open it without asking: "host scheme".
+    var allowedExternalApps: [String] = []
 
     init() {}
 
@@ -358,6 +360,7 @@ struct Settings: Codable, Equatable {
         sleepAfterMinutes = try container.decodeIfPresent(Int.self, forKey: .sleepAfterMinutes) ?? defaults.sleepAfterMinutes
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
+        allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

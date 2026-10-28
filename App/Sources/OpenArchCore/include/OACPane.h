@@ -100,6 +100,9 @@ NS_SWIFT_UI_ACTOR
 /// A link the user clicked is about to replace the page. Return YES to
 /// take it over (the navigation is cancelled), e.g. to show it in Peek.
 - (BOOL)pane:(OACPane*)pane shouldInterceptNavigationToURL:(NSString*)url;
+/// The page went to an address another app opens (bambustudioopen:,
+/// zoommtg:, mailto: ...). The navigation was cancelled.
+- (void)pane:(OACPane*)pane wantsToOpenExternalURL:(NSString*)url;
 @end
 
 /// One Chrome tab. It is hosted in its own borderless Chrome-style window
@@ -201,6 +204,8 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 /// Gets every download's progress, from any tab or window, including tabs
 /// that closed after starting one.
 @property(class, nonatomic, copy, nullable) void (^downloadHandler)(OACDownload* download);
+/// Cancels a running download. Returns NO when it is not running.
++ (BOOL)cancelDownload:(uint32_t)identifier;
 
 @end
 

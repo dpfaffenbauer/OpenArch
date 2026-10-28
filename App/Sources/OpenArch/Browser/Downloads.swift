@@ -11,8 +11,17 @@ import UniformTypeIdentifiers
 final class Downloads {
     static let shared = Downloads()
 
+    /// A download in progress, for the library's list.
+    struct Running: Identifiable {
+        let id: UInt32
+        var name: String
+        /// 0…1, or -1 while the size is unknown.
+        var progress: Double
+    }
+
     /// Running downloads: progress 0…1, or -1 while the size is unknown.
     private(set) var progress: [UInt32: Double] = [:]
+    private(set) var names: [UInt32: String] = [:]
     /// Goes up with every finished download.
     private(set) var finished = 0
     @ObservationIgnored private var lastUpdate: [UInt32: Date] = [:]
@@ -28,6 +37,19 @@ final class Downloads {
         return known.isEmpty ? -1 : known.reduce(0, +) / Double(known.count)
     }
 
+    /// The running downloads, oldest first.
+    var running: [Running] {
+        progress.keys.sorted().map { Running(id: $0, name: names[$0] ?? "Download", progress: progress[$0] ?? -1) }
+    }
+
+    /// Stops a running download; Chrome removes the partial file.
+    func cancel(_ id: UInt32) {
+        OACPane.cancelDownload(id)
+        progress[id] = nil
+        names[id] = nil
+        lastUpdate[id] = nil
+    }
+
     func update(_ download: OACDownload, in browser: BrowserWindowController?) {
         let id = download.identifier
         if seen.insert(id).inserted, !download.isFailed, let browser {
@@ -35,12 +57,14 @@ final class Downloads {
         }
         if download.isComplete || download.isFailed {
             progress[id] = nil
+            names[id] = nil
             lastUpdate[id] = nil
             if download.isComplete, done.insert(id).inserted {
                 finished += 1
             }
         } else {
             progress[id] = download.percentComplete < 0 ? -1 : Double(download.percentComplete) / 100
+            if !download.fileName.isEmpty { names[id] = download.fileName }
             lastUpdate[id] = Date()
             scheduleSweep()
         }
@@ -56,6 +80,7 @@ final class Downloads {
             let cutoff = Date().addingTimeInterval(-60)
             for (id, date) in lastUpdate where date < cutoff {
                 progress[id] = nil
+                names[id] = nil
                 lastUpdate[id] = nil
             }
             if !progress.isEmpty { scheduleSweep() }

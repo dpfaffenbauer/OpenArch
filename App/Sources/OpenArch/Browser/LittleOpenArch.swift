@@ -227,6 +227,10 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         if !background { app.mainBrowser?.showWindow(nil) }
     }
 
+    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+        ExternalApps.open(url, from: pane.url, in: window, library: app.library) { _ in NSSound.beep() }
+    }
+
     func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {
         openInSpace(url, modifiers: NSEvent.modifierFlags)
     }

@@ -4,6 +4,7 @@
 #import <objc/runtime.h>
 
 #include <algorithm>
+#include <map>
 #include <vector>
 
 #include "include/views/cef_box_layout.h"
@@ -36,6 +37,7 @@
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
 - (void)oac_willToggleFullScreen;
+- (void)oac_wantsExternalURL:(NSString*)url;
 - (void)oac_devToolsResult:(int)messageID success:(BOOL)success data:(NSData*)data;
 @end
 
@@ -55,6 +57,37 @@ namespace {
 
 void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+
+// Names of downloads, as Chrome suggested them when they started: later
+// updates carry none, and the path is "Unconfirmed 123.crdownload" until
+// the download is done.
+std::map<uint32_t, std::string>& DownloadNames() {
+  static std::map<uint32_t, std::string> names;
+  return names;
+}
+
+// Schemes Chromium shows itself; any other (bambustudioopen:, zoommtg:,
+// mailto: ...) belongs to an app on the Mac.
+bool IsExternalScheme(const CefString& url) {
+  NSString* string = OACToNSString(url);
+  const NSRange colon = [string rangeOfString:@":"];
+  if (colon.location == NSNotFound) {
+    return false;
+  }
+  NSString* scheme = [string substringToIndex:colon.location].lowercaseString;
+  static NSSet<NSString*>* internal = [NSSet setWithArray:@[
+    @"http", @"https", @"file", @"ftp", @"data", @"blob", @"about", @"chrome",
+    @"chrome-extension", @"chrome-untrusted", @"chrome-search", @"devtools",
+    @"view-source", @"javascript", @"filesystem", @"ws", @"wss"
+  ]];
+  return scheme.length && ![internal containsObject:scheme];
+}
+
+// Running downloads, to cancel them (see +cancelDownload:).
+std::map<uint32_t, CefRefPtr<CefDownloadItemCallback>>& DownloadCallbacks() {
+  static std::map<uint32_t, CefRefPtr<CefDownloadItemCallback>> callbacks;
+  return callbacks;
+}
 
 // Between the page and its docked DevTools.
 constexpr CGFloat kDevToolsGap = 6;
@@ -191,6 +224,10 @@ class PaneClient : public CefClient,
     if (!pane) {
       return false;
     }
+    if (IsExternalScheme(target_url)) {
+      [pane oac_wantsExternalURL:OACToNSString(target_url)];
+      return true;
+    }
     switch (target_disposition) {
       case CEF_WOD_NEW_FOREGROUND_TAB:
       case CEF_WOD_NEW_BACKGROUND_TAB:
@@ -310,6 +347,9 @@ class PaneClient : public CefClient,
                         CefRefPtr<CefDownloadItem> download_item,
                         const CefString& suggested_name,
                         CefRefPtr<CefBeforeDownloadCallback> callback) override {
+    if (download_item->IsValid() && !suggested_name.empty()) {
+      DownloadNames()[download_item->GetId()] = suggested_name.ToString();
+    }
     Report(download_item, OACToNSString(suggested_name));
     return false;
   }
@@ -317,6 +357,13 @@ class PaneClient : public CefClient,
   void OnDownloadUpdated(CefRefPtr<CefBrowser> browser,
                          CefRefPtr<CefDownloadItem> download_item,
                          CefRefPtr<CefDownloadItemCallback> callback) override {
+    if (download_item->IsValid()) {
+      if (download_item->IsInProgress()) {
+        DownloadCallbacks()[download_item->GetId()] = callback;
+      } else {
+        DownloadCallbacks().erase(download_item->GetId());
+      }
+    }
     Report(download_item, OACToNSString(download_item->GetSuggestedFileName()));
   }
 
@@ -327,10 +374,21 @@ class PaneClient : public CefClient,
     OACDownload* download = [[OACDownload alloc] init];
     download.identifier = item->GetId();
     download.path = OACToNSString(item->GetFullPath());
-    download.fileName = download.path.length ? download.path.lastPathComponent : suggestedName;
+    NSString* name = suggestedName;
+    auto known = DownloadNames().find(item->GetId());
+    if (!name.length && known != DownloadNames().end()) {
+      name = [NSString stringWithUTF8String:known->second.c_str()];
+    }
+    if (!name.length && ![download.path hasSuffix:@".crdownload"]) {
+      name = download.path.lastPathComponent;
+    }
+    download.fileName = name.length ? name : OACToNSString(item->GetURL()).lastPathComponent;
     download.percentComplete = item->GetPercentComplete();
     download.isComplete = item->IsComplete();
     download.isFailed = item->IsCanceled() || item->IsInterrupted();
+    if (download.isComplete || download.isFailed) {
+      DownloadNames().erase(item->GetId());
+    }
     g_download_handler(download);
   }
 
@@ -347,6 +405,10 @@ class PaneClient : public CefClient,
     OACPane* pane = Own(browser);
     if (!pane) {
       return false;
+    }
+    if (IsExternalScheme(target_url)) {
+      [pane oac_wantsExternalURL:OACToNSString(target_url)];
+      return true;
     }
     switch (target_disposition) {
       case CEF_WOD_NEW_FOREGROUND_TAB:
@@ -367,6 +429,11 @@ class PaneClient : public CefClient,
                       bool user_gesture,
                       bool is_redirect) override {
     OACPane* pane = Own(browser);
+    if (pane && IsExternalScheme(request->GetURL())) {
+      // Chromium would only show ERR_UNKNOWN_URL_SCHEME; the app is asked.
+      [pane oac_wantsExternalURL:OACToNSString(request->GetURL())];
+      return true;
+    }
     if (!pane || !frame->IsMain() || !user_gesture || is_redirect) {
       return false;
     }
@@ -706,6 +773,16 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 
 + (void)setExternalTabHandler:(void (^)(NSString*))handler {
   g_external_tab_handler = [handler copy];
+}
+
++ (BOOL)cancelDownload:(uint32_t)identifier {
+  auto found = DownloadCallbacks().find(identifier);
+  if (found == DownloadCallbacks().end()) {
+    return NO;
+  }
+  found->second->Cancel();
+  DownloadCallbacks().erase(found);
+  return YES;
 }
 
 + (void (^)(OACDownload*))downloadHandler {
@@ -1348,6 +1425,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url {
   if ([self.delegate respondsToSelector:@selector(pane:mainFrameLoadStarted:url:)]) {
     [self.delegate pane:self mainFrameLoadStarted:started url:url];
+  }
+}
+
+- (void)oac_wantsExternalURL:(NSString*)url {
+  if ([self.delegate respondsToSelector:@selector(pane:wantsToOpenExternalURL:)]) {
+    [self.delegate pane:self wantsToOpenExternalURL:url];
   }
 }
 

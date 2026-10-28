@@ -187,31 +187,97 @@ private struct DownloadsSection: View {
 
     var body: some View {
         let items = files.downloads.filter { query.isEmpty || matches(query, $0.url.lastPathComponent) }
+        let running = Downloads.shared.running
         ScrollView {
             LazyVStack(spacing: 2) {
+                ForEach(running) { download in
+                    RunningDownloadRow(download: download, theme: theme)
+                }
                 ForEach(items) { file in
-                    LibraryRow(theme: theme) {
-                        Image(nsImage: NSWorkspace.shared.icon(forFile: file.url.path))
-                            .resizable().frame(width: 26, height: 26)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(file.url.lastPathComponent).font(.system(size: 13)).lineLimit(1).truncationMode(.middle)
-                            Text(subtitle(file)).font(.system(size: 11)).opacity(0.6)
-                        }
-                    }
-                    .onTapGesture { NSWorkspace.shared.open(file.url) }
-                    .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
-                    .contextMenu { FileMenu(browser: browser, file: file) }
+                    DownloadFileRow(browser: browser, file: file, subtitle: subtitle(file), theme: theme)
                 }
             }
         }
         .scrollIndicators(.never)
-        .overlay { EmptyHint(isEmpty: files.isLoaded && items.isEmpty, text: "Keine Downloads") }
+        .overlay { EmptyHint(isEmpty: files.isLoaded && items.isEmpty && running.isEmpty, text: "Keine Downloads") }
         .task(id: Downloads.shared.finished) { await files.reload() }
     }
 
     private func subtitle(_ file: LibraryFile) -> String {
         let date = file.date.formatted(.relative(presentation: .named))
         return file.isDirectory ? date : "\(ByteCountFormatter.string(fromByteCount: Int64(file.size), countStyle: .file)) · \(date)"
+    }
+}
+
+/// A download still on its way: how far it is, and a button to stop it.
+private struct RunningDownloadRow: View {
+    let download: Downloads.Running
+    let theme: SpaceTheme
+
+    var body: some View {
+        LibraryRow(theme: theme) {
+            let type = UTType(filenameExtension: (download.name as NSString).pathExtension) ?? .data
+            Image(nsImage: NSWorkspace.shared.icon(for: type)).resizable().frame(width: 26, height: 26)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(download.name).font(.system(size: 13)).lineLimit(1).truncationMode(.middle)
+                if download.progress >= 0 {
+                    ProgressView(value: download.progress).controlSize(.small).tint(theme.foreground)
+                } else {
+                    ProgressView().progressViewStyle(.linear).controlSize(.small).tint(theme.foreground)
+                }
+            }
+            Button { Downloads.shared.cancel(download.id) } label: {
+                Image(systemName: "xmark.circle.fill").font(.system(size: 15))
+            }
+            .buttonStyle(.plain)
+            .opacity(0.7)
+            .help("Download abbrechen")
+        }
+    }
+}
+
+/// A file in Downloads; resting the pointer on it shows a preview.
+private struct DownloadFileRow: View {
+    let browser: BrowserWindowController
+    let file: LibraryFile
+    let subtitle: String
+    let theme: SpaceTheme
+    @State private var hovering = false
+    @State private var previewing = false
+
+    var body: some View {
+        LibraryRow(theme: theme) {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: file.url.path))
+                .resizable().frame(width: 26, height: 26)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(file.url.lastPathComponent).font(.system(size: 13)).lineLimit(1).truncationMode(.middle)
+                Text(subtitle).font(.system(size: 11)).opacity(0.6)
+            }
+        }
+        .onTapGesture { NSWorkspace.shared.open(file.url) }
+        .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
+        .contextMenu { FileMenu(browser: browser, file: file) }
+        .onHover { hovering = $0 }
+        .task(id: hovering) {
+            // Only after the pointer rests a moment, not while it passes by.
+            if hovering {
+                try? await Task.sleep(for: .milliseconds(450))
+                if !Task.isCancelled { previewing = true }
+            } else {
+                previewing = false
+            }
+        }
+        .popover(isPresented: $previewing, arrowEdge: .trailing) {
+            VStack(spacing: 8) {
+                FileThumbnail(url: file.url, size: 260)
+                    .frame(width: 260, height: 220)
+                Text(file.url.lastPathComponent).font(.system(size: 12, weight: .semibold)).lineLimit(2)
+                    .multilineTextAlignment(.center)
+                Text(subtitle).font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            .padding(12)
+            .frame(width: 284)
+        }
     }
 }
 
@@ -231,6 +297,7 @@ private struct FileMenu: View {
 /// A Quick Look thumbnail, loaded lazily.
 private struct FileThumbnail: View {
     let url: URL
+    var size: CGFloat = 200
     @State private var image: NSImage?
 
     var body: some View {
@@ -245,7 +312,7 @@ private struct FileThumbnail: View {
             }
         }
         .task(id: url) {
-            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 200, height: 200),
+            let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: size, height: size),
                                                        scale: 2, representationTypes: .thumbnail)
             if let thumbnail = try? await QLThumbnailGenerator.shared.generateBestRepresentation(for: request) {
                 image = thumbnail.nsImage

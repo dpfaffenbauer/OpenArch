@@ -1164,11 +1164,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private(set) var toast: ToastWindow?
 
-    func showToast(_ text: String) {
+    func showToast(_ text: String, symbol: String = "checkmark.circle.fill") {
         guard let window else { return }
         let toast = self.toast ?? ToastWindow()
         self.toast = toast
-        toast.show(text, over: window.convertToScreen(contentRect), parent: window)
+        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window)
     }
 
     /// ⌃⇧1…4: focus a side of the split view; ⌃⇧[ and ⌃⇧] the neighbours.
@@ -1255,6 +1255,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             return
         }
         openInNewTab(url, after: item(for: pane), select: !background)
+    }
+
+    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+        ExternalApps.open(url, from: pane.url, in: window, library: library) { [weak self] text in
+            self?.showToast(text, symbol: "exclamationmark.circle.fill")
+        }
     }
 
     func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {

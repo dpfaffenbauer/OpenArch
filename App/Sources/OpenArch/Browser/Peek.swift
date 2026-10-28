@@ -146,6 +146,10 @@ final class PeekController: NSObject, OACPaneDelegate {
         return true
     }
 
+    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+        browser.pane(pane, wantsToOpenExternalURL: url)
+    }
+
     func paneDidClose(_ pane: OACPane) {
         if pane === self.pane { close() }
     }

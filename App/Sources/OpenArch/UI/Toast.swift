@@ -4,7 +4,7 @@ import SwiftUI
 /// A short message over the page, like Arc's "Copied" pill: ⌘⇧C and friends.
 @MainActor
 final class ToastWindow: NSWindow {
-    private let host = NSHostingView(rootView: ToastView(text: ""))
+    private let host = NSHostingView(rootView: ToastView(text: "", symbol: ""))
     private var generation = 0
 
     init() {
@@ -20,8 +20,8 @@ final class ToastWindow: NSWindow {
     }
 
     /// Shows |text| centered near the top of |area| (screen coordinates).
-    func show(_ text: String, over area: NSRect, parent: NSWindow) {
-        host.rootView = ToastView(text: text)
+    func show(_ text: String, symbol: String = "checkmark.circle.fill", over area: NSRect, parent: NSWindow) {
+        host.rootView = ToastView(text: text, symbol: symbol)
         let size = host.fittingSize
         setFrame(NSRect(x: area.midX - size.width / 2, y: area.maxY - size.height - 18, width: size.width, height: size.height),
                  display: true)
@@ -49,9 +49,10 @@ final class ToastWindow: NSWindow {
 
 private struct ToastView: View {
     let text: String
+    let symbol: String
 
     var body: some View {
-        Label(text, systemImage: "checkmark.circle.fill")
+        Label(text, systemImage: symbol)
             .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 14)

@@ -46,6 +46,11 @@ final class SelfTest {
                 if CommandLine.arguments.contains("--open-devtools") {
                     after(3) { item.pane?.showDevTools() }
                 }
+                // --cancel-downloads: the first download started from outside
+                // is cancelled two seconds in.
+                if CommandLine.arguments.contains("--cancel-downloads") {
+                    self.cancelFirstDownload()
+                }
             }
             return
         }
@@ -101,7 +106,7 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (64.5, "windows", { self.windowsTest() }),
-            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly { self.devToolsDock() } } }),
+            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -112,7 +117,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(87.5) {
+            after(89.5) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -123,7 +128,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 92 : 87) {
+        after(CommandLine.arguments.contains("--arc") ? 94 : 89) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -370,6 +375,18 @@ final class SelfTest {
     static func quit() {
         DispatchQueue.global().asyncAfter(deadline: .now() + 8) { exit(0) }
         NSApp.terminate(nil)
+    }
+
+    /// Checks |condition| until it holds or |timeout| passes, for results
+    /// that wait on the main thread while other steps keep it busy.
+    private func eventually(_ condition: @escaping () -> Bool, timeout: Double = 3, then report: @escaping (Bool) -> Void) {
+        let deadline = Date().addingTimeInterval(timeout)
+        func check() {
+            if condition() { return report(true) }
+            if Date() > deadline { return report(false) }
+            after(0.1) { check() }
+        }
+        check()
     }
 
     private func expect(_ condition: Bool, _ message: String) {
@@ -845,6 +862,20 @@ final class SelfTest {
         }
     }
 
+    private func cancelFirstDownload() {
+        guard let download = Downloads.shared.running.first else {
+            return after(0.5) { self.cancelFirstDownload() }
+        }
+        Swift.print("[selftest] download running: \(download.name) \(download.progress)")
+        after(2) {
+            Downloads.shared.cancel(download.id)
+            after(1.5) {
+                let partial = (try? FileManager.default.contentsOfDirectory(atPath: Self.downloadFolder.path)) ?? []
+                Swift.print("[selftest] download cancelled: running \(Downloads.shared.running.count), finished \(Downloads.shared.finished), folder \(partial)")
+            }
+        }
+    }
+
     /// A file the page downloads lands in the download folder, and the
     /// library hears of it (button bounce, library reload).
     private func downloadTest() {
@@ -864,6 +895,20 @@ final class SelfTest {
             self.expect(saved, "a download is saved (to the self-test's folder)")
             self.expect(Downloads.shared.finished == finished + 1 && Downloads.shared.progress.isEmpty,
                         "the library hears when a download finishes (\(Downloads.shared.finished - finished))")
+        }
+    }
+
+    /// An address another app opens (here one no app knows) does not
+    /// replace the page with Chromium's error; OpenArch says so instead.
+    private func externalAppLinks() {
+        guard let tab = browser.state.activeItem, let pane = tab.pane else { return expect(false, "a tab for the app link") }
+        let before = tab.currentURL
+        browser.toast?.orderOut(nil)
+        pane.loadURL("openarch-selftest-unknown://open")
+        after(1.2) {
+            let toast = self.browser.toast?.isVisible == true
+            self.expect(tab.currentURL == before && toast,
+                        "a link to an app stays on the page and is handed to macOS (\(tab.currentURL), toast \(toast))")
         }
     }
 
@@ -906,9 +951,11 @@ final class SelfTest {
             return expect(false, "⌘⇧C key press setup")
         }
         NSApp.postEvent(event, atStart: false)
-        after(1) {
-            let copied = copyPasteboard.string(forType: .string)
-            self.expect(copied == url, "⌘⇧C pressed in the page copies its address (\(url), copied \(copied ?? "nothing"))")
+        // Other steps may switch tabs before the key press is handled: any
+        // tab's address shows it went the way of a real one.
+        let addresses = Set(browser.allTabs.map(\.currentURL)).union([url])
+        eventually({ copyPasteboard.string(forType: .string).map(addresses.contains) ?? false }) { copied in
+            self.expect(copied, "⌘⇧C pressed in the page copies its address (copied \(copyPasteboard.string(forType: .string) ?? "nothing"))")
         }
     }
 
@@ -955,7 +1002,7 @@ final class SelfTest {
     /// DevTools dock beside the page, on the side Ansicht › DevTools anordnen
     /// says, and the page gets its whole frame back when they close. (A
     /// window of their own is left out: it would show on screen.)
-    private func devToolsDock() {
+    private func devToolsDock(then next: @escaping () -> Void) {
         guard let pane = browser.activePane, let page = pane.window else { return expect(false, "a tab for DevTools") }
         let content = browser.window.map { $0.convertToScreen(browser.contentRect) } ?? .zero
         let full = page.frame
@@ -974,6 +1021,7 @@ final class SelfTest {
             _ = pane.closeDevTools()
             after(1.5) {
                 self.expect(page.frame == full, "closing DevTools gives the page its whole frame back (\(page.frame))")
+                next()
             }
         }
     }
@@ -1359,15 +1407,15 @@ final class SelfTest {
             self.expect(self.browser.floatingSidebar.isShown && frame.width == self.browser.sidebarWidth,
                         "the collapsed sidebar floats over the page from the left edge (\(frame))")
         }
-        after(1.2) {
-            self.expect(!self.browser.floatingSidebar.isShown, "the floating sidebar goes away when the mouse is elsewhere")
+        after(0.5) { self.eventually({ !self.browser.floatingSidebar.isShown }) { hidden in
+            self.expect(hidden, "the floating sidebar goes away when the mouse is elsewhere")
             self.browser.floatingSidebar.show()
             self.browser.toggleSidebar()
             self.expect(!self.browser.floatingSidebar.isShown && self.browser.state.sidebarVisible,
                         "pinning the sidebar replaces the floating one")
             self.browser.floatingSidebar.mouseLocation = { NSEvent.mouseLocation }
             self.browser.floatingSidebar.pressedMouseButtons = { NSEvent.pressedMouseButtons }
-        }
+        } }
     }
 
     private func internalURLs() {
