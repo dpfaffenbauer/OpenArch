@@ -1110,7 +1110,8 @@ final class SelfTest {
         guard let space = library.spaces.first else { return }
         browser.switchSpace(to: space)
         let tab = browser.openInNewTab("https://example.com/audio")
-        after(2) {
+        // Muting and the tone need the page; on a slow machine it takes a while.
+        eventually({ tab.pane?.isLoaded == true && !tab.isLoading }, timeout: 8) { _ in
             self.browser.toggleMute(tab)
             tab.pane?.executeJavaScript("""
                 window.__tone = new AudioContext();
@@ -1118,8 +1119,8 @@ final class SelfTest {
                 osc.connect(window.__tone.destination);
                 osc.start();
                 """)
-            after(3) {
-                self.expect(tab.isAudible && tab.isMuted, "a muted tab playing sound shows the speaker (audible \(tab.isAudible), muted \(tab.isMuted))")
+            self.eventually({ tab.isAudible && tab.isMuted }, timeout: 5) { shown in
+                self.expect(shown, "a muted tab playing sound shows the speaker (audible \(tab.isAudible), muted \(tab.isMuted))")
                 tab.pane?.executeJavaScript("window.__tone && window.__tone.close();")
                 after(0.5) {
                     self.browser.close(tab)
@@ -1640,21 +1641,28 @@ final class SelfTest {
             return expect(false, "the boost editor opens")
         }
         let probe = "console.debug('__selftest_boost__ ' + getComputedStyle(document.body).backgroundColor + ' ' + getComputedStyle(document.querySelector('p') || document.body).display)"
+        let boosted = "rgb(1, 2, 3) none"
+        // Asks the page until its answer is |wanted| (or not, with |not|).
+        func probeUntil(_ matches: @escaping (String) -> Bool, then report: @escaping (Bool) -> Void) {
+            boostChecks = []
+            eventually({ [self] in
+                tab.pane?.executeJavaScript(probe)
+                return boostChecks.last.map(matches) ?? false
+            }, timeout: 6, then: report)
+        }
         editor.boost.css = "body { background: rgb(1, 2, 3) !important; }"
         editor.zapped("p")
-        after(0.5) { tab.pane?.executeJavaScript(probe) }
-        after(1) { tab.pane?.reload() }
-        after(4) { tab.pane?.executeJavaScript(probe) }
-        after(4.5) {
-            self.expect(self.boostChecks.count == 2 && self.boostChecks.allSatisfy { $0 == "rgb(1, 2, 3) none" },
-                        "a boost restyles the page live and after reloading (\(self.boostChecks), \(tab.currentURL))")
-            editor.delete()
-            self.boostChecks = []
-            tab.pane?.executeJavaScript(probe)
-        }
-        after(5.2) {
-            self.expect(self.boostChecks.first.map { !$0.hasPrefix("rgb(1, 2, 3)") } ?? false,
-                        "deleting the boost restores the page (\(self.boostChecks))")
+        probeUntil({ $0 == boosted }) { live in
+            tab.pane?.reload()
+            after(1) {
+                probeUntil({ $0 == boosted }) { reloaded in
+                    self.expect(live && reloaded, "a boost restyles the page live and after reloading (\(self.boostChecks.last ?? "no answer"), \(tab.currentURL))")
+                    editor.delete()
+                    probeUntil({ !$0.hasPrefix("rgb(1, 2, 3)") }) { restored in
+                        self.expect(restored, "deleting the boost restores the page (\(self.boostChecks.last ?? "no answer"))")
+                    }
+                }
+            }
         }
     }
 
