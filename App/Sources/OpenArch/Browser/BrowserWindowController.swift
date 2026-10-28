@@ -1129,8 +1129,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         Self.runningCommand = nil
     }
 
+    /// The page in front: Peek's card while it is open, else the tab.
     func copyURL() {
-        guard let url = state.activeItem?.currentURL else { return }
+        guard let url = peek.isOpen ? peek.model.url : state.activeItem?.currentURL, !url.isEmpty else { return }
         OpenArch.copy(url)
         showToast("Link kopiert")
     }

@@ -368,10 +368,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         browser?.commandBar.show(mode: .editURL)
     }
     @objc func closeTab(_ sender: Any?) {
-        if let key = NSApp.keyWindow, key === settingsWindow {
+        let key = NSApp.keyWindow
+        if let key, key === settingsWindow {
             key.close()
+        } else if let key, OACPane.closeDevTools(in: key) {
+            // ⌘W in a tab's DevTools closes them, not the tab.
         } else if let little = LittleOpenArchWindowController.current {
             little.window?.close()
+        } else if let key, key.isVisible, !browsers.contains(where: { $0.window === (key.parent ?? key) }) {
+            // A window of Chrome's own (DevTools of an extension, a popup).
+            key.performClose(nil)
         } else {
             browser?.closeActiveTab()
         }
@@ -387,6 +393,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleLibrary(_ sender: Any?) { browser?.toggleLibrary() }
     @objc func toggleToolbar(_ sender: Any?) { browser?.toggleChromeToolbar() }
     @objc func editBoost(_ sender: Any?) { browser?.editBoost() }
+    @objc func showSiteControls(_ sender: Any?) {
+        guard let browser, browser.state.activeItem != nil else { return }
+        if !browser.state.sidebarVisible { browser.toggleSidebar() }
+        browser.state.siteControlsVisible = true
+    }
     @objc func splitView(_ sender: Any?) { browser?.splitWithNewTab() }
     @objc func unsplitView(_ sender: Any?) { browser?.unsplit() }
     @objc func rotateSplit(_ sender: Any?) {
@@ -555,6 +566,7 @@ enum MainMenu {
             item("Bibliothek", #selector(AppDelegate.toggleLibrary(_:)), "b", [.command, .option], hidden: true),
             item("Chrome-Toolbar ein-/ausblenden", #selector(AppDelegate.toggleToolbar(_:)), "d", [.command, .shift]),
             item("Boost bearbeiten …", #selector(AppDelegate.editBoost(_:)), "b", [.command, .control]),
+            item("Website-Einstellungen …", #selector(AppDelegate.showSiteControls(_:)), "i", [.command, .control]),
             .separator(),
             item("Neu laden", #selector(AppDelegate.reload(_:)), "r"),
             item("Neu laden ohne Cache", #selector(AppDelegate.reloadHard(_:)), "r", [.command, .shift]),

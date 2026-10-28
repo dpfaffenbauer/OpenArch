@@ -40,7 +40,13 @@ final class SelfTest {
                 spaces: [SpaceData(id: UUID(), name: "Test", icon: "star.fill", colorHex: "#9C99BA", profileID: "Default",
                                    pinned: [], today: [tab(CommandLine.arguments[index + 1], "Test")])]))
             browser.libraryWasReplaced()
-            if let item = library.spaces.first?.today.items.first { browser.select(item) }
+            if let item = library.spaces.first?.today.items.first {
+                browser.select(item)
+                // --open-devtools: the tab's DevTools, to look at from outside.
+                if CommandLine.arguments.contains("--open-devtools") {
+                    after(3) { item.pane?.showDevTools() }
+                }
+            }
             return
         }
         if CommandLine.arguments.contains("--marketing") {
@@ -83,6 +89,8 @@ final class SelfTest {
             (36.38, "link rules", { self.linkRulesTest() }),
             (36.39, "drop links", { self.dropLinks() }),
             (36.39, "space order", { self.spaceOrder() }),
+            (36.395, "site controls", { self.siteControls() }),
+            (36.45, "copy link key press", { self.copyLinkKeyPress() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -571,6 +579,7 @@ final class SelfTest {
         let toast = browser.toast, page = browser.activePane?.window
         expect(toast?.isVisible == true && page != nil && toast!.orderedIndex < page!.orderedIndex,
                "⌘⇧C shows „Link kopiert“ above the page")
+
     }
 
     /// ⌘Q quits through OpenArch's own shortcuts, so a page or Chrome cannot
@@ -839,6 +848,50 @@ final class SelfTest {
             self.expect(saved, "a download is saved (to the self-test's folder)")
             self.expect(Downloads.shared.finished == finished + 1 && Downloads.shared.progress.isEmpty,
                         "the library hears when a download finishes (\(Downloads.shared.finished - finished))")
+        }
+    }
+
+    /// ⌘⇧C the way a real key press arrives: through the event queue, to
+    /// the page's window.
+    private func copyLinkKeyPress() {
+        copyPasteboard.clearContents()
+        guard let url = browser.state.activeItem?.currentURL,
+              let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0,
+                                           windowNumber: browser.activePane?.window?.windowNumber ?? 0, context: nil,
+                                           characters: "C", charactersIgnoringModifiers: "c", isARepeat: false, keyCode: 8) else {
+            return expect(false, "⌘⇧C key press setup")
+        }
+        NSApp.postEvent(event, atStart: false)
+        after(0.3) {
+            self.expect(copyPasteboard.string(forType: .string) == url, "⌘⇧C pressed in the page copies its address (\(url))")
+        }
+    }
+
+    /// The Site Control Center: permissions stick per site, zoom is read
+    /// from the page, and the panel renders.
+    private func siteControls() {
+        guard let tab = browser.state.activeItem, let profile = tab.pane?.profile else {
+            return expect(false, "a tab for the site controls")
+        }
+        let site = "https://example.com"
+        expect(SiteControls.origin(of: "https://example.com:8443/a?b") == "https://example.com:8443"
+               && SiteControls.origin(of: "chrome://settings") == nil, "site controls work on a page's origin")
+        profile.setPermission(.camera, forSite: site, value: .block)
+        let blocked = profile.permission(.camera, forSite: site)
+        profile.setPermission(.camera, forSite: site, value: .default)
+        let reset = profile.permission(.camera, forSite: site)
+        // Chrome reports the default it falls back to (ask) once reset.
+        expect(blocked == .block && reset != .block,
+               "a site's camera can be blocked and set back to the default (\(blocked.rawValue), \(reset.rawValue))")
+        expect(tab.pane?.zoomPercent == 100, "the page's zoom reads 100 % (\(tab.pane?.zoomPercent ?? 0))")
+        let host = NSHostingView(rootView: SiteControls(browser: browser, item: tab))
+        host.frame = NSRect(origin: .zero, size: host.fittingSize)
+        host.layoutSubtreeIfNeeded()
+        if let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            let url = AppPaths.support.appendingPathComponent("site-controls.png")
+            try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+            Swift.print("[selftest] site controls rendered \(Int(host.fittingSize.width))x\(Int(host.fittingSize.height)) to \(url.path)")
         }
     }
 

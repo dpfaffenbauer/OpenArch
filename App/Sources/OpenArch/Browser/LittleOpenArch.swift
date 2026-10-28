@@ -219,8 +219,10 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
             : (app.library.spaces.first { $0.profileID == profileID } ?? browser.state.space)
     }
 
-    /// Links that want a new tab go to the main window.
+    /// Links that want a new tab go to the main window; ⌘-clicked ones to
+    /// the space, in the background, like Ctrl-clicks.
     func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+        if background, openInSpace(url, modifiers: .command) { return }
         app.mainBrowser?.openInNewTab(url, select: !background)
         if !background { app.mainBrowser?.showWindow(nil) }
     }

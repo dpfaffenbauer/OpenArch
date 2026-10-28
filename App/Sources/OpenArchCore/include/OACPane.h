@@ -163,11 +163,18 @@ NS_SWIFT_UI_ACTOR
 - (void)callDevToolsMethod:(NSString*)method
                     params:(NSDictionary<NSString*, id>*)params
                 completion:(nullable void (^)(NSDictionary<NSString*, id>* _Nullable result))completion;
+/// The page's zoom in percent (100 = normal). Chrome keeps it per site.
+@property(readonly) NSInteger zoomPercent;
 - (void)executeChromeCommand:(NSInteger)commandID;
 - (void)showDevTools;
 - (void)setAudioMuted:(BOOL)muted;
 /// Closes the browser and its window. The delegate gets -paneDidClose:.
 - (void)close;
+
+/// Closes the tab's DevTools if they are open (docked beside the page).
+- (BOOL)closeDevTools;
+/// Closes the docked DevTools that |window| shows, if it shows any.
++ (BOOL)closeDevToolsInWindow:(NSWindow*)window;
 
 /// The pane hosting the given NSWindow, if any.
 + (nullable OACPane*)paneForWindow:(NSWindow*)window;

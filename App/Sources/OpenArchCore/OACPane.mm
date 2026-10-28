@@ -12,6 +12,9 @@
 
 @interface OACPane (Callbacks)
 - (void)oac_windowCreated:(CefRefPtr<CefWindow>)window;
+- (void)oac_devToolsWindowCreated:(CefRefPtr<CefWindow>)window;
+- (void)oac_devToolsWindowDestroyed;
+- (void)oac_otherBrowserClosed:(CefRefPtr<CefBrowser>)browser;
 - (void)oac_windowDestroyed;
 - (void)oac_browserViewAddedToWindow:(CefRefPtr<CefWindow>)window;
 - (void)oac_browserCreated:(CefRefPtr<CefBrowser>)browser;
@@ -51,6 +54,9 @@ namespace {
 
 void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+
+// Between the page and its docked DevTools.
+constexpr CGFloat kDevToolsGap = 6;
 
 NSMapTable<NSWindow*, OACPane*>* PanesByWindow() {
   static NSMapTable<NSWindow*, OACPane*>* table =
@@ -178,7 +184,7 @@ class PaneClient : public CefClient,
                      CefBrowserSettings& settings,
                      CefRefPtr<CefDictionaryValue>& extra_info,
                      bool* no_javascript_access) override {
-    OACPane* pane = pane_;
+    OACPane* pane = Own(browser);
     if (!pane) {
       return false;
     }
@@ -206,9 +212,10 @@ class PaneClient : public CefClient,
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
     OACBrowserCreated(browser);
     OACPane* pane = pane_;
-    if (pane) {
+    if (pane && own_id_ == 0) {
+      own_id_ = browser->GetIdentifier();
       [pane oac_browserCreated:browser];
-    } else if (IsAdoptable(browser)) {
+    } else if (!pane && IsAdoptable(browser)) {
       // A tab Chrome opened by itself: keep its window out of sight until
       // the URL is known, then hand the URL to OpenArch.
       adopting_.push_back(browser->GetIdentifier());
@@ -221,14 +228,18 @@ class PaneClient : public CefClient,
 
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
     OACBrowserClosed(browser);
-    [pane_ oac_browserClosed];
+    if (OACPane* pane = Own(browser)) {
+      [pane oac_browserClosed];
+    } else {
+      [pane_ oac_otherBrowserClosed:browser];
+    }
   }
 
   // CefDisplayHandler
 
   void OnTitleChange(CefRefPtr<CefBrowser> browser,
                      const CefString& title) override {
-    [pane_ oac_titleDidChange:OACToNSString(title)];
+    [Own(browser) oac_titleDidChange:OACToNSString(title)];
   }
 
   void OnAddressChange(CefRefPtr<CefBrowser> browser,
@@ -237,7 +248,7 @@ class PaneClient : public CefClient,
     if (!frame->IsMain()) {
       return;
     }
-    OACPane* pane = pane_;
+    OACPane* pane = Own(browser);
     if (pane) {
       [pane oac_addressDidChange:OACToNSString(url)];
     } else {
@@ -247,7 +258,7 @@ class PaneClient : public CefClient,
 
   void OnFaviconURLChange(CefRefPtr<CefBrowser> browser,
                           const std::vector<CefString>& icon_urls) override {
-    [pane_ oac_faviconURLsDidChange:icon_urls];
+    [Own(browser) oac_faviconURLsDidChange:icon_urls];
   }
 
   bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
@@ -255,7 +266,7 @@ class PaneClient : public CefClient,
                         const CefString& message,
                         const CefString& source,
                         int line) override {
-    [pane_ oac_consoleMessage:OACToNSString(message)
+    [Own(browser) oac_consoleMessage:OACToNSString(message)
                        source:OACToNSString(source)
                          line:line];
     return false;
@@ -267,7 +278,7 @@ class PaneClient : public CefClient,
                             bool isLoading,
                             bool canGoBack,
                             bool canGoForward) override {
-    [pane_ oac_loadingStateDidChange:isLoading
+    [Own(browser) oac_loadingStateDidChange:isLoading
                            canGoBack:canGoBack
                         canGoForward:canGoForward];
   }
@@ -276,7 +287,7 @@ class PaneClient : public CefClient,
                    CefRefPtr<CefFrame> frame,
                    TransitionType transition_type) override {
     if (frame->IsMain()) {
-      [pane_ oac_mainFrameLoadStarted:YES url:OACToNSString(frame->GetURL())];
+      [Own(browser) oac_mainFrameLoadStarted:YES url:OACToNSString(frame->GetURL())];
     }
   }
 
@@ -284,7 +295,7 @@ class PaneClient : public CefClient,
                  CefRefPtr<CefFrame> frame,
                  int httpStatusCode) override {
     if (frame->IsMain()) {
-      [pane_ oac_mainFrameLoadStarted:NO url:OACToNSString(frame->GetURL())];
+      [Own(browser) oac_mainFrameLoadStarted:NO url:OACToNSString(frame->GetURL())];
     }
   }
 
@@ -322,12 +333,37 @@ class PaneClient : public CefClient,
 
   // CefRequestHandler
 
+  // ⌘-clicks and middle clicks on links: Chrome would make the tab itself,
+  // in a window of its own, and OpenArch could only adopt it afterwards
+  // (shown, in front). The sidebar takes it in the background instead.
+  bool OnOpenURLFromTab(CefRefPtr<CefBrowser> browser,
+                        CefRefPtr<CefFrame> frame,
+                        const CefString& target_url,
+                        WindowOpenDisposition target_disposition,
+                        bool user_gesture) override {
+    OACPane* pane = Own(browser);
+    if (!pane) {
+      return false;
+    }
+    switch (target_disposition) {
+      case CEF_WOD_NEW_FOREGROUND_TAB:
+      case CEF_WOD_NEW_BACKGROUND_TAB:
+      case CEF_WOD_NEW_WINDOW:
+        [pane oac_wantsNewTabWithURL:OACToNSString(target_url)
+                          background:target_disposition ==
+                                     CEF_WOD_NEW_BACKGROUND_TAB];
+        return true;
+      default:
+        return false;
+    }
+  }
+
   bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser,
                       CefRefPtr<CefFrame> frame,
                       CefRefPtr<CefRequest> request,
                       bool user_gesture,
                       bool is_redirect) override {
-    OACPane* pane = pane_;
+    OACPane* pane = Own(browser);
     if (!pane || !frame->IsMain() || !user_gesture || is_redirect) {
       return false;
     }
@@ -344,7 +380,7 @@ class PaneClient : public CefClient,
   bool OnChromeCommand(CefRefPtr<CefBrowser> browser,
                        int command_id,
                        cef_window_open_disposition_t disposition) override {
-    OACPane* pane = pane_;
+    OACPane* pane = Own(browser);
     return pane ? [pane oac_handleChromeCommand:command_id] : false;
   }
 
@@ -373,7 +409,7 @@ class PaneClient : public CefClient,
   // CefFocusHandler
 
   void OnGotFocus(CefRefPtr<CefBrowser> browser) override {
-    [pane_ oac_didActivate];
+    [Own(browser) oac_didActivate];
   }
 
  private:
@@ -414,9 +450,66 @@ class PaneClient : public CefClient,
   }
 
   std::vector<int> adopting_;
+  // The pane, for events of the pane's own browser. Other browsers using
+  // this client (the tab's DevTools) must not count as the tab: closing
+  // them would close it.
+  OACPane* Own(CefRefPtr<CefBrowser> browser) const {
+    return browser && browser->GetIdentifier() == own_id_ ? pane_ : nil;
+  }
+
   __weak OACPane* pane_;
+  int own_id_ = 0;
 
   IMPLEMENT_REFCOUNTING(PaneClient);
+};
+
+// The frameless window docked DevTools live in, placed by the pane.
+class DevToolsWindowDelegate : public CefWindowDelegate {
+ public:
+  DevToolsWindowDelegate(CefRefPtr<CefBrowserView> browser_view, OACPane* pane)
+      : browser_view_(browser_view), pane_(pane) {}
+
+  void OnWindowCreated(CefRefPtr<CefWindow> window) override {
+    CefBoxLayoutSettings settings;
+    settings.horizontal = false;
+    CefRefPtr<CefBoxLayout> layout = window->SetToBoxLayout(settings);
+    window->AddChildView(browser_view_);
+    layout->SetFlexForView(browser_view_, 1);
+    [pane_ oac_devToolsWindowCreated:window];
+  }
+
+  void OnWindowDestroyed(CefRefPtr<CefWindow> window) override {
+    browser_view_ = nullptr;
+    [pane_ oac_devToolsWindowDestroyed];
+  }
+
+  bool CanClose(CefRefPtr<CefWindow> window) override {
+    CefRefPtr<CefBrowser> browser =
+        browser_view_ ? browser_view_->GetBrowser() : nullptr;
+    return browser ? browser->GetHost()->TryCloseBrowser() : true;
+  }
+
+  bool IsFrameless(CefRefPtr<CefWindow> window) override { return true; }
+  bool WithStandardWindowButtons(CefRefPtr<CefWindow> window) override {
+    return false;
+  }
+  bool CanMaximize(CefRefPtr<CefWindow> window) override { return false; }
+  bool CanMinimize(CefRefPtr<CefWindow> window) override { return false; }
+  CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override {
+    return CefRect(0, 0, 600, 600);
+  }
+  cef_show_state_t GetInitialShowState(CefRefPtr<CefWindow> window) override {
+    return CEF_SHOW_STATE_HIDDEN;
+  }
+  cef_runtime_style_t GetWindowRuntimeStyle() override {
+    return CEF_RUNTIME_STYLE_CHROME;
+  }
+
+ private:
+  CefRefPtr<CefBrowserView> browser_view_;
+  __weak OACPane* pane_;
+
+  IMPLEMENT_REFCOUNTING(DevToolsWindowDelegate);
 };
 
 class PaneBrowserViewDelegate : public CefBrowserViewDelegate {
@@ -440,7 +533,46 @@ class PaneBrowserViewDelegate : public CefBrowserViewDelegate {
     }
   }
 
+  // DevTools: Chrome cannot dock them next to a Views-hosted tab, so the
+  // pane does, in its own window beside the page.
+  CefRefPtr<CefBrowserViewDelegate> GetDelegateForPopupBrowserView(
+      CefRefPtr<CefBrowserView> browser_view,
+      const CefBrowserSettings& settings,
+      CefRefPtr<CefClient> client,
+      bool is_devtools) override {
+    if (is_devtools) {
+      return new DevToolsViewDelegate();
+    }
+    return this;
+  }
+
+  bool OnPopupBrowserViewCreated(CefRefPtr<CefBrowserView> browser_view,
+                                 CefRefPtr<CefBrowserView> popup_browser_view,
+                                 bool is_devtools) override {
+    OACPane* pane = pane_;
+    if (!is_devtools || !pane) {
+      return false;
+    }
+    CefWindow::CreateTopLevelWindow(new DevToolsWindowDelegate(popup_browser_view, pane));
+    return true;
+  }
+
  private:
+  // DevTools need no toolbar of their own.
+  class DevToolsViewDelegate : public CefBrowserViewDelegate {
+   public:
+    ChromeToolbarType GetChromeToolbarType(
+        CefRefPtr<CefBrowserView> browser_view) override {
+      return CEF_CTT_NONE;
+    }
+    cef_runtime_style_t GetBrowserRuntimeStyle() override {
+      return CEF_RUNTIME_STYLE_CHROME;
+    }
+
+   private:
+    IMPLEMENT_REFCOUNTING(DevToolsViewDelegate);
+  };
+
   __weak OACPane* pane_;
 
   IMPLEMENT_REFCOUNTING(PaneBrowserViewDelegate);
@@ -535,6 +667,9 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   CefRefPtr<CefWindow> _cefWindow;
   CefRefPtr<CefBrowser> _browser;
   CefRefPtr<CefView> _toolbar;
+  // DevTools, docked beside the page in a window of their own.
+  CefRefPtr<CefWindow> _devToolsCefWindow;
+  __weak NSWindow* _devToolsWindow;
   __weak NSWindow* _window;
   __weak NSWindow* _parent;
   NSRect _frame;
@@ -636,7 +771,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   if (!parent || !window || _fullScreen) {
     return;
   }
-  [window setFrame:[parent convertRectToScreen:_frame] display:NO];
+  [window setFrame:[parent convertRectToScreen:[self pageFrame]] display:NO];
   if (window.parentWindow != parent) {
     [window.parentWindow removeChildWindow:window];
     [parent addChildWindow:window ordered:NSWindowAbove];
@@ -650,6 +785,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     }
     _isVisible = YES;
   }
+  [self attachDevTools];
 }
 
 - (void)setFrame:(NSRect)frame {
@@ -659,11 +795,19 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   if (!_isVisible || !parent || !window || _fullScreen) {
     return;
   }
-  [window setFrame:[parent convertRectToScreen:frame] display:YES];
+  [window setFrame:[parent convertRectToScreen:[self pageFrame]] display:YES];
   // Hiding the parent window detaches its child windows; attach again.
   if (window.parentWindow != parent && parent.isVisible) {
     [parent addChildWindow:window ordered:NSWindowAbove];
     [window orderWindow:NSWindowAbove relativeTo:parent.windowNumber];
+  }
+  NSWindow* devTools = _devToolsWindow;
+  if (devTools) {
+    [devTools setFrame:[parent convertRectToScreen:[self devToolsFrame]] display:YES];
+    if (devTools.parentWindow != parent && parent.isVisible) {
+      [parent addChildWindow:devTools ordered:NSWindowAbove];
+      [devTools orderWindow:NSWindowAbove relativeTo:parent.windowNumber];
+    }
   }
 }
 
@@ -673,6 +817,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     return;
   }
   _isVisible = NO;
+  [self detachDevTools];
   NSWindow* window = _window;
   [window.parentWindow removeChildWindow:window];
   // Mirror how the pane was shown: through Views, or directly in AppKit.
@@ -700,6 +845,11 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   }
   [parent removeChildWindow:window];
   [parent addChildWindow:window ordered:NSWindowAbove];
+  NSWindow* devTools = _devToolsWindow;
+  if (devTools.parentWindow == parent) {
+    [parent removeChildWindow:devTools];
+    [parent addChildWindow:devTools ordered:NSWindowAbove];
+  }
 }
 
 - (void)setToolbarVisible:(BOOL)toolbarVisible {
@@ -716,14 +866,16 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 }
 
 - (void)applyCornerRadius {
-  NSView* content = _window.contentView;
-  if (!content) {
-    return;
+  for (NSWindow* window in @[ _window ?: NSNull.null, _devToolsWindow ?: NSNull.null ]) {
+    NSView* content = [window isKindOfClass:NSWindow.class] ? window.contentView : nil;
+    if (!content) {
+      continue;
+    }
+    content.wantsLayer = YES;
+    content.layer.cornerRadius = _cornerRadius;
+    content.layer.cornerCurve = kCACornerCurveContinuous;
+    content.layer.masksToBounds = _cornerRadius > 0;
   }
-  content.wantsLayer = YES;
-  content.layer.cornerRadius = _cornerRadius;
-  content.layer.cornerCurve = kCACornerCurveContinuous;
-  content.layer.masksToBounds = _cornerRadius > 0;
 }
 
 #pragma mark - Navigation
@@ -820,6 +972,14 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   completion([result isKindOfClass:NSDictionary.class] ? result : nil);
 }
 
+- (NSInteger)zoomPercent {
+  if (!_browser) {
+    return 100;
+  }
+  // Chrome's zoom levels are powers of 1.2.
+  return (NSInteger)lround(pow(1.2, _browser->GetHost()->GetZoomLevel()) * 100);
+}
+
 - (void)executeChromeCommand:(NSInteger)commandID {
   if (_browser && _browser->GetHost()->CanExecuteChromeCommand((int)commandID)) {
     _browser->GetHost()->ExecuteChromeCommand((int)commandID,
@@ -891,6 +1051,123 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     window->AddChildViewAt(_toolbar, 0);
     _toolbar->SetVisible(_toolbarVisible);
     window->Layout();
+  }
+}
+
+- (void)oac_devToolsWindowCreated:(CefRefPtr<CefWindow>)window {
+  _devToolsCefWindow = window;
+  NSWindow* nsWindow = WindowFromHandle(window->GetWindowHandle());
+  _devToolsWindow = nsWindow;
+  nsWindow.hasShadow = NO;
+  nsWindow.movable = NO;
+  nsWindow.excludedFromWindowsMenu = YES;
+  nsWindow.collectionBehavior |= NSWindowCollectionBehaviorIgnoresCycle |
+                                 NSWindowCollectionBehaviorFullScreenAuxiliary;
+  nsWindow.opaque = NO;
+  nsWindow.backgroundColor = NSColor.clearColor;
+  [self applyCornerRadius];
+  if (_isVisible) {
+    [self layoutWindows];
+    [self attachDevTools];
+  }
+}
+
+- (void)oac_devToolsWindowDestroyed {
+  _devToolsCefWindow = nullptr;
+  _devToolsWindow = nil;
+  [self layoutWindows];
+}
+
+// The tab's DevTools closed (from their own shortcut, or with the tab):
+// their window goes, and the page takes the whole frame again.
+- (void)oac_otherBrowserClosed:(CefRefPtr<CefBrowser>)browser {
+  CefRefPtr<CefWindow> window = _devToolsCefWindow;
+  if (!window) {
+    return;
+  }
+  dispatch_async(dispatch_get_main_queue(), ^{
+    window->Close();
+  });
+}
+
+- (BOOL)closeDevTools {
+  if (!_devToolsCefWindow || !_browser) {
+    return NO;
+  }
+  _browser->GetHost()->CloseDevTools();
+  return YES;
+}
+
++ (BOOL)closeDevToolsInWindow:(NSWindow*)window {
+  for (OACPane* pane in PanesByWindow().objectEnumerator) {
+    if (pane->_devToolsWindow == window) {
+      return [pane closeDevTools];
+    }
+  }
+  return NO;
+}
+
+// The page on the left, DevTools on the right (40 %), both in _frame.
+- (NSRect)pageFrame {
+  if (!_devToolsWindow) {
+    return _frame;
+  }
+  NSRect page = _frame;
+  page.size.width = floor((_frame.size.width - kDevToolsGap) * 0.6);
+  return page;
+}
+
+- (NSRect)devToolsFrame {
+  NSRect page = [self pageFrame];
+  NSRect devTools = _frame;
+  devTools.origin.x = NSMaxX(page) + kDevToolsGap;
+  devTools.size.width = NSMaxX(_frame) - devTools.origin.x;
+  return devTools;
+}
+
+- (void)layoutWindows {
+  NSWindow* parent = _parent;
+  NSWindow* window = _window;
+  if (!_isVisible || !parent || !window || _fullScreen) {
+    return;
+  }
+  [window setFrame:[parent convertRectToScreen:[self pageFrame]] display:YES];
+  NSWindow* devTools = _devToolsWindow;
+  if (devTools) {
+    [devTools setFrame:[parent convertRectToScreen:[self devToolsFrame]] display:YES];
+  }
+}
+
+- (void)attachDevTools {
+  NSWindow* parent = _parent;
+  NSWindow* devTools = _devToolsWindow;
+  if (!parent || !devTools || _fullScreen) {
+    return;
+  }
+  [devTools setFrame:[parent convertRectToScreen:[self devToolsFrame]] display:NO];
+  if (devTools.parentWindow != parent) {
+    [devTools.parentWindow removeChildWindow:devTools];
+    [parent addChildWindow:devTools ordered:NSWindowAbove];
+  }
+  if (!devTools.isVisible) {
+    if (_activatesOnShow) {
+      _devToolsCefWindow->Show();
+    } else {
+      [devTools orderWindow:NSWindowAbove relativeTo:parent.windowNumber];
+    }
+  }
+}
+
+- (void)detachDevTools {
+  NSWindow* devTools = _devToolsWindow;
+  if (!devTools) {
+    return;
+  }
+  [devTools.parentWindow removeChildWindow:devTools];
+  if (_devToolsCefWindow && _activatesOnShow) {
+    _devToolsCefWindow->Hide();
+  } else {
+    [devTools orderOut:nil];
   }
 }
 

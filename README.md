@@ -35,7 +35,9 @@ run. Data lives in
 ## What works
 
 - **Sidebar:** favorites grid, pinned tabs in folders and subfolders, today
-  tabs under the line, drag and drop, inline renaming, context menus.
+  tabs under the line, drag and drop, inline renaming, context menus. The
+  × on a pinned tab unpins it; ⌘-click on a link opens it as a tab in the
+  background.
 - **Spaces:** name, icon (SF Symbol or emoji), color, and a profile each.
   Drag the icons at the bottom of the sidebar into the order you want.
   Profiles keep logins (e.g. a different Google account per space), cookies,
@@ -76,6 +78,12 @@ run. Data lives in
   own in-memory profile and no history.
 - **Peek:** links from pinned tabs and favorites to other sites open in a
   card over the page, which can become a tab or a split.
+- **Site Control Center** (⌃⌘I, or the sliders at the top of the sidebar):
+  camera, microphone, location, notifications, pop-ups, sound, downloads,
+  clipboard and JavaScript per site, the page's zoom, its boost, and
+  clearing its cookies and data.
+- **DevTools** (⌥⌘I) dock beside the page, inside the tab; ⌘W in them
+  closes them, not the tab.
 - **Boosts** (⌃⌘B): restyle a site with a color shift, another font,
   zapped elements and your own CSS and JavaScript.
 - **Site search:** type a site's keyword or name in the command bar and

@@ -200,6 +200,15 @@ private struct SidebarTopBar: View {
                     .help("KI-Steuerung aktiv: Chrome DevTools Protocol auf 127.0.0.1:\(OACEngine.remoteDebuggingPort)")
             }
             Spacer()
+            if let active, !floating {
+                IconButton(symbol: "slider.horizontal.3", help: "Website-Einstellungen: Berechtigungen, Zoom, Daten") {
+                    browser.state.siteControlsVisible.toggle()
+                }
+                .popover(isPresented: Binding(get: { browser.state.siteControlsVisible },
+                                              set: { browser.state.siteControlsVisible = $0 }), arrowEdge: .bottom) {
+                    SiteControls(browser: browser, item: active)
+                }
+            }
             IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.goBack() }
                 .disabled(!(active?.canGoBack ?? false))
             IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.goForward() }
@@ -514,10 +523,13 @@ private struct TabRow: View {
                 if item.hasNavigatedAway {
                     SmallButton(symbol: "arrow.uturn.backward", help: "Zur angehefteten URL") { browser.goToSavedURL(item) }
                 }
-                if item.role == .today || item.pane != nil || item.isAsleep {
-                    SmallButton(symbol: item.role == .today ? "xmark" : "minus", help: item.role == .today ? "Schließen (⌘W)" : "Entladen") {
-                        browser.close(item)
-                    }
+                if item.role != .today, item.pane != nil || item.isAsleep {
+                    SmallButton(symbol: "minus", help: "Entladen") { browser.close(item) }
+                }
+                if item.role == .today {
+                    SmallButton(symbol: "xmark", help: "Schließen (⌘W)") { browser.close(item) }
+                } else if item.role == .pinned {
+                    SmallButton(symbol: "xmark", help: "Lösen: zu den Tabs unter dem Strich") { browser.togglePin(item) }
                 }
             } else if item.isLoading {
                 ProgressView().controlSize(.mini).opacity(0.6)

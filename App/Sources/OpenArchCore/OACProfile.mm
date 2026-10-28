@@ -97,6 +97,29 @@ void ApplyPreference(CefRefPtr<CefRequestContext> context,
   }
 }
 
+cef_content_setting_types_t ContentType(OACSitePermission permission) {
+  switch (permission) {
+    case OACSitePermissionCamera:
+      return CEF_CONTENT_SETTING_TYPE_MEDIASTREAM_CAMERA;
+    case OACSitePermissionMicrophone:
+      return CEF_CONTENT_SETTING_TYPE_MEDIASTREAM_MIC;
+    case OACSitePermissionLocation:
+      return CEF_CONTENT_SETTING_TYPE_GEOLOCATION;
+    case OACSitePermissionNotifications:
+      return CEF_CONTENT_SETTING_TYPE_NOTIFICATIONS;
+    case OACSitePermissionPopups:
+      return CEF_CONTENT_SETTING_TYPE_POPUPS;
+    case OACSitePermissionSound:
+      return CEF_CONTENT_SETTING_TYPE_SOUND;
+    case OACSitePermissionAutomaticDownloads:
+      return CEF_CONTENT_SETTING_TYPE_AUTOMATIC_DOWNLOADS;
+    case OACSitePermissionClipboard:
+      return CEF_CONTENT_SETTING_TYPE_CLIPBOARD_READ_WRITE;
+    case OACSitePermissionJavaScript:
+      return CEF_CONTENT_SETTING_TYPE_JAVASCRIPT;
+  }
+}
+
 NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   static NSMutableDictionary<NSString*, OACProfile*>* profiles =
       [NSMutableDictionary dictionary];
@@ -207,6 +230,46 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
       request->SetHeaderMap(map);
     }
     CefURLRequest::Create(request, new FetchClient(completion), self->_context);
+  }];
+}
+
+- (OACPermissionValue)permission:(OACSitePermission)permission forSite:(NSString*)url {
+  if (!_isReady || !_context) {
+    return OACPermissionValueDefault;
+  }
+  switch (_context->GetContentSetting(url.UTF8String, url.UTF8String,
+                                      ContentType(permission))) {
+    case CEF_CONTENT_SETTING_VALUE_ALLOW:
+      return OACPermissionValueAllow;
+    case CEF_CONTENT_SETTING_VALUE_BLOCK:
+      return OACPermissionValueBlock;
+    case CEF_CONTENT_SETTING_VALUE_ASK:
+      return OACPermissionValueAsk;
+    default:
+      return OACPermissionValueDefault;
+  }
+}
+
+- (void)setPermission:(OACSitePermission)permission
+              forSite:(NSString*)url
+                value:(OACPermissionValue)value {
+  cef_content_setting_values_t cefValue = CEF_CONTENT_SETTING_VALUE_DEFAULT;
+  switch (value) {
+    case OACPermissionValueAllow:
+      cefValue = CEF_CONTENT_SETTING_VALUE_ALLOW;
+      break;
+    case OACPermissionValueBlock:
+      cefValue = CEF_CONTENT_SETTING_VALUE_BLOCK;
+      break;
+    case OACPermissionValueAsk:
+      cefValue = CEF_CONTENT_SETTING_VALUE_ASK;
+      break;
+    case OACPermissionValueDefault:
+      break;
+  }
+  [self whenReady:^{
+    self->_context->SetContentSetting(url.UTF8String, url.UTF8String,
+                                      ContentType(permission), cefValue);
   }];
 }
 

@@ -2,6 +2,27 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// What a site may do, as in Chrome's site settings.
+typedef NS_ENUM(NSInteger, OACSitePermission) {
+  OACSitePermissionCamera,
+  OACSitePermissionMicrophone,
+  OACSitePermissionLocation,
+  OACSitePermissionNotifications,
+  OACSitePermissionPopups,
+  OACSitePermissionSound,
+  OACSitePermissionAutomaticDownloads,
+  OACSitePermissionClipboard,
+  OACSitePermissionJavaScript,
+};
+
+typedef NS_ENUM(NSInteger, OACPermissionValue) {
+  /// Nothing chosen for the site: Chrome's default for the permission.
+  OACPermissionValueDefault,
+  OACPermissionValueAllow,
+  OACPermissionValueBlock,
+  OACPermissionValueAsk,
+};
+
 /// A browsing profile: its own cookies, storage, cache, logins, history and
 /// extensions. In Arc terms, every Space uses one profile.
 NS_SWIFT_UI_ACTOR
@@ -36,6 +57,12 @@ NS_SWIFT_UI_ACTOR
 - (void)fetchURL:(NSString*)url
          headers:(NSDictionary<NSString*, NSString*>*)headers
       completion:(void (^)(NSData* _Nullable data, NSInteger status))completion;
+
+/// What the site at |url| (its origin counts) may do in this profile.
+- (OACPermissionValue)permission:(OACSitePermission)permission forSite:(NSString*)url;
+- (void)setPermission:(OACSitePermission)permission
+              forSite:(NSString*)url
+                value:(OACPermissionValue)value;
 
 /// Sets a Chromium preference (e.g. "https_only_mode_enabled") in every
 /// profile, including the ones created later. |value| is a boolean, number
