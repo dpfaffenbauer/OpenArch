@@ -15,6 +15,10 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # OpenArch's Apple developer team, whose Developer ID signs the builds.
+  TEAM_ID: 5QAM4Z73EV
+
 jobs:
   build:
     runs-on: macos-latest
@@ -36,6 +40,40 @@ jobs:
           path: Vendor/cef
           key: cef-${{ runner.arch }}-${{ hashFiles('scripts/fetch-cef.sh', 'scripts/patch-cef.*') }}
 
+      # The Developer ID from the repository's secrets: the build is signed
+      # with it (hardened runtime) and notarized below. Without the secrets,
+      # or if they do not work, it is signed ad hoc as before, with a warning.
+      - name: Signing identity
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+        run: |
+          if [[ -z "$MACOS_CERT_P12" ]]; then echo "No MACOS_CERT_P12: ad-hoc signature"; exit 0; fi
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password="$(uuidgen)"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          # Developer ID certificates are issued by this intermediate.
+          curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+          security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$keychain" || true
+          printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/identity.p12"
+          if ! security import "$RUNNER_TEMP/identity.p12" -k "$keychain" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign; then
+            rm -f "$RUNNER_TEMP/identity.p12"
+            echo "::warning::MACOS_CERT_P12 could not be imported (is MACOS_CERT_PASSWORD set?). Signing ad hoc."
+            exit 0
+          fi
+          rm -f "$RUNNER_TEMP/identity.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity="$(security find-identity -v -p codesigning "$keychain" | awk -F'"' '/Developer ID Application/ && /\('"$TEAM_ID"'\)/ { print $2; exit }')"
+          if [[ -z "$identity" ]]; then
+            echo "::warning::No Developer ID Application identity of team $TEAM_ID in MACOS_CERT_P12. Signing ad hoc."
+            exit 0
+          fi
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "Signing as $identity"
+
       - name: Build OpenArch.app
         env:
           OPENARCH_BUILD: ${{ github.run_number }}
@@ -56,8 +94,38 @@ jobs:
           grep "\[selftest\]" selftest.log || true
           grep -q "DONE failures=0" selftest.log
 
+      # Notarized with the App Store Connect API key from the secrets, and the
+      # ticket stapled to the app, so Gatekeeper lets it open on first launch.
       - name: Package
-        run: ditto -c -k --keepParent App/build/OpenArch.app OpenArch.zip
+        env:
+          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          codesign --verify --deep --strict --verbose=2 App/build/OpenArch.app
+          ditto -c -k --keepParent App/build/OpenArch.app OpenArch.zip
+          if [[ -z "${SIGN_IDENTITY:-}" || -z "$NOTARY_KEY" || -z "$NOTARY_KEY_ID" ]]; then
+            echo "Not notarized (no Developer ID or no notary key)"
+            exit 0
+          fi
+          key="$RUNNER_TEMP/notary.p8"
+          printf '%s' "$NOTARY_KEY" | base64 --decode > "$key"
+          auth=(--key "$key" --key-id "$NOTARY_KEY_ID")
+          if [[ -n "$NOTARY_ISSUER_ID" ]]; then auth+=(--issuer "$NOTARY_ISSUER_ID"); fi
+          result="$(xcrun notarytool submit OpenArch.zip "${auth[@]}" --wait --timeout 30m --output-format json || true)"
+          echo "$result"
+          status="$(jq -r '.status // empty' <<< "$result")"
+          if [[ "$status" == "Accepted" ]]; then
+            xcrun stapler staple App/build/OpenArch.app
+            rm OpenArch.zip
+            ditto -c -k --keepParent App/build/OpenArch.app OpenArch.zip
+            echo "NOTARIZED=1" >> "$GITHUB_ENV"
+          else
+            id="$(jq -r '.id // empty' <<< "$result")"
+            if [[ -n "$id" ]]; then xcrun notarytool log "$id" "${auth[@]}" || true; fi
+            echo "::warning::Notarization did not succeed (${status:-no answer}; is NOTARY_ISSUER_ID set?). The build is signed but not notarized."
+          fi
+          rm -f "$key"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -72,8 +140,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cef="$(cat Vendor/cef/.version)"
-          notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Unsigned: after downloading, run
+          if [[ -n "${NOTARIZED:-}" ]]; then
+            notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Signed with a Developer ID and notarized."
+          else
+            notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Not notarized: after downloading, run
           xattr -dr com.apple.quarantine OpenArch.app"
+          fi
           # What OpenArch's updater reads; uploaded after the zip it points to.
           cat > latest.json <<JSON
           {"build": ${{ github.run_number }}, "commit": "$(git rev-parse --short HEAD)", "chromium": "$cef",

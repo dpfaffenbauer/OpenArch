@@ -101,12 +101,27 @@ for suffix in "" " (Alerts)" " (GPU)" " (Plugin)" " (Renderer)"; do
     "$BUNDLE_ID.helper${id_suffix:+.$id_suffix}" "$helper" "<key>LSUIElement</key><true/>"
 done
 
-# Ad-hoc signatures, inside out.
-codesign --force --sign - "$APP/Contents/Frameworks/Chromium Embedded Framework.framework"
-for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
-  codesign --force --sign - "$helper"
+# Signatures, inside out. SIGN_IDENTITY (a Developer ID, set by CI) signs
+# with the hardened runtime for notarization; without it, ad hoc.
+SIGNING="$APP_DIR/Signing"
+FRAMEWORK="$APP/Contents/Frameworks/Chromium Embedded Framework.framework"
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+  sign() { codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$@"; }
+else
+  sign() { codesign --force --sign - "$@"; }
+fi
+for library in "$FRAMEWORK"/Libraries/*.dylib; do
+  sign "$library"
 done
-codesign --force --sign - "$APP"
+sign "$FRAMEWORK"
+for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
+  case "$helper" in
+    *"(Plugin)"*) sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$helper" ;;
+    *"(Alerts)"*) sign "$helper" ;;
+    *) sign --entitlements "$SIGNING/Helper.entitlements" "$helper" ;;
+  esac
+done
+sign --entitlements "$SIGNING/OpenArch.entitlements" "$APP"
 
 # Let LaunchServices (and the Dock) pick up the rebuilt bundle and its icon.
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
