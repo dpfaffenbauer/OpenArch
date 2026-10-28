@@ -28,6 +28,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) lazy var floatingSidebar = FloatingSidebar(browser: self)
     private(set) lazy var peek = PeekController(browser: self)
     private(set) lazy var commandBar = CommandBarController(browser: self)
+    private(set) lazy var tabSwitcher = TabSwitcher(browser: self)
     private(set) var sidebarSwipe: SidebarSwipe?
     private var archiveTimer: Timer?
 
@@ -627,6 +628,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// ⌃Tab: the most recently used tabs. Pressing again quickly goes further
     /// back, like Arc's tab switcher.
     func selectRecentTab(_ direction: Int) {
+        // ⌃ held down: the switcher, which goes to the tab when ⌃ is let go.
+        if NSEvent.modifierFlags.contains(.control) || tabSwitcher.isOpen {
+            tabSwitcher.advance(direction)
+            return
+        }
         var cycle = recentCycle
         if cycle == nil || Date().timeIntervalSince(cycle!.time) > 1.5 {
             let tabs = orderedTabs.sorted { $0.lastActiveAt > $1.lastActiveAt }

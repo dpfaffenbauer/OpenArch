@@ -61,7 +61,7 @@ run. Data lives in
 - **Arc's gestures and shortcuts:** swipe sideways over the sidebar
   (trackpad or Magic Mouse) to change spaces, and past the first one to open
   the library. Arc's shortcuts are there too: ⌘T, ⌘L, ⌘S, ⌘D, ⌘⇧K, ⌘⇧L,
-  ⌘⇧J, ⌃Tab, ⌘1–9, ⌃1–9, ⌘⌥←/→, ⌃⇧= / ⌃⇧-, ⌃⇧1–4, ⌘⇧⌥C and more. They take
+  ⌘⇧J, ⌃Tab (hold ⌃ for the tab switcher), ⌘1–9, ⌃1–9, ⌘⌥←/→, ⌃⇧= / ⌃⇧-, ⌃⇧1–4, ⌘⇧⌥C and more. They take
   precedence over the page, like in Arc.
 - **Little OpenArch** (⌥⌘N): a small window for quick links. Links from
   other apps open as a new tab in the window, or there if you turn it on

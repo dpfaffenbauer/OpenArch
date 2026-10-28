@@ -91,6 +91,7 @@ final class SelfTest {
             (36.39, "space order", { self.spaceOrder() }),
             (36.395, "site controls", { self.siteControls() }),
             (36.45, "copy link key press", { self.copyLinkKeyPress() }),
+            (36.47, "tab switcher", { self.tabSwitcherTest() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -856,6 +857,34 @@ final class SelfTest {
             self.expect(Downloads.shared.finished == finished + 1 && Downloads.shared.progress.isEmpty,
                         "the library hears when a download finishes (\(Downloads.shared.finished - finished))")
         }
+    }
+
+    /// ⌃Tab with ⌃ held: the switcher opens on the tab used before, moves
+    /// along, and goes to the marked tab when ⌃ is let go (Esc stays put).
+    private func tabSwitcherTest() {
+        let switcher = browser.tabSwitcher
+        guard browser.orderedTabs.count >= 3, let current = browser.state.activeItem else {
+            return expect(false, "three tabs for the switcher")
+        }
+        switcher.advance(1)
+        expect(switcher.isOpen && switcher.model.tabs.first === current && switcher.model.selection == 1,
+               "⌃Tab opens the switcher on the tab used before")
+        if let host = NSApp.windows.first(where: { $0 is TabSwitcherWindow })?.contentView,
+           let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            let url = AppPaths.support.appendingPathComponent("tab-switcher.png")
+            try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+            Swift.print("[selftest] tab switcher rendered to \(url.path)")
+        }
+        switcher.advance(1)
+        switcher.cancel()
+        expect(!switcher.isOpen && browser.state.activeItem === current, "Esc closes the switcher and stays on the tab")
+        switcher.advance(1)
+        switcher.advance(1)
+        let target = switcher.model.tabs[2]
+        switcher.commit()
+        expect(!switcher.isOpen && browser.state.activeItem === target, "letting go of ⌃ goes to the marked tab")
+        browser.select(current, focus: false)
     }
 
     /// ⌘⇧C the way a real key press arrives: through the event queue, to
