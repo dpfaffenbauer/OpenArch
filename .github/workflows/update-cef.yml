@@ -1,8 +1,10 @@
 name: Update Chromium
 
-# Every day: if a newer stable CEF (Chromium) build exists, build OpenArch
-# with it and, when that works, commit the update and publish a new nightly.
-# A failing build stops here and GitHub reports the failed run.
+# Every day: if a newer stable CEF (Chromium) build exists, start its build
+# with the proprietary codecs (cef-codecs.yml). Once that has published its
+# release, build OpenArch with it and, when that works, commit the update and
+# publish a new nightly. A failing build stops here and GitHub reports the
+# failed run.
 
 on:
   schedule:
@@ -22,6 +24,8 @@ jobs:
 
       - name: Look for a newer CEF
         id: cef
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: scripts/update-cef.sh
 
       - name: Build with it

@@ -21,10 +21,14 @@ Requires Xcode 16+ (Swift 6), CMake and Ninja.
 GitHub Actions builds every push (`.github/workflows/build.yml`) and keeps
 the newest build of `main` as the
 [nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly).
-Once a day, `update-cef.yml` checks for a newer stable CEF (Chromium) build.
-When there is one, it builds OpenArch with it, commits the update to `main`
-and publishes a new nightly. A failed build stops the update and shows up as
-a failed workflow run. Data lives in
+OpenArch's Chromium is its own build of CEF with the proprietary codecs
+(H.264, AAC, HEVC) that the official CEF builds leave out, made on GitHub by
+`cef-codecs.yml` and published as a release (`cef-156.0.14-codecs`). Once a
+day, `update-cef.yml` checks for a newer stable CEF. When there is one, it
+starts that build (about ten hours); the next check after it has finished
+builds OpenArch with it, commits the update to `main` and publishes a new
+nightly. A failed build stops the update and shows up as a failed workflow
+run. Data lives in
 `~/Library/Application Support/OpenArch` (`Library.json` for the sidebar,
 `Chromium/` for Chromium's profiles).
 
@@ -107,7 +111,7 @@ Swift/AppKit/SwiftUI app (App/Sources/OpenArch)
 OpenArchCore (App/Sources/OpenArchCore, Objective-C++)
   OACEngine, OACProfile, OACPane
         │
-CEF 156 (Chromium 156), prebuilt binaries in Vendor/cef
+CEF 156 (Chromium 156) with codecs, binaries in Vendor/cef
 ```
 
 Each tab is an `OACPane`: a Chrome-style CEF browser in its own borderless
@@ -149,5 +153,5 @@ Lessons learned on the way:
 - `scripts/patch-cef.swift`: lowers CEF's 2 s wait before extension popups appear
 - `scripts/make-icons.sh`: draws the app icon and the website's from `AppIcons.swift`
 - `scripts/cef-codecs.sh` and `.github/workflows/cef-codecs.yml`: build CEF
-  with H.264/AAC on GitHub (started by hand; takes a few days)
+  with H.264/AAC/HEVC on GitHub (started by `update-cef.sh`; about ten hours)
 - `spikes/01-cef/`: first spike, CEF embedded in AppKit ([results](spikes/01-cef/RESULTS.md))
