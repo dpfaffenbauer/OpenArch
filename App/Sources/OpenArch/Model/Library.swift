@@ -322,6 +322,12 @@ struct Settings: Codable, Equatable {
     var peek = true
     /// Where the command bar sends a question.
     var askAI = AIChat.claude
+    /// Minutes after which a tab nobody looks at goes to sleep (its page is
+    /// closed until you come back to it); 0 = never.
+    var sleepAfterMinutes = 120
+    /// Chromium's HTTPS-First mode: http:// addresses try https:// first and
+    /// warn before loading without it.
+    var httpsOnly = false
 
     init() {}
 
@@ -340,8 +346,17 @@ struct Settings: Codable, Equatable {
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture
         peek = try container.decodeIfPresent(Bool.self, forKey: .peek) ?? defaults.peek
         askAI = try container.decodeIfPresent(AIChat.self, forKey: .askAI) ?? defaults.askAI
+        sleepAfterMinutes = try container.decodeIfPresent(Int.self, forKey: .sleepAfterMinutes) ?? defaults.sleepAfterMinutes
+        httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
+    }
+}
+
+extension Settings {
+    /// The settings that are Chromium preferences, in every profile.
+    func applyToChromium() {
+        OACProfile.setPreference("https_only_mode_enabled", boolValue: httpsOnly)
     }
 }
 

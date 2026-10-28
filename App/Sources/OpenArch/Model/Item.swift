@@ -100,6 +100,8 @@ final class Item: Identifiable {
     var isMuted = false
     /// What the page plays, from OpenArch's built-in extension.
     var media: MediaState?
+    /// Its page was closed to save memory; it loads again when shown.
+    var isAsleep = false
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", customTitle: String? = nil,
          children: [Item] = [], lastActiveAt: Date = Date()) {

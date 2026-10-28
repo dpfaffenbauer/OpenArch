@@ -83,6 +83,7 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (64.5, "windows", { self.windowsTest() }),
+            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly() } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -93,7 +94,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(70.5) {
+            after(80.5) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -104,7 +105,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 75 : 70) {
+        after(CommandLine.arguments.contains("--arc") ? 85 : 80) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -775,6 +776,61 @@ final class SelfTest {
 
     /// Plays a tone in a tab that was muted first (so nothing is heard) and
     /// checks that the sidebar learns about it.
+    /// A tab nobody looked at goes to sleep and comes back on the same page;
+    /// one whose page asks before leaving stays awake.
+    private func sleepingTabs(then next: @escaping () -> Void) {
+        guard let space = library.spaces.first else { return }
+        browser.switchSpace(to: space)
+        let shown = browser.state.activeItem
+        let sleepy = browser.openInNewTab("https://example.com/?sleepy", select: false)
+        let asking = browser.openInNewTab("https://example.com/?asking", select: false)
+        browser.select(sleepy, focus: false)
+        browser.select(asking, focus: false)
+        if let shown { browser.select(shown, focus: false) }
+        after(3) {
+            asking.pane?.executeJavaScript("window.addEventListener('beforeunload', e => e.preventDefault())")
+            sleepy.lastActiveAt = Date().addingTimeInterval(-3600)
+            asking.lastActiveAt = Date().addingTimeInterval(-3600)
+            after(0.5) {
+                self.browser.sleepInactiveTabs(olderThan: 30)
+                after(1.5) {
+                    self.expect(sleepy.isAsleep && sleepy.pane == nil && sleepy.currentURL == "https://example.com/?sleepy",
+                                "a tab nobody looked at sleeps and keeps its address (asleep \(sleepy.isAsleep), \(sleepy.currentURL))")
+                    self.expect(!asking.isAsleep && asking.pane != nil, "a page that asks before leaving stays awake")
+                    self.browser.select(sleepy, focus: false)
+                    after(2.5) {
+                        self.expect(!sleepy.isAsleep && sleepy.pane?.url == "https://example.com/?sleepy",
+                                    "a sleeping tab wakes up on its page (\(sleepy.pane?.url ?? "no page"))")
+                        if let shown { self.browser.select(shown, focus: false) }
+                        self.browser.close(sleepy)
+                        self.browser.close(asking)
+                        next()
+                    }
+                }
+            }
+        }
+    }
+
+    /// HTTPS-only reaches Chromium's preferences, and goes again.
+    private func httpsOnly() {
+        library.settings.httpsOnly = true
+        library.settings.applyToChromium()
+        let shown = browser.state.activeItem
+        let tab = browser.openInNewTab("chrome://prefs-internals", select: false)
+        browser.select(tab, focus: false)
+        after(2.5) {
+            let script = "(() => { const p = JSON.parse(document.body.innerText); return String(p.https_only_mode_enabled.value); })()"
+            tab.pane?.callDevToolsMethod("Runtime.evaluate", params: ["expression": script, "returnByValue": true]) { result in
+                let value = (result?["result"] as? [String: Any])?["value"] as? String
+                self.expect(value == "true", "HTTPS-only turns on Chromium's HTTPS-First mode (\(value ?? "no value"))")
+                self.library.settings.httpsOnly = false
+                self.library.settings.applyToChromium()
+                if let shown { self.browser.select(shown, focus: false) }
+                self.browser.close(tab)
+            }
+        }
+    }
+
     private func audioIndicator() {
         guard let space = library.spaces.first else { return }
         browser.switchSpace(to: space)
@@ -1305,7 +1361,7 @@ final class SelfTest {
         after(4) { tab.pane?.executeJavaScript(probe) }
         after(4.5) {
             self.expect(self.boostChecks.count == 2 && self.boostChecks.allSatisfy { $0 == "rgb(1, 2, 3) none" },
-                        "a boost restyles the page live and after reloading (\(self.boostChecks))")
+                        "a boost restyles the page live and after reloading (\(self.boostChecks), \(tab.currentURL))")
             editor.delete()
             self.boostChecks = []
             tab.pane?.executeJavaScript(probe)

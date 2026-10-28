@@ -93,7 +93,12 @@ run. Data lives in
   `declarativeNetRequest`, native messaging. Also DevTools, find, zoom,
   downloads, printing, the password manager and chrome:// pages.
 - **Housekeeping:** today tabs are archived after 12 hours (configurable),
-  and ⌘⇧T reopens closed tabs.
+  and ⌘⇧T reopens closed tabs. Tabs you have not looked at for two hours
+  (configurable) go to sleep: their page closes and loads again when you
+  come back. Tabs playing something, or whose page would ask before
+  leaving, stay awake.
+- **HTTPS only** (Settings › Allgemein): Chromium's HTTPS-First mode,
+  which loads http:// addresses over HTTPS and warns before falling back.
 - **Import from Arc:** spaces, favorites, pinned folders, today tabs and split
   views (from Arc's `StorableSidebar.json`). "Alles übernehmen" also brings
   logins and cookies, saved passwords, history, website data and the

@@ -32,6 +32,7 @@
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
 - (void)oac_willToggleFullScreen;
+- (void)oac_devToolsResult:(int)messageID success:(BOOL)success data:(NSData*)data;
 @end
 
 namespace {
@@ -455,6 +456,26 @@ class PaneWindowDelegate : public CefWindowDelegate {
   IMPLEMENT_REFCOUNTING(PaneWindowDelegate);
 };
 
+// Hands DevTools method results (on the UI thread) back to the pane.
+class DevToolsObserver : public CefDevToolsMessageObserver {
+ public:
+  explicit DevToolsObserver(OACPane* pane) : pane_(pane) {}
+
+  void OnDevToolsMethodResult(CefRefPtr<CefBrowser> browser,
+                              int message_id,
+                              bool success,
+                              const void* result,
+                              size_t result_size) override {
+    NSData* data = [NSData dataWithBytes:result length:result_size];
+    [pane_ oac_devToolsResult:message_id success:success data:data];
+  }
+
+ private:
+  __weak OACPane* pane_;
+
+  IMPLEMENT_REFCOUNTING(DevToolsObserver);
+};
+
 }  // namespace
 
 CefRefPtr<CefClient> OACCreateDefaultClient() {
@@ -477,6 +498,8 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   BOOL _fullScreen;
   id _fullScreenObserver;
   NSString* _faviconURL;
+  CefRefPtr<CefRegistration> _devToolsRegistration;
+  NSMutableDictionary<NSNumber*, void (^)(NSDictionary*)>* _devToolsCallbacks;
 }
 
 + (OACPane*)paneForWindow:(NSWindow*)window {
@@ -703,6 +726,45 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   _browser->GetHost()->ExecuteDevToolsMethod(0, "Runtime.evaluate", params);
 }
 
+- (void)callDevToolsMethod:(NSString*)method
+                    params:(NSDictionary<NSString*, id>*)params
+                completion:(void (^)(NSDictionary<NSString*, id>*))completion {
+  if (!_browser) {
+    if (completion) {
+      completion(nil);
+    }
+    return;
+  }
+  if (!_devToolsRegistration) {
+    _devToolsRegistration = _browser->GetHost()->AddDevToolsMessageObserver(
+        new DevToolsObserver(self));
+    _devToolsCallbacks = [NSMutableDictionary dictionary];
+  }
+  // Far above the IDs CEF picks for ExecuteDevToolsMethod(0, ...).
+  static int next_id = 1 << 24;
+  const int message_id = next_id++;
+  NSData* json = [NSJSONSerialization
+      dataWithJSONObject:@{@"id" : @(message_id), @"method" : method, @"params" : params}
+                 options:0
+                   error:nil];
+  if (completion) {
+    _devToolsCallbacks[@(message_id)] = [completion copy];
+  }
+  if (!json || !_browser->GetHost()->SendDevToolsMessage(json.bytes, json.length)) {
+    [self oac_devToolsResult:message_id success:NO data:[NSData data]];
+  }
+}
+
+- (void)oac_devToolsResult:(int)messageID success:(BOOL)success data:(NSData*)data {
+  void (^completion)(NSDictionary*) = _devToolsCallbacks[@(messageID)];
+  if (!completion) {
+    return;
+  }
+  [_devToolsCallbacks removeObjectForKey:@(messageID)];
+  id result = success ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+  completion([result isKindOfClass:NSDictionary.class] ? result : nil);
+}
+
 - (void)executeChromeCommand:(NSInteger)commandID {
   if (_browser && _browser->GetHost()->CanExecuteChromeCommand((int)commandID)) {
     _browser->GetHost()->ExecuteChromeCommand((int)commandID,
@@ -792,6 +854,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 }
 
 - (void)oac_browserClosed {
+  _devToolsRegistration = nullptr;
+  NSDictionary<NSNumber*, void (^)(NSDictionary*)>* callbacks = _devToolsCallbacks;
+  _devToolsCallbacks = nil;
+  for (NSNumber* messageID in callbacks) {
+    callbacks[messageID](nil);
+  }
   _browser = nullptr;
   _client = nullptr;
   _closed = YES;

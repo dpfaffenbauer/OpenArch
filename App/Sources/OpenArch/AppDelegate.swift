@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         log("Chromium \(OACEngine.versionString)")
         library = Library.load()
+        library.settings.applyToChromium()
         history = History()
         // A second launch (another copy of the app, or `open` again) ends up
         // here: show the window and open any links it carried.

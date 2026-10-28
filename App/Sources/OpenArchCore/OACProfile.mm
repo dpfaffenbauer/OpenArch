@@ -61,6 +61,34 @@ class FetchClient : public CefURLRequestClient {
   IMPLEMENT_REFCOUNTING(FetchClient);
 };
 
+// Every profile, so a preference set later reaches the private ones too.
+NSHashTable<OACProfile*>* AllProfiles() {
+  static NSHashTable<OACProfile*>* profiles = [NSHashTable weakObjectsHashTable];
+  return profiles;
+}
+
+// Preferences for every profile (see +setPreference:boolValue:).
+NSMutableDictionary<NSString*, NSNumber*>* GlobalPreferences() {
+  static NSMutableDictionary<NSString*, NSNumber*>* preferences =
+      [NSMutableDictionary dictionary];
+  return preferences;
+}
+
+void ApplyPreference(CefRefPtr<CefRequestContext> context,
+                     NSString* name,
+                     BOOL value) {
+  if (!context || !context->CanSetPreference(name.UTF8String)) {
+    NSLog(@"OpenArch: cannot set preference %@", name);
+    return;
+  }
+  CefRefPtr<CefValue> cefValue = CefValue::Create();
+  cefValue->SetBool(value);
+  CefString error;
+  if (!context->SetPreference(name.UTF8String, cefValue, error)) {
+    NSLog(@"OpenArch: preference %@: %s", name, error.ToString().c_str());
+  }
+}
+
 NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   static NSMutableDictionary<NSString*, OACProfile*>* profiles =
       [NSMutableDictionary dictionary];
@@ -121,6 +149,7 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   if ((self = [super init])) {
     _directoryName = [directoryName copy];
     _pending = [NSMutableArray array];
+    [AllProfiles() addObject:self];
   }
   return self;
 }
@@ -138,6 +167,10 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
     return;
   }
   _isReady = YES;
+  [GlobalPreferences() enumerateKeysAndObjectsUsingBlock:^(
+                           NSString* name, NSNumber* value, BOOL* stop) {
+    ApplyPreference(self->_context, name, value.boolValue);
+  }];
   NSArray<dispatch_block_t>* pending = [_pending copy];
   [_pending removeAllObjects];
   for (dispatch_block_t block in pending) {
@@ -147,13 +180,35 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
 
 - (void)fetchURL:(NSString*)url
       completion:(void (^)(NSData* _Nullable, NSInteger))completion {
+  [self fetchURL:url headers:@{} completion:completion];
+}
+
+- (void)fetchURL:(NSString*)url
+         headers:(NSDictionary<NSString*, NSString*>*)headers
+      completion:(void (^)(NSData* _Nullable, NSInteger))completion {
   [self whenReady:^{
     CefRefPtr<CefRequest> request = CefRequest::Create();
     request->SetURL(url.UTF8String);
     request->SetMethod("GET");
     request->SetFlags(UR_FLAG_ALLOW_STORED_CREDENTIALS);
+    CefRequest::HeaderMap map;
+    for (NSString* name in headers) {
+      map.insert({name.UTF8String, headers[name].UTF8String});
+    }
+    if (!map.empty()) {
+      request->SetHeaderMap(map);
+    }
     CefURLRequest::Create(request, new FetchClient(completion), self->_context);
   }];
+}
+
++ (void)setPreference:(NSString*)name boolValue:(BOOL)value {
+  GlobalPreferences()[name] = @(value);
+  for (OACProfile* profile in AllProfiles()) {
+    if (profile.isReady) {
+      ApplyPreference(profile->_context, name, value);
+    }
+  }
 }
 
 - (CefRefPtr<CefRequestContext>)cefContext {

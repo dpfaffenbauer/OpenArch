@@ -492,6 +492,8 @@ private struct TabRow: View {
         let isActive = browser.state.activeItem === item
         HStack(spacing: 10) {
             FaviconView(item: item, size: 16)
+                .opacity(item.isAsleep ? 0.5 : 1)
+                .help(item.isAsleep ? "Schläft: lädt neu, wenn du den Tab öffnest" : "")
             AudioButton(browser: browser, item: item)
             if item.hasNavigatedAway {
                 Text("/").font(.system(size: 14)).opacity(0.5).padding(.horizontal, -4)
@@ -503,7 +505,7 @@ private struct TabRow: View {
                 if item.hasNavigatedAway {
                     SmallButton(symbol: "arrow.uturn.backward", help: "Zur angehefteten URL") { browser.goToSavedURL(item) }
                 }
-                if item.role == .today || item.pane != nil {
+                if item.role == .today || item.pane != nil || item.isAsleep {
                     SmallButton(symbol: item.role == .today ? "xmark" : "minus", help: item.role == .today ? "Schließen (⌘W)" : "Entladen") {
                         browser.close(item)
                     }

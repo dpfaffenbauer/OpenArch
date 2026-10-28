@@ -210,6 +210,17 @@ private struct GeneralPage: View {
                 }
                 .labelsHidden().fixedSize()
             }
+            Row(symbol: "moon.zzz", color: .indigo, title: "Schlafende Tabs",
+                detail: "Tabs, die du so lange nicht angesehen hast, geben ihren Speicher frei und laden neu, wenn du zurückkommst. Tabs mit Ton oder ungespeicherten Eingaben bleiben wach.") {
+                Picker("", selection: $library.settings.sleepAfterMinutes) {
+                    Text("nach 30 Minuten").tag(30)
+                    Text("nach 1 Stunde").tag(60)
+                    Text("nach 2 Stunden").tag(120)
+                    Text("nach 6 Stunden").tag(360)
+                    Text("nie").tag(0)
+                }
+                .labelsHidden().fixedSize()
+            }
             Row(symbol: "eye", color: .teal, title: "Peek",
                 detail: "Links aus angehefteten Tabs und Favoriten zu anderen Seiten öffnen als Vorschau über der Seite.") {
                 Toggle("", isOn: $library.settings.peek).labelsHidden().toggleStyle(.switch)
@@ -227,6 +238,13 @@ private struct GeneralPage: View {
             }
             Row(symbol: "character.textbox", color: .gray, title: "Adresse oben in der Sidebar", showsDivider: false) {
                 Toggle("", isOn: $library.settings.showSidebarAddress).labelsHidden().toggleStyle(.switch)
+            }
+        }
+        Section(title: "Sicherheit") {
+            Row(symbol: "lock", color: .green, title: "Nur HTTPS",
+                detail: "Adressen mit http:// werden zuerst verschlüsselt geladen. Geht das nicht, fragt OpenArch, bevor die Seite unverschlüsselt öffnet.", showsDivider: false) {
+                Toggle("", isOn: $library.settings.httpsOnly).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: library.settings.httpsOnly) { library.settings.applyToChromium() }
             }
         }
         Section(title: "Sidebar") {

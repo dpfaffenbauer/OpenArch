@@ -142,6 +142,12 @@ NS_SWIFT_UI_ACTOR
 /// Runs |script| in the main frame as if the user had just clicked, so it
 /// may start playback or picture-in-picture (via the DevTools protocol).
 - (void)executeJavaScript:(NSString*)script userGesture:(BOOL)userGesture;
+/// Calls a DevTools protocol method on the page (e.g.
+/// "Storage.clearDataForOrigin"). |completion| gets the method's result, or
+/// nil when it failed or the page has no browser yet.
+- (void)callDevToolsMethod:(NSString*)method
+                    params:(NSDictionary<NSString*, id>*)params
+                completion:(nullable void (^)(NSDictionary<NSString*, id>* _Nullable result))completion;
 - (void)executeChromeCommand:(NSInteger)commandID;
 - (void)showDevTools;
 - (void)setAudioMuted:(BOOL)muted;

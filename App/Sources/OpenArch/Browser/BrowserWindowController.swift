@@ -90,8 +90,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 MainActor.assumeIsolated { self?.applyTheme() }
             }
         }
-        archiveTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.archiveInactiveTabs() }
+        archiveTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.archiveInactiveTabs()
+                self?.sleepInactiveTabs()
+            }
         }
     }
 
@@ -522,6 +525,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         pane.activatesOnShow = !AppPaths.isSelfTest
         pane.toolbarVisible = library.settings.showChromeToolbar
         tab.pane = pane
+        tab.isAsleep = false
         itemsByPane[ObjectIdentifier(pane)] = tab
     }
 
@@ -544,6 +548,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.isAudible = false
         tab.isMuted = false
         tab.media = nil
+        tab.isAsleep = false
         visibleTabs.removeAll { $0 === tab }
     }
 
@@ -760,6 +765,54 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             }
         }
         library.setNeedsSave()
+    }
+
+    /// Sleeping tabs: a tab nobody has looked at for a while gives its memory
+    /// back. Its page closes; the tab keeps its place, address and title and
+    /// loads again when shown. Tabs that play something, or whose page would
+    /// ask before leaving (an unsent form, unsaved changes), stay awake.
+    func sleepInactiveTabs(olderThan minutes: Int? = nil) {
+        let minutes = minutes ?? library.settings.sleepAfterMinutes
+        guard minutes > 0 else { return }
+        let cutoff = Date().addingTimeInterval(-Double(minutes) * 60)
+        for tab in allTabs where tab.lastActiveAt < cutoff {
+            guard let pane = tab.pane, pane.delegate === self, !pane.isVisible, !tab.isAudible,
+                  tab.media?.playing != true, tab.media?.pip != true,
+                  !visibleTabs.contains(where: { $0 === tab }) else { continue }
+            Self.asksBeforeLeaving(pane) { [weak self, weak tab] asks in
+                guard let self, let tab, !asks, tab.pane === pane, !pane.isVisible,
+                      !self.visibleTabs.contains(where: { $0 === tab }) else { return }
+                self.sleep(tab)
+            }
+        }
+    }
+
+    func sleep(_ tab: Item) {
+        let url = tab.liveURL, title = tab.liveTitle
+        unload(tab)
+        tab.liveURL = url
+        tab.liveTitle = title
+        tab.isAsleep = true
+    }
+
+    /// Whether the page has a beforeunload handler, which closing it (as
+    /// sleeping does) would skip.
+    private static func asksBeforeLeaving(_ pane: OACPane, completion: @escaping (Bool) -> Void) {
+        let group = "openarch-sleep"
+        pane.callDevToolsMethod("Runtime.evaluate", params: ["expression": "window", "objectGroup": group]) { result in
+            guard let object = result?["result"] as? [String: Any], let id = object["objectId"] as? String else {
+                completion(true)
+                return
+            }
+            pane.callDevToolsMethod("DOMDebugger.getEventListeners", params: ["objectId": id]) { result in
+                pane.callDevToolsMethod("Runtime.releaseObjectGroup", params: ["objectGroup": group], completion: nil)
+                guard let listeners = result?["listeners"] as? [[String: Any]] else {
+                    completion(true)
+                    return
+                }
+                completion(listeners.contains { $0["type"] as? String == "beforeunload" })
+            }
+        }
     }
 
     // MARK: Pinning, favorites, folders, splits
