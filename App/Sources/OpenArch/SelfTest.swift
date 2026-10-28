@@ -1554,16 +1554,17 @@ final class SelfTest {
             expect(AppIcons.design(for: Date()).design != nil
                    && AppIcons.design(for: Date()) != AppIcons.design(for: Date().addingTimeInterval(86_400)),
                    "„Jeden Tag“ picks another design tomorrow")
-            // An update about to be installed gets the chosen icon, so the
-            // closed app keeps it (a stand-in bundle; the setting is the
-            // user's, shared with OpenArch, and only read here).
-            let update = AppPaths.support.appendingPathComponent("Update stand-in.app")
-            try? FileManager.default.removeItem(at: update)
-            try? FileManager.default.createDirectory(at: update, withIntermediateDirectories: true)
-            AppIcons.keepOnQuit(update: update)
-            let hasIcon = FileManager.default.fileExists(atPath: update.path + "/Icon\r")
-            expect(hasIcon == (AppIcons.style != .standard),
-                   "the update gets the chosen icon (\(AppIcons.style.name)) before it replaces the app")
+            // The closed app keeps the chosen icon through the Dock's plug-in,
+            // and the bundle stays as signed (the setting is the user's,
+            // shared with OpenArch, and only read here).
+            AppIcons.saveForDock()
+            let saved = FileManager.default.fileExists(atPath: AppIcons.dockIconFile.path)
+            let bundle = Bundle.main.bundlePath
+            let untouched = !FileManager.default.fileExists(atPath: bundle + "/Icon\r")
+                && getxattr(bundle, "com.apple.FinderInfo", nil, 0, 0, 0) < 0
+            let plugin = FileManager.default.fileExists(atPath: bundle + "/Contents/PlugIns/OpenArchDockTile.docktileplugin/Contents/MacOS/OpenArchDockTile")
+            expect(saved == (AppIcons.style != .standard) && untouched && plugin,
+                   "the Dock keeps the chosen icon (\(AppIcons.style.name)) through its plug-in, the bundle stays as signed")
             let picker = NSHostingView(rootView: AppIconSection().padding(24).frame(width: 640))
             picker.frame = NSRect(origin: .zero, size: picker.fittingSize)
             picker.layoutSubtreeIfNeeded()

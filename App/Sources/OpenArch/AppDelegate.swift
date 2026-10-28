@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         log("Chromium \(OACEngine.versionString)")
+        AppIcons.repairBundle()
         library = Library.load()
         library.settings.applyToChromium()
         history = History()
@@ -123,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         library?.freeze()
         if !selfTest {
-            AppIcons.keepOnQuit(update: Updater.shared.pendingApp)
+            AppIcons.saveForDock()
             Updater.shared.installOnQuit()
         }
         return .terminateNow

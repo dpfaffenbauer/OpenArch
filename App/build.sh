@@ -61,6 +61,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resourc
 install_file "$BIN/$NAME" "$APP/Contents/MacOS/$NAME"
 write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <key>NSPrincipalClass</key><string>OACApplication</string>
+  <key>NSDockTilePlugIn</key><string>OpenArchDockTile.docktileplugin</string>
   <key>OpenArchCommit</key><string>$COMMIT</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleURLTypes</key>
@@ -101,6 +102,16 @@ for suffix in "" " (Alerts)" " (GPU)" " (Plugin)" " (Renderer)"; do
     "$BUNDLE_ID.helper${id_suffix:+.$id_suffix}" "$helper" "<key>LSUIElement</key><true/>"
 done
 
+# The Dock's plug-in, which shows the chosen app icon while OpenArch is
+# closed (Sources/OpenArchDockTile).
+PLUGIN="$APP/Contents/PlugIns/OpenArchDockTile.docktileplugin"
+mkdir -p "$PLUGIN/Contents/MacOS"
+clang -bundle -fobjc-arc -O2 -arch arm64 -mmacosx-version-min=15.0 -framework AppKit \
+  -o "$PLUGIN/Contents/MacOS/OpenArchDockTile" "$APP_DIR/Sources/OpenArchDockTile/OpenArchDockTile.m"
+write_plist "$PLUGIN/Contents/Info.plist" "OpenArchDockTile" "$BUNDLE_ID.docktile" "OpenArchDockTile" \
+  "<key>NSPrincipalClass</key><string>OpenArchDockTile</string>"
+sed -i '' 's|<key>CFBundlePackageType</key><string>APPL</string>|<key>CFBundlePackageType</key><string>BNDL</string>|' "$PLUGIN/Contents/Info.plist"
+
 # Signatures, inside out. SIGN_IDENTITY (a Developer ID, set by CI) signs
 # with the hardened runtime for notarization; without it, ad hoc.
 SIGNING="$APP_DIR/Signing"
@@ -114,6 +125,7 @@ for library in "$FRAMEWORK"/Libraries/*.dylib; do
   sign "$library"
 done
 sign "$FRAMEWORK"
+sign "$PLUGIN"
 for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
   case "$helper" in
     *"(Plugin)"*) sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$helper" ;;

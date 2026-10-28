@@ -138,22 +138,23 @@ enum AppIcons {
 
     private static var spaceHex = "#7B6CF6"
 
-    /// Picks |style|: the Dock shows it at once, and it goes on the app in
-    /// Finder too (and in the Dock while OpenArch is closed).
+    /// Picks |style|: the Dock shows it at once, and keeps it while OpenArch
+    /// is closed (see saveForDock).
     static func choose(_ style: AppIconStyle) {
         self.style = style
-        apply(updatingBundle: true)
+        apply()
+        saveForDock()
     }
 
-    /// At launch: the Dock icon, and the bundle's icon again after an update
-    /// replaced the app (or one left over from a design no longer chosen).
+    /// At launch: the Dock icon, and the icon the Dock keeps while OpenArch
+    /// is closed.
     static func applyAtLaunch(spaceHex: String) {
         self.spaceHex = spaceHex
-        let bundleHasIcon = FileManager.default.fileExists(atPath: Bundle.main.bundlePath + "/Icon\r")
-        apply(updatingBundle: needsBundleIcon != bundleHasIcon || style.design != nil && needsBundleIcon)
+        apply()
+        saveForDock()
         NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil,
                                                queue: .main) { _ in
-            MainActor.assumeIsolated { if style == .daily { apply(updatingBundle: false) } }
+            MainActor.assumeIsolated { if style == .daily { apply() } }
         }
     }
 
@@ -161,34 +162,47 @@ enum AppIcons {
     static func spaceDidChange(_ hex: String) {
         guard hex != spaceHex else { return }
         spaceHex = hex
-        if style == .space { apply(updatingBundle: false) }
+        if style == .space { apply() }
     }
 
-    /// Every icon but the bundle's own goes on the app in Finder. The space
-    /// color and the daily one change too often to write each time: they
-    /// go there when OpenArch quits, as the Dock shows them last.
-    private static var needsBundleIcon: Bool {
-        style != .standard
-    }
-
-    private static func apply(updatingBundle: Bool) {
+    private static func apply() {
         NSApp.applicationIconImage = style == .standard ? nil : image(for: style)
-        guard updatingBundle else { return }
-        setBundleIcon(at: Bundle.main.bundleURL)
     }
 
-    private static func setBundleIcon(at app: URL) {
-        // The self-test leaves its own bundle alone (it checks a stand-in).
-        guard !AppPaths.isSelfTest || app.standardizedFileURL != Bundle.main.bundleURL.standardizedFileURL else { return }
-        NSWorkspace.shared.setIcon(needsBundleIcon ? image(for: style, size: 1024) : nil,
-                                   forFile: app.path, options: [])
+    /// Where the Dock's plug-in (Sources/OpenArchDockTile) finds the icon to
+    /// show while OpenArch is closed; none means the bundle's own.
+    static var dockIconFile: URL {
+        AppPaths.support.appendingPathComponent("DockIcon.png")
     }
 
-    /// Quitting: the closed app keeps the icon the Dock showed, also on the
-    /// update about to replace it (a fresh bundle has only the standard one).
-    static func keepOnQuit(update: URL?) {
-        if style.design == nil, needsBundleIcon { setBundleIcon(at: Bundle.main.bundleURL) }
-        if let update { setBundleIcon(at: update) }
+    /// The icon the Dock shows last stays there after OpenArch quits: the
+    /// Dock's plug-in draws it. The app bundle itself is never changed, so
+    /// its signature stays intact.
+    static func saveForDock() {
+        let file = dockIconFile
+        if style == .standard {
+            try? FileManager.default.removeItem(at: file)
+        } else if let tiff = image(for: style, size: 512).tiffRepresentation,
+                  let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+            try? png.write(to: file, options: .atomic)
+        }
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name("dev.openarch.dockIconChanged"), object: nil, deliverImmediately: true)
+    }
+
+    /// Earlier versions put the chosen icon on the app in Finder. That adds
+    /// a file and Finder information to the bundle and breaks its signature
+    /// (1Password, for one, then no longer trusts the browser), so it comes
+    /// off again.
+    static func repairBundle() {
+        let path = Bundle.main.bundlePath
+        let iconFile = path + "/Icon\r"
+        let hasFinderInfo = getxattr(path, "com.apple.FinderInfo", nil, 0, 0, 0) >= 0
+        guard FileManager.default.fileExists(atPath: iconFile) || hasFinderInfo else { return }
+        NSWorkspace.shared.setIcon(nil, forFile: path, options: [])
+        try? FileManager.default.removeItem(atPath: iconFile)
+        removexattr(path, "com.apple.FinderInfo", 0)
+        log("removed the custom icon from the app bundle, which broke its signature")
     }
 
     /// Today's design for "Jeden Tag".

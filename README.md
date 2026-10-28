@@ -111,7 +111,9 @@ run. Data lives in
 - **Über OpenArch:** a flight through OpenArch's arches; click the logo for
   warp speed.
 - **App icon:** twelve takes on the arch (Tunnel is the standard one), one
-  in the current space's color, or a different one each day.
+  in the current space's color, or a different one each day. While OpenArch
+  is closed, a Dock tile plug-in keeps showing it; the app bundle is never
+  changed, so its signature stays valid.
 - **Sandbox:** pages, the GPU and the network service run in Chromium's
   sandbox, as in Chrome; every helper process starts it before loading
   Chromium.
