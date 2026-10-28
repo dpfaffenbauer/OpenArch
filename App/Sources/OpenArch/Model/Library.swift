@@ -97,6 +97,13 @@ final class Library {
         setNeedsSave()
     }
 
+    /// Puts |space| where |target| is (dragging space icons).
+    func moveSpace(_ space: Space, to target: Space) {
+        guard let from = spaces.firstIndex(where: { $0 === space }),
+              let to = spaces.firstIndex(where: { $0 === target }), from != to else { return }
+        moveSpace(space, by: to - from)
+    }
+
     func archive(_ item: Item) {
         guard item.kind == .tab else { return }
         // The place under the line: of the tab, or of the split it was in.

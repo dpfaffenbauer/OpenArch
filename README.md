@@ -37,6 +37,7 @@ run. Data lives in
 - **Sidebar:** favorites grid, pinned tabs in folders and subfolders, today
   tabs under the line, drag and drop, inline renaming, context menus.
 - **Spaces:** name, icon (SF Symbol or emoji), color, and a profile each.
+  Drag the icons at the bottom of the sidebar into the order you want.
   Profiles keep logins (e.g. a different Google account per space), cookies,
   history, passwords and extensions apart.
 - **Command bar** (⌘T, ⌘L): URL or search with suggestions, switch to open

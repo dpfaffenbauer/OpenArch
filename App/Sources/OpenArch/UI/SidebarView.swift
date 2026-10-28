@@ -739,9 +739,17 @@ private struct SpaceButton: View {
             .onTapGesture { browser.switchSpace(to: space) }
             .onHover { hovering = $0 }
             .help(index < 9 ? "\(space.name) (⌃\(index + 1))" : space.name)
-            .onDrop(of: UTType.sidebarDrops, isTargeted: nil) { providers in
-                browser.handleDrop(providers, toSpace: space)
+            .onDrag {
+                browser.state.draggingSpaceID = space.id
+                let provider = NSItemProvider()
+                let id = Data(space.id.uuidString.utf8)
+                provider.registerDataRepresentation(forTypeIdentifier: UTType.openArchSpace.identifier, visibility: .ownProcess) { completion in
+                    completion(id, nil)
+                    return nil
+                }
+                return provider
             }
+            .onDrop(of: [.openArchSpace] + UTType.sidebarDrops, delegate: SpaceDropDelegate(browser: browser, space: space))
             .contextMenu {
                 Button("Space bearbeiten …") {
                     browser.switchSpace(to: space)
@@ -970,10 +978,41 @@ private struct RowDropDelegate: DropDelegate {
     }
 }
 
+/// Space icons: a dragged space takes the place of the one it is over, so
+/// the others make room as it moves, like in Arc. Tabs and links dropped on
+/// a space move there.
+private struct SpaceDropDelegate: DropDelegate {
+    let browser: BrowserWindowController
+    let space: Space
+
+    private var draggedSpace: Space? {
+        browser.state.draggingSpaceID.flatMap { id in browser.library.spaces.first { $0.id == id } }
+    }
+
+    func dropEntered(info: DropInfo) {
+        guard info.hasItemsConforming(to: [.openArchSpace]), let dragged = draggedSpace, dragged !== space else { return }
+        withAnimation(.snappy(duration: 0.2)) { browser.library.moveSpace(dragged, to: space) }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: info.hasItemsConforming(to: [.openArchSpace, .openArchTab]) ? .move : .copy)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        if info.hasItemsConforming(to: [.openArchSpace]) {
+            browser.state.draggingSpaceID = nil
+            return true
+        }
+        return browser.handleDrop(info.itemProviders(for: UTType.sidebarDrops), toSpace: space)
+    }
+}
+
 extension UTType {
     /// A sidebar item being dragged: private to OpenArch, so Finder and other
     /// apps ignore it (no text clippings with an id in them).
     static let openArchTab = UTType(exportedAs: "dev.openarch.tab", conformingTo: .data)
+    /// A space icon being dragged within the space bar.
+    static let openArchSpace = UTType(exportedAs: "dev.openarch.space", conformingTo: .data)
 
     /// What the sidebar takes: its own tabs, links (files from Finder too)
     /// and text with an address in it.

@@ -80,6 +80,10 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
     <key>UTTypeIdentifier</key><string>dev.openarch.tab</string>
     <key>UTTypeDescription</key><string>OpenArch tab</string>
     <key>UTTypeConformsTo</key><array><string>public.data</string></array>
+  </dict><dict>
+    <key>UTTypeIdentifier</key><string>dev.openarch.space</string>
+    <key>UTTypeDescription</key><string>OpenArch space</string>
+    <key>UTTypeConformsTo</key><array><string>public.data</string></array>
   </dict></array>
   <key>NSCameraUsageDescription</key><string>Websites can ask to use your camera.</string>
   <key>NSMicrophoneUsageDescription</key><string>Websites can ask to use your microphone.</string>

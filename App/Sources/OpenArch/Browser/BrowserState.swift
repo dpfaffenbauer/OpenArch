@@ -12,6 +12,8 @@ final class BrowserState {
     var renamingItemID: UUID?
     /// Space whose editor popover is open.
     var editingSpaceID: UUID?
+    /// The space icon being dragged to another place in the space bar.
+    var draggingSpaceID: UUID?
     /// The library (media, downloads, spaces, archive) replaces the sidebar.
     var libraryVisible = false
     var librarySection = LibrarySection.media

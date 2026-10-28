@@ -75,6 +75,7 @@ final class SelfTest {
             (36.35, "site search", { self.siteSearchTest() }),
             (36.38, "link rules", { self.linkRulesTest() }),
             (36.39, "drop links", { self.dropLinks() }),
+            (36.39, "space order", { self.spaceOrder() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -809,6 +810,18 @@ final class SelfTest {
                 }
             }
         }
+    }
+
+    /// Dragging a space icon onto another puts it in that one's place.
+    private func spaceOrder() {
+        let before = library.spaces.map(\.id)
+        guard before.count >= 2, let first = library.spaces.first, let last = library.spaces.last else {
+            return expect(false, "two spaces to reorder")
+        }
+        library.moveSpace(first, to: last)
+        expect(library.spaces.last === first && library.spaces.count == before.count, "a space dragged onto the last one moves to the end")
+        library.moveSpace(first, to: library.spaces[0])
+        expect(library.spaces.map(\.id) == before, "and dragged back onto the first one, the order is as before")
     }
 
     /// HTTPS-only reaches Chromium's preferences, and goes again.
