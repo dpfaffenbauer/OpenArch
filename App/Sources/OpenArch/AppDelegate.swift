@@ -242,6 +242,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Menu actions
 
+    @objc func showAbout(_ sender: Any?) {
+        AboutWindowController.shared.show(selfTest: selfTest)
+    }
+
     @objc func showSettings(_ sender: Any?) {
         if settingsWindow == nil {
             let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 580),
@@ -529,7 +533,7 @@ enum MainMenu {
         }
 
         main.addItem(submenu("OpenArch", [
-            item("Über OpenArch", #selector(NSApplication.orderFrontStandardAboutPanel(_:)), toDelegate: false),
+            item("Über OpenArch", #selector(AppDelegate.showAbout(_:))),
             .separator(),
             item("Einstellungen …", #selector(AppDelegate.showSettings(_:)), ","),
             item("Als Standardbrowser festlegen", #selector(AppDelegate.setAsDefaultBrowser(_:))),

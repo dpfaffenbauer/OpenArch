@@ -535,11 +535,15 @@ private struct AboutPage: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 64, height: 64)
+                .onTapGesture { AboutWindowController.shared.show() }
             VStack(alignment: .leading, spacing: 4) {
                 Text("OpenArch").font(.system(size: 22, weight: .bold))
                 Text("Version \(updater.versionDescription) · Chromium \(OACEngine.versionString)")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
+                Text("von Dominik Pfaffenbauer").font(.system(size: 12)).foregroundStyle(.secondary)
             }
+            Spacer()
+            Button("Über OpenArch …") { AboutWindowController.shared.show() }
         }
         Section(title: "Updates",
                 footer: "OpenArch lädt neue Nightly-Builds von GitHub, prüft ihre Prüfsumme und tauscht sich beim nächsten Beenden aus.") {

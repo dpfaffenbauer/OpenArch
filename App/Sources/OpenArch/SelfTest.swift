@@ -62,6 +62,16 @@ final class SelfTest {
             fullscreenTest()
             return
         }
+        // --about: the About window, to film from outside; --about-warp
+        // goes to warp speed two seconds in.
+        if CommandLine.arguments.contains("--about") {
+            AboutWindowController.shared.show(selfTest: true)
+            Swift.print("[selftest] about window \(AboutWindowController.shared.window?.windowNumber ?? 0)")
+            if CommandLine.arguments.contains("--about-warp") {
+                after(2.5) { AboutWindowController.shared.warp() }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--quit-test") {
             quitWithStuckBrowser()
             return
@@ -96,6 +106,7 @@ final class SelfTest {
             (36.39, "space order", { self.spaceOrder() }),
             (36.392, "live folders", { self.liveFolders() }),
             (36.393, "inline completion", { self.inlineCompletion() }),
+            (36.394, "about", { self.aboutWindow() }),
             (36.395, "site controls", { self.siteControls() }),
             (36.45, "copy link key press", { self.copyLinkKeyPress() }),
             (36.47, "tab switcher", { self.tabSwitcherTest() }),
@@ -987,6 +998,14 @@ final class SelfTest {
             try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
             Swift.print("[selftest] site controls rendered \(Int(host.fittingSize.width))x\(Int(host.fittingSize.height)) to \(url.path)")
         }
+    }
+
+    /// Über OpenArch opens its own window (behind, in the self-test).
+    private func aboutWindow() {
+        (NSApp.delegate as? AppDelegate)?.showAbout(nil)
+        let window = AboutWindowController.shared.window
+        expect(window?.isVisible == true && window?.contentView is NSHostingView<AboutView>, "Über OpenArch opens its window")
+        window?.close()
     }
 
     /// ⌘T completes the address as you type, like Chrome: first the most

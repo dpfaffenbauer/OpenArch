@@ -107,6 +107,8 @@ run. Data lives in
 - **Updates:** OpenArch updates itself from the nightly release (checked
   at launch and every six hours, SHA-256 verified).
 - **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
+- **Über OpenArch:** a flight through OpenArch's arches; click the logo for
+  warp speed.
 - **App icon:** twelve takes on the arch (Tunnel is the standard one), one
   in the current space's color, or a different one each day.
 - **Sandbox:** pages, the GPU and the network service run in Chromium's
