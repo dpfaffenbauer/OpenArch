@@ -473,6 +473,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
         let tabs = item.split?.children ?? [item]
         for old in visibleTabs where !tabs.contains(where: { $0 === old }) {
+            TabSnapshots.capture(old)
             pictureInPictureIfPlaying(old)
             old.pane?.hide()
         }

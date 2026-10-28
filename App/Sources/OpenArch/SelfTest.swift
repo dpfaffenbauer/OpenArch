@@ -111,6 +111,7 @@ final class SelfTest {
             (36.395, "site controls", { self.siteControls() }),
             (36.45, "copy link key press", { self.copyLinkKeyPress() }),
             (36.47, "tab switcher", { self.tabSwitcherTest() }),
+            (36.48, "tab switcher previews", { self.tabSwitcherPreviews() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
@@ -960,6 +961,27 @@ final class SelfTest {
         switcher.commit()
         expect(!switcher.isOpen && browser.state.activeItem === target, "letting go of ⌃ goes to the marked tab")
         browser.select(current, focus: false)
+    }
+
+    /// The switcher shows a picture of each open page, hidden ones too.
+    private func tabSwitcherPreviews() {
+        let switcher = browser.tabSwitcher
+        switcher.advance(1)
+        let open = switcher.model.tabs.filter { $0.pane != nil && !$0.isAsleep }
+        let hidden = open.filter { tab in !browser.visibleTabs.contains { $0 === tab } }
+        eventually({ open.allSatisfy { $0.snapshot != nil } }, timeout: 5) { done in
+            let size = hidden.first?.snapshot?.representations.first.map { "\($0.pixelsWide)×\($0.pixelsHigh)" } ?? "none"
+            self.expect(done && !hidden.isEmpty,
+                        "the switcher has pictures of \(open.count) open tabs, \(hidden.count) of them hidden (\(size))")
+            if let host = NSApp.windows.first(where: { $0 is TabSwitcherWindow })?.contentView,
+               let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+                host.cacheDisplay(in: host.bounds, to: bitmap)
+                let url = AppPaths.support.appendingPathComponent("tab-switcher-previews.png")
+                try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+                Swift.print("[selftest] tab switcher previews rendered to \(url.path)")
+            }
+            switcher.cancel()
+        }
     }
 
     /// ⌘⇧C the way a real key press arrives: through the event queue, to

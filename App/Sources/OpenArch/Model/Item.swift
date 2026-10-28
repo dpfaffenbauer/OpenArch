@@ -106,6 +106,8 @@ final class Item: Identifiable {
     var isAsleep = false
     /// When its page was last made (shown, or loaded in the background).
     var loadedAt: Date?
+    /// A small picture of the page for the ⌃Tab switcher (memory only).
+    var snapshot: NSImage?
     /// Live folders: what fills them, and how the last refresh went.
     var live: LiveSource?
     var liveStatus: LiveStatus?
