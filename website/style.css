@@ -1,25 +1,101 @@
 /* OpenArch website, after the "Website-Entwurf" artboard of the logo canvas:
    a light page in Bricolage Grotesque and Instrument Sans, with the three
-   space colors (blue Travel, orange Home, green Work) as feature sections. */
+   space colors (blue Travel, orange Home, green Work) as feature sections.
+   It follows the Mac's appearance, Increase Contrast and Reduce Transparency,
+   and text sizes in rem follow the browser's font size. */
 
 :root {
+  color-scheme: light dark;
   --bg: #fafaf7;
   --ink: #141814;
   --soft: #4c5650;
   --muted: #5b655e;
   --line: #e2e5df;
+  --edge: #d6dad3;
   --card: #ffffff;
+  --hover: #f1f2ee;
+  --key-edge: #ced3cb;
   --green: #55b860;
   --green-ink: #2f7a3a;
+  --green-ink-hover: #1d5226;
+  --orange-ink: #a8501a;
+  --focus: #3e7be6;
   --dark: #141814;
   --dark-soft: #b7c1ba;
   --dark-line: #2a322c;
+  --travel: #eaf1fd;
+  --travel-ink: #1f4fa8;
+  --travel-text: #3d4752;
+  --home: #fdeee2;
+  --home-ink: #9a4711;
+  --home-text: #52443a;
+  --work: #e8f5ea;
+  --work-ink: #2a7337;
+  --work-text: #3e4a41;
+  --shot-filter: none;
   --display: "Bricolage Grotesque", system-ui, sans-serif;
   --body: "Instrument Sans", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
   --wide: 1240px;
   --gutter: 24px;
-  --bar: 74px;
+  --bar: 4.625rem;
+}
+
+/* Dark: the same page at night. The bands keep their space colors, deep
+   instead of pale, and the white of the screenshots is turned down a little. */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e110f;
+    --ink: #eef1ec;
+    --soft: #aeb8b1;
+    --muted: #9aa49d;
+    --line: #262d28;
+    --edge: #343c36;
+    --card: #171c18;
+    --hover: #212722;
+    --key-edge: #070908;
+    --green-ink: #7fcf89;
+    --green-ink-hover: #a8e0af;
+    --orange-ink: #f2a46c;
+    --dark: #171c18;
+    --dark-line: #2c342e;
+    --travel: #101b2e;
+    --travel-ink: #93b8f7;
+    --travel-text: #bac5d4;
+    --home: #26180e;
+    --home-ink: #f2a46c;
+    --home-text: #d8c8bb;
+    --work: #0f2013;
+    --work-ink: #7fcf89;
+    --work-text: #bbcdbf;
+    --shot-filter: brightness(0.9);
+  }
+}
+
+/* Increase Contrast: secondary text and edges move toward the ink. */
+
+@media (prefers-contrast: more) {
+  :root {
+    --soft: #2b322d;
+    --muted: #353d37;
+    --line: #a9b0a7;
+    --edge: #7d857e;
+    --dark-soft: #e3e8e4;
+    --dark-line: #5a645c;
+    --travel-text: var(--ink);
+    --home-text: var(--ink);
+    --work-text: var(--ink);
+  }
+}
+
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --soft: #d9dfdb;
+    --muted: #c9d0cb;
+    --line: #56605a;
+    --edge: #7d877f;
+  }
 }
 
 *,
@@ -38,7 +114,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--body);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -54,7 +130,7 @@ a {
 }
 
 a:hover {
-  color: #1d5226;
+  color: var(--green-ink-hover);
 }
 
 h1,
@@ -63,8 +139,11 @@ h3 {
   margin: 0;
   font-family: var(--display);
   font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  /* Bricolage's large optical size is already tight; more than this and
+     the letters touch. */
+  letter-spacing: -0.03em;
+  line-height: 1.02;
+  text-wrap: balance;
 }
 
 h2 {
@@ -104,7 +183,7 @@ code {
   padding: 0.6rem 1rem;
   border-radius: 8px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
 }
 
 .skip:focus {
@@ -112,11 +191,11 @@ code {
 }
 
 :focus-visible {
-  outline: 3px solid #3e7be6;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
-/* Buttons: black pills, and a white one with an edge. */
+/* Buttons: ink pills, and a card-colored one with an edge. */
 
 .button {
   display: inline-flex;
@@ -125,16 +204,16 @@ code {
   padding: 0 24px;
   border-radius: 999px;
   background: var(--ink);
-  color: #fff;
-  font-size: 17px;
+  color: var(--bg);
+  font-size: 1.0625rem;
   font-weight: 600;
   text-decoration: none;
   transition: transform 0.15s ease-out, background-color 0.15s ease-out;
 }
 
 .button:hover {
-  color: #fff;
-  background: #2a322c;
+  color: var(--bg);
+  background: color-mix(in oklab, var(--ink) 84%, var(--bg));
 }
 
 .button:active {
@@ -144,17 +223,17 @@ code {
 .button.ghost {
   background: var(--card);
   color: var(--ink);
-  box-shadow: inset 0 0 0 1px #d6dad3;
+  box-shadow: inset 0 0 0 1px var(--edge);
 }
 
 .button.ghost:hover {
-  background: #f1f2ee;
+  background: var(--hover);
 }
 
 .button.small {
   min-height: 44px;
   padding: 0 18px;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 /* The header stays at the top while the page scrolls. */
@@ -186,7 +265,7 @@ code {
   gap: 10px;
   color: var(--ink);
   font-family: var(--display);
-  font-size: 21px;
+  font-size: 1.3125rem;
   font-weight: 500;
   letter-spacing: -0.03em;
   text-decoration: none;
@@ -211,13 +290,14 @@ code {
 .topbar nav {
   display: flex;
   margin-left: auto;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 .topbar nav a {
   padding: 12px;
   color: var(--soft);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .topbar nav a:hover {
@@ -236,31 +316,34 @@ code {
 }
 
 .notice {
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 999px;
   background: var(--card);
   box-shadow: inset 0 0 0 1px var(--line);
   color: var(--soft);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
+  text-wrap: balance;
 }
 
 .countdown {
-  color: #a8501a;
+  color: var(--orange-ink);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .hero h1 {
-  font-size: clamp(2.8rem, 7vw, 5.8rem);
-  line-height: 0.95;
-  letter-spacing: -0.05em;
+  font-size: clamp(2.5rem, 7vw, 5.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
 }
 
 .lead {
   max-width: 600px;
   color: var(--soft);
-  font-size: 19px;
+  font-size: 1.1875rem;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
 .actions {
@@ -272,10 +355,11 @@ code {
 
 .meta {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
-/* Screenshots, one at a time, picked by tabs. */
+/* Screenshots, one at a time, picked by tabs: a segmented control with
+   segments of equal width, two by two where four don't fit. */
 
 .shots {
   display: flex;
@@ -288,9 +372,8 @@ code {
 }
 
 .shot-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   padding: 6px;
   border-radius: 28px;
@@ -301,6 +384,7 @@ code {
 .shot-tabs button {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   min-height: 44px;
   padding: 0 18px;
@@ -308,12 +392,14 @@ code {
   border-radius: 999px;
   background: transparent;
   color: var(--ink);
-  font: 600 15px var(--body);
+  font: 600 0.9375rem var(--body);
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .shot-tabs button::before {
   content: "";
+  flex: none;
   width: 10px;
   height: 10px;
   border-radius: 5px;
@@ -321,21 +407,28 @@ code {
 }
 
 .shot-tabs button:hover {
-  background: #f1f2ee;
+  background: var(--hover);
 }
 
 .shot-tabs button[aria-selected="true"] {
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
 }
 
 .shot-frame {
-  --tint: #e8f5ea;
   width: 100%;
   padding: 14px;
   border-radius: 22px;
-  background: var(--tint);
+  background: var(--work);
   transition: background-color 0.25s ease-out;
+}
+
+.shot-frame[data-shot="command"] {
+  background: var(--travel);
+}
+
+.shot-frame[data-shot="split"] {
+  background: var(--home);
 }
 
 .shot-frame img {
@@ -343,13 +436,15 @@ code {
   aspect-ratio: 16 / 10;
   border-radius: 14px;
   box-shadow: 0 40px 90px rgba(20, 24, 20, 0.22), 0 0 0 1px rgba(20, 24, 20, 0.06);
+  filter: var(--shot-filter);
 }
 
 .shot-caption {
   max-width: 640px;
   color: var(--soft);
-  font-size: 16px;
+  font-size: 1rem;
   text-align: center;
+  text-wrap: balance;
 }
 
 /* Two columns that wrap: text and a screenshot. */
@@ -375,7 +470,7 @@ code {
 }
 
 .split-row .copy p {
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.55;
 }
 
@@ -383,6 +478,7 @@ code {
   flex: 2 1 560px;
   min-width: 0;
   border-radius: 14px;
+  filter: var(--shot-filter);
 }
 
 /* Import: the dark band. */
@@ -413,7 +509,7 @@ code {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .checklist li {
@@ -431,23 +527,24 @@ code {
   color: var(--green);
 }
 
-/* Feature sections in the three space colors. */
+/* Feature sections in the three space colors, each named by its feature
+   and its shortcut. */
 
 .kicker {
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .travel {
-  background: #eaf1fd;
+  background: var(--travel);
 }
 
 .travel .kicker {
-  color: #1f4fa8;
+  color: var(--travel-ink);
 }
 
 .travel .copy p:not(.kicker) {
-  color: #3d4752;
+  color: var(--travel-text);
 }
 
 .travel img {
@@ -455,15 +552,15 @@ code {
 }
 
 .home {
-  background: #fdeee2;
+  background: var(--home);
 }
 
 .home .kicker {
-  color: #9a4711;
+  color: var(--home-ink);
 }
 
 .home .copy p:not(.kicker) {
-  color: #52443a;
+  color: var(--home-text);
 }
 
 .home img {
@@ -471,15 +568,15 @@ code {
 }
 
 .work {
-  background: #e8f5ea;
+  background: var(--work);
 }
 
 .work .kicker {
-  color: #2a7337;
+  color: var(--work-ink);
 }
 
 .work .copy p:not(.kicker) {
-  color: #3e4a41;
+  color: var(--work-text);
 }
 
 .work img {
@@ -517,14 +614,14 @@ code {
 }
 
 .little-grid dt {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
 }
 
 .little-grid dd {
   margin: 0;
   color: var(--soft);
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 /* Shortcuts as key caps */
@@ -554,16 +651,16 @@ code {
   border-radius: 12px;
   background: var(--card);
   box-shadow: inset 0 0 0 1px var(--line);
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 
 kbd {
   padding: 6px 9px;
   border-radius: 7px;
-  background: #f1f2ee;
-  box-shadow: 0 2px 0 #ced3cb;
+  background: var(--hover);
+  box-shadow: 0 2px 0 var(--key-edge);
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 /* For developers */
@@ -591,7 +688,7 @@ kbd {
 
 .agents-card .copy p {
   color: var(--dark-soft);
-  font-size: 17px;
+  font-size: 1.0625rem;
   line-height: 1.55;
 }
 
@@ -616,8 +713,12 @@ kbd {
   border-radius: 10px;
   background: var(--green);
   color: #0e1411;
-  font: 600 14px var(--body);
+  font: 600 0.875rem var(--body);
   cursor: pointer;
+}
+
+.terminal button:active {
+  transform: translateY(1px);
 }
 
 .terminal pre {
@@ -625,7 +726,7 @@ kbd {
   padding: 4px 20px 22px;
   color: #dde6df;
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-all;
@@ -653,7 +754,7 @@ kbd {
   gap: 16px;
   min-height: 60px;
   padding: 16px 0;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   list-style: none;
   cursor: pointer;
@@ -665,8 +766,11 @@ kbd {
 
 .faq summary::after {
   content: "+";
+  flex: none;
+  width: 1ch;
   color: var(--green-ink);
-  font-size: 22px;
+  font-size: 1.375rem;
+  text-align: center;
 }
 
 .faq details[open] summary::after {
@@ -676,7 +780,7 @@ kbd {
 .faq details p {
   margin-bottom: 20px;
   color: var(--soft);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
@@ -688,6 +792,8 @@ kbd {
 }
 
 .closing-card {
+  /* The blue ring would be lost on the green. */
+  --focus: #0e1411;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -702,12 +808,17 @@ kbd {
 .closing-card h2 {
   color: #0e1411;
   font-size: clamp(2.6rem, 6vw, 4.8rem);
-  line-height: 0.95;
-  letter-spacing: -0.05em;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
 }
 
 .closing-card .button {
   background: #0e1411;
+  color: #fff;
+}
+
+.closing-card .button:hover {
+  background: #2a322c;
 }
 
 .closing-card img {
@@ -717,27 +828,32 @@ kbd {
   margin-bottom: -18%;
   border-radius: 14px 14px 0 0;
   box-shadow: 0 -10px 60px rgba(14, 20, 17, 0.25);
+  filter: var(--shot-filter);
 }
+
+/* The footer's rule lines up with the content above it. */
 
 footer {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 16px;
+  width: min(100% - 2 * var(--gutter), var(--wide) - 2 * var(--gutter));
+  margin: 0 auto;
   padding-top: 28px;
   padding-bottom: 52px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 footer p:last-child {
   max-width: 640px;
 }
 
-/* Small screens */
+/* Small screens. In em, so larger text gets the small layout sooner. */
 
-@media (max-width: 860px) {
+@media (max-width: 53.75em) {
   .topbar nav {
     display: none;
   }
@@ -753,7 +869,15 @@ footer p:last-child {
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 45em) {
+  .shot-tabs {
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 32.5em) {
   .checklist {
     grid-template-columns: 1fr;
   }
@@ -765,6 +889,10 @@ footer p:last-child {
   .agents-card {
     padding: 32px 22px;
   }
+
+  .shot-tabs button {
+    padding: 0 12px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -775,5 +903,15 @@ footer p:last-child {
   .shot-frame,
   .topbar {
     transition: none;
+  }
+}
+
+/* Reduce Transparency: a solid header instead of the blur. */
+
+@media (prefers-reduced-transparency: reduce) {
+  .topbar {
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
