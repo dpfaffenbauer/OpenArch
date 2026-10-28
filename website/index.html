@@ -10,7 +10,9 @@
   <meta property="og:image" content="https://openarch.app/assets/hero.jpg">
   <meta property="og:url" content="https://openarch.app/">
   <link rel="canonical" href="https://openarch.app/">
-  <meta name="theme-color" content="#fafaf7">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e110f" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +41,7 @@
 
   <main id="main">
     <section class="hero wrap" id="top">
-      <p class="notice">Arc stops working on December 22, 2026<span class="countdown" hidden></span></p>
+      <p class="notice">Arc stops working on December&nbsp;22,&nbsp;2026<span class="countdown" hidden></span></p>
       <h1>Arc closes.<br>OpenArch opens.</h1>
       <p class="lead">The sidebar browser you know, rebuilt as open source on real Chrome. Your spaces, logins and extensions move over in one step.</p>
       <div class="actions">
@@ -56,7 +58,7 @@
         <button type="button" role="tab" id="tab-split" aria-selected="false" aria-controls="shot-panel" tabindex="-1" data-shot="split" style="--dot: #f08a3c">Split View</button>
         <button type="button" role="tab" id="tab-library" aria-selected="false" aria-controls="shot-panel" tabindex="-1" data-shot="library" style="--dot: #2f8a3e">Library</button>
       </div>
-      <div class="shot-frame" id="shot-panel" role="tabpanel" aria-labelledby="tab-sidebar">
+      <div class="shot-frame" id="shot-panel" role="tabpanel" aria-labelledby="tab-sidebar" data-shot="sidebar">
         <img src="assets/hero.jpg" width="2400" height="1500" alt="OpenArch with a green sidebar: favorites, pinned folders and open tabs">
       </div>
       <p class="shot-caption" aria-live="polite">Favorites, pinned folders and today’s tabs, in the sidebar you already know.</p>
@@ -84,7 +86,7 @@
     <section class="feature travel" id="features" aria-labelledby="travel-title">
       <div class="wrap split-row">
         <div class="copy">
-          <p class="kicker">⌘T · Travel</p>
+          <p class="kicker">Command bar · ⌘T</p>
           <h2 id="travel-title">⌘T finds everything.</h2>
           <p>One field for addresses, searches, open tabs, pinned pages, history and commands. Enter takes you there, or straight back to the tab you already have.</p>
         </div>
@@ -96,7 +98,7 @@
       <div class="wrap split-row reverse">
         <img src="assets/split.jpg" width="2400" height="1500" loading="lazy" alt="Split View in the orange Home space with two articles side by side">
         <div class="copy">
-          <p class="kicker">⌃⇧= · Home</p>
+          <p class="kicker">Split View · ⌃⇧=</p>
           <h2 id="home-title">Two pages, one view.</h2>
           <p>Drag a tab onto the page, or onto another tab in the sidebar. Up to four pages side by side or stacked, with dividers you can drag.</p>
         </div>
@@ -106,7 +108,7 @@
     <section class="feature work" aria-labelledby="work-title">
       <div class="wrap split-row">
         <div class="copy">
-          <p class="kicker">⌃1–9 · Work</p>
+          <p class="kicker">Spaces · ⌃1–9</p>
           <h2 id="work-title">A space for every part of your day.</h2>
           <p>Each space has its own color, pinned folders and tabs. Give it a profile and it keeps its own logins and extensions, so work and private never mix.</p>
         </div>
@@ -192,7 +194,7 @@
     </section>
   </main>
 
-  <footer class="wrap">
+  <footer>
     <p><a href="https://github.com/dpfaffenbauer/OpenArch">OpenArch on GitHub</a> · MIT license</p>
     <p>OpenArch is an independent open-source project and is not affiliated with or endorsed by The Browser Company of New York or Atlassian. Arc is a trademark of The Browser Company of New York.</p>
   </footer>
@@ -212,12 +214,12 @@
       countdown.hidden = false;
     }
 
-    // The screenshot tabs.
+    // The screenshot tabs. The frame takes the space color of the shot (style.css).
     const shots = {
-      sidebar: { src: 'assets/hero.jpg', tint: '#e8f5ea', alt: 'OpenArch with a green sidebar: favorites, pinned folders and open tabs', caption: 'Favorites, pinned folders and today’s tabs, in the sidebar you already know.' },
-      command: { src: 'assets/commandbar.jpg', tint: '#eaf1fd', alt: 'The command bar in the blue Travel space', caption: 'One field for addresses, searches, tabs, history and commands.' },
-      split: { src: 'assets/split.jpg', tint: '#fdeee2', alt: 'Split View in the orange Home space', caption: 'Up to four pages side by side or stacked, with dividers you can drag.' },
-      library: { src: 'assets/library.jpg', tint: '#e8f5ea', alt: 'The library listing the spaces Work, Home and Travel', caption: 'Media, downloads, spaces and archive in one place.' },
+      sidebar: { src: 'assets/hero.jpg', alt: 'OpenArch with a green sidebar: favorites, pinned folders and open tabs', caption: 'Favorites, pinned folders and today’s tabs, in the sidebar you already know.' },
+      command: { src: 'assets/commandbar.jpg', alt: 'The command bar in the blue Travel space', caption: 'One field for addresses, searches, tabs, history and commands.' },
+      split: { src: 'assets/split.jpg', alt: 'Split View in the orange Home space', caption: 'Up to four pages side by side or stacked, with dividers you can drag.' },
+      library: { src: 'assets/library.jpg', alt: 'The library listing the spaces Work, Home and Travel', caption: 'Media, downloads, spaces and archive in one place.' },
     };
     const tabs = [...document.querySelectorAll('[role="tab"]')];
     const panel = document.getElementById('shot-panel');
@@ -231,7 +233,7 @@
         other.tabIndex = selected ? 0 : -1;
       }
       panel.setAttribute('aria-labelledby', tab.id);
-      panel.style.setProperty('--tint', shot.tint);
+      panel.dataset.shot = tab.dataset.shot;
       shotImage.src = shot.src;
       shotImage.alt = shot.alt;
       caption.textContent = shot.caption;
@@ -240,10 +242,15 @@
     tabs.forEach((tab, index) => {
       tab.addEventListener('click', () => pick(tab, false));
       tab.addEventListener('keydown', (event) => {
-        const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-        if (!step) return;
+        const target = {
+          ArrowRight: (index + 1) % tabs.length,
+          ArrowLeft: (index - 1 + tabs.length) % tabs.length,
+          Home: 0,
+          End: tabs.length - 1,
+        }[event.key];
+        if (target === undefined) return;
         event.preventDefault();
-        pick(tabs[(index + step + tabs.length) % tabs.length], true);
+        pick(tabs[target], true);
       });
     });
     // Load the other screenshots early, so switching is instant.
