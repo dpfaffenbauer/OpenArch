@@ -142,6 +142,9 @@ NS_SWIFT_UI_ACTOR
 
 /// Shows the pane over |frame| (in |window|'s coordinates), creating the
 /// browser on first use. The pane follows |window| when it moves.
+/// Starts loading the page without showing it: a tab opened in the
+/// background. Showing it later needs no load.
+- (void)load;
 - (void)showInWindow:(NSWindow*)window frame:(NSRect)frame;
 /// Updates the frame (in the parent window's coordinates) while visible.
 - (void)setFrame:(NSRect)frame;

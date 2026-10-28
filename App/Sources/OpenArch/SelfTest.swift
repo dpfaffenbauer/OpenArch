@@ -107,6 +107,7 @@ final class SelfTest {
             (36.392, "live folders", { self.liveFolders() }),
             (36.393, "inline completion", { self.inlineCompletion() }),
             (36.394, "about", { self.aboutWindow() }),
+            (36.396, "load in background", { self.loadInBackground() }),
             (36.395, "site controls", { self.siteControls() }),
             (36.45, "copy link key press", { self.copyLinkKeyPress() }),
             (36.47, "tab switcher", { self.tabSwitcherTest() }),
@@ -853,8 +854,10 @@ final class SelfTest {
         if let shown { browser.select(shown, focus: false) }
         after(3) {
             asking.pane?.executeJavaScript("window.addEventListener('beforeunload', e => e.preventDefault())")
-            sleepy.lastActiveAt = Date().addingTimeInterval(-3600)
-            asking.lastActiveAt = Date().addingTimeInterval(-3600)
+            for tab in [sleepy, asking] {
+                tab.lastActiveAt = Date().addingTimeInterval(-3600)
+                tab.loadedAt = tab.lastActiveAt
+            }
             after(0.5) {
                 self.browser.sleepInactiveTabs(olderThan: 30)
                 after(1.5) {
@@ -998,6 +1001,23 @@ final class SelfTest {
             let url = AppPaths.support.appendingPathComponent("site-controls.png")
             try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
             Swift.print("[selftest] site controls rendered \(Int(host.fittingSize.width))x\(Int(host.fittingSize.height)) to \(url.path)")
+        }
+    }
+
+    /// ⌘-click on a tab in the sidebar loads it in the background: the page
+    /// and its title arrive, and the tab in front stays.
+    private func loadInBackground() {
+        let shown = browser.state.activeItem
+        let tab = Item.tab(url: "https://example.com/background", title: "Gespeichert")
+        tab.lastActiveAt = .distantPast  // a pinned tab not used for a while
+        browser.state.space.pinned.insert(tab)
+        browser.loadInBackground(tab)
+        expect(tab.pane != nil && browser.state.activeItem === shown, "⌘-click loads a tab without showing it")
+        eventually({ tab.liveTitle == "Example Domain" }, timeout: 8) { titled in
+            self.expect(titled && tab.pane?.isVisible == false && self.browser.state.activeItem === shown,
+                        "the tab loaded in the background shows its page's title (\(tab.displayTitle))")
+            self.browser.unload(tab)
+            tab.detach()
         }
     }
 

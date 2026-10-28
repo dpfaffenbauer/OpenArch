@@ -104,6 +104,8 @@ final class Item: Identifiable {
     var mediaDismissed = false
     /// Its page was closed to save memory; it loads again when shown.
     var isAsleep = false
+    /// When its page was last made (shown, or loaded in the background).
+    var loadedAt: Date?
     /// Live folders: what fills them, and how the last refresh went.
     var live: LiveSource?
     var liveStatus: LiveStatus?

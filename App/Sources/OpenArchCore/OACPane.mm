@@ -792,6 +792,8 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   __weak NSWindow* _parent;
   NSRect _frame;
   BOOL _wantsVisible;
+  // Shown at least once; until then it is a tab loading in the background.
+  BOOL _wasShown;
   BOOL _creating;
   BOOL _closed;
   // A page has the window full screen, outside OpenArch's window.
@@ -868,6 +870,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   [self attach];
 }
 
+- (void)load {
+  if (!_closed && !_cefWindow) {
+    [self createBrowser];  // The window stays hidden until shown.
+  }
+}
+
 - (void)createBrowser {
   if (_creating) {
     return;
@@ -912,6 +920,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
       [window orderWindow:NSWindowAbove relativeTo:parent.windowNumber];
     }
     _isVisible = YES;
+    _wasShown = YES;
   }
   [self attachDevTools];
 }
@@ -1473,6 +1482,11 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 }
 
 - (void)oac_didActivate {
+  // A tab loading in the background gets focus as Chromium creates it; that
+  // is no reason to bring it to the front.
+  if (!_wasShown) {
+    return;
+  }
   if ([self.delegate respondsToSelector:@selector(paneDidBecomeActive:)]) {
     [self.delegate paneDidBecomeActive:self];
   }

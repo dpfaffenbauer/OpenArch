@@ -493,6 +493,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         library.setNeedsSave()
     }
 
+    /// A click in the sidebar. With ⌘ the tab, or a folder's tabs, load in
+    /// the background, so their pages and titles are there when you come
+    /// to them; without, it shows the tab (or opens and closes the folder).
+    func click(_ item: Item) {
+        if NSEvent.modifierFlags.contains(.command) {
+            loadInBackground(item)
+        } else {
+            select(item)
+        }
+    }
+
+    func loadInBackground(_ item: Item) {
+        let tabs = item.kind == .tab ? [item] : item.descendants.filter { $0.kind == .tab }
+        for tab in tabs where tab.pane == nil {
+            ensurePane(for: tab)
+            tab.pane?.load()
+        }
+    }
+
     /// Clears the content area (no tab selected).
     private func showNothing() {
         for tab in visibleTabs {
@@ -538,6 +557,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         pane.toolbarVisible = library.settings.showChromeToolbar
         tab.pane = pane
         tab.isAsleep = false
+        tab.loadedAt = Date()
         itemsByPane[ObjectIdentifier(pane)] = tab
     }
 
@@ -792,7 +812,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let minutes = minutes ?? library.settings.sleepAfterMinutes
         guard minutes > 0 else { return }
         let cutoff = Date().addingTimeInterval(-Double(minutes) * 60)
-        for tab in allTabs where tab.lastActiveAt < cutoff {
+        // Loaded in the background a moment ago counts as recent too.
+        for tab in allTabs where max(tab.lastActiveAt, tab.loadedAt ?? .distantPast) < cutoff {
             guard let pane = tab.pane, pane.delegate === self, !pane.isVisible, !tab.isAudible,
                   tab.media?.playing != true, tab.media?.pip != true,
                   !visibleTabs.contains(where: { $0 === tab }) else { continue }

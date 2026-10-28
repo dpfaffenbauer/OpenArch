@@ -343,7 +343,7 @@ private struct FavoriteTile: View {
         }
         .frame(height: 46)
         .contentShape(Rectangle())
-        .onTapGesture { browser.select(item) }
+        .onTapGesture { browser.click(item) }
         .onHover { hovering = $0 }
         .help(item.displayTitle)
         .onDrag {
@@ -490,7 +490,7 @@ private struct FolderRow: View {
             }
         }
         .rowStyle(depth: depth, isActive: false, hovering: hovering, theme: theme, dropZone: dropZone)
-        .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { browser.select(item) } }
+        .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { browser.click(item) } }
         .onHover { hovering = $0 }
         .onDrag { tabDragProvider(item) }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
@@ -593,7 +593,7 @@ private struct TabRow: View {
             }
         }
         .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone)
-        .onTapGesture { browser.select(item) }
+        .onTapGesture { browser.click(item) }
         .onHover { hovering = $0 }
         .onDrag {
             browser.beginTabDrag(item)
@@ -627,7 +627,7 @@ private struct SplitRow: View {
                 .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 7).fill(isActive && isShown ? theme.foreground.opacity(0.14) : .clear))
                 .contentShape(Rectangle())
-                .onTapGesture { browser.select(child) }
+                .onTapGesture { browser.click(child) }
                 .contextMenu { TabContextMenu(browser: browser, item: child) }
             }
         }

@@ -37,7 +37,8 @@ run. Data lives in
 - **Sidebar:** favorites grid, pinned tabs in folders and subfolders, today
   tabs under the line, drag and drop, inline renaming, context menus. The
   × on a pinned tab unpins it; ⌘-click on a link opens it as a tab in the
-  background.
+  background. ⌘-click on a tab (or a folder) in the sidebar loads it in the
+  background, so its page and title are there when you come to it.
 - **Spaces:** name, icon (SF Symbol or emoji), color, and a profile each.
   Drag the icons at the bottom of the sidebar into the order you want.
   Profiles keep logins (e.g. a different Google account per space), cookies,
