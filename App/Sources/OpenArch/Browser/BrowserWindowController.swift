@@ -175,9 +175,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// The library button in window coordinates (downloads fly into it); the
     /// bottom left corner while the sidebar is hidden.
     var libraryButtonCenter: NSPoint {
-        let frame = state.libraryButtonFrame
-        guard state.sidebarVisible, !frame.isEmpty else { return NSPoint(x: 24, y: 22) }
-        return sidebarHost.convert(NSPoint(x: frame.midX, y: frame.midY), to: nil)
+        let button = state.libraryButtonFrame, sidebar = state.sidebarFrame
+        guard state.sidebarVisible, !button.isEmpty, !sidebar.isEmpty else { return NSPoint(x: 24, y: 22) }
+        // Measured from the sidebar's bottom left corner, which is the
+        // hosting view's (flipped) bottom left corner.
+        let point = NSPoint(x: button.midX - sidebar.minX, y: sidebarHost.bounds.height - (sidebar.maxY - button.midY))
+        return sidebarHost.convert(point, to: nil)
     }
 
     func layoutContent() {
@@ -1364,7 +1367,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         let mediaPrefix = "__openarch_media__ "
         if message.hasPrefix(mediaPrefix), let item = item(for: pane) {
-            item.media = try? JSONDecoder().decode(MediaState.self, from: Data(message.dropFirst(mediaPrefix.count).utf8))
+            let media = try? JSONDecoder().decode(MediaState.self, from: Data(message.dropFirst(mediaPrefix.count).utf8))
+            if media?.playing == true, item.media?.playing != true { item.mediaDismissed = false }
+            item.media = media
             return
         }
         let prefix = "__openarch_audio__ "
@@ -1390,11 +1395,24 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     var nowPlaying: Item? {
         allTabs
-            .filter { tab in tab.pane != nil && tab.media != nil && !visibleTabs.contains { $0 === tab } }
+            .filter { tab in
+                // Muted videos playing by themselves (feeds, page backgrounds)
+                // are not what you listen to.
+                guard tab.pane != nil, let media = tab.media, media.audible, !tab.mediaDismissed else { return false }
+                return !visibleTabs.contains { $0 === tab }
+            }
             .max { lhs, rhs in
                 if lhs.media?.playing != rhs.media?.playing { return rhs.media?.playing == true }
                 return lhs.lastActiveAt < rhs.lastActiveAt
             }
+    }
+
+    /// Closes the media card: the playback stops, and the card stays away
+    /// until the page plays again.
+    func dismissMedia(_ item: Item) {
+        if item.media?.playing == true { mediaCommand(item, "toggle") }
+        if item.media?.pip == true { mediaCommand(item, "exitpip") }
+        item.mediaDismissed = true
     }
 
     /// "toggle", "pip" or "exitpip", carried out by the built-in extension.

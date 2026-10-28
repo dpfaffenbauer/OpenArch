@@ -18,6 +18,9 @@ struct SidebarView: View {
             }
         }
         .ignoresSafeArea()
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+            if !floating { browser.state.sidebarFrame = $0 }
+        }
         // Follows the fingers during a swipe between spaces.
         .offset(x: offset)
         .opacity(1 - min(0.6, abs(offset) / 220))
@@ -64,7 +67,7 @@ struct SidebarView: View {
             if browser.isPrivate {
                 Spacer().frame(height: 12)
             } else {
-                SpaceBar(browser: browser, theme: theme)
+                SpaceBar(browser: browser, theme: theme, isDocked: !floating)
             }
         }
         .padding(.horizontal, 8)
@@ -129,9 +132,15 @@ private struct MediaCard: View {
                     browser.mediaCommand(item, media.pip ? "exitpip" : "pip")
                 }
             }
-            IconButton(symbol: item.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
-                       help: item.isMuted ? "Ton einschalten" : "Stummschalten") {
-                browser.toggleMute(item)
+            if hovering {
+                IconButton(symbol: "xmark", help: "Schließen (hält die Wiedergabe an)", size: 11) {
+                    browser.dismissMedia(item)
+                }
+            } else {
+                IconButton(symbol: item.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                           help: item.isMuted ? "Ton einschalten" : "Stummschalten") {
+                    browser.toggleMute(item)
+                }
             }
         }
         .padding(.leading, 10)
@@ -689,6 +698,8 @@ private struct NewTabRow: View {
 private struct SpaceBar: View {
     let browser: BrowserWindowController
     let theme: SpaceTheme
+    /// In the window's sidebar, not the one floating over the page.
+    var isDocked = true
 
     var body: some View {
         HStack(spacing: 4) {
@@ -697,7 +708,9 @@ private struct SpaceBar: View {
             }
             .overlay { DownloadRing(theme: theme) }
             .symbolEffect(.bounce, value: Downloads.shared.finished)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { browser.state.libraryButtonFrame = $0 }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
+                if isDocked { browser.state.libraryButtonFrame = $0 }
+            }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {
                     ForEach(Array(browser.library.spaces.enumerated()), id: \.element.id) { index, space in

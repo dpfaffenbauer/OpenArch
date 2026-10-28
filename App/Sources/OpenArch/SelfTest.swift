@@ -1041,6 +1041,15 @@ final class SelfTest {
         }
         after(6.5) {
             self.expect(tab.media?.playing == false, "the sidebar's pause button pauses it")
+            self.browser.dismissMedia(tab)
+            self.expect(self.browser.nowPlaying == nil, "the media card closes")
+            // A muted video playing by itself gets no card.
+            tab.pane?.executeJavaScript("document.querySelector('video').muted = true")
+            self.browser.mediaCommand(tab, "toggle")
+        }
+        after(7.5) {
+            self.expect(tab.media?.playing == true && self.browser.nowPlaying == nil,
+                        "a muted video playing in another tab gets no media card (\(String(describing: tab.media)))")
             self.library.settings.autoPictureInPicture = true
             self.browser.close(tab)
         }

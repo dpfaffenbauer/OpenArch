@@ -100,6 +100,8 @@ final class Item: Identifiable {
     var isMuted = false
     /// What the page plays, from OpenArch's built-in extension.
     var media: MediaState?
+    /// The media card was closed; it comes back when the page plays again.
+    var mediaDismissed = false
     /// Its page was closed to save memory; it loads again when shown.
     var isAsleep = false
 
