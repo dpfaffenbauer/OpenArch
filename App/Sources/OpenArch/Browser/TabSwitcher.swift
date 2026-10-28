@@ -105,7 +105,7 @@ final class TabSwitcherWindow: NSWindow {
 
     @MainActor
     func show(over area: NSRect, parent: NSWindow) {
-        let size = host.fittingSize
+        let size = host.idealSize
         let width = min(size.width, area.width - 32)
         setFrame(NSRect(x: area.midX - width / 2, y: area.midY - size.height / 2, width: width, height: size.height),
                  display: true)

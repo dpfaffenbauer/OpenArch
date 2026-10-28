@@ -22,7 +22,7 @@ final class ToastWindow: NSWindow {
     /// Shows |text| centered near the top of |area| (screen coordinates).
     func show(_ text: String, symbol: String = "checkmark.circle.fill", over area: NSRect, parent: NSWindow) {
         host.rootView = ToastView(text: text, symbol: symbol)
-        let size = host.fittingSize
+        let size = host.idealSize
         setFrame(NSRect(x: area.midX - size.width / 2, y: area.maxY - size.height - 18, width: size.width, height: size.height),
                  display: true)
         alphaValue = 1
@@ -60,5 +60,15 @@ private struct ToastView: View {
             .background(Capsule().fill(Color.black.opacity(0.78)))
             .padding(8)
             .fixedSize()
+    }
+}
+
+extension NSHostingView {
+    /// The size the SwiftUI view asks for. With empty sizingOptions (so the
+    /// view never resizes its window) fittingSize is zero on current macOS,
+    /// which left the toast and the ⌃Tab switcher 0×0 and unseen.
+    var idealSize: CGSize {
+        NSHostingController(rootView: rootView)
+            .sizeThatFits(in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude))
     }
 }

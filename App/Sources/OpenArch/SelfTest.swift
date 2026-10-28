@@ -611,6 +611,9 @@ final class SelfTest {
         let toast = browser.toast, page = browser.activePane?.window
         expect(toast?.isVisible == true && page != nil && toast!.orderedIndex < page!.orderedIndex,
                "⌘⇧C shows „Link kopiert“ above the page")
+        // A 0×0 window is "visible" too: the pill has to have its size.
+        let pill = toast?.frame.size ?? .zero
+        expect(pill.width > 80 && pill.height > 30, "„Link kopiert“ has its size (\(Int(pill.width))×\(Int(pill.height)))")
         // Chrome's own Copy URL command (its ⌘⇧C) goes the same way.
         copyPasteboard.clearContents()
         toast?.orderOut(nil)
@@ -939,6 +942,8 @@ final class SelfTest {
         switcher.advance(1)
         expect(switcher.isOpen && switcher.model.tabs.first === current && switcher.model.selection == 1,
                "⌃Tab opens the switcher on the tab used before")
+        let row = NSApp.windows.first(where: { $0 is TabSwitcherWindow })?.frame.size ?? .zero
+        expect(row.width > 300 && row.height > 100, "the switcher has its size (\(Int(row.width))×\(Int(row.height)))")
         if let host = NSApp.windows.first(where: { $0 is TabSwitcherWindow })?.contentView,
            let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
             host.cacheDisplay(in: host.bounds, to: bitmap)
