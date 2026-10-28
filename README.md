@@ -91,8 +91,8 @@ run. Data lives in
   clipboard and JavaScript per site, the page's zoom, its boost, and
   clearing its cookies and data.
 - **DevTools** (⌥⌘I) dock beside the page, inside the tab, on the right,
-  left or below, or open in a window of their own (Ansicht › DevTools
-  anordnen); ⌘W in them closes them, not the tab.
+  left or below, or open in a window of their own (DevTools' own ⋮ › Dock
+  side, or Ansicht › DevTools anordnen); ⌘W in them closes them, not the tab.
 - **Boosts** (⌃⌘B): restyle a site with a color shift, another font,
   zapped elements and your own CSS and JavaScript.
 - **Site search:** type a site's keyword or name in the command bar and

@@ -69,6 +69,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated { _ = self?.mainBrowser?.openInNewTab(url) }
             }
             LiveFolders.shared.start(library)
+            // DevTools' own Dock side menu: the choice is kept like the menu's.
+            OACPane.devToolsDockHandler = { [weak self] dock in
+                MainActor.assumeIsolated {
+                    guard let self, let choice = DevToolsDock.allCases.first(where: { $0.dock == dock }) else { return }
+                    self.library.settings.devToolsDock = choice
+                    self.library.setNeedsSave()
+                }
+            }
             OACPane.downloadHandler = { [weak self] download in
                 MainActor.assumeIsolated { Downloads.shared.update(download, in: self?.mainBrowser) }
             }

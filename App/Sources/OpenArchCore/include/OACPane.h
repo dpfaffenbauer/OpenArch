@@ -186,6 +186,9 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 /// For every tab; open DevTools move (between docked and a window, they
 /// close and open again).
 @property(class, nonatomic) OACDevToolsDock devToolsDock;
+/// Called when the dock side was picked in DevTools' own menu (⋮ › Dock
+/// side), after devToolsDock has changed.
+@property(class, nonatomic, copy, nullable) void (^devToolsDockHandler)(OACDevToolsDock dock);
 
 /// Closes the tab's DevTools if they are open (docked beside the page).
 - (BOOL)closeDevTools;

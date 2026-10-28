@@ -16,6 +16,7 @@
 - (void)oac_devToolsWindowCreated:(CefRefPtr<CefWindow>)window;
 - (void)oac_devToolsWindowDestroyed;
 - (void)oac_devToolsOpenedInWindow;
+- (void)oac_devToolsDockChosen:(NSString*)side;
 - (void)oac_otherBrowserClosed:(CefRefPtr<CefBrowser>)browser;
 - (void)oac_windowDestroyed;
 - (void)oac_browserViewAddedToWindow:(CefRefPtr<CefWindow>)window;
@@ -93,6 +94,35 @@ std::map<uint32_t, CefRefPtr<CefDownloadItemCallback>>& DownloadCallbacks() {
 constexpr CGFloat kDevToolsGap = 6;
 
 OACDevToolsDock g_devtools_dock = OACDevToolsDockRight;
+void (^g_devtools_dock_handler)(OACDevToolsDock) = nil;
+
+// DevTools' own names for the dock sides, in OACDevToolsDock's order.
+NSArray<NSString*>* DevToolsDockSides() {
+  return @[ @"right", @"left", @"bottom", @"undocked" ];
+}
+
+NSString* const kDevToolsDockMarker = @"__openarch_devtools_dock__ ";
+
+// DevTools think a tab of OpenArch cannot dock (Chrome finds no window to
+// dock them in), so they hide their Dock side menu. This shows it with the
+// side OpenArch docks them on, and reports a choice back to the pane
+// (OnConsoleMessage), which docks them there.
+std::string DevToolsDockScript() {
+  NSString* script = [NSString stringWithFormat:@
+      "(async () => { try {"
+      // A script run from outside has no base URL for import().
+      "  const ui = await import(new URL('./ui/legacy/legacy.js', location.href).href);"
+      "  for (let i = 0; i < 100 && !ui.InspectorView.InspectorView.maybeGetInspectorViewInstance(); i++)"
+      "    await new Promise((resolve) => setTimeout(resolve, 100));"
+      "  const Dock = ui.DockController.DockController;"
+      "  Dock.prototype.canDock = () => true;"
+      "  const dock = Dock.instance();"
+      "  dock.setDockSide('%@');"
+      "  dock.addEventListener('DockSideChanged', (event) => console.debug('%@' + event.data.to));"
+      "} catch (error) { console.debug('%@error ' + error); } })();",
+      DevToolsDockSides()[g_devtools_dock], kDevToolsDockMarker, kDevToolsDockMarker];
+  return script.UTF8String;
+}
 
 NSMapTable<NSWindow*, OACPane*>* PanesByWindow() {
   static NSMapTable<NSWindow*, OACPane*>* table =
@@ -306,9 +336,14 @@ class PaneClient : public CefClient,
                         const CefString& message,
                         const CefString& source,
                         int line) override {
-    [Own(browser) oac_consoleMessage:OACToNSString(message)
-                       source:OACToNSString(source)
-                         line:line];
+    OACPane* pane = Own(browser);
+    NSString* text = OACToNSString(message);
+    if (!pane && [text hasPrefix:kDevToolsDockMarker]) {
+      // DevTools' own Dock side menu (see DevToolsDockScript).
+      [pane_ oac_devToolsDockChosen:[text substringFromIndex:kDevToolsDockMarker.length]];
+      return true;
+    }
+    [pane oac_consoleMessage:text source:OACToNSString(source) line:line];
     return false;
   }
 
@@ -336,6 +371,10 @@ class PaneClient : public CefClient,
                  int httpStatusCode) override {
     if (frame->IsMain()) {
       [Own(browser) oac_mainFrameLoadStarted:NO url:OACToNSString(frame->GetURL())];
+    }
+    if (!Own(browser) && pane_ && frame->IsMain() &&
+        frame->GetURL().ToString().rfind("devtools://devtools/", 0) == 0) {
+      frame->ExecuteJavaScript(DevToolsDockScript(), frame->GetURL(), 0);
     }
   }
 
@@ -1181,6 +1220,32 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   dispatch_async(dispatch_get_main_queue(), ^{
     [weakSelf executeChromeCommand:OACChromeCommandDevToolsToggle];
   });
+}
+
+- (void)oac_devToolsDockChosen:(NSString*)side {
+  const NSUInteger index = [DevToolsDockSides() indexOfObject:side];
+  if (index == NSNotFound) {
+    NSLog(@"OpenArch: DevTools dock side menu: %@", side);
+    return;
+  }
+  if ((OACDevToolsDock)index == g_devtools_dock) {
+    return;
+  }
+  // Not while DevTools are still handling their click.
+  dispatch_async(dispatch_get_main_queue(), ^{
+    OACPane.devToolsDock = (OACDevToolsDock)index;
+    if (g_devtools_dock_handler) {
+      g_devtools_dock_handler((OACDevToolsDock)index);
+    }
+  });
+}
+
++ (void (^)(OACDevToolsDock))devToolsDockHandler {
+  return g_devtools_dock_handler;
+}
+
++ (void)setDevToolsDockHandler:(void (^)(OACDevToolsDock))handler {
+  g_devtools_dock_handler = [handler copy];
 }
 
 + (OACDevToolsDock)devToolsDock {
