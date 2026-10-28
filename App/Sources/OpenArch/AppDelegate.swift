@@ -400,6 +400,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc func splitView(_ sender: Any?) { browser?.splitWithNewTab() }
     @objc func unsplitView(_ sender: Any?) { browser?.unsplit() }
+    @objc func swapSplit(_ sender: Any?) {
+        guard let split = browser?.state.activeItem?.split else { return }
+        browser?.swapSplit(split)
+    }
     @objc func rotateSplit(_ sender: Any?) {
         guard let split = browser?.state.activeItem?.split else { return }
         browser?.setSplitStacked(split, !split.splitStacked)
@@ -621,6 +625,7 @@ enum MainMenu {
         var splitItems = [
             item("Split View", #selector(AppDelegate.splitView(_:)), "=", [.control, .shift]),
             item("Split View aufheben", #selector(AppDelegate.unsplitView(_:)), "-", [.control, .shift]),
+            item("Seiten tauschen", #selector(AppDelegate.swapSplit(_:)), "s", [.control, .shift]),
             item("Übereinander anzeigen", #selector(AppDelegate.rotateSplit(_:))),
             .separator(),
             item("Nächste Seite der Split View", #selector(AppDelegate.nextSplit(_:)), "]", [.control, .shift]),
@@ -736,7 +741,7 @@ final class SplitMenuUpdater: NSObject, NSMenuDelegate {
                 item.image = menuIcon(for: side)
                 item.state = side === browser.state.activeItem ? .on : .off
             case #selector(AppDelegate.unsplitView(_:)), #selector(AppDelegate.nextSplit(_:)),
-                 #selector(AppDelegate.previousSplit(_:)):
+                 #selector(AppDelegate.previousSplit(_:)), #selector(AppDelegate.swapSplit(_:)):
                 item.isEnabled = !sides.isEmpty
             case #selector(AppDelegate.rotateSplit(_:)):
                 item.isEnabled = !sides.isEmpty

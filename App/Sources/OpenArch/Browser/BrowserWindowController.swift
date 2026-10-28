@@ -16,7 +16,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private var privateProfile: OACProfile?
 
     /// Tabs whose panes are currently shown, left to right.
-    private var visibleTabs: [Item] = []
+    private(set) var visibleTabs: [Item] = []
     private var itemsByPane: [ObjectIdentifier: Item] = [:]
     private let rootView = BrowserRootView()
     private var sidebarHost: NSHostingView<SidebarView>!
@@ -1024,6 +1024,19 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard split.kind == .split, split.splitStacked != stacked else { return }
         split.splitStacked = stacked
         split.splitFractions = []
+        layoutContent()
+        library.setNeedsSave()
+    }
+
+    /// Swaps the sides of a split view, left and right (or top and bottom);
+    /// with three or four tabs their order reverses.
+    func swapSplit(_ split: Item) {
+        guard split.kind == .split, split.children.count > 1 else { return }
+        split.children.reverse()
+        split.splitFractions.reverse()
+        if visibleTabs.first?.split === split {
+            visibleTabs = split.children
+        }
         layoutContent()
         library.setNeedsSave()
     }

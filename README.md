@@ -47,7 +47,7 @@ run. Data lives in
   sentence or a question opens a new chat on Claude or ChatGPT with it,
   signed in as you there (your subscription, no API key; Settings › KI).
 - **Split view:** up to four tabs side by side or one above the other,
-  with resizable dividers. Use ⌃⇧=, or drag a tab from the sidebar onto a
+  with resizable dividers; ⌃⇧S swaps the sides. Use ⌃⇧=, or drag a tab from the sidebar onto a
   half of the page: left or right puts it beside, top or bottom above or
   below. Links dragged from a page, Safari, Mail or Finder onto the
   sidebar become tabs.
@@ -100,6 +100,9 @@ run. Data lives in
 - **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
 - **App icon:** twelve takes on the arch (Tunnel is the standard one), one
   in the current space's color, or a different one each day.
+- **Sandbox:** pages, the GPU and the network service run in Chromium's
+  sandbox, as in Chrome; every helper process starts it before loading
+  Chromium.
 - **Real Chrome tabs:** extensions incl. popups, `chrome.tabs`, side panels,
   `declarativeNetRequest`, native messaging. Also DevTools, find, zoom,
   downloads, printing, the password manager and chrome:// pages.

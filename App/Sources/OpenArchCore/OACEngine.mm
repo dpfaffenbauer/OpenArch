@@ -224,7 +224,9 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
   CefMainArgs main_args(*_NSGetArgc(), *_NSGetArgv());
 
   CefSettings settings;
-  settings.no_sandbox = true;
+  // Pages, the GPU and the network service run in Chromium's sandbox; each
+  // helper starts it (OpenArchHelper/main.cc).
+  settings.no_sandbox = false;
   settings.persist_session_cookies = true;
   settings.remote_debugging_port = (int)engineSettings.remoteDebuggingPort;
   g_remote_debugging_port = settings.remote_debugging_port;

@@ -15,6 +15,7 @@ final class FloatingSidebar {
     private(set) var isShown = false
     /// The self-test moves the "mouse" without touching the real one.
     var mouseLocation: () -> NSPoint = { NSEvent.mouseLocation }
+    var pressedMouseButtons: () -> Int = { NSEvent.pressedMouseButtons }
 
     static let margin: CGFloat = 6
 
@@ -92,7 +93,7 @@ final class FloatingSidebar {
     private func checkMouse() {
         guard let panel, isShown else { return }
         let inside = panel.frame.insetBy(dx: -14, dy: -14).contains(mouseLocation())
-        if inside || menuOpen || NSEvent.pressedMouseButtons != 0 || panel.isKeyWindow {
+        if inside || menuOpen || pressedMouseButtons() != 0 || panel.isKeyWindow {
             outsideSince = nil
             return
         }

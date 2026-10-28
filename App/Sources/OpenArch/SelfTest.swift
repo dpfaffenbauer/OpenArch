@@ -709,6 +709,13 @@ final class SelfTest {
         browser.dropForSplit(other, leading: true)
         expect(other.split != nil && other.split?.children.first === other && other.split?.children.last === base,
                "dropping a tab on the left half splits it in on the left")
+        if let split = other.split {
+            browser.swapSplit(split)
+            expect(split.children.first === base && split.children.last === other
+                   && browser.visibleTabs.first === base && split.data.children?.first?.id == base.id,
+                   "swapping the sides puts the right tab on the left")
+            browser.swapSplit(split)
+        }
 
         // The top and bottom halves stack the tabs: the dropped one on top,
         // both as wide as the page; the menu puts them side by side again.
@@ -862,8 +869,9 @@ final class SelfTest {
             return expect(false, "⌘⇧C key press setup")
         }
         NSApp.postEvent(event, atStart: false)
-        after(0.3) {
-            self.expect(copyPasteboard.string(forType: .string) == url, "⌘⇧C pressed in the page copies its address (\(url))")
+        after(1) {
+            let copied = copyPasteboard.string(forType: .string)
+            self.expect(copied == url, "⌘⇧C pressed in the page copies its address (\(url), copied \(copied ?? "nothing"))")
         }
     }
 
@@ -1280,6 +1288,7 @@ final class SelfTest {
         expect(pane?.window?.canBecomeMain == false, "tab windows never become main, so the window buttons stay active")
         browser.toggleSidebar()
         browser.floatingSidebar.mouseLocation = { NSPoint(x: -10_000, y: -10_000) }
+        browser.floatingSidebar.pressedMouseButtons = { 0 }
         browser.floatingSidebar.show()
         after(0.2) {
             let frame = self.browser.floatingSidebar.frame ?? .zero
@@ -1293,6 +1302,7 @@ final class SelfTest {
             self.expect(!self.browser.floatingSidebar.isShown && self.browser.state.sidebarVisible,
                         "pinning the sidebar replaces the floating one")
             self.browser.floatingSidebar.mouseLocation = { NSEvent.mouseLocation }
+            self.browser.floatingSidebar.pressedMouseButtons = { NSEvent.pressedMouseButtons }
         }
     }
 

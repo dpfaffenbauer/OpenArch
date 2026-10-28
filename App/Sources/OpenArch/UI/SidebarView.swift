@@ -613,6 +613,7 @@ private struct TabContextMenu: View {
         Divider()
         if let split = item.split {
             Button("Split View aufheben") { browser.unsplit(item) }
+            Button("Seiten tauschen (⌃⇧S)") { browser.swapSplit(split) }
             Button(split.splitStacked ? "Nebeneinander anzeigen" : "Übereinander anzeigen") {
                 browser.setSplitStacked(split, !split.splitStacked)
             }
