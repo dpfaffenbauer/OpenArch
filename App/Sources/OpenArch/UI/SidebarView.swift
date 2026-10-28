@@ -457,6 +457,9 @@ private struct SidebarNode: View {
                 ForEach(item.children) { child in
                     SidebarNode(browser: browser, item: child, theme: theme, depth: depth + 1)
                 }
+                if item.live != nil {
+                    LiveFolderStatus(browser: browser, folder: item, theme: theme, depth: depth + 1)
+                }
             }
         case .split:
             SplitRow(browser: browser, item: item, theme: theme, depth: depth)
@@ -480,6 +483,11 @@ private struct FolderRow: View {
             RenamableTitle(browser: browser, item: item)
                 .font(.system(size: 14, weight: .semibold))
             Spacer(minLength: 4)
+            if item.liveStatus == .loading {
+                ProgressView().controlSize(.mini).opacity(0.6)
+            } else if item.live != nil, hovering {
+                SmallButton(symbol: "arrow.clockwise", help: "Jetzt aktualisieren") { LiveFolders.shared.refresh(item) }
+            }
         }
         .rowStyle(depth: depth, isActive: false, hovering: hovering, theme: theme, dropZone: dropZone)
         .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { browser.select(item) } }
@@ -487,6 +495,10 @@ private struct FolderRow: View {
         .onDrag { tabDragProvider(item) }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
         .contextMenu {
+            if item.live != nil {
+                Button("Jetzt aktualisieren") { LiveFolders.shared.refresh(item) }
+                Divider()
+            }
             Button("Umbenennen") { browser.state.renamingItemID = item.id }
             Button("Neuer Unterordner") { browser.newFolder(in: item) }
             Button("Alle öffnen") {
@@ -495,6 +507,51 @@ private struct FolderRow: View {
             Divider()
             Button("Ordner löschen …") { browser.deleteFolder(item) }
         }
+    }
+}
+
+/// Under a live folder's tabs: that GitHub wants a login, could not be
+/// reached, or has nothing open.
+private struct LiveFolderStatus: View {
+    let browser: BrowserWindowController
+    let folder: Item
+    let theme: SpaceTheme
+    let depth: Int
+    @State private var hovering = false
+
+    var body: some View {
+        switch folder.liveStatus {
+        case .signedOut:
+            row(symbol: "person.crop.circle.badge.exclamationmark", text: "Bei GitHub anmelden") {
+                browser.openInNewTab("https://github.com/login")
+            }
+        case .failed:
+            row(symbol: "exclamationmark.triangle", text: "GitHub nicht erreichbar, erneut versuchen") {
+                LiveFolders.shared.refresh(folder)
+            }
+        case .loading:
+            EmptyView()
+        case nil:
+            if folder.children.isEmpty {
+                Text(folder.live?.kind == .issues ? "Keine offenen Issues" : "Keine offenen Pull Requests")
+                    .font(.system(size: 12.5))
+                    .opacity(0.5)
+                    .padding(.leading, 10 + CGFloat(depth) * 16)
+                    .frame(height: 28)
+            }
+        }
+    }
+
+    private func row(symbol: String, text: String, action: @escaping () -> Void) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol).font(.system(size: 13)).frame(width: 16)
+            Text(text).font(.system(size: 13))
+            Spacer(minLength: 2)
+        }
+        .opacity(0.75)
+        .rowStyle(depth: depth, isActive: false, hovering: hovering, theme: theme, dropZone: nil)
+        .onTapGesture(perform: action)
+        .onHover { hovering = $0 }
     }
 }
 
@@ -736,6 +793,11 @@ private struct SpaceBar: View {
             Menu {
                 Button("Neuer Space") { browser.addSpace() }
                 Button("Neuer Ordner") { browser.newFolder() }
+                Menu("GitHub-Live-Ordner") {
+                    Button("Meine Pull Requests") { browser.newLiveFolder(.myPullRequests, name: "Meine Pull Requests") }
+                    Button("Reviews für mich") { browser.newLiveFolder(.reviewRequests, name: "Reviews für mich") }
+                    Button("Meine Issues") { browser.newLiveFolder(.myIssues, name: "Meine Issues") }
+                }
                 Divider()
                 Button("Aus Arc importieren …") { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }
             } label: {

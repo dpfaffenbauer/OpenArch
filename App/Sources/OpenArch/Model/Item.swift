@@ -104,6 +104,9 @@ final class Item: Identifiable {
     var mediaDismissed = false
     /// Its page was closed to save memory; it loads again when shown.
     var isAsleep = false
+    /// Live folders: what fills them, and how the last refresh went.
+    var live: LiveSource?
+    var liveStatus: LiveStatus?
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", customTitle: String? = nil,
          children: [Item] = [], lastActiveAt: Date = Date()) {
@@ -134,6 +137,20 @@ final class Item: Identifiable {
         self.parent = parent
         for child in children {
             child.attach(to: container, parent: self)
+        }
+    }
+
+    /// A live folder's new contents (see LiveFolders).
+    func replaceChildren(with items: [Item]) {
+        for child in children where !items.contains(where: { $0 === child }) {
+            child.parent = nil
+            child.container = nil
+        }
+        children = items
+        if let container {
+            for child in items {
+                child.attach(to: container, parent: self)
+            }
         }
     }
 
@@ -233,6 +250,7 @@ final class Item: Identifiable {
         splitFractions = data.splitFractions ?? []
         splitStacked = data.splitStacked ?? false
         icon = data.icon
+        live = data.live
     }
 
     var data: ItemData {
@@ -245,7 +263,8 @@ final class Item: Identifiable {
                  splitFractions: kind == .split && !splitFractions.isEmpty ? splitFractions : nil,
                  splitStacked: kind == .split && splitStacked ? true : nil,
                  lastActiveAt: lastActiveAt,
-                 icon: icon)
+                 icon: icon,
+                 live: kind == .folder ? live : nil)
     }
 }
 
@@ -289,6 +308,7 @@ struct ItemData: Codable {
     var splitStacked: Bool?
     var lastActiveAt: Date?
     var icon: String?
+    var live: LiveSource?
 }
 
 /// A page's audio or video, as its media element and Media Session report it.

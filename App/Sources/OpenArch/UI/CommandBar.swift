@@ -125,9 +125,54 @@ final class CommandBarModel {
             guard query != oldValue else { return }
             selection = 0
             shownText = nil
+            // Only while typing on, not while deleting, as in Chrome.
+            if site == nil, query.count > oldValue.count, query.lowercased().hasPrefix(oldValue.lowercased()),
+               let found = browser.history.inlineCompletion(for: query), found.text.lowercased().hasPrefix(query.lowercased()) {
+                completion = InlineCompletion(text: found.text, url: found.url)
+            } else {
+                completion = nil
+            }
             rebuild()
             fetchSuggestions()
         }
+    }
+    /// Chrome's inline autocompletion: the address filled in after the typed
+    /// text, selected, so typing on replaces it.
+    private(set) var completion: InlineCompletion?
+
+    struct InlineCompletion: Equatable {
+        let text: String
+        let url: String
+    }
+
+    /// What the field shows: a picked row's text, or the typed text with the
+    /// completion after it.
+    var fieldText: String {
+        if let shownText { return shownText }
+        guard let completion else { return query }
+        return query + completion.text.dropFirst(query.count)
+    }
+
+    /// The completed part of fieldText, which the field selects.
+    var completionRange: NSRange? {
+        guard shownText == nil, let completion else { return nil }
+        let typed = (query as NSString).length
+        return NSRange(location: typed, length: max(0, (fieldText as NSString).length - typed))
+    }
+
+    /// → or End: the completed address becomes the typed text.
+    func acceptCompletion() -> Bool {
+        guard shownText == nil, let completion else { return false }
+        query = completion.text
+        return true
+    }
+
+    /// Backspace removes the completion first, as in Chrome.
+    func dropCompletion() -> Bool {
+        guard shownText == nil, completion != nil else { return false }
+        completion = nil
+        rebuild()
+        return true
     }
     /// The picked row's text, shown in the field instead of the typed one
     /// while the arrow keys go through the results.
@@ -254,10 +299,18 @@ final class CommandBarModel {
             return
         }
 
-        if let url = Self.url(fromInput: text) {
-            results.append(CommandResult(id: "open:\(url)", icon: .url(url), title: InternalURL.display(url),
+        if let completion {
+            let url = completion.url
+            results.append(CommandResult(id: "open:\(url)", icon: .url(url), title: completion.text,
                                          subtitle: modeVerb, action: { [unowned self] in self.open(url) }))
             seenURLs.insert(url)
+        }
+        if let url = Self.url(fromInput: text) {
+            if !seenURLs.contains(url) {
+                results.append(CommandResult(id: "open:\(url)", icon: .url(url), title: InternalURL.display(url),
+                                             subtitle: modeVerb, action: { [unowned self] in self.open(url) }))
+                seenURLs.insert(url)
+            }
         } else if let ask = askResult(text) {
             // A sentence or a question goes to the chat; a few words stay a
             // search, with the chat one row down.
@@ -701,11 +754,13 @@ private struct CommandField: NSViewRepresentable {
 
     func updateNSView(_ field: NSTextField, context: Context) {
         field.placeholderString = model.placeholder
-        let text = model.shownText ?? model.query
+        let text = model.fieldText
         if field.stringValue != text {
             field.stringValue = text
-            // Typing goes on from the end, as in Chrome.
-            field.currentEditor()?.selectedRange = NSRange(location: (text as NSString).length, length: 0)
+            // Typing goes on from the end, as in Chrome, over the completed
+            // part, which is selected.
+            field.currentEditor()?.selectedRange = model.completionRange
+                ?? NSRange(location: (text as NSString).length, length: 0)
         }
         if context.coordinator.selectAllToken != model.selectAllToken || field.window?.firstResponder !== field.currentEditor() {
             context.coordinator.selectAllToken = model.selectAllToken
@@ -745,7 +800,10 @@ private struct CommandField: NSViewRepresentable {
             case #selector(NSResponder.insertTab(_:)):
                 if !model.tab() { model.moveSelection(1) }
             case #selector(NSResponder.deleteBackward(_:)):
-                return model.leaveSite()
+                return model.dropCompletion() || model.leaveSite()
+            case #selector(NSResponder.moveRight(_:)), #selector(NSResponder.moveToEndOfLine(_:)),
+                 #selector(NSResponder.moveToEndOfDocument(_:)):
+                return model.acceptCompletion()
             case #selector(NSResponder.insertNewline(_:)):
                 model.run()
             case #selector(NSResponder.cancelOperation(_:)):

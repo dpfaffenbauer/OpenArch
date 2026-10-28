@@ -60,6 +60,55 @@ final class History {
         return fetch(sql, words.map { "%\($0)%" })
     }
 
+    /// Chrome's inline autocompletion: the address the command bar fills in
+    /// as you type. Until a "/" it is the most visited site whose name starts
+    /// with |typed|; after it, the most visited page. Addresses are compared
+    /// without "https://" and "www.".
+    func inlineCompletion(for typed: String) -> (text: String, url: String)? {
+        let typed = typed.lowercased()
+        guard !typed.isEmpty, !typed.contains(" "), !typed.contains("://") else { return nil }
+        let candidates = fetch("""
+            SELECT url, title, visit_count, last_visit FROM visits
+            WHERE lower(url) LIKE ?1 ORDER BY visit_count DESC, last_visit DESC LIMIT 400
+            """, ["%\(typed)%"])
+        if !typed.contains("/") {
+            var visits: [String: (count: Int, url: String)] = [:]
+            for entry in candidates {
+                guard let components = URLComponents(string: entry.url), let host = components.host?.lowercased() else { continue }
+                let name = Self.withoutWWW(host) + (components.port.map { ":\($0)" } ?? "")
+                guard name.hasPrefix(typed), name != typed else { continue }
+                let site = "\(components.scheme ?? "https")://\(host)\(components.port.map { ":\($0)" } ?? "")/"
+                visits[name, default: (0, site)].count += entry.visitCount
+            }
+            return visits.max { $0.value.count < $1.value.count }.map { ($0.key, $0.value.url) }
+        }
+        for entry in candidates {
+            let text = Self.display(entry.url)
+            if text.lowercased().hasPrefix(typed), text.count > typed.count {
+                return (text, entry.url)
+            }
+        }
+        return nil
+    }
+
+    /// An address as the command bar completes it: no scheme, no "www.",
+    /// no "/" after the site alone.
+    static func display(_ url: String) -> String {
+        var text = url
+        for scheme in ["https://", "http://"] where text.hasPrefix(scheme) {
+            text.removeFirst(scheme.count)
+        }
+        text = withoutWWW(text)
+        if text.hasSuffix("/"), text.firstIndex(of: "/") == text.index(before: text.endIndex) {
+            text.removeLast()
+        }
+        return text
+    }
+
+    private static func withoutWWW(_ text: String) -> String {
+        text.lowercased().hasPrefix("www.") ? String(text.dropFirst(4)) : text
+    }
+
     func recent(limit: Int = 8) -> [Entry] {
         fetch("SELECT url, title, visit_count, last_visit FROM visits ORDER BY last_visit DESC LIMIT \(limit)", [])
     }

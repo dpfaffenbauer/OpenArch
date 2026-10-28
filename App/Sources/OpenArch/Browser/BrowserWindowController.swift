@@ -897,6 +897,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return folder
     }
 
+    /// A pinned folder that fills itself from GitHub (see LiveFolders).
+    @discardableResult
+    func newLiveFolder(_ source: LiveSource, name: String) -> Item {
+        let folder = Item.folder(name)
+        folder.icon = source.kind == .pullRequests ? "arrow.triangle.pull" : "smallcircle.filled.circle"
+        folder.live = source
+        state.space.pinned.insert(folder, at: 0)
+        library.setNeedsSave()
+        LiveFolders.shared.refresh(folder)
+        return folder
+    }
+
     func deleteFolder(_ folder: Item) {
         guard folder.kind == .folder else { return }
         let alert = NSAlert()

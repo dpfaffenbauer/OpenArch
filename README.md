@@ -42,7 +42,11 @@ run. Data lives in
   Drag the icons at the bottom of the sidebar into the order you want.
   Profiles keep logins (e.g. a different Google account per space), cookies,
   history, passwords and extensions apart.
-- **Command bar** (⌘T, ⌘L): URL or search with suggestions, switch to open
+- **GitHub live folders** (+ › GitHub-Live-Ordner): pinned folders that
+  fill themselves with your open pull requests, review requests or issues,
+  every five minutes, with the space's own GitHub login (no token).
+- **Command bar** (⌘T, ⌘L): completes the address as you type, like Chrome
+  (→ keeps it, Backspace drops it); URL or search with suggestions, switch to open
   tabs, pinned tabs and favorites, history, archived tabs, commands. A
   sentence or a question opens a new chat on Claude or ChatGPT with it,
   signed in as you there (your subscription, no API key; Settings › KI).

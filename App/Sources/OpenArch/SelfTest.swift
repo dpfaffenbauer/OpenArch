@@ -94,6 +94,8 @@ final class SelfTest {
             (36.38, "link rules", { self.linkRulesTest() }),
             (36.39, "drop links", { self.dropLinks() }),
             (36.39, "space order", { self.spaceOrder() }),
+            (36.392, "live folders", { self.liveFolders() }),
+            (36.393, "inline completion", { self.inlineCompletion() }),
             (36.395, "site controls", { self.siteControls() }),
             (36.45, "copy link key press", { self.copyLinkKeyPress() }),
             (36.47, "tab switcher", { self.tabSwitcherTest() }),
@@ -985,6 +987,63 @@ final class SelfTest {
             try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
             Swift.print("[selftest] site controls rendered \(Int(host.fittingSize.width))x\(Int(host.fittingSize.height)) to \(url.path)")
         }
+    }
+
+    /// ⌘T completes the address as you type, like Chrome: first the most
+    /// visited site, after a "/" the most visited page; the completed part is
+    /// selected, Backspace takes it away, → keeps it, Return opens it.
+    private func inlineCompletion() {
+        let history = browser.history
+        for _ in 0..<3 { history.recordVisit(url: "https://github.com/cors-gmbh/shared-workflows/pull/26", title: "PR 26") }
+        history.recordVisit(url: "https://github.com/cors-gmbh/shared-workflows", title: "shared-workflows")
+        history.recordVisit(url: "https://www.gitlab.example/", title: "GitLab")
+        browser.commandBar.show(mode: .newTab)
+        let model = browser.commandBar.model
+        model.query = "g"
+        model.query = "gi"
+        expect(model.completion?.text == "github.com" && model.fieldText == "github.com"
+               && model.completionRange == NSRange(location: 2, length: 8),
+               "typing \"gi\" completes the most visited site (\(model.fieldText))")
+        model.query = "github.com/cors-gmbh/s"
+        model.query = "github.com/cors-gmbh/sh"
+        expect(model.fieldText == "github.com/cors-gmbh/shared-workflows/pull/26"
+               && model.results.first?.id == "open:https://github.com/cors-gmbh/shared-workflows/pull/26",
+               "after a \"/\" it completes the most visited page, which Return opens (\(model.fieldText))")
+        expect(model.dropCompletion() && model.fieldText == "github.com/cors-gmbh/sh",
+               "Backspace takes the completion away")
+        model.query = "github.com/cors-gmbh/sha"
+        expect(model.acceptCompletion() && model.query == "github.com/cors-gmbh/shared-workflows/pull/26"
+               && model.completion == nil, "→ keeps the completed address")
+        model.query = "github.com/cors-gmbh/shared-workflows/pull/2"
+        expect(model.completion == nil, "deleting does not complete again")
+        browser.commandBar.hide()
+    }
+
+    /// GitHub live folders read GitHub's search JSON and keep tabs that are
+    /// still there; signed out, they say so. (A fixture: no GitHub login here.)
+    private func liveFolders() {
+        let json = #"""
+        {"payload":{"blackbirdSearchRoute":{"logged_in":true,"results":[
+          {"number":26,"hl_title":"Shared <em>workflows</em> &amp; caches","repo":{"repository":{"name":"shared-workflows","owner_login":"cors-gmbh"}}},
+          {"number":7,"hl_title":"","repo":{"repository":{"name":"OpenArch","owner_login":"dpfaffenbauer"}}}]}}}
+        """#
+        let parsed = LiveFolders.results(from: Data(json.utf8), kind: .pullRequests)
+        expect(parsed?.signedIn == true && parsed?.entries == [
+            LiveFolders.Entry(url: "https://github.com/cors-gmbh/shared-workflows/pull/26", title: "Shared workflows & caches"),
+            LiveFolders.Entry(url: "https://github.com/dpfaffenbauer/OpenArch/pull/7", title: "OpenArch#7"),
+        ], "a live folder reads GitHub's pull requests (\(parsed?.entries.map(\.title) ?? []))")
+        let signedOut = LiveFolders.results(from: Data(#"{"payload":{"blackbirdSearchRoute":{"logged_in":false,"results":[]}}}"#.utf8), kind: .issues)
+        expect(signedOut?.signedIn == false, "a live folder notices when GitHub is signed out")
+
+        let folder = browser.newLiveFolder(.myPullRequests, name: "Live-Test")
+        folder.live = nil  // no refresh from the network during the test
+        LiveFolders.apply(parsed?.entries ?? [], to: folder)
+        let kept = folder.children.first
+        LiveFolders.apply(Array((parsed?.entries ?? []).prefix(1)), to: folder)
+        expect(folder.children.count == 1 && folder.children.first === kept && kept?.role == .pinned
+               && kept?.parentFolder === folder, "refreshing keeps the tabs still open on GitHub and drops the others")
+        folder.detach()
+        library.setNeedsSave()
     }
 
     /// Dragging a space icon onto another puts it in that one's place.
