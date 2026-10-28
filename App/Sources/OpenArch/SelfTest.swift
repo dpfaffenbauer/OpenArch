@@ -902,8 +902,9 @@ final class SelfTest {
               a.href = URL.createObjectURL(new Blob(['OpenArch download test'], {type: 'text/plain'}));
               a.download = 'openarch-selftest.txt'; document.body.appendChild(a); a.click(); a.remove(); })()
             """, userGesture: true)
-        after(3) {
-            let file = Self.downloadFolder.appendingPathComponent("openarch-selftest.txt")
+        let file = Self.downloadFolder.appendingPathComponent("openarch-selftest.txt")
+        eventually({ (try? String(contentsOf: file, encoding: .utf8)) == "OpenArch download test"
+                     && Downloads.shared.finished > finished }, timeout: 8) { _ in
             let saved = (try? String(contentsOf: file, encoding: .utf8)) == "OpenArch download test"
             self.expect(saved, "a download is saved (to the self-test's folder)")
             self.expect(Downloads.shared.finished == finished + 1 && Downloads.shared.progress.isEmpty,
