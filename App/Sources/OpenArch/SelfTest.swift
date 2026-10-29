@@ -58,6 +58,10 @@ final class SelfTest {
             marketingScreens()
             return
         }
+        if CommandLine.arguments.contains("--loading-bar-shots") {
+            loadingBarShots()
+            return
+        }
         if CommandLine.arguments.contains("--fullscreen-test") {
             fullscreenTest()
             return
@@ -116,6 +120,7 @@ final class SelfTest {
             (36.6, "arc crypto", { self.arcCrypto() }),
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
+            (37.1, "loading bar", { self.loadingBar() }),
             (38, "downloads", { self.downloadTest() }),
             (43.6, "media", { self.mediaTest() }),
             (50.5, "boosts", { self.boostTest() }),
@@ -971,8 +976,9 @@ final class SelfTest {
         let hidden = open.filter { tab in !browser.visibleTabs.contains { $0 === tab } }
         eventually({ open.allSatisfy { $0.snapshot != nil } }, timeout: 5) { done in
             let size = hidden.first?.snapshot?.representations.first.map { "\($0.pixelsWide)×\($0.pixelsHigh)" } ?? "none"
+            let missing = open.filter { $0.snapshot == nil }.map { "\($0.currentURL) loading \($0.isLoading) shown \($0.pane?.isVisible == true)" }
             self.expect(done && !hidden.isEmpty,
-                        "the switcher has pictures of \(open.count) open tabs, \(hidden.count) of them hidden (\(size))")
+                        "the switcher has pictures of \(open.count) open tabs, \(hidden.count) of them hidden (\(size))\(missing.isEmpty ? "" : ", none of \(missing)")")
             if let host = NSApp.windows.first(where: { $0 is TabSwitcherWindow })?.contentView,
                let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
                 host.cacheDisplay(in: host.bounds, to: bitmap)
@@ -1043,8 +1049,68 @@ final class SelfTest {
         eventually({ tab.liveTitle == "Example Domain" }, timeout: 8) { titled in
             self.expect(titled && tab.pane?.isVisible == false && self.browser.state.activeItem === shown,
                         "the tab loaded in the background shows its page's title (\(tab.displayTitle))")
+            self.expect(tab.loadingProgress > 0,
+                        "Chrome reports how far the page has loaded (\(Int(tab.loadingProgress * 100)) %)")
             self.browser.unload(tab)
             tab.detach()
+        }
+    }
+
+    /// While a page loads, a line just above it shows how far it has got,
+    /// sidebar shown or hidden; the sidebar's address field shows it
+    /// instead when it is switched on.
+    private func loadingBar() {
+        guard let tab = browser.state.activeItem, let window = browser.window else {
+            return expect(false, "a tab for the loading bar")
+        }
+        func lineAbovePage() -> Bool {
+            guard let page = browser.expectedPaneFrames.first(where: { $0.0 === tab }),
+                  let line = browser.loadingLineFrame else { return false }
+            let top = window.convertFromScreen(page.1).maxY
+            return line.minY >= top && line.maxY <= top + BrowserWindowController.contentInset && line.width > 100
+        }
+        func showSidebar(_ shown: Bool) {
+            if browser.state.sidebarVisible != shown { browser.toggleSidebar() }
+        }
+        tab.isLoading = true
+        tab.loadingProgress = 0.45
+        let addressField = library.settings.showSidebarAddress, sidebar = browser.state.sidebarVisible
+        library.settings.showSidebarAddress = false
+        showSidebar(true)
+        expect(lineAbovePage(), "a line just above the page shows its loading (\(browser.loadingLineFrame.map(NSStringFromRect) ?? "none"))")
+        showSidebar(false)
+        expect(lineAbovePage(), "and with the sidebar hidden too (\(browser.loadingLineFrame.map(NSStringFromRect) ?? "none"))")
+        showSidebar(true)
+        library.settings.showSidebarAddress = true
+        expect(browser.loadingLineFrame == nil, "with the address field in the sidebar, the field shows it instead of the line")
+        library.settings.showSidebarAddress = addressField
+        showSidebar(sidebar)
+        tab.isLoading = false
+        tab.loadingProgress = 1
+    }
+
+    /// A page at 45 %: the line above it, then with the sidebar hidden, then
+    /// the address field, each held to be photographed from outside
+    /// (`--selftest --loading-bar-shots`; prints "STEP shot <name>").
+    private func loadingBarShots() {
+        populate()
+        let tab = browser.openInNewTab("https://example.com/loading")
+        after(6) {
+            tab.isLoading = true
+            tab.loadingProgress = 0.45
+            after(1) { Swift.print("[selftest] STEP shot loading-line") }
+            after(2) { self.browser.toggleSidebar() }
+            after(3) { Swift.print("[selftest] STEP shot loading-line-hidden") }
+            after(4) {
+                self.browser.toggleSidebar()
+                self.library.settings.showSidebarAddress = true
+            }
+            after(5) { Swift.print("[selftest] STEP shot loading-field") }
+            after(6) {
+                tab.isLoading = false
+                Swift.print("[selftest] DONE loading bar shots")
+                Self.quit()
+            }
         }
     }
 

@@ -93,6 +93,8 @@ final class Item: Identifiable {
     var liveTitle: String?
     var favicon: NSImage?
     var isLoading = false
+    /// How far the page has loaded, 0–1, while it loads.
+    var loadingProgress = 0.0
     var canGoBack = false
     var canGoForward = false
     /// Played sound in the last moments (reported by Chrome).

@@ -21,6 +21,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private let rootView = BrowserRootView()
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
+    private var loadingLine: NSHostingView<PageLoadingLine>!
     private var dividers: [SplitDividerView] = []
     private let focusRing = FocusRingView()
     private let sidebarHandle = SplitDividerView()
@@ -69,6 +70,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         rootView.addSubview(emptyHost)
         rootView.addSubview(sidebarHost)
         rootView.addSubview(focusRing)
+        loadingLine = NSHostingView(rootView: PageLoadingLine(browser: self))
+        loadingLine.sizingOptions = []
+        loadingLine.safeAreaRegions = []  // it sits under the title bar
+        rootView.addSubview(loadingLine)
         sidebarHandle.onDrag = { [weak self] _, x in self?.resizeSidebar(to: x) }
         rootView.addSubview(sidebarHandle)
         sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
@@ -208,6 +213,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         layoutDividers(frames: frames, content: content)
         layoutFocusRing(frames: frames)
+        layoutLoadingLine(frames: frames)
         floatingSidebar.layout()
         peek.layout()
     }
@@ -266,6 +272,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         focusRing.isHidden = false
         focusRing.frame = frames[index].insetBy(dx: -3, dy: -3)
+    }
+
+    /// A line just above the page in front shows how far it has loaded. Its
+    /// view is the whole strip above the page (SwiftUI draws nothing in one
+    /// only 2 points high); it draws itself when no address field shows it.
+    private func layoutLoadingLine(frames: [NSRect]) {
+        let index = state.activeItem.flatMap { active in visibleTabs.firstIndex { $0 === active } }
+        guard let index, frames.indices.contains(index) else {
+            loadingLine.frame = .zero
+            return
+        }
+        let frame = frames[index]
+        loadingLine.frame = NSRect(x: frame.minX + 10, y: frame.maxY, width: max(0, frame.width - 20), height: Self.contentInset)
+    }
+
+    /// Whether the sidebar's address field shows the page's loading; the line
+    /// above the page does otherwise.
+    var addressFieldShowsLoading: Bool {
+        state.sidebarVisible && library.settings.showSidebarAddress
     }
 
     /// |position| is where the divider goes: an x side by side, a y stacked.
@@ -382,6 +407,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// The tabs shown side by side right now (one, or the sides of a split).
     var shownTabs: [Item] {
         visibleTabs
+    }
+
+    /// Where the loading line above the page is, in window coordinates, if
+    /// it is shown (self-test).
+    var loadingLineFrame: NSRect? {
+        addressFieldShowsLoading || loadingLine.frame.isEmpty ? nil : loadingLine.frame
     }
 
     /// Where each visible pane should be, in screen coordinates (self-test).
@@ -1278,9 +1309,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
         guard let item = item(for: pane) else { return }
+        // A new load starts from nothing, not from the last one's 100 %.
+        if isLoading, !item.isLoading { item.loadingProgress = 0 }
         item.isLoading = isLoading
         item.canGoBack = canGoBack
         item.canGoForward = canGoForward
+    }
+
+    func pane(_ pane: OACPane, loadingProgressDidChange progress: Double) {
+        item(for: pane)?.loadingProgress = progress
     }
 
     func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
@@ -1321,7 +1358,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         item.lastActiveAt = Date()
         state.activeItem = item
         state.space.activeItemID = item.id
-        layoutFocusRing(frames: paneFrames(in: contentRect))
+        let frames = paneFrames(in: contentRect)
+        layoutFocusRing(frames: frames)
+        layoutLoadingLine(frames: frames)
     }
 
     func paneDidClose(_ pane: OACPane) {

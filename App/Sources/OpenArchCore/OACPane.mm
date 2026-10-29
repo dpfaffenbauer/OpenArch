@@ -29,6 +29,7 @@
 - (void)oac_loadingStateDidChange:(BOOL)isLoading
                         canGoBack:(BOOL)canGoBack
                      canGoForward:(BOOL)canGoForward;
+- (void)oac_loadingProgressDidChange:(double)progress;
 - (void)oac_wantsNewTabWithURL:(NSString*)url background:(BOOL)background;
 - (BOOL)oac_handleChromeCommand:(int)commandID;
 - (void)oac_didActivate;
@@ -329,6 +330,11 @@ class PaneClient : public CefClient,
   void OnFaviconURLChange(CefRefPtr<CefBrowser> browser,
                           const std::vector<CefString>& icon_urls) override {
     [Own(browser) oac_faviconURLsDidChange:icon_urls];
+  }
+
+  void OnLoadingProgressChange(CefRefPtr<CefBrowser> browser,
+                               double progress) override {
+    [Own(browser) oac_loadingProgressDidChange:progress];
   }
 
   bool OnConsoleMessage(CefRefPtr<CefBrowser> browser,
@@ -1464,6 +1470,13 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
         loadingStateDidChange:isLoading
                     canGoBack:canGoBack
                  canGoForward:canGoForward];
+  }
+}
+
+- (void)oac_loadingProgressDidChange:(double)progress {
+  if ([self.delegate respondsToSelector:@selector
+                     (pane:loadingProgressDidChange:)]) {
+    [self.delegate pane:self loadingProgressDidChange:progress];
   }
 }
 

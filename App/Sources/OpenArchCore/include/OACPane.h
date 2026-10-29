@@ -80,6 +80,8 @@ NS_SWIFT_UI_ACTOR
     loadingStateDidChange:(BOOL)isLoading
                 canGoBack:(BOOL)canGoBack
              canGoForward:(BOOL)canGoForward;
+/// How far the page has loaded, 0–1 (Chrome's own estimate).
+- (void)pane:(OACPane*)pane loadingProgressDidChange:(double)progress;
 /// A link or script asked for a new tab. |background| is true for
 /// middle/cmd-clicks.
 - (void)pane:(OACPane*)pane

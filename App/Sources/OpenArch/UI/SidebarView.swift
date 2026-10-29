@@ -274,7 +274,12 @@ private struct AddressPill: View {
         }
         .padding(.horizontal, 10)
         .frame(height: 32)
-        .background(RoundedRectangle(cornerRadius: 9).fill(theme.tile))
+        .background {
+            // Fills up while the page loads, like Arc's.
+            LoadingProgressBar(item: active, color: theme.foreground.opacity(theme.isDark ? 0.16 : 0.09))
+                .background(theme.tile)
+                .clipShape(RoundedRectangle(cornerRadius: 9))
+        }
         .contentShape(Rectangle())
         .onTapGesture { browser.commandBar.show(mode: .editURL) }
         .onHover { hovering = $0 }
