@@ -11,5 +11,7 @@
       <key>CFBundleURLSchemes</key><array><string>openarch</string></array>
     </dict>
   </array>
+  <!-- Only the encryption of Apple's own frameworks (CryptoKit, CommonCrypto). -->
+  <key>ITSAppUsesNonExemptEncryption</key><false/>
 </dict>
 </plist>
