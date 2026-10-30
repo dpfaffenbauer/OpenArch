@@ -257,14 +257,31 @@ private struct GeneralPage: View {
                 detail: "Der Schreibtisch scheint durch das Fenster. Ab macOS 26 schwebt die Sidebar als Liquid Glass darüber, getönt in der Farbe des Space; die Seiten liegen als Karten daneben.") {
                 Toggle("", isOn: $library.settings.glass).labelsHidden().toggleStyle(.switch)
             }
+            Row(symbol: "circle.lefthalf.filled", color: .cyan, title: "Glas",
+                detail: "Wie der Schreibtisch durchscheint: verschwommen hell oder dunkel, wie eine Sidebar, oder ganz klar.") {
+                Picker("", selection: $library.settings.glassMaterial) {
+                    ForEach(GlassMaterial.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+                .disabled(!library.settings.glass)
+            }
+            if #available(macOS 26.0, *) {
+                Row(symbol: "sparkle", color: .cyan, title: "Liquid Glass",
+                    detail: "Die Sidebar schwebt als Glasfläche über dem Fenster.") {
+                    Toggle("", isOn: $library.settings.liquidGlass).labelsHidden().toggleStyle(.switch)
+                        .disabled(!library.settings.glass)
+                }
+            }
             Row(symbol: "drop.halffull", color: .cyan, title: "Farbe über dem Glas",
                 detail: "Wenig lässt mehr vom Schreibtisch durch, viel hält die Schrift gut lesbar.", showsDivider: false) {
-                Slider(value: $library.settings.glassTint, in: 0.15...0.9).frame(width: 160)
+                Slider(value: $library.settings.glassTint, in: 0...0.9).frame(width: 160)
                     .disabled(!library.settings.glass)
             }
         }
         .onChange(of: library.settings.glass) { app.browsers.forEach { $0.applyTheme() } }
         .onChange(of: library.settings.glassTint) { app.browsers.forEach { $0.applyTheme() } }
+        .onChange(of: library.settings.glassMaterial) { app.browsers.forEach { $0.applyTheme() } }
+        .onChange(of: library.settings.liquidGlass) { app.browsers.forEach { $0.applyTheme() } }
         AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }

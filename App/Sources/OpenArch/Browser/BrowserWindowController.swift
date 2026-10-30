@@ -185,7 +185,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let base = isFrontmost ? theme.base : theme.inactiveBase
         let glassy = library.settings.glass
         let tint = library.settings.glassTint
-        glass.isHidden = !glassy
+        let material = library.settings.glassMaterial.material
+        if let material { glass.material = material }
+        glass.isHidden = !glassy || material == nil
         glassTint.isHidden = !glassy
         // With Liquid Glass the color is in the glass; the desktop around it
         // shows clearer.
@@ -195,7 +197,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             pane.tintColor = base.withAlphaComponent(tint)
         }
         #endif
-        sidebarGlass?.isHidden = !glassy || !state.sidebarVisible
+        sidebarGlass?.isHidden = !showsSidebarGlass
         window?.isOpaque = !glassy
         window?.backgroundColor = glassy ? .clear : base
         if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
@@ -206,6 +208,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         // An agent chat is light or dark like the pages, not like the space.
         agentHost?.appearance = NSApp.effectiveAppearance
         floatingSidebar.applyTheme()
+    }
+
+    private var showsSidebarGlass: Bool {
+        library.settings.glass && library.settings.liquidGlass && state.sidebarVisible
     }
 
     // MARK: Layout
@@ -252,7 +258,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         glassTint.frame = bounds
         // Inset from the window's edges, the window buttons inside it.
         sidebarGlass?.frame = NSRect(x: 5, y: 5, width: max(0, sidebarWidth - 8), height: max(0, bounds.height - 10))
-        sidebarGlass?.isHidden = !library.settings.glass || !state.sidebarVisible
+        sidebarGlass?.isHidden = !showsSidebarGlass
         sidebarHost.isHidden = !state.sidebarVisible
         sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible

@@ -352,6 +352,10 @@ struct Settings: Codable, Equatable {
     var glass = false
     /// How much of the space's color is in the glass (0–1).
     var glassTint = 0.4
+    /// How the desktop shows through the glass.
+    var glassMaterial = GlassMaterial.underWindow
+    /// macOS 26: the sidebar floats as a pane of Liquid Glass.
+    var liquidGlass = true
 
     init() {}
 
@@ -378,6 +382,8 @@ struct Settings: Codable, Equatable {
         agentFolder = try container.decodeIfPresent(String.self, forKey: .agentFolder) ?? defaults.agentFolder
         glass = try container.decodeIfPresent(Bool.self, forKey: .glass) ?? defaults.glass
         glassTint = try container.decodeIfPresent(Double.self, forKey: .glassTint) ?? defaults.glassTint
+        glassMaterial = try container.decodeIfPresent(GlassMaterial.self, forKey: .glassMaterial) ?? defaults.glassMaterial
+        liquidGlass = try container.decodeIfPresent(Bool.self, forKey: .liquidGlass) ?? defaults.liquidGlass
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -398,6 +404,33 @@ extension Settings {
             return agentFolder
         }
         return FileManager.default.homeDirectoryForCurrentUser.path
+    }
+}
+
+/// How the desktop shows through the window with the glass look: blurred
+/// in one of macOS's materials, or not blurred at all.
+enum GlassMaterial: String, Codable, CaseIterable, Identifiable {
+    case underWindow, hud, sidebar, clear
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .underWindow: "Milchglas"
+        case .hud: "Rauchglas"
+        case .sidebar: "Sidebar"
+        case .clear: "Klar"
+        }
+    }
+
+    /// nil: no blur, the desktop as it is.
+    var material: NSVisualEffectView.Material? {
+        switch self {
+        case .underWindow: .underWindowBackground
+        case .hud: .hudWindow
+        case .sidebar: .sidebar
+        case .clear: nil
+        }
     }
 }
 
