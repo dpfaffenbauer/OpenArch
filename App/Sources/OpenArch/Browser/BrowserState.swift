@@ -16,6 +16,8 @@ final class BrowserState {
     var siteControlsVisible = false
     /// The space icon being dragged to another place in the space bar.
     var draggingSpaceID: UUID?
+    /// The overview of Claude Code sessions fills the content area.
+    var agentOverviewVisible = false
     /// The library (media, downloads, spaces, archive) replaces the sidebar.
     var libraryVisible = false
     var librarySection = LibrarySection.media

@@ -799,6 +799,9 @@ private struct TodaySection: View {
                 browser.handleDrop(providers, target: .end(space.today))
             }
 
+            if browser.library.settings.agentChats, !browser.isPrivate {
+                AgentsRow(browser: browser, theme: theme)
+            }
             NewTabRow(browser: browser, theme: theme)
                 .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
                     browser.handleDrop(providers, target: space.today.items.first.map { .before($0) } ?? .end(space.today))
@@ -808,6 +811,36 @@ private struct TodaySection: View {
             }
         }
         .background(RoundedRectangle(cornerRadius: 8).fill(dropTargeted ? theme.hover : .clear))
+    }
+}
+
+/// Opens the overview of Claude Code sessions; the number is how many wait
+/// for you.
+private struct AgentsRow: View {
+    let browser: BrowserWindowController
+    let theme: SpaceTheme
+    @State private var hovering = false
+
+    var body: some View {
+        let waiting = ClaudeSessions.shared.waitingCount
+        HStack(spacing: 10) {
+            Image(systemName: "rectangle.stack").font(.system(size: 13, weight: .medium)).frame(width: 16)
+            Text("Agents").font(.system(size: 14))
+            Spacer()
+            if waiting > 0 {
+                Text("\(waiting)")
+                    .font(.system(size: 11, weight: .bold))
+                    .padding(.horizontal, 6)
+                    .frame(minWidth: 18, minHeight: 18)
+                    .background(Capsule().fill(theme.selection))
+                    .help(waiting == 1 ? "Eine Session wartet auf dich" : "\(waiting) Sessions warten auf dich")
+            }
+        }
+        .foregroundStyle(browser.state.agentOverviewVisible ? theme.foreground : theme.secondary)
+        .rowStyle(depth: 0, isActive: browser.state.agentOverviewVisible, hovering: hovering, theme: theme, dropZone: nil)
+        .onTapGesture { browser.showAgentOverview() }
+        .onHover { hovering = $0 }
+        .help("Alle Claude-Code-Sessions: was läuft und was auf dich wartet")
     }
 }
 

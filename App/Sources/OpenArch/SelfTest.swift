@@ -892,10 +892,45 @@ final class SelfTest {
             if let shown, shown.container != nil { browser.select(shown, focus: false) }
             next()
         }
+        // The overview reads Claude Code's own transcripts.
+        let project = folder.appendingPathComponent("projects/-tmp-demo", isDirectory: true)
+        try? FileManager.default.createDirectory(at: project, withIntermediateDirectories: true)
+        let transcript = [
+            #"{"type":"user","cwd":"/tmp/demo","message":{"role":"user","content":"Baue die Startseite"}}"#,
+            #"{"type":"assistant","cwd":"/tmp/demo","message":{"content":[{"type":"tool_use","id":"t1","name":"TodoWrite","input":{"todos":[{"content":"Layout","status":"completed"},{"content":"Texte","status":"pending"}]}}]}}"#,
+            #"{"type":"user","cwd":"/tmp/demo","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}"#,
+            #"{"type":"assistant","cwd":"/tmp/demo","isSidechain":true,"message":{"content":[{"type":"text","text":"Unteragent"}]}}"#,
+            #"{"type":"assistant","cwd":"/tmp/demo","message":{"content":[{"type":"text","text":"Das Layout steht."}]}}"#,
+        ]
+        try? transcript.joined(separator: "\n").write(to: project.appendingPathComponent("demo.jsonl"), atomically: true, encoding: .utf8)
+        let projects = folder.appendingPathComponent("projects")
+        let idle = ClaudeSessions.scan(root: projects, now: Date(), running: [])
+        expect(idle.count == 1 && idle.first?.title == "Baue die Startseite" && idle.first?.folder == "/tmp/demo"
+               && idle.first?.lastMessage == "Das Layout steht." && idle.first?.openTodos == 1 && idle.first?.status == .open,
+               "the agent overview reads a session: title, folder, last answer, open todos (\(idle))")
+        let live = ClaudeSessions.scan(root: projects, now: Date(), running: ["/tmp/demo"])
+        expect(live.first?.status == .waiting, "a session whose claude still runs and has answered waits for you")
+        let history = ClaudeSessions.messages(in: project.appendingPathComponent("demo.jsonl"))
+        expect(history.map(\.role) == [.user, .tool, .assistant] && history[1].output == "ok",
+               "a session opens as a chat with its history (\(history.map(\.role)))")
+        browser.showAgentOverview()
+        expect(browser.state.agentOverviewVisible && browser.state.activeItem == nil && browser.shownTabs.isEmpty,
+               "the agent overview shows in place of the page")
+
+        // The glass look lets the desktop through the window.
+        library.settings.glass = true
+        browser.applyTheme()
+        expect(browser.window?.isOpaque == false && browser.window?.backgroundColor.alphaComponent == 0,
+               "the glass look makes the window see-through")
+        library.settings.glass = false
+        browser.applyTheme()
+        expect(browser.window?.isOpaque == true, "and without it the window is solid again")
+
         guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
             expect(false, "a new agent chat")
             return done()
         }
+        expect(!browser.state.agentOverviewVisible, "a chat takes the overview's place")
         expect(browser.state.activeItem === chat && browser.shownTabs.isEmpty && chat.role == .today,
                "an agent chat shows in place of the page, under the line")
         eventually({ !session.isRunning }, timeout: 5) { finished in

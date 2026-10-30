@@ -19,6 +19,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) var visibleTabs: [Item] = []
     private var itemsByPane: [ObjectIdentifier: Item] = [:]
     private let rootView = BrowserRootView()
+    /// The glass look (Settings › Allgemein): the desktop blurred behind the
+    /// window, and the space's color over it.
+    private let glass = NSVisualEffectView()
+    private let glassTint = NSView()
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
     private var agentHost: NSHostingView<AgentContentView>!
@@ -64,6 +68,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
         rootView.controller = self
         window.contentView = rootView
+        glass.material = .sidebar
+        glass.blendingMode = .behindWindow
+        glass.state = .followsWindowActiveState
+        glassTint.wantsLayer = true
+        rootView.addSubview(glass)
+        rootView.addSubview(glassTint)
         sidebarHost = NSHostingView(rootView: SidebarView(browser: self))
         sidebarHost.sizingOptions = []
         emptyHost = NSHostingView(rootView: EmptyContentView(browser: self))
@@ -146,9 +156,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
     }
 
-    private func applyTheme() {
+    func applyTheme() {
         let theme = SpaceTheme(hex: state.space.colorHex)
-        window?.backgroundColor = isFrontmost ? theme.base : theme.inactiveBase
+        let base = isFrontmost ? theme.base : theme.inactiveBase
+        let glassy = library.settings.glass
+        glass.isHidden = !glassy
+        glassTint.isHidden = !glassy
+        glassTint.layer?.backgroundColor = base.withAlphaComponent(library.settings.glassTint).cgColor
+        window?.isOpaque = !glassy
+        window?.backgroundColor = glassy ? .clear : base
         if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
             AppIcons.spaceDidChange(state.space.colorHex)
         }
@@ -199,6 +215,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func layoutContent() {
         guard let window else { return }
         let bounds = rootView.bounds
+        glass.frame = bounds
+        glassTint.frame = bounds
         sidebarHost.isHidden = !state.sidebarVisible
         sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible
@@ -206,7 +224,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         sidebarEdge.isHidden = state.sidebarVisible
         sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
         let content = contentRect
-        let showsAgent = state.activeItem?.kind == .agent
+        let showsAgent = state.activeItem?.kind == .agent || state.agentOverviewVisible
         emptyHost.frame = content
         emptyHost.isHidden = !visibleTabs.isEmpty || showsAgent
         agentHost.frame = content
@@ -502,6 +520,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .tab, .agent:
             break
         }
+        state.agentOverviewVisible = false
         if peek.isOpen {
             peek.close()
         }

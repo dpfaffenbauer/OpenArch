@@ -344,6 +344,11 @@ struct Settings: Codable, Equatable {
     var agentChats = false
     /// The folder new agent chats work in; empty for the home folder.
     var agentFolder = ""
+    /// The glass look: the desktop shows blurred through the sidebar,
+    /// tinted with the space's color.
+    var glass = false
+    /// How much of the space's color lies over the glass (0–1).
+    var glassTint = 0.55
 
     init() {}
 
@@ -368,6 +373,8 @@ struct Settings: Codable, Equatable {
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
         agentChats = try container.decodeIfPresent(Bool.self, forKey: .agentChats) ?? defaults.agentChats
         agentFolder = try container.decodeIfPresent(String.self, forKey: .agentFolder) ?? defaults.agentFolder
+        glass = try container.decodeIfPresent(Bool.self, forKey: .glass) ?? defaults.glass
+        glassTint = try container.decodeIfPresent(Double.self, forKey: .glassTint) ?? defaults.glassTint
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

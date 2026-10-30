@@ -249,11 +249,22 @@ private struct GeneralPage: View {
         }
         Section(title: "Sidebar") {
             Row(symbol: "sidebar.left", color: .purple, title: "Breite",
-                detail: "Auch durch Ziehen am Rand der Sidebar; ganz nach links zieht sie zu.", showsDivider: false) {
+                detail: "Auch durch Ziehen am Rand der Sidebar; ganz nach links zieht sie zu.") {
                 Slider(value: $library.settings.sidebarWidth, in: 200...440, step: 10).frame(width: 160)
                     .onChange(of: library.settings.sidebarWidth) { app.browsers.forEach { $0.layoutContent() } }
             }
+            Row(symbol: "rectangle.on.rectangle", color: .cyan, title: "Glas-Effekt",
+                detail: "Der Schreibtisch scheint verschwommen durch die Sidebar, getönt in der Farbe des Space. Die Seiten liegen als Karten darauf.") {
+                Toggle("", isOn: $library.settings.glass).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "drop.halffull", color: .cyan, title: "Farbe über dem Glas",
+                detail: "Wenig lässt mehr vom Schreibtisch durch, viel hält die Schrift gut lesbar.", showsDivider: false) {
+                Slider(value: $library.settings.glassTint, in: 0.15...0.9).frame(width: 160)
+                    .disabled(!library.settings.glass)
+            }
         }
+        .onChange(of: library.settings.glass) { app.browsers.forEach { $0.applyTheme() } }
+        .onChange(of: library.settings.glassTint) { app.browsers.forEach { $0.applyTheme() } }
         AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }

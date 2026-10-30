@@ -383,7 +383,7 @@ final class AgentSession {
 
     // MARK: Helpers
 
-    static func text(of content: Any?) -> String {
+    nonisolated static func text(of content: Any?) -> String {
         if let text = content as? String { return text }
         let parts = content as? [[String: Any]] ?? []
         return parts.compactMap { $0["text"] as? String }.joined(separator: "\n")
@@ -426,6 +426,16 @@ final class AgentSession {
         do {
             try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
             try JSONEncoder().encode(messages).write(to: Self.transcriptURL(item.id), options: .atomic)
+        } catch {
+            log("could not save agent chat: \(error)")
+        }
+    }
+
+    /// A chat's messages before it is opened (a session from the overview).
+    static func writeTranscript(_ messages: [AgentMessage], for id: UUID) {
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try JSONEncoder().encode(messages).write(to: transcriptURL(id), options: .atomic)
         } catch {
             log("could not save agent chat: \(error)")
         }
@@ -566,7 +576,7 @@ enum AgentEnvironment {
 
     /// Runs a command and returns what it printed, or nil after |timeout|
     /// seconds (a shell setup that waits for input).
-    private nonisolated static func run(_ executable: String, _ arguments: [String], timeout: Double = 10) -> String? {
+    nonisolated static func run(_ executable: String, _ arguments: [String], timeout: Double = 10) -> String? {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-shell-\(UUID().uuidString)")
         guard FileManager.default.createFile(atPath: file.path, contents: nil),
               let handle = try? FileHandle(forWritingTo: file) else { return nil }

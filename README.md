@@ -65,7 +65,9 @@ run. Data lives in
 - **Links to apps** (bambustudioopen:, zoommtg:, mailto: …) open the app on
   the Mac after asking, as in Chrome; „immer öffnen“ remembers it per site.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and
-  favicons taken from Arc's own icon cache. Drag the sidebar edge far to the
+  favicons taken from Arc's own icon cache. Or glass (Settings › Allgemein ›
+  Sidebar): the desktop shows blurred through the sidebar, tinted with the
+  space's color, and the pages lie on it as cards. Drag the sidebar edge far to the
   left to collapse it, ⌘S brings it back.
 - **Arc's gestures and shortcuts:** swipe sideways over the sidebar
   (trackpad or Magic Mouse) to change spaces, and past the first one to open
@@ -88,6 +90,12 @@ run. Data lives in
   the chat with a button to allow it. Start one from the sidebar's + menu,
   Ablage › Neuer Agent-Chat, or the command bar (a sentence, then
   "Agent-Chat starten").
+- **Agents overview** (the Agents row under the line, or Ansicht ›
+  Agent-Übersicht): every Claude Code session on this Mac from the last
+  week, read from Claude Code's own transcripts in `~/.claude/projects`,
+  grouped by what is at work, what waits for you (with a count in the
+  sidebar) and what has open todos. A click continues a session as an
+  agent chat with its history; it can also be continued in Terminal.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:
