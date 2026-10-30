@@ -30,7 +30,7 @@ builds OpenArch with it, commits the update to `main` and publishes a new
 nightly. A failed build stops the update and shows up as a failed workflow
 run. Data lives in
 `~/Library/Application Support/OpenArch` (`Library.json` for the sidebar,
-`Chromium/` for Chromium's profiles).
+`Chromium/` for Chromium's profiles, `Agents/` for agent chats).
 
 ## What works
 
@@ -77,6 +77,17 @@ run. Data lives in
   under Settings › Links. It has back, forward and reload, and the puzzle
   button shows Chrome's toolbar with your extensions. "In Space öffnen" moves
   the page into the main window without reloading it.
+- **Agent chats** (Settings › KI › Agents in der Sidebar): a chat with
+  Claude Code sits in the sidebar like a tab and shows where the page
+  would be. It runs the `claude` command line tool in a folder of your
+  choice, on your own login (your subscription, no API key), continues its
+  session with every message and keeps working while you are in other
+  tabs: a wheel while it works, a dot when it has answered. With AI control
+  on, it gets OpenArch's tabs as tools too. What it may do on its own is
+  set per chat (ask, edit files, everything); a refused command shows in
+  the chat with a button to allow it. Start one from the sidebar's + menu,
+  Ablage › Neuer Agent-Chat, or the command bar (a sentence, then
+  "Agent-Chat starten").
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:

@@ -457,6 +457,60 @@ private struct AskAISection: View {
     }
 }
 
+/// Agent chats: Claude Code in the sidebar, on the login of the claude
+/// command line tool.
+private struct AgentChatsSection: View {
+    @Bindable var library: Library
+    @State private var claude: String?
+    @State private var looking = true
+
+    var body: some View {
+        Section(title: "Agents in der Sidebar",
+                footer: "Ein Agent-Chat steht in der Sidebar wie ein Tab. Claude Code arbeitet darin in einem Ordner auf diesem Mac, mit dem Login von claude im Terminal und damit deinem Abo, ganz ohne API-Schlüssel. Ist die KI-Steuerung an, kann der Agent auch deine Tabs bedienen.") {
+            Row(symbol: "bubble.left.and.bubble.right", color: .indigo, title: "Agent-Chats",
+                detail: "„Neuer Agent-Chat“ im Plus-Menü der Sidebar, in der Befehlsleiste (⌘T) und unter Ablage.") {
+                Toggle("", isOn: $library.settings.agentChats).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "folder", color: .blue, title: "Ordner für neue Chats",
+                detail: (library.settings.agentFolderPath as NSString).abbreviatingWithTildeInPath) {
+                Button("Wählen …") { chooseFolder() }
+            }
+            Row(symbol: "terminal", color: .gray, title: "Claude Code", detail: status, showsDivider: false) {
+                Button("Erneut suchen") {
+                    AgentEnvironment.forget()
+                    Task { await lookUp() }
+                }
+                .disabled(looking)
+            }
+        }
+        .task { await lookUp() }
+        .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+
+    private var status: String {
+        if looking { return "Wird gesucht …" }
+        guard let claude else { return "Nicht gefunden. Installieren: claude.ai/code, dann einmal „claude“ im Terminal zum Anmelden." }
+        return "Gefunden: " + (claude as NSString).abbreviatingWithTildeInPath
+    }
+
+    private func lookUp() async {
+        looking = true
+        claude = await AgentEnvironment.resolved().claude
+        looking = false
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Wählen"
+        panel.directoryURL = URL(fileURLWithPath: library.settings.agentFolderPath)
+        if panel.runModal() == .OK, let url = panel.url {
+            library.settings.agentFolder = url.path
+        }
+    }
+}
+
 private struct AIPage: View {
     let app: AppDelegate
     @State private var enabled = AIControl.isEnabled
@@ -466,6 +520,7 @@ private struct AIPage: View {
     var body: some View {
         let running = OACEngine.remoteDebuggingPort
         AskAISection(library: app.library)
+        AgentChatsSection(library: app.library)
         Section(title: "KI-Steuerung",
                 footer: "OpenArch öffnet dafür Chromes DevTools-Protokoll auf 127.0.0.1. Solange das an ist, kann jedes Programm auf diesem Mac den Browser steuern, auch eingeloggte Tabs. Schalte es nur ein, wenn du es brauchst.") {
             Row(symbol: "sparkles", color: .orange, title: "KI-Steuerung erlauben",

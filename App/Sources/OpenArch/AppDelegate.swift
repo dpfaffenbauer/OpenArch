@@ -122,6 +122,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             quitProbe()
             return .terminateCancel
         }
+        AgentSession.stopAll()
         library?.freeze()
         if !selfTest {
             AppIcons.saveForDock()
@@ -274,6 +275,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The settings, open on |page|.
+    func showSettings(page: SettingsPage) {
+        showSettings(nil)
+        settingsWindow?.contentView = NSHostingView(rootView: SettingsView(app: self, page: page))
+    }
+
     @objc func importFromArc(_ sender: Any?) {
         guard let browser = mainBrowser else { return }
         do {
@@ -398,6 +405,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     @objc func reopenTab(_ sender: Any?) { browser?.reopenClosedTab() }
     @objc func newFolder(_ sender: Any?) { browser?.newFolder() }
+    @objc func newAgentChat(_ sender: Any?) { mainBrowser?.newAgentChat() }
     @objc func newSpace(_ sender: Any?) { browser?.addSpace() }
     @objc func editSpace(_ sender: Any?) {
         guard let browser else { return }
@@ -408,7 +416,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func toggleToolbar(_ sender: Any?) { browser?.toggleChromeToolbar() }
     @objc func editBoost(_ sender: Any?) { browser?.editBoost() }
     @objc func showSiteControls(_ sender: Any?) {
-        guard let browser, browser.state.activeItem != nil else { return }
+        guard let browser, browser.state.activeItem?.kind == .tab else { return }
         if !browser.state.sidebarVisible { browser.toggleSidebar() }
         browser.state.siteControlsVisible = true
     }
@@ -561,6 +569,7 @@ enum MainMenu {
             item("Neues Little-OpenArch-Fenster", #selector(AppDelegate.newLittleOpenArch(_:)), "n", [.command, .option]),
             item("Adresse öffnen …", #selector(AppDelegate.openLocation(_:)), "l"),
             item("Neuer Ordner", #selector(AppDelegate.newFolder(_:))),
+            item("Neuer Agent-Chat", #selector(AppDelegate.newAgentChat(_:))),
             .separator(),
             item("Tab schließen", #selector(AppDelegate.closeTab(_:)), "w"),
             item("Fenster schließen", #selector(AppDelegate.closeWindow(_:)), "w", [.command, .shift]),

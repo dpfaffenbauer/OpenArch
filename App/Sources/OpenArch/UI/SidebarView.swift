@@ -200,7 +200,7 @@ private struct SidebarTopBar: View {
                     .help("KI-Steuerung aktiv: Chrome DevTools Protocol auf 127.0.0.1:\(OACEngine.remoteDebuggingPort)")
             }
             Spacer()
-            if let active, !floating {
+            if let active, active.kind == .tab, !floating {
                 IconButton(symbol: "slider.horizontal.3", help: "Website-Einstellungen: Berechtigungen, Zoom, Daten") {
                     browser.state.siteControlsVisible.toggle()
                 }
@@ -394,6 +394,9 @@ private struct SpaceHeader: View {
             Menu {
                 Button("Space bearbeiten …") { editing.wrappedValue = true }
                 Button("Neuer Ordner") { browser.newFolder() }
+                if browser.library.settings.agentChats {
+                    Button("Neuer Agent-Chat") { browser.newAgentChat() }
+                }
                 Divider()
                 Button("Neuer Space") { browser.addSpace() }
                 Button("Space löschen …") { browser.deleteSpace(space) }
@@ -470,6 +473,8 @@ private struct SidebarNode: View {
             SplitRow(browser: browser, item: item, theme: theme, depth: depth)
         case .tab:
             TabRow(browser: browser, item: item, theme: theme, depth: depth)
+        case .agent:
+            AgentRow(browser: browser, item: item, theme: theme, depth: depth)
         }
     }
 }
@@ -607,6 +612,65 @@ private struct TabRow: View {
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
         .contextMenu { TabContextMenu(browser: browser, item: item) }
         .help(item.currentURL)
+    }
+}
+
+/// An agent chat: a turning wheel while the agent works, a dot when it
+/// answered while you were elsewhere.
+private struct AgentRow: View {
+    let browser: BrowserWindowController
+    let item: Item
+    let theme: SpaceTheme
+    let depth: Int
+    @State private var hovering = false
+    @State private var dropZone: DropZone?
+
+    var body: some View {
+        let isActive = browser.state.activeItem === item
+        let session = item.agentSession
+        HStack(spacing: 10) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 16)
+            RenamableTitle(browser: browser, item: item)
+                .font(.system(size: 14))
+            Spacer(minLength: 2)
+            if hovering {
+                if item.role == .today {
+                    SmallButton(symbol: "xmark", help: "Chat schließen (⌘W)") { browser.close(item) }
+                } else if item.role == .pinned {
+                    SmallButton(symbol: "xmark", help: "Lösen: zu den Tabs unter dem Strich") { browser.togglePin(item) }
+                }
+            } else if session?.isRunning == true {
+                ProgressView().controlSize(.mini).opacity(0.6)
+            } else if session?.isUnread == true {
+                Circle().fill(theme.foreground).frame(width: 7, height: 7).padding(.trailing, 6)
+            }
+        }
+        .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone)
+        .onTapGesture { browser.select(item) }
+        .onHover { hovering = $0 }
+        .onDrag { tabDragProvider(item) }
+        .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
+        .contextMenu {
+            Button("Umbenennen") { browser.state.renamingItemID = item.id }
+            if item.role == .today {
+                Button("Anheften (⌘D)") { browser.togglePin(item) }
+            } else if item.role == .pinned {
+                Button("Lösen") { browser.togglePin(item) }
+            }
+            if let folder = item.agent?.folder {
+                Button("Ordner im Finder zeigen") {
+                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: folder)])
+                }
+            }
+            Divider()
+            if session?.isRunning == true {
+                Button("Anhalten") { session?.stop() }
+            }
+            Button("Chat löschen") { browser.deleteAgentChat(item) }
+        }
+        .help(item.agent.map { "Agent-Chat in \(($0.folder as NSString).abbreviatingWithTildeInPath)" } ?? "")
     }
 }
 
@@ -759,6 +823,9 @@ private struct NewTabRow: View {
             Spacer()
             if hovering {
                 Text("⌘T").font(.system(size: 11)).opacity(0.6)
+                if browser.library.settings.agentChats, !browser.isPrivate {
+                    SmallButton(symbol: "sparkles", help: "Neuer Agent-Chat") { browser.newAgentChat() }
+                }
             }
         }
         .foregroundStyle(theme.secondary)
@@ -798,6 +865,9 @@ private struct SpaceBar: View {
             Menu {
                 Button("Neuer Space") { browser.addSpace() }
                 Button("Neuer Ordner") { browser.newFolder() }
+                if browser.library.settings.agentChats, !browser.isPrivate {
+                    Button("Neuer Agent-Chat") { browser.newAgentChat() }
+                }
                 Menu("GitHub-Live-Ordner") {
                     Button("Meine Pull Requests") { browser.newLiveFolder(.myPullRequests, name: "Meine Pull Requests") }
                     Button("Reviews für mich") { browser.newLiveFolder(.reviewRequests, name: "Reviews für mich") }

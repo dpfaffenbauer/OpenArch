@@ -85,6 +85,7 @@ final class Library {
         guard spaces.count > 1 else { return }
         for item in space.pinned.allItems + space.today.allItems {
             item.pane?.close()
+            item.agentSession?.stop()
         }
         spaces.removeAll { $0 === space }
         setNeedsSave()
@@ -339,6 +340,10 @@ struct Settings: Codable, Equatable {
     var devToolsDock = DevToolsDock.right
     /// Sites whose links to an app open it without asking: "host scheme".
     var allowedExternalApps: [String] = []
+    /// Agent chats (Claude Code) in the sidebar, next to the tabs.
+    var agentChats = false
+    /// The folder new agent chats work in; empty for the home folder.
+    var agentFolder = ""
 
     init() {}
 
@@ -361,6 +366,8 @@ struct Settings: Codable, Equatable {
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
+        agentChats = try container.decodeIfPresent(Bool.self, forKey: .agentChats) ?? defaults.agentChats
+        agentFolder = try container.decodeIfPresent(String.self, forKey: .agentFolder) ?? defaults.agentFolder
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -371,6 +378,16 @@ extension Settings {
     @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
         OACPane.devToolsDock = devToolsDock.dock
+    }
+
+    /// Where a new agent chat works: the chosen folder while it is there,
+    /// else the home folder.
+    var agentFolderPath: String {
+        var isFolder: ObjCBool = false
+        if !agentFolder.isEmpty, FileManager.default.fileExists(atPath: agentFolder, isDirectory: &isFolder), isFolder.boolValue {
+            return agentFolder
+        }
+        return FileManager.default.homeDirectoryForCurrentUser.path
     }
 }
 

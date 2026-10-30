@@ -116,7 +116,7 @@ extension BrowserWindowController {
         let anchor = item.split ?? item
         let tabs = anchor.kind == .tab ? [anchor] : anchor.descendants.filter { $0.kind == .tab }
         let sameProfile = space.profileID == library.profile(for: item, in: state.space).id
-        let wasShown = tabs.contains { $0 === state.activeItem }
+        let wasShown = tabs.contains { $0 === state.activeItem } || anchor === state.activeItem
         for tab in tabs where !sameProfile {
             tab.savedURL = tab.currentURL
             unload(tab)
@@ -150,7 +150,8 @@ extension BrowserWindowController {
         library.setNeedsSave()
     }
 
-    /// Archives every today tab of the current space ("Aufräumen").
+    /// Archives every today tab of the current space ("Aufräumen"). Agent
+    /// chats stay: there is no archive to bring them back from.
     func clearToday() {
         let tabs = state.space.today.allTabs
         let activeWasToday = tabs.contains { $0 === state.activeItem }
@@ -158,7 +159,7 @@ extension BrowserWindowController {
             if !isPrivate { library.archive(tab) }
             unload(tab)
         }
-        for item in state.space.today.items {
+        for item in state.space.today.items where item.kind != .agent {
             item.detach()
         }
         if activeWasToday {
@@ -223,6 +224,9 @@ extension BrowserWindowController {
         for container in library.allContainers {
             for tab in container.allTabs {
                 unload(tab)
+            }
+            for item in container.allItems where item.kind == .agent {
+                item.agentSession?.stop()
             }
         }
         state.activeItem = nil

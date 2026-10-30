@@ -126,7 +126,7 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (64.5, "windows", { self.windowsTest() }),
-            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } }),
+            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -852,6 +852,80 @@ final class SelfTest {
     /// checks that the sidebar learns about it.
     /// A tab nobody looked at goes to sleep and comes back on the same page;
     /// one whose page asks before leaving stays awake.
+    /// Agent chats, with a stand-in for claude that answers in Claude Code's
+    /// stream-json: the chat shows the streamed text, the tool and what was
+    /// refused, remembers the session and continues it with the next message.
+    private func agentChats(then next: @escaping () -> Void) {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-agent-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let events = [
+            #"{"type":"system","subtype":"init","session_id":"selftest-session"}"#,
+            #"{"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}}"#,
+            #"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Ich schaue "}}}"#,
+            #"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"nach."}}}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich schaue nach."}]}}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"Bash","input":{"command":"ls -la"}}]}}"#,
+            #"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"Not allowed","is_error":true}]}}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich darf **ls** nicht ausführen."}]}}"#,
+            #"{"type":"result","subtype":"success","is_error":false,"session_id":"selftest-session","permission_denials":[{"tool_name":"Bash","tool_use_id":"toolu_1","tool_input":{"command":"ls -la"}}]}"#,
+        ]
+        let claude = folder.appendingPathComponent("claude")
+        let script = """
+            #!/bin/sh
+            cat > "$(dirname "$0")/prompt.txt"
+            printf '%s\\n' "$@" > "$(dirname "$0")/arguments.txt"
+            cat <<'EOF'
+            \(events.joined(separator: "\n"))
+            EOF
+            """
+        try? script.write(to: claude, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: claude.path)
+        AgentEnvironment.stub = AgentEnvironment.Resolved(claude: claude.path, variables: ProcessInfo.processInfo.environment)
+        library.settings.agentChats = true
+        library.settings.agentFolder = folder.path
+        let shown = browser.state.activeItem
+        func done() {
+            AgentEnvironment.stub = nil
+            library.settings.agentChats = false
+            library.settings.agentFolder = ""
+            try? FileManager.default.removeItem(at: folder)
+            if let shown, shown.container != nil { browser.select(shown, focus: false) }
+            next()
+        }
+        guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
+            expect(false, "a new agent chat")
+            return done()
+        }
+        expect(browser.state.activeItem === chat && browser.shownTabs.isEmpty && chat.role == .today,
+               "an agent chat shows in place of the page, under the line")
+        eventually({ !session.isRunning }, timeout: 5) { finished in
+            let roles = session.messages.map(\.role)
+            self.expect(finished && roles == [.user, .assistant, .tool, .assistant, .denied],
+                        "the agent's answer, its tool and what it was refused show in the chat (\(roles))")
+            let tool = session.messages.first { $0.role == .tool }
+            self.expect(session.messages.first { $0.role == .assistant }?.text == "Ich schaue nach."
+                        && tool?.text == "ls -la" && tool?.failed == true,
+                        "streamed text becomes the whole answer, and the refused command shows")
+            self.expect(session.messages.last?.tool == "Bash(ls:*)", "allowing the refusal allows ls commands")
+            let prompt = try? String(contentsOf: folder.appendingPathComponent("prompt.txt"), encoding: .utf8)
+            self.expect(prompt == "Was liegt hier?" && chat.displayTitle == "Was liegt hier?",
+                        "the message goes to claude on stdin and names the chat (\(prompt ?? "nothing"))")
+            self.expect(chat.agent?.sessionID == "selftest-session", "the chat remembers Claude Code's session")
+            let restored = Item(data: chat.data)
+            self.expect(restored.kind == .agent && restored.agent == chat.agent && restored.displayTitle == chat.displayTitle,
+                        "an agent chat is saved with its folder and session")
+            session.send("Weiter")
+            self.eventually({ !session.isRunning }, timeout: 5) { _ in
+                let arguments = (try? String(contentsOf: folder.appendingPathComponent("arguments.txt"), encoding: .utf8)) ?? ""
+                self.expect(arguments.contains("--resume\nselftest-session\n") && arguments.contains("--permission-mode\ndefault\n"),
+                            "the next message continues the session")
+                self.browser.close(chat)
+                self.expect(chat.container == nil && self.browser.state.activeItem !== chat, "closing an agent chat removes it")
+                done()
+            }
+        }
+    }
+
     private func sleepingTabs(then next: @escaping () -> Void) {
         guard let space = library.spaces.first else { return }
         browser.switchSpace(to: space)

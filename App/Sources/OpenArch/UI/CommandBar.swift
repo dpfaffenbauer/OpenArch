@@ -318,6 +318,9 @@ final class CommandBarModel {
         } else {
             results.append(searchResult(text))
         }
+        if Self.url(fromInput: text) == nil, let agent = agentResult(text) {
+            results.append(agent)
+        }
         if let candidate = siteCandidate(text) {
             results.append(CommandResult(id: "site:\(candidate.id)", icon: .url(candidate.url), title: "\(candidate.name) durchsuchen",
                                          subtitle: candidate.keyword.isEmpty ? nil : "Kürzel: \(candidate.keyword)", badge: "Tab",
@@ -328,6 +331,11 @@ final class CommandBarModel {
         for item in tabs {
             seenURLs.insert(item.currentURL)
             results.append(tabResult(item))
+        }
+        for chat in matchingAgentChats(text).prefix(3) {
+            results.append(CommandResult(id: "tab:\(chat.id)", icon: .symbol("sparkles"), title: chat.displayTitle,
+                                         subtitle: "Agent-Chat", badge: "Zum Chat wechseln",
+                                         action: { [unowned self] in self.browser.select(chat) }))
         }
 
         for command in matchingCommands(text).prefix(3) {
@@ -395,6 +403,22 @@ final class CommandBarModel {
         guard let url = chat.url(for: text) else { return nil }
         return CommandResult(id: "ask:\(text)", icon: .url(url), title: text, subtitle: "\(chat.name) fragen",
                              action: { [unowned self] in self.open(url) })
+    }
+
+    /// A new agent chat (Claude Code in the sidebar) with the input as its
+    /// first message.
+    private func agentResult(_ text: String) -> CommandResult? {
+        guard case .newTab = mode, browser.library.settings.agentChats, !browser.isPrivate else { return nil }
+        return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: "Agent-Chat starten",
+                             action: { [unowned self] in self.browser.newAgentChat(prompt: text) })
+    }
+
+    private func matchingAgentChats(_ text: String) -> [Item] {
+        guard !browser.isPrivate else { return [] }
+        return browser.library.spaces
+            .flatMap { ($0.pinned.allItems + $0.today.allItems).filter { $0.kind == .agent } }
+            .filter { matches(text, $0.displayTitle) }
+            .sorted { $0.lastActiveAt > $1.lastActiveAt }
     }
 
     private func searchResult(_ text: String) -> CommandResult {
@@ -498,7 +522,11 @@ final class CommandBarModel {
             ("OpenArch-Einstellungen", "gearshape", "⌘,", { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
             ("Aus Arc importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }),
         ]
-        if let active {
+        if browser.library.settings.agentChats, !browser.isPrivate {
+            let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
+            commands.append(agent)
+        }
+        if let active, active.kind == .tab {
             let tabCommands: [Command] = [
                 ("URL kopieren", "link", "⌘⇧C", { browser.copyURL() }),
                 (active.role == .today ? "Tab anheften" : "Tab lösen", "pin", "⌘D", { browser.togglePin(active) }),
