@@ -2,7 +2,7 @@ name: iOS
 
 on:
   push:
-    paths: ["iOS/**", "Shared/**", ".github/workflows/ios.yml"]
+    paths: ["iOS/**", "Shared/**", "relay/relay.js", "relay/test/serve.mjs", ".github/workflows/ios.yml"]
   pull_request:
   workflow_dispatch:
 
@@ -54,8 +54,9 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b > /dev/null
           xcrun simctl install "$udid" build/ios/Build/Products/Debug-iphonesimulator/OpenArch.app
-          (cd relay && npx --yes wrangler@3 dev --port 8787 > ../relay.log 2>&1) &
-          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 2; done
+          # relay.js on a plain server: wrangler dev stalled requests here now and then.
+          node relay/test/serve.mjs 8787 > relay.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
           curl -sf -o /dev/null http://localhost:8787/ || { tail -30 relay.log; exit 1; }
           # The app quits when it is done; four minutes at most.
           xcrun simctl launch --console-pty "$udid" at.pfaffenbauer.openarch -selftest -relay http://localhost:8787 > selftest.log 2>&1 &

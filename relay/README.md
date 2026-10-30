@@ -38,6 +38,9 @@ App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --relay http://localho
 xcrun simctl launch --console-pty booted at.pfaffenbauer.openarch -selftest -relay http://localhost:8787
 ```
 
+`node relay/test/serve.mjs 8787` does the same with nothing to install, its data
+in memory; that is what `ios.yml` uses.
+
 The web page only talks to `https` relays, so to try a live link there, put a
 tunnel in front: `cloudflared tunnel --url http://localhost:8787`.
 
