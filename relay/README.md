@@ -35,7 +35,7 @@ and end a live share against it:
 
 ```sh
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --relay http://localhost:8787
-xcrun simctl launch --console-pty booted dev.openarch.mobile -selftest -relay http://localhost:8787
+xcrun simctl launch --console-pty booted at.pfaffenbauer.openarch -selftest -relay http://localhost:8787
 ```
 
 The web page only talks to `https` relays, so to try a live link there, put a
