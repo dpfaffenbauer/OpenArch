@@ -62,7 +62,7 @@ final class Sharing {
     private func startTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in
-            MainActor.assumeIsolated { Task { await Sharing.shared.refresh() } }
+            Task { @MainActor in await Sharing.shared.refresh() }
         }
     }
 
