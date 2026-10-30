@@ -2,7 +2,9 @@
 
 An open-source, Chromium-based browser for macOS in the spirit of Arc:
 sidebar with favorites, pinned folders and today tabs, Spaces with their own
-profiles, a command bar, split view, and real Chrome extensions.
+profiles, a command bar, split view, and real Chrome extensions. With a
+companion for iPhone and iPad, and folders and spaces shared as encrypted
+links, without an account.
 
 Status: early, but usable as a daily browser for testing.
 [Download the latest release](https://github.com/dpfaffenbauer/OpenArch/releases/latest)
@@ -17,6 +19,11 @@ App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, 
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
+
+OpenArch for iPhone and iPad: open `iOS/OpenArch.xcodeproj` in Xcode and run
+it (choose your team under Signing for a device). `ios.yml` builds it for the
+simulator on every push that touches it, runs its self-test there
+(`-selftest`, see `iOS/OpenArch/SelfTest.swift`) and keeps the screenshots.
 
 GitHub Actions builds every push (`.github/workflows/build.yml`) and keeps
 the newest build of `main` as the
@@ -134,6 +141,31 @@ run. Data lives in
   encrypted values are re-encrypted with OpenArch's key.
 - **Default browser:** OpenArch can be set as the default browser and opens
   links from other apps.
+- **Sharing without an account:** a pinned folder (… › Teilen …) or a space
+  (Space teilen …) becomes a link and a QR code. *Aktuell halten* keeps it
+  live: the bookmarks lie encrypted and signed on a small relay, and
+  everyone who added the link gets your changes every five minutes; only
+  the Mac or iPhone that shared it can change it. Without it, the bookmarks
+  travel inside the link itself and no server is involved. Either can have
+  a password. The key is in the link's `#fragment`, so neither the relay
+  nor openarch.app ever sees it. A link opens in OpenArch on the Mac or
+  iPhone (+ › Geteilten Link öffnen …, or Code scannen on the iPhone), which
+  adds it as a folder or a space, following it or as a copy, and on
+  openarch.app/s/ for everyone else. Settings › Teilen lists what is
+  shared and followed. Format and threat model: [docs/sharing.md](docs/sharing.md).
+
+## OpenArch for iPhone and iPad
+
+The same sidebar on WebKit (iOS only allows WebKit): spaces in their
+colors, swiped through sideways; favorites, pinned folders and today tabs,
+which go to the archive after twelve hours. The page fills the screen with
+a bar below it (sidebar, back, address, new tab, menu); on the iPad the
+sidebar sits beside the page, as on the Mac. The address field completes
+from the search engine and finds open tabs, favorites and the archive. Your
+Mac's spaces come over by sharing them (Space teilen …, Aktuell halten) and
+scanning the QR code with the iPhone's camera or Code scannen in OpenArch;
+they then follow the Mac. Folders and spaces on the iPhone are shared the
+same way.
 
 ## Architecture
 
@@ -180,7 +212,12 @@ Lessons learned on the way:
 ## Layout
 
 - `App/`: the browser
-- `website/`: the website, published by `.github/workflows/pages.yml`
+- `iOS/`: OpenArch for iPhone and iPad (`OpenArch.xcodeproj`)
+- `Shared/`: the Swift package both use for sharing (format, crypto, relay client, tests)
+- `relay/`: the relay for live shares, a Cloudflare Worker ([README](relay/README.md))
+- `docs/sharing.md`: the sharing format, its threat model and the relay API
+- `website/`: the website, published by `.github/workflows/pages.yml`;
+  `website/s/` shows shared links to people without OpenArch
 - `scripts/fetch-cef.sh`: downloads the pinned CEF binary distribution into `Vendor/cef`
 - `scripts/update-cef.sh`: moves the pin to the newest stable CEF build
 - `scripts/patch-cef.swift`: lowers CEF's 2 s wait before extension popups appear

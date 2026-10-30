@@ -26,6 +26,13 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
         webView.allowsLinkPreview = true
         webView.isInspectable = true
         webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // Pull down to reload, as in Safari.
+        let refresh = UIRefreshControl()
+        refresh.addAction(UIAction { [weak webView, weak refresh] _ in
+            webView?.reload()
+            refresh?.endRefreshing()
+        }, for: .valueChanged)
+        webView.scrollView.refreshControl = refresh
         observe()
         if let url = URL(string: item.currentURL), !item.currentURL.isEmpty {
             webView.load(URLRequest(url: url))

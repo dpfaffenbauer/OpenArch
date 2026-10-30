@@ -58,8 +58,9 @@ follower). For more, use the paid plan.
 ## Your own relay
 
 Companies and anyone else can run their own: deploy it as above under
-another name or domain, and choose it in OpenArch's settings (Teilen ›
-Server). Links made there name that relay, so the people they are sent to
+another name or domain, and choose it in OpenArch's settings (on the Mac
+Einstellungen › Teilen › Teilen-Server, on the iPhone Einstellungen ›
+Teilen-Server). Links made there name that relay, so the people they are sent to
 need nothing set up. The relay only has to answer the API in
 `docs/sharing.md`; `relay.js` runs anywhere with `fetch`-style `Request` and
 `Response` objects and WebCrypto with Ed25519.
