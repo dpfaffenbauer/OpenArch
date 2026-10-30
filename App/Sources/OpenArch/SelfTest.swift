@@ -4,6 +4,7 @@ import SQLite3
 import SwiftUI
 import UniformTypeIdentifiers
 import OpenArchCore
+import OpenArchShared
 
 /// `--selftest`: drives the real UI through its main paths with a throwaway
 /// library and the probe extension, logs results with a "[selftest]" prefix
@@ -80,6 +81,12 @@ final class SelfTest {
             quitWithStuckBrowser()
             return
         }
+        // --share-owner <relay> <folder>: a live share for another device to
+        // follow, changed when <folder>/update appears, ended on <folder>/end.
+        if let index = CommandLine.arguments.firstIndex(of: "--share-owner"), index + 2 < CommandLine.arguments.count {
+            shareOwner(relay: CommandLine.arguments[index + 1], signals: URL(fileURLWithPath: CommandLine.arguments[index + 2]))
+            return
+        }
         populate()
         let steps: [(Double, String, () -> Void)] = [
             (0.5, "today tab", { self.selectToday() }),
@@ -126,6 +133,9 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (64.5, "windows", { self.windowsTest() }),
+            // Last and on its own: it renders windows, which the steps taking
+            // pictures of tabs do not like.
+            (73, "sharing", { self.sharingTest() }),
             (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } }),
         ]
         for (time, name, step) in steps {
@@ -1763,6 +1773,190 @@ final class SelfTest {
                         "⌘W closes the tab in the window with the focus, the private window's last one; the window stays")
             privateWindow.closeActiveTab()
             self.expect(app.browsers.count == 1, "⌘W without a tab closes the window")
+        }
+    }
+
+    // MARK: Sharing
+
+    /// A folder as a snapshot link, opened again and added as a folder and as
+    /// a space; both windows rendered to look at. With --relay <url>, also a
+    /// live share, owned and followed in this library.
+    private func sharingTest() {
+        let space = browser.state.space
+        let sharing = Sharing.shared
+        sharing.start(library)
+        let folder = Item.folder("Lesestoff", children: [.tab(url: "https://example.com/a", title: "Artikel A"),
+                                                         .tab(url: "https://example.org/b", title: "Artikel B")])
+        space.pinned.insert(folder, at: 0)
+        Task { @MainActor in
+            do {
+                let link = try await sharing.snapshotLink(for: .folder(folder), password: nil)
+                self.expect(ShareURL(url: link.url) == link && ShareURL(url: link.appURL) == link, "a snapshot link reads back, as https:// and as openarch://")
+                let opened = try await ShareReader.open(link)
+                self.expect(opened.version == nil && opened.payload.name == "Lesestoff" && opened.payload.allTabs.map(\.url) == ["https://example.com/a", "https://example.org/b"],
+                            "the snapshot holds the folder and its tabs")
+
+                sharing.add(opened, asSpace: false, follow: false, in: space, browser: nil)
+                let copy = space.pinned.items.first
+                self.expect(copy !== folder && copy?.displayTitle == "Lesestoff" && copy?.children.map(\.savedURL) == ["https://example.com/a", "https://example.org/b"],
+                            "added as a folder, first in the space")
+                self.expect(copy?.children.first?.id != folder.children.first?.id, "a copy gets its own IDs")
+                self.expect(sharing.records.subscriptions.isEmpty, "a snapshot is not followed")
+                copy?.detach()
+
+                let spaces = self.library.spaces.count
+                sharing.add(opened, asSpace: true, follow: false, in: space, browser: nil)
+                let added = self.library.spaces.last
+                self.expect(self.library.spaces.count == spaces + 1 && added?.name == "Lesestoff" && added?.pinned.allTabs.count == 2,
+                            "added as a space of its own")
+                self.expect(added?.profileID == space.profileID, "with the profile of the space it came from")
+                if let added { self.library.removeSpace(added) }
+
+                let locked = try await sharing.snapshotLink(for: .folder(folder), password: "geheim")
+                do {
+                    _ = try await ShareReader.open(locked, password: "falsch")
+                    self.expect(false, "a wrong password is refused")
+                } catch {
+                    self.expect(error as? ShareError == .wrongPassword, "a wrong password is refused")
+                }
+                let unlocked = try await ShareReader.open(locked, password: "geheim")
+                self.expect(unlocked.payload.allTabs.count == 2, "the right password opens it")
+
+                if let app = NSApp.delegate as? AppDelegate {
+                    await self.renderShare(ShareWindows.shareContent(.folder(folder), app: app), "share-window")
+                    await self.renderShare(ShareWindows.importContent(link, app: app), "import-window")
+                    await self.renderShare(ShareWindows.importContent(locked, app: app), "import-password-window")
+                }
+                if let index = CommandLine.arguments.firstIndex(of: "--relay"), index + 1 < CommandLine.arguments.count {
+                    try await self.liveShare(of: folder, in: space, relay: CommandLine.arguments[index + 1])
+                }
+            } catch {
+                self.expect(false, "sharing: \(error)")
+            }
+            folder.detach()
+            self.library.setNeedsSave()
+        }
+    }
+
+    /// A window's content, in a window of its own off screen so that its
+    /// tasks run, without taking the focus.
+    private func renderShare(_ view: some View, _ name: String) async {
+        let window = NSWindow(contentRect: NSRect(x: -3000, y: -3000, width: 440, height: 560), styleMask: [.borderless],
+                              backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        let host = NSHostingView(rootView: view)
+        window.contentView = host
+        window.orderBack(nil)
+        try? await Task.sleep(for: .seconds(1.5))
+        host.layoutSubtreeIfNeeded()
+        if let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            let url = AppPaths.support.appendingPathComponent("\(name).png")
+            try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+            Swift.print("[selftest] \(name) rendered to \(url.path)")
+        }
+        window.close()
+    }
+
+    private func liveShare(of folder: Item, in space: Space, relay: String) async throws {
+        let sharing = Sharing.shared
+        library.settings.shareRelay = relay
+        defer { library.settings.shareRelay = "" }
+        let share = try await sharing.makeLiveShare(for: .folder(folder), password: nil)
+        expect(share.version == 1 && share.link.isLive, "the folder is uploaded as version 1")
+        Swift.print("[selftest] live link \(share.link.appURL.absoluteString)")
+        let opened = try await ShareReader.open(share.link)
+        expect(opened.version == 1 && opened.payload.allTabs.count == 2, "the live link opens from the relay")
+        if let app = NSApp.delegate as? AppDelegate {
+            await renderShare(ShareWindows.shareContent(.folder(folder), app: app), "share-window-live")
+            await renderShare(ShareWindows.importContent(share.link, app: app), "import-window-live")
+        }
+
+        sharing.add(opened, asSpace: false, follow: true, in: space, browser: nil)
+        guard let followed = space.pinned.items.first, followed !== folder, sharing.subscription(followed.id)?.id == share.id else {
+            return expect(false, "the link is added and followed")
+        }
+        expect(followed.children.count == 2, "the link is added and followed")
+
+        // A new tab in the original goes up with the next save…
+        space.pinned.insert(Item.tab(url: "https://example.net/live", title: "Live-Änderung"), into: folder)
+        library.save()
+        let uploaded = await changed { sharing.owned(folder.id)?.version == 2 }
+        expect(uploaded, "a change is uploaded as version 2 (\(sharing.lastError ?? "no error"))")
+        // … and comes down with the next check.
+        await sharing.refresh()
+        expect(followed.children.contains { $0.savedURL == "https://example.net/live" }, "the followed folder shows the new tab")
+        expect(sharing.subscription(followed.id)?.version == 2, "at version 2")
+        let kept = followed.children.first?.id
+
+        folder.customTitle = "Lesestoff neu"
+        folder.children.last?.detach()
+        library.save()
+        _ = await changed { sharing.owned(folder.id)?.version == 3 }
+        await sharing.refresh()
+        expect(followed.displayTitle == "Lesestoff neu", "a rename comes down")
+        expect(!followed.children.contains { $0.savedURL == "https://example.net/live" }, "a removed tab goes away")
+        expect(followed.children.first?.id == kept, "tabs that stay keep their identity")
+
+        try await sharing.end(share)
+        expect(sharing.owned(folder.id) == nil, "ending forgets the share")
+        do {
+            _ = try await ShareReader.open(share.link)
+            expect(false, "an ended link shows nothing")
+        } catch {
+            expect(error as? ShareError == .ended, "an ended link shows nothing (\(error))")
+        }
+        await sharing.refresh()
+        expect(sharing.subscription(followed.id)?.ended == true, "the follower sees that it ended")
+        expect(followed.children.first?.id == kept, "and keeps the last state")
+        sharing.unsubscribe(followed.id)
+        followed.detach()
+    }
+
+    /// Waits up to 15 seconds for |condition|.
+    private func changed(_ condition: () -> Bool) async -> Bool {
+        let end = Date().addingTimeInterval(15)
+        while Date() < end {
+            if condition() { return true }
+            try? await Task.sleep(for: .milliseconds(200))
+        }
+        return condition()
+    }
+
+    /// The other end of a test across devices: a live share that changes on a
+    /// signal, printing its link.
+    private func shareOwner(relay: String, signals: URL) {
+        populate()
+        let sharing = Sharing.shared
+        sharing.start(library)
+        library.settings.shareRelay = relay
+        let space = browser.state.space
+        let folder = Item.folder("Vom Mac", children: [.tab(url: "https://example.com/mac", title: "Mac-Lesezeichen")])
+        space.pinned.insert(folder, at: 0)
+        func signal(_ name: String) async {
+            while !FileManager.default.fileExists(atPath: signals.appendingPathComponent(name).path) {
+                try? await Task.sleep(for: .milliseconds(200))
+            }
+        }
+        Task { @MainActor in
+            do {
+                let share = try await sharing.makeLiveShare(for: .folder(folder), password: nil)
+                Swift.print("[selftest] live fragment \(share.link.fragment)")
+                fflush(stdout)
+                await signal("update")
+                space.pinned.insert(Item.tab(url: "https://example.org/vom-mac", title: "Neu vom Mac"), into: folder)
+                self.library.save()
+                let uploaded = await self.changed { sharing.owned(folder.id)?.version == 2 }
+                Swift.print("[selftest] updated \(uploaded) \(sharing.lastError ?? "")")
+                fflush(stdout)
+                await signal("end")
+                if let current = sharing.owned(folder.id) { try await sharing.end(current) }
+                Swift.print("[selftest] ended")
+            } catch {
+                Swift.print("[selftest] FAIL \(error)")
+            }
+            fflush(stdout)
+            Self.quit()
         }
     }
 

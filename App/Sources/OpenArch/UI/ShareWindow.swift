@@ -23,6 +23,15 @@ enum ShareWindows {
         windows.removeValue(forKey: key)?.close()
     }
 
+    /// The windows' contents, for the self-test to render without showing them.
+    static func shareContent(_ target: ShareTarget, app: AppDelegate) -> some View {
+        ShareSheetView(app: app, target: target)
+    }
+
+    static func importContent(_ link: ShareURL, app: AppDelegate) -> some View {
+        ImportSheetView(app: app, link: link)
+    }
+
     private static func show(key: String, title: String, view: some View) {
         if let window = windows[key] {
             window.makeKeyAndOrderFront(nil)
@@ -79,6 +88,15 @@ extension EnvironmentValues {
     }
 }
 
+private extension View {
+    /// A form's footer on the left, where its section's text starts.
+    func footerStyle() -> some View {
+        foregroundStyle(.secondary)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 // MARK: - Sharing
 
 /// A live link (on the relay, following changes) or a snapshot (the
@@ -124,7 +142,7 @@ private struct ShareSheetView: View {
                     }
                 } footer: {
                     Text("Änderungen erscheinen bei allen, die den Link hinzugefügt haben. Nur dieser Mac kann die Freigabe ändern. Wer sie schon hat, behält sie, wenn du das Teilen beendest.")
-                        .foregroundStyle(.secondary)
+                        .footerStyle()
                 }
             } else if let snapshot {
                 LinkView(link: snapshot)
@@ -147,7 +165,7 @@ private struct ShareSheetView: View {
                     Text(live
                          ? "Die Lesezeichen liegen verschlüsselt auf dem Teilen-Server; der Schlüssel steht nur im Link. Änderungen erscheinen bei allen mit dem Link."
                          : "Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht.")
-                        .foregroundStyle(.secondary)
+                        .footerStyle()
                 }
                 HStack {
                     if busy { ProgressView().controlSize(.small) }
@@ -236,7 +254,7 @@ private struct LinkView: View {
             }
         } footer: {
             Text("Scanne den Code mit der Kamera oder mit OpenArch auf dem iPhone (Code scannen). Der Schlüssel steht hinter dem # im Link und erreicht nie einen Server.")
-                .foregroundStyle(.secondary)
+                .footerStyle()
         }
     }
 }
@@ -309,14 +327,14 @@ private struct ImportSheetView: View {
                             Text("Beim Folgen erscheinen Änderungen des Besitzers alle fünf Minuten von selbst; was du daran änderst, überschreibt das nächste Update.")
                         }
                     }
-                    .foregroundStyle(.secondary)
+                    .footerStyle()
                 }
             } else if link.needsPassword {
                 Section {
                     SecureField("Passwort", text: $password)
                         .onSubmit { open() }
                 } footer: {
-                    Text("Diese Lesezeichen sind mit einem Passwort geschützt.").foregroundStyle(.secondary)
+                    Text("Diese Lesezeichen sind mit einem Passwort geschützt.").footerStyle()
                 }
                 HStack {
                     if busy { ProgressView().controlSize(.small) }

@@ -26,6 +26,21 @@ well, so a relay that lied would be noticed.
 No accounts, no cookies, no logs of what is uploaded. Shares not updated for
 400 days expire (OpenArch re-uploads its shares once a month).
 
+## Trying it on this computer
+
+`npx wrangler@3 dev --port 8787` runs the relay with a local store, no account
+needed. The apps take `http://localhost:8787` as their relay, in Settings and
+in links; other addresses must be `https`. Their self-tests share, follow, change
+and end a live share against it:
+
+```sh
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --relay http://localhost:8787
+xcrun simctl launch --console-pty booted dev.openarch.mobile -selftest -relay http://localhost:8787
+```
+
+The web page only talks to `https` relays, so to try a live link there, put a
+tunnel in front: `cloudflared tunnel --url http://localhost:8787`.
+
 ## Deploy
 
 With a Cloudflare account and [wrangler](https://developers.cloudflare.com/workers/wrangler/):

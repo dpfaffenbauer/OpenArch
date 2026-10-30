@@ -45,7 +45,8 @@ jobs:
           echo "Build succeeded"
 
       # Opens a page, pins it into a folder, shares the folder and adds it
-      # again (SelfTest.swift); the screenshots are kept as an artifact.
+      # again, and does the same live against a local relay (SelfTest.swift);
+      # the screenshots are kept as an artifact.
       - name: Self-test in the simulator
         run: |
           udid="$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')"
@@ -53,8 +54,11 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b > /dev/null
           xcrun simctl install "$udid" build/ios/Build/Products/Debug-iphonesimulator/OpenArch.app
+          (cd relay && npx --yes wrangler@3 dev --port 8787 > ../relay.log 2>&1) &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 2; done
+          curl -sf -o /dev/null http://localhost:8787/ || { tail -30 relay.log; exit 1; }
           # The app quits when it is done; four minutes at most.
-          xcrun simctl launch --console-pty "$udid" dev.openarch.mobile -selftest > selftest.log 2>&1 &
+          xcrun simctl launch --console-pty "$udid" dev.openarch.mobile -selftest -relay http://localhost:8787 > selftest.log 2>&1 &
           pid=$!
           for i in $(seq 1 240); do kill -0 $pid 2>/dev/null || break; sleep 1; done
           kill $pid 2>/dev/null || true
