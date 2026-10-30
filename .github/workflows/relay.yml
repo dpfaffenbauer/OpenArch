@@ -1,0 +1,55 @@
+name: Relay
+
+# The share relay (relay/) and the share page (website/s/): their tests on
+# every change, and a deployment of the relay from main when the repository
+# has Cloudflare credentials.
+
+on:
+  push:
+    branches: [main]
+    paths: ["relay/**", "website/s/**", "Shared/Tests/OpenArchSharedTests/Vectors.swift", ".github/workflows/relay.yml"]
+  pull_request:
+    paths: ["relay/**", "website/s/**", "Shared/Tests/OpenArchSharedTests/Vectors.swift", ".github/workflows/relay.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: relay-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests
+        run: node --test relay/test/*.test.mjs
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Without the secrets the relay is not deployed; the tests still run.
+      - name: Deploy to Cloudflare
+        working-directory: relay
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::notice::No CLOUDFLARE_API_TOKEN: the relay is not deployed."
+            exit 0
+          fi
+          npx --yes wrangler@3 deploy

@@ -1,7 +1,8 @@
 import Foundation
 
 /// A share link: https://openarch.app/s/#1.l.<id>.k<key>, see docs/sharing.md.
-public struct ShareLink: Equatable, Hashable, Sendable {
+/// (Not "ShareLink", which SwiftUI already has.)
+public struct ShareURL: Equatable, Hashable, Sendable {
     public enum Content: Equatable, Hashable, Sendable {
         /// On a relay; |relay| is nil for the default one.
         case live(id: String, relay: URL?)

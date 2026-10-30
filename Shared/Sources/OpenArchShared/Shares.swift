@@ -31,9 +31,9 @@ public struct OwnedShare: Codable, Equatable, Sendable, Identifiable {
                           publishedHash: nil, publishedAt: nil, created: Date())
     }
 
-    public var link: ShareLink {
-        ShareLink(content: .live(id: id, relay: relay == ShareRelay.defaultURL ? nil : relay),
-                  keySlot: passwordSlot.map(ShareLink.KeySlot.password) ?? .key(contentKey))
+    public var link: ShareURL {
+        ShareURL(content: .live(id: id, relay: relay == ShareRelay.defaultURL ? nil : relay),
+                 keySlot: passwordSlot.map(ShareURL.KeySlot.password) ?? .key(contentKey))
     }
 
     /// Protects the link with |password| (nil: no password). Slow: call it
@@ -134,7 +134,7 @@ public enum ShareReader {
     /// What a share shows, with what it takes to follow it (live shares).
     public struct Opened: Sendable {
         public var payload: SharePayload
-        public var link: ShareLink
+        public var link: ShareURL
         public var contentKey: Data
         /// Live shares: the version read.
         public var version: Int?
@@ -149,7 +149,7 @@ public enum ShareReader {
 
     /// Opens |link|: a snapshot locally, a live share from its relay. A
     /// password takes about half a second.
-    public static func open(_ link: ShareLink, password: String? = nil, session: URLSession = .shared) async throws -> Opened {
+    public static func open(_ link: ShareURL, password: String? = nil, session: URLSession = .shared) async throws -> Opened {
         let key = try link.contentKey(password: password)
         switch link.content {
         case .snapshot(let blob):
@@ -179,16 +179,16 @@ public enum ShareReader {
 
     /// A snapshot link: the bookmarks travel inside it. With a password,
     /// this takes about half a second.
-    public static func snapshotLink(_ payload: SharePayload, password: String? = nil) throws -> ShareLink {
+    public static func snapshotLink(_ payload: SharePayload, password: String? = nil) throws -> ShareURL {
         let key = ShareCrypto.randomKey()
         let blob = try ShareCrypto.seal(payload.encoded(), key: key, context: ShareCrypto.snapshotContext)
-        let slot: ShareLink.KeySlot
+        let slot: ShareURL.KeySlot
         if let password {
             slot = .password(try ShareCrypto.wrap(key: key, password: password))
         } else {
             slot = .key(key)
         }
-        return ShareLink(content: .snapshot(blob: blob), keySlot: slot)
+        return ShareURL(content: .snapshot(blob: blob), keySlot: slot)
     }
 }
 

@@ -84,10 +84,10 @@ final class ShareTests: XCTestCase {
 
     func testSnapshotLink() async throws {
         let link = try ShareReader.snapshotLink(payload)
-        let parsed = try XCTUnwrap(ShareLink(url: link.url))
+        let parsed = try XCTUnwrap(ShareURL(url: link.url))
         XCTAssertEqual(parsed, link)
-        XCTAssertEqual(ShareLink(url: link.appURL), link)
-        XCTAssertEqual(ShareLink(string: "  \(link.url.absoluteString)\n"), link)
+        XCTAssertEqual(ShareURL(url: link.appURL), link)
+        XCTAssertEqual(ShareURL(string: "  \(link.url.absoluteString)\n"), link)
         let opened = try await ShareReader.open(parsed)
         XCTAssertEqual(opened.payload, payload)
         XCTAssertNil(opened.version)
@@ -97,7 +97,7 @@ final class ShareTests: XCTestCase {
     func testPasswordProtectedSnapshot() async throws {
         let link = try ShareReader.snapshotLink(payload, password: "Grüße")
         XCTAssertTrue(link.needsPassword)
-        let parsed = try XCTUnwrap(ShareLink(string: link.url.absoluteString))
+        let parsed = try XCTUnwrap(ShareURL(string: link.url.absoluteString))
         do {
             _ = try await ShareReader.open(parsed)
             XCTFail("opened without a password")
@@ -119,7 +119,7 @@ final class ShareTests: XCTestCase {
         let link = try ShareReader.snapshotLink(payload)
         guard case .snapshot(var blob) = link.content else { return XCTFail() }
         blob[blob.count / 2] ^= 1
-        let tampered = ShareLink(content: .snapshot(blob: blob), keySlot: link.keySlot)
+        let tampered = ShareURL(content: .snapshot(blob: blob), keySlot: link.keySlot)
         do {
             _ = try await ShareReader.open(tampered)
             XCTFail("opened a changed link")
@@ -131,21 +131,21 @@ final class ShareTests: XCTestCase {
     func testMalformedLinks() {
         let key = Data(count: 32).base64URL
         let id = String(repeating: "A", count: 22)
-        XCTAssertNotNil(ShareLink(fragment: "1.l.\(id).k\(key)"))
-        XCTAssertNil(ShareLink(fragment: "2.l.\(id).k\(key)"))
-        XCTAssertNil(ShareLink(fragment: "1.l.\(id)x.k\(key)"))
-        XCTAssertNil(ShareLink(fragment: "1.l.\(id).k\(key)x"))
-        XCTAssertNil(ShareLink(fragment: "1.x.\(id).k\(key)"))
-        XCTAssertNil(ShareLink(fragment: "1.l.\(id).q\(key)"))
-        XCTAssertNil(ShareLink(fragment: "1.s.AAAA.k\(key)"))
-        XCTAssertNil(ShareLink(fragment: ""))
+        XCTAssertNotNil(ShareURL(fragment: "1.l.\(id).k\(key)"))
+        XCTAssertNil(ShareURL(fragment: "2.l.\(id).k\(key)"))
+        XCTAssertNil(ShareURL(fragment: "1.l.\(id)x.k\(key)"))
+        XCTAssertNil(ShareURL(fragment: "1.l.\(id).k\(key)x"))
+        XCTAssertNil(ShareURL(fragment: "1.x.\(id).k\(key)"))
+        XCTAssertNil(ShareURL(fragment: "1.l.\(id).q\(key)"))
+        XCTAssertNil(ShareURL(fragment: "1.s.AAAA.k\(key)"))
+        XCTAssertNil(ShareURL(fragment: ""))
         // A relay must be https.
         let http = Data("http://evil.example".utf8).base64URL
-        XCTAssertNil(ShareLink(fragment: "1.l.\(id).k\(key).r\(http)"))
+        XCTAssertNil(ShareURL(fragment: "1.l.\(id).k\(key).r\(http)"))
         let https = Data("https://relay.example".utf8).base64URL
-        XCTAssertEqual(ShareLink(fragment: "1.l.\(id).k\(key).r\(https)")?.content,
+        XCTAssertEqual(ShareURL(fragment: "1.l.\(id).k\(key).r\(https)")?.content,
                        .live(id: id, relay: URL(string: "https://relay.example")))
-        XCTAssertNil(ShareLink(url: URL(string: "https://example.com/s/#1.l.\(id).k\(key)")!))
+        XCTAssertNil(ShareURL(url: URL(string: "https://example.com/s/#1.l.\(id).k\(key)")!))
     }
 
     // MARK: Live shares
@@ -194,7 +194,7 @@ final class ShareTests: XCTestCase {
         share = try await share.publish(payload, session: session)
         XCTAssertEqual(share.version, 1)
 
-        let link = try XCTUnwrap(ShareLink(url: share.link.url))
+        let link = try XCTUnwrap(ShareURL(url: share.link.url))
         let opened = try await ShareReader.open(link, session: session)
         XCTAssertEqual(opened.payload, payload)
         XCTAssertEqual(opened.version, 1)
@@ -242,7 +242,7 @@ final class ShareTests: XCTestCase {
         try share.setPassword("geheim")
         let session = FakeRelay.session()
         share = try await share.publish(payload, session: session)
-        let link = try XCTUnwrap(ShareLink(string: share.link.url.absoluteString))
+        let link = try XCTUnwrap(ShareURL(string: share.link.url.absoluteString))
         XCTAssertTrue(link.needsPassword)
         let opened = try await ShareReader.open(link, password: "geheim", session: session)
         XCTAssertEqual(opened.contentKey, share.contentKey)

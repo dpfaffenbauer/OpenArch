@@ -1,0 +1,15 @@
+# The share relay as a Cloudflare Worker (see README.md).
+name = "openarch-share-relay"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Where the envelopes live. Make the namespace once and put its id here:
+#   npx wrangler@3 kv namespace create SHARES
+[[kv_namespaces]]
+binding = "SHARES"
+id = "00000000000000000000000000000000"
+
+# The address OpenArch uses by default. With openarch.app's DNS on
+# Cloudflare, this makes share.openarch.app the relay:
+# routes = [{ pattern = "share.openarch.app", custom_domain = true }]

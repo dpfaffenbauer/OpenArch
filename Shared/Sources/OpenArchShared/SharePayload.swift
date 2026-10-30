@@ -158,3 +158,50 @@ public struct ShareNode: Codable, Equatable, Sendable, Identifiable {
         return url.count <= 8192
     }
 }
+
+// Readers leave out entries they cannot read, such as one with a broken ID,
+// rather than the whole share (as the web page does).
+extension SharePayload {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        v = try container.decode(Int.self, forKey: .v)
+        kind = try container.decode(Kind.self, forKey: .kind)
+        name = try container.decode(String.self, forKey: .name)
+        icon = try? container.decodeIfPresent(String.self, forKey: .icon)
+        color = try? container.decodeIfPresent(String.self, forKey: .color)
+        updated = try? container.decodeIfPresent(Date.self, forKey: .updated)
+        items = try container.decode(LossyArray<ShareNode>.self, forKey: .items).elements
+    }
+}
+
+extension ShareNode {
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = (try? container.decodeIfPresent(String.self, forKey: .title)) ?? ""
+        url = try? container.decodeIfPresent(String.self, forKey: .url)
+        icon = try? container.decodeIfPresent(String.self, forKey: .icon)
+        children = try container.decodeIfPresent(LossyArray<ShareNode>.self, forKey: .children)?.elements
+    }
+}
+
+/// An array without the elements that do not decode.
+struct LossyArray<Element: Decodable>: Decodable {
+    var elements: [Element] = []
+
+    init(from decoder: Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        while !container.isAtEnd {
+            if let element = try? container.decode(Element.self) {
+                elements.append(element)
+            } else {
+                _ = try container.decode(Skip.self)
+            }
+        }
+    }
+
+    /// Takes any value, to move past one that does not decode.
+    private struct Skip: Decodable {
+        init(from decoder: Decoder) throws {}
+    }
+}

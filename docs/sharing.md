@@ -41,7 +41,8 @@ cannot take back what people already have.
 
 ## Format, version 1
 
-All base64 is base64url without padding (RFC 4648 §5). All strings are UTF-8.
+All base64 is base64url without padding (RFC 4648 §5), in its one canonical
+spelling (unused trailing bits zero). All strings are UTF-8.
 
 ### Payload
 
@@ -122,6 +123,9 @@ keyslot  = "k" base64url(content key)           32 bytes
 relay    = "r" base64url(relay base URL)        live, only if not the default
 ```
 
+The relay base URL is `https` (or `http` on `localhost`, for testing), has
+no user, query or fragment, and is written without a trailing slash.
+
 Example (live, default relay):
 `https://openarch.app/s/#1.l.Qm9vb2tzaGFyZTEyMzQ1Ng.kAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8`
 
@@ -138,7 +142,7 @@ Base URL: `https://share.openarch.app` (or your own, see `relay/`).
 - `DELETE /v1/shares/<id>`: body `{ "version": n, "sig": "…" }`, `sig` over
   `openarch-share-v1 delete <id> <n>` with `n` higher than the stored version.
   The relay keeps a marker with that version, so old uploads cannot bring the
-  share back. `200`; errors as for `PUT`.
+  share back. `200`; `404` unknown, other errors as for `PUT`.
 - Every response has `Cache-Control: no-store` and
   `Access-Control-Allow-Origin: *`; credentials are never used. Shares not
   updated for 400 days expire; owners re-upload unchanged shares once a month.

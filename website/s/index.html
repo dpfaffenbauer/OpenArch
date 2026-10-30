@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The key is in this page's #fragment. Nothing but this page's own files
+       loads, nothing is sent anywhere but the share relay, and no referrer
+       leaves the page. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https:; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light dark">
+  <title>Shared bookmarks · OpenArch</title>
+  <link rel="icon" href="../assets/icon.png">
+  <link rel="stylesheet" href="share.css">
+  <script type="module" src="share.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="https://openarch.app/" translate="no">
+      <img src="../assets/icon.png" alt="" width="28" height="28">
+      <span>Open<strong>Arch</strong></span>
+    </a>
+  </header>
+
+  <main id="main">
+    <section id="loading" class="state" aria-live="polite">
+      <p>Opening the shared bookmarks …</p>
+    </section>
+
+    <section id="password" class="card" hidden>
+      <h1>This share has a password</h1>
+      <p class="lead">Ask the person who sent you the link for it.</p>
+      <form id="password-form" autocomplete="off">
+        <label for="password-input">Password</label>
+        <div class="row">
+          <input id="password-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+          <button class="button" type="submit" id="password-button">Open</button>
+        </div>
+        <p id="password-error" class="error-text" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section id="error" class="card" hidden>
+      <h1 id="error-title"></h1>
+      <p id="error-text" class="lead"></p>
+      <div class="actions">
+        <button class="button" type="button" id="retry" hidden>Try again</button>
+        <a class="button ghost" href="https://openarch.app/">About OpenArch</a>
+      </div>
+    </section>
+
+    <section id="share" hidden>
+      <p class="badges">
+        <span id="kind" class="badge"></span>
+        <span id="mode" class="badge"></span>
+      </p>
+      <h1 id="name"><span id="name-icon" aria-hidden="true"></span><span id="name-text"></span></h1>
+      <p id="meta" class="meta"></p>
+      <div class="actions">
+        <a class="button" id="open-app" href="https://openarch.app/">Open in OpenArch</a>
+        <a class="button ghost" href="https://openarch.app/">Get OpenArch</a>
+      </div>
+      <ul id="tree" class="tree"></ul>
+      <p id="empty" class="meta" hidden>This share is empty.</p>
+    </section>
+
+    <p class="privacy">
+      The bookmarks are decrypted in this browser. The key is the part of the
+      link after <code>#</code>, which browsers never send to a server.
+      <a href="https://github.com/dpfaffenbauer/OpenArch/blob/main/docs/sharing.md">How sharing works</a>
+    </p>
+  </main>
+
+  <noscript><p class="card">Shared bookmarks are decrypted in your browser, which needs JavaScript.</p></noscript>
+
+  <template id="folder-icon">
+    <svg class="glyph" viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 5.5a2 2 0 0 1 2-2h3.6l1.8 2h5.6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2z"/></svg>
+  </template>
+</body>
+</html>
