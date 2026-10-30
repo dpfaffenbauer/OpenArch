@@ -99,6 +99,8 @@ public struct ShareRelay: Sendable {
             let (data, response) = try await session.data(for: request)
             return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
         } catch {
+            // The app only says "unreachable"; the log says why.
+            print("[share relay] \(request.httpMethod ?? "GET") failed: \(error)")
             throw ShareError.unreachable
         }
     }

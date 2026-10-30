@@ -62,10 +62,10 @@ jobs:
           pid=$!
           for i in $(seq 1 240); do kill -0 $pid 2>/dev/null || break; sleep 1; done
           kill $pid 2>/dev/null || true
-          grep "\[selftest\]" selftest.log || tail -50 selftest.log
+          grep -E "\[selftest\]|\[share relay\]" selftest.log || tail -50 selftest.log
           mkdir -p screenshots
           cp -R "$(xcrun simctl get_app_container "$udid" at.pfaffenbauer.openarch data)/Documents/selftest/." screenshots/ || true
-          grep -q "DONE failures=0" selftest.log
+          grep -q "DONE failures=0" selftest.log || { tail -30 relay.log; exit 1; }
 
       - uses: actions/upload-artifact@v4
         if: always()
