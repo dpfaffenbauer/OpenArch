@@ -8,6 +8,8 @@ final class BrowserState {
     /// The focused tab. In a split view, the focused side.
     var activeItem: Item?
     var sidebarVisible = true
+    /// The sidebar floats as Liquid Glass, the window buttons inside it.
+    var glassSidebar = false
     /// Item being renamed inline in the sidebar.
     var renamingItemID: UUID?
     /// Space whose editor popover is open.

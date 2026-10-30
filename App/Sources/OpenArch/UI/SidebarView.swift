@@ -225,6 +225,9 @@ private struct SidebarTopBar: View {
             .disabled(active == nil)
         }
         .frame(height: 30)
+        // In the glass pane, level with the window buttons, which a toolbar
+        // puts lower (their middle 26 points down; the pane starts at 8).
+        .padding(.top, browser.state.glassSidebar && !floating ? 3 : 0)
         .padding(.bottom, 6)
     }
 }

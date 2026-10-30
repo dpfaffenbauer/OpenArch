@@ -63,6 +63,10 @@ final class SelfTest {
             loadingBarShots()
             return
         }
+        if CommandLine.arguments.contains("--glass-shots") {
+            glassShots()
+            return
+        }
         if CommandLine.arguments.contains("--fullscreen-test") {
             fullscreenTest()
             return
@@ -941,14 +945,29 @@ final class SelfTest {
                && changed?.added == 2 && changed?.removed == 1 && workspace.changes.contains { $0.path == "b.txt" && $0.isNew },
                "the panel beside a chat shows repository, branch and changed files (\(workspace))")
 
-        // The glass look lets the desktop through the window.
+        // The glass look lets the desktop through the window; from macOS 26
+        // on the sidebar floats on it as Liquid Glass, the window buttons in it.
         library.settings.glass = true
         browser.applyTheme()
+        browser.layoutContent()
         expect(browser.window?.isOpaque == false && browser.window?.backgroundColor.alphaComponent == 0,
                "the glass look makes the window see-through")
+        if #available(macOS 26.0, *), let window = browser.window, let close = window.standardWindowButton(.closeButton) {
+            let pane = browser.sidebarGlassFrame ?? .zero
+            let button = close.convert(close.bounds, to: nil)
+            let left = button.minX - pane.minX, above = pane.maxY - button.maxY
+            expect(window.toolbar != nil && left >= 8 && above >= 8 && abs(left - above) < 3,
+                   "the window buttons sit in the glass sidebar with room around them (\(left) left, \(above) above)")
+            // The favorites row lies under the taller title bar and still takes clicks.
+            let hit = window.contentView?.superview?.hitTest(NSPoint(x: pane.midX, y: pane.maxY - 52))
+            expect(sequence(first: hit, next: { $0?.superview }).contains { $0 is NSHostingView<SidebarView> },
+                   "under the title bar the glass sidebar still takes clicks (\(hit.map { String(describing: type(of: $0)) } ?? "nothing"))")
+        }
         library.settings.glass = false
         browser.applyTheme()
-        expect(browser.window?.isOpaque == true, "and without it the window is solid again")
+        browser.layoutContent()
+        expect(browser.window?.isOpaque == true && browser.window?.toolbar == nil,
+               "and without it the window is solid again, the buttons where they were")
 
         guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
             expect(false, "a new agent chat")
@@ -1254,6 +1273,39 @@ final class SelfTest {
                 Swift.print("[selftest] DONE loading bar shots")
                 Self.quit()
             }
+        }
+    }
+
+    /// The glass look over the desktop, each variant held to be photographed
+    /// from outside (`--selftest --glass-shots`; prints "STEP shot <name>").
+    /// A photo of the window alone shows no glass: it has to be the window
+    /// over the desktop, as the screen shows it.
+    private func glassShots() {
+        populate()
+        browser.openInNewTab("https://example.com/glass")
+        let color = browser.state.space.colorHex
+        let variants: [(name: String, glass: Bool, tint: Double, color: String, sidebar: Bool)] = [
+            ("glass", true, 0.4, color, true),
+            ("light", true, 0.4, "#EDE6D6", true),
+            ("dark", true, 0.4, "#2C2C30", true),
+            ("tint0", true, 0, color, true),
+            ("tint9", true, 0.9, color, true),
+            ("hidden", true, 0.4, color, false),
+            ("solid", false, 0.4, color, true),
+        ]
+        for (index, variant) in variants.enumerated() {
+            after(6 + Double(index) * 3) {
+                self.library.settings.glass = variant.glass
+                self.library.settings.glassTint = variant.tint
+                self.browser.state.space.colorHex = variant.color
+                if self.browser.state.sidebarVisible != variant.sidebar { self.browser.toggleSidebar() }
+                self.browser.applyTheme()
+            }
+            after(7.5 + Double(index) * 3) { Swift.print("[selftest] STEP shot \(variant.name)") }
+        }
+        after(9 + Double(variants.count) * 3) {
+            Swift.print("[selftest] DONE glass shots")
+            Self.quit()
         }
     }
 

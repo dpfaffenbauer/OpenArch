@@ -81,10 +81,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             let pane = NSGlassEffectView()
-            pane.cornerRadius = 16
-            // Clear glass keeps the desktop behind it in view; regular glass is
-            // nearly opaque with nothing but the desktop under it.
-            pane.style = .clear
+            // Around the window buttons like the window's own corners.
+            pane.cornerRadius = 18
+            // Regular glass: the desktop shows frosted and the sidebar stays
+            // readable; clear glass left it sharp behind the text.
+            pane.style = .regular
             sidebarGlass = pane
             rootView.addSubview(pane)
         }
@@ -185,19 +186,20 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let base = isFrontmost ? theme.base : theme.inactiveBase
         let glassy = library.settings.glass
         let tint = library.settings.glassTint
-        let material = library.settings.glassMaterial.material
-        if let material { glass.material = material }
-        glass.isHidden = !glassy || material == nil
+        // macOS 26: the desktop shows through clear, a little tinted, and the
+        // color is in the Liquid Glass sidebar; frosted glass bent by it would
+        // only show gray. Before, the whole window is frosted glass.
+        glass.isHidden = !glassy || sidebarGlass != nil
         glassTint.isHidden = !glassy
-        // With Liquid Glass the color is in the glass; the desktop around it
-        // shows clearer.
-        glassTint.layer?.backgroundColor = base.withAlphaComponent(sidebarGlass == nil ? tint : tint * 0.35).cgColor
+        // Never quite clear: clicks there would go to the windows behind.
+        glassTint.layer?.backgroundColor = base.withAlphaComponent(sidebarGlass == nil ? tint : max(tint * 0.35, 0.02)).cgColor
         #if compiler(>=6.2)
         if #available(macOS 26.0, *), let pane = sidebarGlass as? NSGlassEffectView {
             pane.tintColor = base.withAlphaComponent(tint)
         }
         #endif
         sidebarGlass?.isHidden = !showsSidebarGlass
+        rootView.needsLayout = true
         window?.isOpaque = !glassy
         window?.backgroundColor = glassy ? .clear : base
         if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
@@ -211,7 +213,26 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     private var showsSidebarGlass: Bool {
-        library.settings.glass && library.settings.liquidGlass && state.sidebarVisible
+        sidebarGlass != nil && library.settings.glass && state.sidebarVisible
+    }
+
+    /// The Liquid Glass sidebar, inset from the window's edges like Tahoe's.
+    private var sidebarPaneFrame: NSRect {
+        let inset = Self.contentInset
+        return NSRect(x: inset, y: inset, width: max(0, sidebarWidth - 2 * inset), height: max(0, rootView.bounds.height - 2 * inset))
+    }
+
+    /// Tahoe's windows with a floating sidebar have a toolbar, which puts the
+    /// window buttons lower and further in, with room around them in the
+    /// glass. OpenArch's is empty and only there while the glass sidebar is.
+    private func updateWindowButtons() {
+        guard let window else { return }
+        let lowered = showsSidebarGlass && !window.styleMask.contains(.fullScreen)
+        if lowered != (window.toolbar != nil) {
+            window.toolbar = lowered ? NSToolbar(identifier: "OpenArchGlass") : nil
+            window.toolbarStyle = .unified
+        }
+        if state.glassSidebar != showsSidebarGlass { state.glassSidebar = showsSidebarGlass }
     }
 
     // MARK: Layout
@@ -256,11 +277,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let bounds = rootView.bounds
         glass.frame = bounds
         glassTint.frame = bounds
-        // Inset from the window's edges, the window buttons inside it.
-        sidebarGlass?.frame = NSRect(x: 5, y: 5, width: max(0, sidebarWidth - 8), height: max(0, bounds.height - 10))
+        updateWindowButtons()
+        sidebarGlass?.frame = sidebarPaneFrame
         sidebarGlass?.isHidden = !showsSidebarGlass
         sidebarHost.isHidden = !state.sidebarVisible
-        sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
+        // On glass, the sidebar's rows sit inside the pane.
+        sidebarHost.frame = showsSidebarGlass ? sidebarPaneFrame : NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible
         sidebarHandle.frame = NSRect(x: sidebarWidth - 5, y: 0, width: 8, height: max(0, bounds.height - 40))
         sidebarEdge.isHidden = state.sidebarVisible
@@ -477,6 +499,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// The tabs shown side by side right now (one, or the sides of a split).
     var shownTabs: [Item] {
         visibleTabs
+    }
+
+    /// Where the Liquid Glass sidebar is, in window coordinates, if it is
+    /// shown (self-test).
+    var sidebarGlassFrame: NSRect? {
+        showsSidebarGlass ? sidebarPaneFrame : nil
     }
 
     /// Where the loading line above the page is, in window coordinates, if
