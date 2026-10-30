@@ -42,6 +42,18 @@ public struct ShareRelay: Sendable {
         self.session = session
     }
 
+    /// A relay address as typed in Settings, nil for none (the default one).
+    /// As in links: https, or http on localhost for testing a relay on this
+    /// computer (relay/README.md).
+    public static func url(setting: String) -> URL? {
+        let text = setting.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return nil }
+        let scheme = text.lowercased().hasPrefix("localhost") ? "http://" : "https://"
+        guard let url = URL(string: text.contains("://") ? text : scheme + text), url.host()?.isEmpty == false,
+              url.scheme == "https" || (url.scheme == "http" && url.host() == "localhost") else { return nil }
+        return url
+    }
+
     private func url(for id: String) -> URL {
         baseURL.appending(path: "v1/shares/\(id)")
     }

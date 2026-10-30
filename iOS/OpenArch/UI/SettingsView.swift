@@ -18,7 +18,7 @@ struct SettingsView: View {
                     Toggle("Suchvorschläge", isOn: $library.settings.searchSuggestions)
                 }
                 Section {
-                    Picker("Heute-Tabs archivieren", selection: $library.settings.archiveAfterHours) {
+                    Picker("Archivieren", selection: $library.settings.archiveAfterHours) {
                         Text("Nach 12 Stunden").tag(12)
                         Text("Nach 24 Stunden").tag(24)
                         Text("Nach 7 Tagen").tag(24 * 7)
@@ -43,7 +43,15 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .swipeActions {
-                            Button("Beenden", role: .destructive) { Task { try? await sharing.end(share) } }
+                            Button("Beenden", role: .destructive) {
+                                Task {
+                                    do {
+                                        try await sharing.end(share)
+                                    } catch {
+                                        sharing.lastError = "„\(share.name)“: \(error.localizedDescription)"
+                                    }
+                                }
+                            }
                         }
                     }
                     ForEach(sharing.records.subscriptions) { subscription in

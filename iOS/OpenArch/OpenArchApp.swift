@@ -3,7 +3,8 @@ import SwiftUI
 
 @main
 struct OpenArchApp: App {
-    @State private var browser = Browser(library: Library.load())
+    // The self-test starts from a fresh library per run, as on the Mac.
+    @State private var browser = Browser(library: Library.load(fresh: SelfTest.isRequested))
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {

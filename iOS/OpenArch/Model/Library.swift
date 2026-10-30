@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import OpenArchShared
 
 /// A sidebar entry: a tab (favorite, pinned or today) or a folder.
 @MainActor @Observable
@@ -265,8 +266,12 @@ final class Library {
     }
 
     /// The saved library, or a first one with a few favorites.
-    static func load() -> Library {
+    static func load(fresh: Bool = false) -> Library {
         let library = Library(fileURL: directory.appendingPathComponent("Library.json"))
+        if fresh {
+            try? FileManager.default.removeItem(at: library.fileURL)
+            try? FileManager.default.removeItem(at: directory.appendingPathComponent("Shares.json"))
+        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         if let raw = try? Data(contentsOf: library.fileURL),
@@ -384,9 +389,6 @@ struct Settings: Codable, Equatable {
 
     /// The relay to use for new live shares, nil for the default one.
     var relayURL: URL? {
-        let text = relay.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty, let url = URL(string: text.contains("://") ? text : "https://" + text),
-              url.scheme == "https" else { return nil }
-        return url
+        ShareRelay.url(setting: relay)
     }
 }

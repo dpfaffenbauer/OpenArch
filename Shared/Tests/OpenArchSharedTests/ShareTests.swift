@@ -188,6 +188,34 @@ final class ShareTests: XCTestCase {
         XCTAssertTrue(share.needsUpload(payload, now: Date().addingTimeInterval(31 * 86400)))
     }
 
+    func testEndingWithAnOldCopyOfTheShare() async throws {
+        let session = FakeRelay.session()
+        let payload = SharePayload(kind: .folder, name: "Alt", items: [])
+        let first = try await OwnedShare.make(source: UUID(), kind: .folder, name: "Alt").publish(payload, session: session)
+        let second = try await first.publish(SharePayload(kind: .folder, name: "Neu", items: []), session: session)
+        XCTAssertEqual(second.version, 2)
+        try await first.end(session: session)
+        do {
+            _ = try await ShareReader.open(first.link, session: session)
+            XCTFail("opened an ended share")
+        } catch {
+            XCTAssertEqual(error as? ShareError, .ended)
+        }
+    }
+
+    func testRelayAddressesFromSettings() {
+        XCTAssertNil(ShareRelay.url(setting: "  "))
+        XCTAssertEqual(ShareRelay.url(setting: "relay.example"), URL(string: "https://relay.example"))
+        XCTAssertEqual(ShareRelay.url(setting: "https://relay.example/"), URL(string: "https://relay.example/"))
+        XCTAssertNil(ShareRelay.url(setting: "http://relay.example"))
+        XCTAssertEqual(ShareRelay.url(setting: "localhost:8787"), URL(string: "http://localhost:8787"))
+        XCTAssertEqual(ShareRelay.url(setting: "http://localhost:8787"), URL(string: "http://localhost:8787"))
+        // What Settings takes, a link takes too.
+        let link = ShareURL(content: .live(id: String(repeating: "a", count: 22), relay: ShareRelay.url(setting: "localhost:8787")),
+                            keySlot: .key(Data(repeating: 1, count: 32)))
+        XCTAssertEqual(ShareURL(fragment: link.fragment), link)
+    }
+
     func testLiveShareThroughARelay() async throws {
         let session = FakeRelay.session()
         var share = OwnedShare.make(source: UUID(), kind: .space, name: "Arbeit")

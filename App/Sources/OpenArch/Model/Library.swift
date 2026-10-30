@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import OpenArchCore
+import OpenArchShared
 
 /// Everything the user keeps: profiles, spaces, favorites, pinned folders and
 /// the open "today" tabs. Saved as JSON in Application Support.
@@ -373,10 +374,7 @@ struct Settings: Codable, Equatable {
 extension Settings {
     /// The relay for new live shares, nil for the default one.
     var shareRelayURL: URL? {
-        let text = shareRelay.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty, let url = URL(string: text.contains("://") ? text : "https://" + text),
-              url.scheme == "https" else { return nil }
-        return url
+        ShareRelay.url(setting: shareRelay)
     }
 
     /// The settings that Chromium and every tab apply themselves.

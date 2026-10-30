@@ -537,7 +537,15 @@ private struct SharingPage: View {
                     if let target {
                         Button("Link …") { ShareWindows.share(target, app: app) }
                     } else {
-                        Button("Beenden") { Task { try? await sharing.end(share) } }
+                        Button("Beenden") {
+                            Task {
+                                do {
+                                    try await sharing.end(share)
+                                } catch {
+                                    sharing.lastError = "„\(share.name)“: \(error.localizedDescription)"
+                                }
+                            }
+                        }
                     }
                 }
             }

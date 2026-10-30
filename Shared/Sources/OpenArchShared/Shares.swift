@@ -92,11 +92,23 @@ public struct OwnedShare: Codable, Equatable, Sendable, Identifiable {
     }
 
     /// Ends the share on the relay; those who added it keep what they have.
+    /// As in publish(), the relay may know a newer version than this copy
+    /// (an upload still under way, say).
     public func end(session: URLSession = .shared) async throws {
+        let relay = ShareRelay(baseURL: self.relay, session: session)
         let key = try Curve25519.Signing.PrivateKey(rawRepresentation: signingKey)
-        let next = version + 1
-        let signature = try key.signature(for: ShareCrypto.deleteMessage(id: id, version: next))
-        try await ShareRelay(baseURL: relay, session: session).delete(id: id, version: next, signature: signature)
+        var next = version + 1
+        for _ in 0..<3 {
+            do {
+                let signature = try key.signature(for: ShareCrypto.deleteMessage(id: id, version: next))
+                try await relay.delete(id: id, version: next, signature: signature)
+                return
+            } catch ShareError.server(409) {
+                let current = (try? await relay.fetch(id: id))?.version ?? 0
+                next = max(next + 1, current + 1)
+            }
+        }
+        throw ShareError.server(409)
     }
 }
 

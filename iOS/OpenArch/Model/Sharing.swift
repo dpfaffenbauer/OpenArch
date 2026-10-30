@@ -133,7 +133,10 @@ final class Sharing {
                 }
                 lastError = nil
             } catch {
-                lastError = "„\(share.name)“: \(error.localizedDescription)"
+                // Ended in the meantime: not a problem.
+                if records.owned.contains(where: { $0.id == id }) {
+                    lastError = "„\(share.name)“: \(error.localizedDescription)"
+                }
             }
             uploading.remove(id)
             UIApplication.shared.endBackgroundTask(background)
