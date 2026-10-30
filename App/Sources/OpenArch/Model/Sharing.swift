@@ -109,7 +109,7 @@ final class Sharing {
         }
     }
 
-    /// A split view is shared as its tabs.
+    /// A split view is shared as its tabs; agent chats stay on this Mac.
     static func nodes(_ item: Item) -> [ShareNode] {
         switch item.kind {
         case .tab:
@@ -119,6 +119,8 @@ final class Sharing {
             return [.folder(id: item.id, title: item.displayTitle, icon: item.icon, children: item.children.flatMap(nodes))]
         case .split:
             return item.children.flatMap(nodes)
+        case .agent:
+            return []
         }
     }
 

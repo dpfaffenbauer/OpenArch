@@ -31,4 +31,10 @@ enum AIControl {
     static func claudeCommand(port: Int) -> String {
         "claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:\(port)"
     }
+
+    /// The same server for one run of claude (`--mcp-config`): agent chats
+    /// in the sidebar get it while AI control is on.
+    static func mcpConfig(port: Int) -> String {
+        #"{"mcpServers":{"openarch":{"command":"npx","args":["-y","chrome-devtools-mcp@latest","--browser-url=http://127.0.0.1:\#(port)"]}}}"#
+    }
 }

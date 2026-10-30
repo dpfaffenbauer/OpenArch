@@ -37,7 +37,7 @@ builds OpenArch with it, commits the update to `main` and publishes a new
 nightly. A failed build stops the update and shows up as a failed workflow
 run. Data lives in
 `~/Library/Application Support/OpenArch` (`Library.json` for the sidebar,
-`Chromium/` for Chromium's profiles).
+`Chromium/` for Chromium's profiles, `Agents/` for agent chats).
 
 ## What works
 
@@ -72,7 +72,10 @@ run. Data lives in
 - **Links to apps** (bambustudioopen:, zoommtg:, mailto: …) open the app on
   the Mac after asking, as in Chrome; „immer öffnen“ remembers it per site.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and
-  favicons taken from Arc's own icon cache. Drag the sidebar edge far to the
+  favicons taken from Arc's own icon cache. Or glass (Settings › Allgemein ›
+  Sidebar): the desktop shows through the window, and on macOS 26 the
+  sidebar floats on it as Liquid Glass tinted with the space's color, the
+  pages beside it as cards. Drag the sidebar edge far to the
   left to collapse it, ⌘S brings it back.
 - **Arc's gestures and shortcuts:** swipe sideways over the sidebar
   (trackpad or Magic Mouse) to change spaces, and past the first one to open
@@ -84,6 +87,24 @@ run. Data lives in
   under Settings › Links. It has back, forward and reload, and the puzzle
   button shows Chrome's toolbar with your extensions. "In Space öffnen" moves
   the page into the main window without reloading it.
+- **Agent chats** (Settings › KI › Agents in der Sidebar): a chat with
+  Claude Code sits in the sidebar like a tab and shows where the page
+  would be. It runs the `claude` command line tool in a folder of your
+  choice, on your own login (your subscription, no API key), continues its
+  session with every message and keeps working while you are in other
+  tabs: a wheel while it works, a dot when it has answered. With AI control
+  on, it gets OpenArch's tabs as tools too. What it may do on its own is
+  set per chat (ask, edit files, everything); a refused command shows in
+  the chat with a button to allow it. Start one from the sidebar's + menu,
+  Ablage › Neuer Agent-Chat, or the command bar (a sentence, then
+  "Agent-Chat starten").
+- **Agents** (the ✨ in the space bar, or ⌃0): like a space of its own,
+  the sidebar lists every agent chat and every Claude Code session on this
+  Mac from the last week (read from Claude Code's own transcripts in
+  `~/.claude/projects`), grouped by status (at work, waiting for you, open
+  todos, done) or by project; the page or chat in front stays. The ✨ gets a
+  dot while sessions wait for you. A session continues as an agent chat
+  with its history, or in Terminal.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:

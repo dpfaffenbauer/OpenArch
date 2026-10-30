@@ -86,6 +86,10 @@ final class Library {
         guard spaces.count > 1 else { return }
         for item in space.pinned.allItems + space.today.allItems {
             item.pane?.close()
+            if item.kind == .agent {
+                item.agentSession?.discard()
+                AgentSession.deleteTranscript(item.id)
+            }
         }
         spaces.removeAll { $0 === space }
         setNeedsSave()
@@ -343,6 +347,19 @@ struct Settings: Codable, Equatable {
     var allowedExternalApps: [String] = []
     /// The relay for new live shares (docs/sharing.md); empty: share.openarch.app.
     var shareRelay = ""
+    /// Agent chats (Claude Code) in the sidebar, next to the tabs.
+    var agentChats = false
+    /// The folder new agent chats work in; empty for the home folder.
+    var agentFolder = ""
+    /// The glass look: the desktop shows blurred through the sidebar,
+    /// tinted with the space's color.
+    var glass = false
+    /// How much of the space's color is in the glass (0–1).
+    var glassTint = 0.4
+    /// How the desktop shows through the glass.
+    var glassMaterial = GlassMaterial.underWindow
+    /// macOS 26: the sidebar floats as a pane of Liquid Glass.
+    var liquidGlass = true
 
     init() {}
 
@@ -366,6 +383,12 @@ struct Settings: Codable, Equatable {
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
         shareRelay = try container.decodeIfPresent(String.self, forKey: .shareRelay) ?? defaults.shareRelay
+        agentChats = try container.decodeIfPresent(Bool.self, forKey: .agentChats) ?? defaults.agentChats
+        agentFolder = try container.decodeIfPresent(String.self, forKey: .agentFolder) ?? defaults.agentFolder
+        glass = try container.decodeIfPresent(Bool.self, forKey: .glass) ?? defaults.glass
+        glassTint = try container.decodeIfPresent(Double.self, forKey: .glassTint) ?? defaults.glassTint
+        glassMaterial = try container.decodeIfPresent(GlassMaterial.self, forKey: .glassMaterial) ?? defaults.glassMaterial
+        liquidGlass = try container.decodeIfPresent(Bool.self, forKey: .liquidGlass) ?? defaults.liquidGlass
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -381,6 +404,43 @@ extension Settings {
     @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
         OACPane.devToolsDock = devToolsDock.dock
+    }
+
+    /// Where a new agent chat works: the chosen folder while it is there,
+    /// else the home folder.
+    var agentFolderPath: String {
+        var isFolder: ObjCBool = false
+        if !agentFolder.isEmpty, FileManager.default.fileExists(atPath: agentFolder, isDirectory: &isFolder), isFolder.boolValue {
+            return agentFolder
+        }
+        return FileManager.default.homeDirectoryForCurrentUser.path
+    }
+}
+
+/// How the desktop shows through the window with the glass look: blurred
+/// in one of macOS's materials, or not blurred at all.
+enum GlassMaterial: String, Codable, CaseIterable, Identifiable {
+    case underWindow, hud, sidebar, clear
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .underWindow: "Milchglas"
+        case .hud: "Rauchglas"
+        case .sidebar: "Sidebar"
+        case .clear: "Klar"
+        }
+    }
+
+    /// nil: no blur, the desktop as it is.
+    var material: NSVisualEffectView.Material? {
+        switch self {
+        case .underWindow: .underWindowBackground
+        case .hud: .hudWindow
+        case .sidebar: .sidebar
+        case .clear: nil
+        }
     }
 }
 

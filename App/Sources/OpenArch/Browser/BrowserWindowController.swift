@@ -19,8 +19,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) var visibleTabs: [Item] = []
     private var itemsByPane: [ObjectIdentifier: Item] = [:]
     private let rootView = BrowserRootView()
+    /// The glass look (Settings › Allgemein): the desktop blurred behind the
+    /// window, and the space's color over it.
+    private let glass = NSVisualEffectView()
+    private let glassTint = NSView()
+    /// macOS 26: the sidebar floats on it as a pane of Liquid Glass.
+    private var sidebarGlass: NSView?
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
+    private var agentHost: NSHostingView<AgentContentView>!
     private var loadingLine: NSHostingView<PageLoadingLine>!
     private var dividers: [SplitDividerView] = []
     private let focusRing = FocusRingView()
@@ -63,11 +70,34 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
         rootView.controller = self
         window.contentView = rootView
+        glass.material = .sidebar
+        glass.blendingMode = .behindWindow
+        // Glass in front or not: macOS would flatten an inactive window's
+        // glass to plain gray (with Settings in front, for instance).
+        glass.state = .active
+        glassTint.wantsLayer = true
+        rootView.addSubview(glass)
+        rootView.addSubview(glassTint)
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *) {
+            let pane = NSGlassEffectView()
+            pane.cornerRadius = 16
+            // Clear glass keeps the desktop behind it in view; regular glass is
+            // nearly opaque with nothing but the desktop under it.
+            pane.style = .clear
+            sidebarGlass = pane
+            rootView.addSubview(pane)
+        }
+        #endif
         sidebarHost = NSHostingView(rootView: SidebarView(browser: self))
         sidebarHost.sizingOptions = []
         emptyHost = NSHostingView(rootView: EmptyContentView(browser: self))
         emptyHost.sizingOptions = []
         rootView.addSubview(emptyHost)
+        agentHost = NSHostingView(rootView: AgentContentView(browser: self))
+        agentHost.sizingOptions = []
+        agentHost.safeAreaRegions = []  // its top runs under the title bar, like a page
+        rootView.addSubview(agentHost)
         rootView.addSubview(sidebarHost)
         rootView.addSubview(focusRing)
         loadingLine = NSHostingView(rootView: PageLoadingLine(browser: self))
@@ -91,6 +121,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         applyTheme()
         observeChanges()
         sidebarSwipe = SidebarSwipe(browser: self)
+        // Agent chats follow the Mac's light or dark mode, like pages do.
+        DistributedNotificationCenter.default().addObserver(forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
+                                                            object: nil, queue: .main) { [weak self] _ in
+            // AppKit's own appearance changes a moment after the notification.
+            guard let self else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                MainActor.assumeIsolated { self?.applyTheme() }
+            }
+        }
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
             NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.applyTheme() }
@@ -141,15 +180,38 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
     }
 
-    private func applyTheme() {
+    func applyTheme() {
         let theme = SpaceTheme(hex: state.space.colorHex)
-        window?.backgroundColor = isFrontmost ? theme.base : theme.inactiveBase
+        let base = isFrontmost ? theme.base : theme.inactiveBase
+        let glassy = library.settings.glass
+        let tint = library.settings.glassTint
+        let material = library.settings.glassMaterial.material
+        if let material { glass.material = material }
+        glass.isHidden = !glassy || material == nil
+        glassTint.isHidden = !glassy
+        // With Liquid Glass the color is in the glass; the desktop around it
+        // shows clearer.
+        glassTint.layer?.backgroundColor = base.withAlphaComponent(sidebarGlass == nil ? tint : tint * 0.35).cgColor
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *), let pane = sidebarGlass as? NSGlassEffectView {
+            pane.tintColor = base.withAlphaComponent(tint)
+        }
+        #endif
+        sidebarGlass?.isHidden = !showsSidebarGlass
+        window?.isOpaque = !glassy
+        window?.backgroundColor = glassy ? .clear : base
         if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
             AppIcons.spaceDidChange(state.space.colorHex)
         }
         window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
         focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
+        // An agent chat is light or dark like the pages, not like the space.
+        agentHost?.appearance = NSApp.effectiveAppearance
         floatingSidebar.applyTheme()
+    }
+
+    private var showsSidebarGlass: Bool {
+        library.settings.glass && library.settings.liquidGlass && state.sidebarVisible
     }
 
     // MARK: Layout
@@ -192,6 +254,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func layoutContent() {
         guard let window else { return }
         let bounds = rootView.bounds
+        glass.frame = bounds
+        glassTint.frame = bounds
+        // Inset from the window's edges, the window buttons inside it.
+        sidebarGlass?.frame = NSRect(x: 5, y: 5, width: max(0, sidebarWidth - 8), height: max(0, bounds.height - 10))
+        sidebarGlass?.isHidden = !showsSidebarGlass
         sidebarHost.isHidden = !state.sidebarVisible
         sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible
@@ -199,8 +266,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         sidebarEdge.isHidden = state.sidebarVisible
         sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
         let content = contentRect
+        let showsAgent = state.activeItem?.kind == .agent
         emptyHost.frame = content
-        emptyHost.isHidden = !visibleTabs.isEmpty
+        emptyHost.isHidden = !visibleTabs.isEmpty || showsAgent
+        agentHost.frame = content
+        agentHost.isHidden = !showsAgent
 
         let frames = paneFrames(in: content)
         for (tab, frame) in zip(visibleTabs, frames) {
@@ -425,6 +495,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         state.libraryVisible.toggle()
         if state.libraryVisible {
             state.sidebarVisible = true
+            state.agentsVisible = false
         }
         layoutContent()
     }
@@ -475,8 +546,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     // MARK: Selection
 
-    /// Shows |item|: a tab, or the focused/first tab of a split. Folders
-    /// toggle open and closed.
+    /// Shows |item|: a tab, the focused/first tab of a split, or an agent
+    /// chat. Folders toggle open and closed.
     func select(_ item: Item, focus: Bool = true) {
         switch item.kind {
         case .folder:
@@ -489,20 +560,22 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 select(target, focus: focus)
             }
             return
-        case .tab:
+        case .tab, .agent:
             break
         }
         if peek.isOpen {
             peek.close()
         }
-        if let space = library.space(containing: item), space !== state.space {
+        // From the Agents list, a chat opens where you are, whichever space keeps it.
+        if !(item.kind == .agent && state.agentsVisible), let space = library.space(containing: item), space !== state.space {
             switchSpace(to: space, restoring: false)
         }
         item.lastActiveAt = Date()
         state.activeItem = item
         state.space.activeItemID = item.id
 
-        let tabs = item.split?.children ?? [item]
+        // An agent chat shows instead of any page.
+        let tabs = item.kind == .agent ? [] : (item.split?.children ?? [item])
         for old in visibleTabs where !tabs.contains(where: { $0 === old }) {
             TabSnapshots.capture(old)
             pictureInPictureIfPlaying(old)
@@ -518,9 +591,16 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         for tab in tabs {
             ensurePane(for: tab)
         }
+        if item.kind == .agent {
+            agentSession(for: item).isUnread = false
+        }
         layoutContent()
         if focus {
-            item.pane?.focus()
+            if item.kind == .agent {
+                focusAgentChat(item)
+            } else {
+                item.pane?.focus()
+            }
         }
         library.setNeedsSave()
     }
@@ -545,7 +625,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// Clears the content area (no tab selected).
-    private func showNothing() {
+    func showNothing() {
         for tab in visibleTabs {
             tab.pane?.hide()
         }
@@ -654,6 +734,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             case .tab: [item]
             case .split: item.children
             case .folder: item.isExpanded ? flattenVisible(item.children) : []
+            case .agent: []
             }
         }
     }
@@ -726,7 +807,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func open(_ url: String, inNewTab: Bool) {
-        if inNewTab || state.activeItem == nil {
+        // An agent chat has no page to go elsewhere: a new tab instead.
+        if inNewTab || state.activeItem == nil || state.activeItem?.kind == .agent {
             openInNewTab(url)
         } else if let active = state.activeItem {
             navigate(active, to: url)
@@ -753,6 +835,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .split:
             for child in item.children {
                 close(child)
+            }
+            return
+        case .agent:
+            // Under the line a chat closes for good; a pinned one stays.
+            if item.role == .today {
+                deleteAgentChat(item)
+            } else if state.activeItem === item {
+                if let neighbor = neighbor(forClosing: item) { select(neighbor) } else { showNothing() }
             }
             return
         case .tab:
@@ -966,7 +1056,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard folder.kind == .folder else { return }
         let alert = NSAlert()
         alert.messageText = "Ordner „\(folder.displayTitle)“ löschen?"
-        let tabs = folder.descendants.filter { $0.kind == .tab }.count
+        let tabs = folder.descendants.filter { $0.kind == .tab || $0.kind == .agent }.count
         alert.informativeText = tabs == 0 ? "Der Ordner ist leer." :
             "Die \(tabs) Tab\(tabs == 1 ? "" : "s") darin werden ebenfalls entfernt."
         alert.addButton(withTitle: "Löschen")
@@ -976,6 +1066,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         for tab in folder.descendants where tab.kind == .tab {
             if state.activeItem === tab { showNothing() }
             unload(tab)
+        }
+        for chat in folder.descendants where chat.kind == .agent {
+            if state.activeItem === chat { showNothing() }
+            discardAgentChat(chat)
         }
         folder.detach()
         layoutContent()
@@ -1142,7 +1236,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Splits the active tab with a new empty tab and opens the command bar
     /// for it (Arc's ⌃⇧=).
     func splitWithNewTab() {
-        guard let active = state.activeItem else {
+        guard let active = state.activeItem, active.kind == .tab else {
             commandBar.show(mode: .newTab)
             return
         }
@@ -1221,7 +1315,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func copyURLAsMarkdown() {
-        guard let item = state.activeItem else { return }
+        guard let item = state.activeItem, item.kind == .tab else { return }
         let title = item.displayTitle.replacingOccurrences(of: "]", with: "\\]")
         OpenArch.copy("[\(title)](\(item.currentURL))")
         showToast("Link als Markdown kopiert")
@@ -1453,7 +1547,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func editBoost() {
-        guard let active = state.activeItem else { return }
+        guard let active = state.activeItem, active.kind == .tab else { return }
         BoostPanelController.show(for: active, browser: self)
     }
 

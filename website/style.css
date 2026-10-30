@@ -692,6 +692,13 @@ kbd {
   line-height: 1.55;
 }
 
+.agents-card .copy kbd {
+  padding: 2px 6px;
+  background: var(--dark-line);
+  box-shadow: none;
+  color: inherit;
+}
+
 .terminal {
   flex: 1 1 480px;
   min-width: 0;

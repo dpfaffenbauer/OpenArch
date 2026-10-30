@@ -57,13 +57,13 @@ final class Container {
     }
 }
 
-/// A sidebar entry: a tab (pinned, favorite or today), a folder, or a split
-/// view grouping tabs side by side. A tab is loaded lazily: it gets a Chrome
-/// pane the first time it is shown.
+/// A sidebar entry: a tab (pinned, favorite or today), a folder, a split
+/// view grouping tabs side by side, or an agent chat. A tab is loaded
+/// lazily: it gets a Chrome pane the first time it is shown.
 @MainActor @Observable
 final class Item: Identifiable {
     enum Kind: String, Codable {
-        case tab, folder, split
+        case tab, folder, split, agent
     }
 
     let id: UUID
@@ -113,6 +113,10 @@ final class Item: Identifiable {
     /// Live folders: what fills them, and how the last refresh went.
     var live: LiveSource?
     var liveStatus: LiveStatus?
+    /// Agent chats: where Claude Code works and the session it continues.
+    var agent: AgentConfig?
+    /// Agent chats: the chat itself, from the first time it is shown.
+    var agentSession: AgentSession?
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", customTitle: String? = nil,
          children: [Item] = [], lastActiveAt: Date = Date()) {
@@ -224,6 +228,7 @@ final class Item: Identifiable {
         switch kind {
         case .folder: return "Ordner"
         case .split: return children.map(\.displayTitle).joined(separator: " | ")
+        case .agent: return savedTitle.isEmpty ? "Neuer Agent-Chat" : savedTitle
         case .tab:
             if let liveTitle, !liveTitle.isEmpty { return liveTitle }
             if !savedTitle.isEmpty { return savedTitle }
@@ -249,7 +254,7 @@ final class Item: Identifiable {
     // MARK: Persistence
 
     convenience init(data: ItemData) {
-        self.init(id: data.id, kind: data.kind, title: data.title ?? "", url: data.url ?? "",
+        self.init(id: data.id, kind: data.agent != nil ? .agent : data.kind, title: data.title ?? "", url: data.url ?? "",
                   customTitle: data.customTitle, children: (data.children ?? []).map(Item.init(data:)),
                   lastActiveAt: data.lastActiveAt ?? Date())
         isExpanded = data.isExpanded ?? true
@@ -257,20 +262,32 @@ final class Item: Identifiable {
         splitStacked = data.splitStacked ?? false
         icon = data.icon
         live = data.live
+        agent = data.agent
     }
 
     var data: ItemData {
-        ItemData(id: id, kind: kind,
-                 title: kind == .tab ? (liveTitle ?? savedTitle) : nil,
+        var title: String?
+        if kind == .tab {
+            title = liveTitle ?? savedTitle
+        } else if kind == .agent, !savedTitle.isEmpty {
+            title = savedTitle
+        }
+        let hasChildren = kind == .folder || kind == .split
+        // An agent chat is saved as a tab with its settings: a build without
+        // agent chats then reads a tab, instead of failing on the whole
+        // library and starting over with an empty one.
+        return ItemData(id: id, kind: kind == .agent ? .tab : kind,
+                 title: title,
                  url: kind == .tab ? (role == .today ? currentURL : savedURL) : nil,
                  customTitle: customTitle,
-                 children: kind == .tab ? nil : children.map(\.data),
+                 children: hasChildren ? children.map(\.data) : nil,
                  isExpanded: kind == .folder ? isExpanded : nil,
                  splitFractions: kind == .split && !splitFractions.isEmpty ? splitFractions : nil,
                  splitStacked: kind == .split && splitStacked ? true : nil,
                  lastActiveAt: lastActiveAt,
                  icon: icon,
-                 live: kind == .folder ? live : nil)
+                 live: kind == .folder ? live : nil,
+                 agent: kind == .agent ? agent : nil)
     }
 }
 
@@ -315,6 +332,7 @@ struct ItemData: Codable {
     var lastActiveAt: Date?
     var icon: String?
     var live: LiveSource?
+    var agent: AgentConfig?
 }
 
 /// A page's audio or video, as its media element and Media Session report it.

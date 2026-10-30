@@ -136,7 +136,7 @@ final class SelfTest {
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
             (73, "sharing", { self.sharingTest() }),
-            (68.5, "sleeping tabs", { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } }),
+            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -856,6 +856,120 @@ final class SelfTest {
         expect(!browser.state.libraryVisible && browser.state.space === spaces[0], "swiping left closes the library")
         swipe(20)
         expect(browser.state.space === spaces[0] && !browser.state.libraryVisible, "a short swipe changes nothing")
+    }
+
+    /// Agent chats, with a stand-in for claude that answers in Claude Code's
+    /// stream-json: the chat shows the streamed text, the tool and what was
+    /// refused, remembers the session and continues it with the next message.
+    private func agentChats(then next: @escaping () -> Void) {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-agent-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let events = [
+            #"{"type":"system","subtype":"init","session_id":"selftest-session"}"#,
+            #"{"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}}"#,
+            #"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Ich schaue "}}}"#,
+            #"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"nach."}}}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich schaue nach."}]}}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"Bash","input":{"command":"ls -la"}}]}}"#,
+            #"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"Not allowed","is_error":true}]}}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich darf **ls** nicht ausführen."}]}}"#,
+            #"{"type":"result","subtype":"success","is_error":false,"session_id":"selftest-session","permission_denials":[{"tool_name":"Bash","tool_use_id":"toolu_1","tool_input":{"command":"ls -la"}}]}"#,
+        ]
+        let claude = folder.appendingPathComponent("claude")
+        let script = """
+            #!/bin/sh
+            cat > "$(dirname "$0")/prompt.txt"
+            printf '%s\\n' "$@" > "$(dirname "$0")/arguments.txt"
+            cat <<'EOF'
+            \(events.joined(separator: "\n"))
+            EOF
+            """
+        try? script.write(to: claude, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: claude.path)
+        AgentEnvironment.stub = AgentEnvironment.Resolved(claude: claude.path, variables: ProcessInfo.processInfo.environment)
+        library.settings.agentChats = true
+        library.settings.agentFolder = folder.path
+        let shown = browser.state.activeItem
+        func done() {
+            browser.state.agentsVisible = false
+            AgentEnvironment.stub = nil
+            library.settings.agentChats = false
+            library.settings.agentFolder = ""
+            try? FileManager.default.removeItem(at: folder)
+            if let shown, shown.container != nil { browser.select(shown, focus: false) }
+            next()
+        }
+        // The overview reads Claude Code's own transcripts.
+        let project = folder.appendingPathComponent("projects/-tmp-demo", isDirectory: true)
+        try? FileManager.default.createDirectory(at: project, withIntermediateDirectories: true)
+        let transcript = [
+            #"{"type":"user","cwd":"/tmp/demo","message":{"role":"user","content":"Baue die Startseite"}}"#,
+            #"{"type":"assistant","cwd":"/tmp/demo","message":{"content":[{"type":"tool_use","id":"t1","name":"TodoWrite","input":{"todos":[{"content":"Layout","status":"completed"},{"content":"Texte","status":"pending"}]}}]}}"#,
+            #"{"type":"user","cwd":"/tmp/demo","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}"#,
+            #"{"type":"assistant","cwd":"/tmp/demo","isSidechain":true,"message":{"content":[{"type":"text","text":"Unteragent"}]}}"#,
+            #"{"type":"assistant","cwd":"/tmp/demo","message":{"content":[{"type":"text","text":"Das Layout steht."}]}}"#,
+        ]
+        try? transcript.joined(separator: "\n").write(to: project.appendingPathComponent("demo.jsonl"), atomically: true, encoding: .utf8)
+        let projects = folder.appendingPathComponent("projects")
+        let idle = ClaudeSessions.scan(root: projects, now: Date(), running: [])
+        expect(idle.count == 1 && idle.first?.title == "Baue die Startseite" && idle.first?.folder == "/tmp/demo"
+               && idle.first?.lastMessage == "Das Layout steht." && idle.first?.openTodos == 1 && idle.first?.status == .open,
+               "the agent overview reads a session: title, folder, last answer, open todos (\(idle))")
+        let live = ClaudeSessions.scan(root: projects, now: Date(), running: ["/tmp/demo"])
+        expect(live.first?.status == .waiting, "a session whose claude still runs and has answered waits for you")
+        let history = ClaudeSessions.messages(in: project.appendingPathComponent("demo.jsonl"))
+        expect(history.map(\.role) == [.user, .tool, .assistant] && history[1].output == "ok",
+               "a session opens as a chat with its history (\(history.map(\.role)))")
+        let page = browser.state.activeItem
+        browser.toggleAgents()
+        expect(browser.state.agentsVisible && browser.state.activeItem === page,
+               "Agents take the sidebar's place like a space, and the page stays")
+
+        // The glass look lets the desktop through the window.
+        library.settings.glass = true
+        browser.applyTheme()
+        expect(browser.window?.isOpaque == false && browser.window?.backgroundColor.alphaComponent == 0,
+               "the glass look makes the window see-through")
+        library.settings.glass = false
+        browser.applyTheme()
+        expect(browser.window?.isOpaque == true, "and without it the window is solid again")
+
+        guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
+            expect(false, "a new agent chat")
+            return done()
+        }
+        expect(browser.state.agentsVisible && browser.state.activeItem === chat
+               && AgentEntry.all(browser: browser).contains { $0.chat === chat },
+               "a new chat opens next to the Agents list and is in it")
+        expect(browser.state.activeItem === chat && browser.shownTabs.isEmpty && chat.role == .today,
+               "an agent chat shows in place of the page, under the line")
+        eventually({ !session.isRunning }, timeout: 5) { finished in
+            let roles = session.messages.map(\.role)
+            self.expect(finished && roles == [.user, .assistant, .tool, .assistant, .denied],
+                        "the agent's answer, its tool and what it was refused show in the chat (\(roles))")
+            let tool = session.messages.first { $0.role == .tool }
+            self.expect(session.messages.first { $0.role == .assistant }?.text == "Ich schaue nach."
+                        && tool?.text == "ls -la" && tool?.failed == true,
+                        "streamed text becomes the whole answer, and the refused command shows")
+            self.expect(session.messages.last?.tool == "Bash(ls:*)", "allowing the refusal allows ls commands")
+            let prompt = try? String(contentsOf: folder.appendingPathComponent("prompt.txt"), encoding: .utf8)
+            self.expect(prompt == "Was liegt hier?" && chat.displayTitle == "Was liegt hier?",
+                        "the message goes to claude on stdin and names the chat (\(prompt ?? "nothing"))")
+            self.expect(chat.agent?.sessionID == "selftest-session", "the chat remembers Claude Code's session")
+            let restored = Item(data: chat.data)
+            self.expect(restored.kind == .agent && restored.agent == chat.agent && restored.displayTitle == chat.displayTitle
+                        && chat.data.kind == .tab,
+                        "an agent chat is saved with its folder and session, as a tab to builds without agent chats")
+            session.send("Weiter")
+            self.eventually({ !session.isRunning }, timeout: 5) { _ in
+                let arguments = (try? String(contentsOf: folder.appendingPathComponent("arguments.txt"), encoding: .utf8)) ?? ""
+                self.expect(arguments.contains("--resume\nselftest-session\n") && arguments.contains("--permission-mode\ndefault\n"),
+                            "the next message continues the session")
+                self.browser.close(chat)
+                self.expect(chat.container == nil && self.browser.state.activeItem !== chat, "closing an agent chat removes it")
+                done()
+            }
+        }
     }
 
     /// Plays a tone in a tab that was muted first (so nothing is heard) and
@@ -1792,6 +1906,7 @@ final class SelfTest {
             do {
                 let link = try await sharing.snapshotLink(for: .folder(folder), password: nil)
                 self.expect(ShareURL(url: link.url) == link && ShareURL(url: link.appURL) == link, "a snapshot link reads back, as https:// and as openarch://")
+                self.expect(Sharing.nodes(Item(id: UUID(), kind: .agent)).isEmpty, "agent chats are not shared")
                 let opened = try await ShareReader.open(link)
                 self.expect(opened.version == nil && opened.payload.name == "Lesestoff" && opened.payload.allTabs.map(\.url) == ["https://example.com/a", "https://example.org/b"],
                             "the snapshot holds the folder and its tabs")

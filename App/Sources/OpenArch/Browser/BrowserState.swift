@@ -16,6 +16,8 @@ final class BrowserState {
     var siteControlsVisible = false
     /// The space icon being dragged to another place in the space bar.
     var draggingSpaceID: UUID?
+    /// Agents (⌃0) take the sidebar's place, like a space of their own.
+    var agentsVisible = false
     /// The library (media, downloads, spaces, archive) replaces the sidebar.
     var libraryVisible = false
     var librarySection = LibrarySection.media
