@@ -72,7 +72,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         window.contentView = rootView
         glass.material = .sidebar
         glass.blendingMode = .behindWindow
-        glass.state = .followsWindowActiveState
+        // Glass in front or not: macOS would flatten an inactive window's
+        // glass to plain gray (with Settings in front, for instance).
+        glass.state = .active
         glassTint.wantsLayer = true
         rootView.addSubview(glass)
         rootView.addSubview(glassTint)
@@ -80,6 +82,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         if #available(macOS 26.0, *) {
             let pane = NSGlassEffectView()
             pane.cornerRadius = 16
+            // Clear glass keeps the desktop behind it in view; regular glass is
+            // nearly opaque with nothing but the desktop under it.
+            pane.style = .clear
             sidebarGlass = pane
             rootView.addSubview(pane)
         }
