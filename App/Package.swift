@@ -17,6 +17,9 @@ let cefCxxSettings: [CXXSetting] = [
 let package = Package(
     name: "OpenArch",
     platforms: [.macOS(.v15)],
+    dependencies: [
+        .package(path: "../Shared"),
+    ],
     targets: [
         .target(
             name: "OpenArchCore",
@@ -29,7 +32,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "OpenArch",
-            dependencies: ["OpenArchCore"],
+            dependencies: ["OpenArchCore", .product(name: "OpenArchShared", package: "Shared")],
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .executableTarget(

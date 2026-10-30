@@ -170,6 +170,7 @@ final class Library {
         } catch {
             log("could not save library: \(error)")
         }
+        Sharing.shared.libraryDidSave()
     }
 
     /// Loads the saved library, or sets up a first-run one.
@@ -339,6 +340,8 @@ struct Settings: Codable, Equatable {
     var devToolsDock = DevToolsDock.right
     /// Sites whose links to an app open it without asking: "host scheme".
     var allowedExternalApps: [String] = []
+    /// The relay for new live shares (docs/sharing.md); empty: share.openarch.app.
+    var shareRelay = ""
 
     init() {}
 
@@ -361,12 +364,21 @@ struct Settings: Codable, Equatable {
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
+        shareRelay = try container.decodeIfPresent(String.self, forKey: .shareRelay) ?? defaults.shareRelay
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
 }
 
 extension Settings {
+    /// The relay for new live shares, nil for the default one.
+    var shareRelayURL: URL? {
+        let text = shareRelay.trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty, let url = URL(string: text.contains("://") ? text : "https://" + text),
+              url.scheme == "https" else { return nil }
+        return url
+    }
+
     /// The settings that Chromium and every tab apply themselves.
     @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)

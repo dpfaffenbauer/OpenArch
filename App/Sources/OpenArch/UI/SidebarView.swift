@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchShared
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -393,6 +394,13 @@ private struct SpaceHeader: View {
             Spacer()
             Menu {
                 Button("Space bearbeiten …") { editing.wrappedValue = true }
+                Button("Space teilen …") {
+                    if let app = NSApp.delegate as? AppDelegate { ShareWindows.share(.space(space), app: app) }
+                }
+                if Sharing.shared.subscription(space.id) != nil {
+                    Button("Geteilten Space jetzt aktualisieren") { Task { await Sharing.shared.refresh() } }
+                    Button("Nicht mehr folgen") { Sharing.shared.unsubscribe(space.id) }
+                }
                 Button("Neuer Ordner") { browser.newFolder() }
                 Divider()
                 Button("Neuer Space") { browser.addSpace() }
@@ -488,6 +496,12 @@ private struct FolderRow: View {
             RenamableTitle(browser: browser, item: item)
                 .font(.system(size: 14, weight: .semibold))
             Spacer(minLength: 4)
+            if Sharing.shared.isShared(item.id) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                    .opacity(0.55)
+                    .help(Sharing.shared.subscription(item.id) != nil ? "Geteilt mit dir" : "Geteilt")
+            }
             if item.liveStatus == .loading {
                 ProgressView().controlSize(.mini).opacity(0.6)
             } else if item.live != nil, hovering {
@@ -508,6 +522,14 @@ private struct FolderRow: View {
             Button("Neuer Unterordner") { browser.newFolder(in: item) }
             Button("Alle öffnen") {
                 for tab in item.descendants where tab.kind == .tab { browser.select(tab, focus: false) }
+            }
+            Divider()
+            Button("Teilen …") {
+                if let app = NSApp.delegate as? AppDelegate { ShareWindows.share(.folder(item), app: app) }
+            }
+            if Sharing.shared.subscription(item.id) != nil {
+                Button("Geteilten Ordner jetzt aktualisieren") { Task { await Sharing.shared.refresh() } }
+                Button("Nicht mehr folgen") { Sharing.shared.unsubscribe(item.id) }
             }
             Divider()
             Button("Ordner löschen …") { browser.deleteFolder(item) }
@@ -804,6 +826,9 @@ private struct SpaceBar: View {
                     Button("Meine Issues") { browser.newLiveFolder(.myIssues, name: "Meine Issues") }
                 }
                 Divider()
+                Button("Geteilten Link öffnen …") {
+                    if let app = NSApp.delegate as? AppDelegate { ShareWindows.askForLink(app: app) }
+                }
                 Button("Aus Arc importieren …") { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }
             } label: {
                 Image(systemName: "plus").font(.system(size: 13, weight: .semibold))

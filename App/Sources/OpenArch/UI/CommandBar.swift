@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import OpenArchCore
+import OpenArchShared
 import SwiftUI
 
 /// Arc's command bar: ⌘T opens a new tab, ⌘L edits the current URL. One
@@ -447,6 +448,11 @@ final class CommandBarModel {
     }
 
     private func open(_ url: String) {
+        // A share link (docs/sharing.md) is added, not loaded.
+        if let parsed = URL(string: url), let link = ShareURL(url: parsed), let app = NSApp.delegate as? AppDelegate {
+            ShareWindows.open(link, app: app)
+            return
+        }
         switch mode {
         case .newTab:
             browser.openInNewTab(url)

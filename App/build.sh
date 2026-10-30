@@ -68,6 +68,9 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <array><dict>
     <key>CFBundleURLName</key><string>Web site URL</string>
     <key>CFBundleURLSchemes</key><array><string>http</string><string>https</string></array>
+  </dict><dict>
+    <key>CFBundleURLName</key><string>OpenArch share link</string>
+    <key>CFBundleURLSchemes</key><array><string>openarch</string></array>
   </dict></array>
   <key>CFBundleDocumentTypes</key>
   <array><dict>

@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchShared
 import SwiftUI
 
 /// Settings in Arc's style: a tab bar with icons, options in rounded cards.
@@ -30,6 +31,7 @@ struct SettingsView: View {
                     case .general: GeneralPage(app: app, library: app.library)
                     case .profiles: ProfilesPage(app: app, library: app.library)
                     case .links: LinksPage(app: app, library: app.library)
+                    case .sharing: SharingPage(app: app, library: app.library)
                     case .ai: AIPage(app: app)
                     case .importing: ImportPage(app: app)
                     case .about: AboutPage(app: app)
@@ -46,7 +48,7 @@ struct SettingsView: View {
 }
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case general, profiles, links, ai, importing, about
+    case general, profiles, links, sharing, ai, importing, about
     var id: String { rawValue }
 
     var title: String {
@@ -54,6 +56,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .general: "Allgemein"
         case .profiles: "Profile"
         case .links: "Links"
+        case .sharing: "Teilen"
         case .ai: "KI"
         case .importing: "Import"
         case .about: "Info"
@@ -65,6 +68,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .general: "gearshape"
         case .profiles: "person.2"
         case .links: "link"
+        case .sharing: "person.2.wave.2"
         case .ai: "sparkles"
         case .importing: "square.and.arrow.down"
         case .about: "info.circle"
@@ -508,6 +512,67 @@ private struct AIPage: View {
             }
             .padding(14)
         }
+    }
+}
+
+/// Shares of this Mac and shares it follows (docs/sharing.md).
+private struct SharingPage: View {
+    let app: AppDelegate
+    @Bindable var library: Library
+
+    var body: some View {
+        let sharing = Sharing.shared
+        Section(title: "Von diesem Mac geteilt",
+                footer: "Ohne Konto: Der Link ist der Schlüssel. Ordner und Spaces teilst du über ihr Menü in der Seitenleiste, als Link oder QR-Code fürs iPhone. Live-Freigaben folgen deinen Änderungen; nur dieser Mac kann sie ändern.") {
+            if sharing.records.owned.isEmpty {
+                Text("Noch nichts geteilt.").font(.system(size: 12)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 14).padding(.vertical, 10)
+            }
+            ForEach(sharing.records.owned) { share in
+                let target = sharing.target(of: share)
+                Row(symbol: share.kind == .space ? "square.on.square" : "folder", color: .blue, title: share.name,
+                    detail: target == nil ? "Gelöscht; der Link zeigt noch den letzten Stand." : "Version \(share.version)\(share.passwordSlot == nil ? "" : " · mit Passwort")",
+                    showsDivider: share.id != sharing.records.owned.last?.id) {
+                    if let target {
+                        Button("Link …") { ShareWindows.share(target, app: app) }
+                    } else {
+                        Button("Beenden") { Task { try? await sharing.end(share) } }
+                    }
+                }
+            }
+        }
+        Section(title: "Mit dir geteilt",
+                footer: "Geteilte Ordner und Spaces, denen du folgst, aktualisieren sich alle fünf Minuten. Was du daran änderst, überschreibt das nächste Update.") {
+            ForEach(sharing.records.subscriptions) { subscription in
+                Row(symbol: "person.2", color: .green, title: subscription.name,
+                    detail: subscription.ended ? "Vom Besitzer beendet" : subscription.lastChecked.map {
+                        "Geprüft \($0.formatted(.relative(presentation: .named)))"
+                    } ?? "Noch nicht geprüft") {
+                    Button("Nicht mehr folgen") { sharing.unsubscribe(subscription.target) }
+                }
+            }
+            HStack {
+                Button("Geteilten Link öffnen …") { ShareWindows.askForLink(app: app) }
+                Spacer()
+                Button("Jetzt aktualisieren") { Task { await sharing.refresh() } }
+                    .disabled(sharing.records.subscriptions.isEmpty)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+        if let error = sharing.lastError {
+            Text(error).font(.system(size: 12)).foregroundStyle(.red)
+        }
+        Section(title: "Teilen-Server",
+                footer: "Er sieht nur verschlüsselte, signierte Daten und wer wann welche Freigabe abruft. Ein eigener Server ist relay/ aus OpenArchs Quellcode.") {
+            Row(symbol: "server.rack", color: .gray, title: "Server für neue Live-Freigaben",
+                detail: "Leer lassen für share.openarch.app.", showsDivider: false) {
+                TextField("share.openarch.app", text: $library.settings.shareRelay)
+                    .textFieldStyle(.roundedBorder).frame(width: 200)
+            }
+        }
+        .onChange(of: library.settings) { library.setNeedsSave() }
     }
 }
 

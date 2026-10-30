@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchShared
 import SwiftUI
 
 @MainActor
@@ -70,6 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated { _ = self?.mainBrowser?.openInNewTab(url) }
             }
             LiveFolders.shared.start(library)
+            if !selfTest { Sharing.shared.start(library) }
             // DevTools' own Dock side menu: the choice is kept like the menu's.
             OACPane.devToolsDockHandler = { [weak self] dock in
                 MainActor.assumeIsolated {
@@ -193,6 +195,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// A link from another app: a matching link rule decides the space,
     /// otherwise Little OpenArch or the current space.
     func openExternal(_ url: String) {
+        // A share link (https://openarch.app/s/#…, openarch://share#…) is added, not loaded.
+        if let parsed = URL(string: url), let link = ShareURL(url: parsed) {
+            ShareWindows.open(link, app: self)
+            return
+        }
         guard let browser = mainBrowser else { return }
         if let rule = library.settings.linkRules.first(where: { $0.matches(url) }) {
             if let id = rule.spaceID, let space = library.space(id: id) {
