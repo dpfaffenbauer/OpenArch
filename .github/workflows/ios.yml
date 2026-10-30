@@ -1,0 +1,44 @@
+name: iOS
+
+on:
+  push:
+    paths: ["iOS/**", "Shared/**", ".github/workflows/ios.yml"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The sharing format, crypto and relay client (docs/sharing.md).
+  shared:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Test the shared package
+        run: swift test --package-path Shared
+
+  # OpenArch for iPhone and iPad, built for the simulator (no signing).
+  app:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          xcodebuild -version
+          if ! xcodebuild -project iOS/OpenArch.xcodeproj -scheme OpenArch \
+              -destination 'generic/platform=iOS Simulator' -configuration Debug \
+              CODE_SIGNING_ALLOWED=NO build > build.log 2>&1; then
+            grep -E "error:|fatal" build.log | sort -u | head -100
+            tail -40 build.log
+            exit 1
+          fi
+          grep -E "warning:" build.log | grep -v "/DerivedData/" | sort -u | head -50 || true
+          echo "Build succeeded"
