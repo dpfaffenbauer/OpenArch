@@ -12,6 +12,10 @@ struct OpenArchApp: App {
                 .onOpenURL { browser.open(externalURL: $0) }
                 // Followed shares are checked every five minutes while open.
                 .task {
+                    if SelfTest.isRequested {
+                        await SelfTest(browser: browser).run()
+                        return
+                    }
                     while !Task.isCancelled {
                         await browser.sharing.refresh()
                         try? await Task.sleep(for: .seconds(300))

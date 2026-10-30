@@ -24,7 +24,8 @@ jobs:
       - name: Test the shared package
         run: swift test --package-path Shared
 
-  # OpenArch for iPhone and iPad, built for the simulator (no signing).
+  # OpenArch for iPhone and iPad, built for the simulator (no signing) and
+  # put through its self-test there.
   app:
     runs-on: macos-latest
     timeout-minutes: 30
@@ -35,10 +36,33 @@ jobs:
           xcodebuild -version
           if ! xcodebuild -project iOS/OpenArch.xcodeproj -scheme OpenArch \
               -destination 'generic/platform=iOS Simulator' -configuration Debug \
-              CODE_SIGNING_ALLOWED=NO build > build.log 2>&1; then
+              -derivedDataPath build/ios CODE_SIGNING_ALLOWED=NO build > build.log 2>&1; then
             grep -E "error:|fatal" build.log | sort -u | head -100
             tail -40 build.log
             exit 1
           fi
           grep -E "warning:" build.log | grep -v "/DerivedData/" | sort -u | head -50 || true
           echo "Build succeeded"
+
+      # Opens a page, pins it into a folder, shares the folder and adds it
+      # again (SelfTest.swift); the screenshots are kept as an artifact.
+      - name: Self-test in the simulator
+        run: |
+          udid="$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')"
+          echo "Simulator: $(xcrun simctl list devices | grep "$udid")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b > /dev/null
+          xcrun simctl install "$udid" build/ios/Build/Products/Debug-iphonesimulator/OpenArch.app
+          status=0
+          timeout 240 xcrun simctl launch --console-pty "$udid" dev.openarch.mobile -selftest > selftest.log 2>&1 || status=$?
+          grep "\[selftest\]" selftest.log || tail -50 selftest.log
+          mkdir -p screenshots
+          cp -R "$(xcrun simctl get_app_container "$udid" dev.openarch.mobile data)/Documents/selftest/." screenshots/ || true
+          grep -q "DONE failures=0" selftest.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-selftest-screenshots
+          path: screenshots
+          retention-days: 7
