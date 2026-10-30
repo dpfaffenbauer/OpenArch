@@ -848,10 +848,6 @@ final class SelfTest {
         expect(browser.state.space === spaces[0] && !browser.state.libraryVisible, "a short swipe changes nothing")
     }
 
-    /// Plays a tone in a tab that was muted first (so nothing is heard) and
-    /// checks that the sidebar learns about it.
-    /// A tab nobody looked at goes to sleep and comes back on the same page;
-    /// one whose page asks before leaving stays awake.
     /// Agent chats, with a stand-in for claude that answers in Claude Code's
     /// stream-json: the chat shows the streamed text, the tool and what was
     /// refused, remembers the session and continues it with the next message.
@@ -961,6 +957,10 @@ final class SelfTest {
         }
     }
 
+    /// Plays a tone in a tab that was muted first (so nothing is heard) and
+    /// checks that the sidebar learns about it.
+    /// A tab nobody looked at goes to sleep and comes back on the same page;
+    /// one whose page asks before leaving stays awake.
     private func sleepingTabs(then next: @escaping () -> Void) {
         guard let space = library.spaces.first else { return }
         browser.switchSpace(to: space)

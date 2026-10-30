@@ -106,6 +106,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         applyTheme()
         observeChanges()
         sidebarSwipe = SidebarSwipe(browser: self)
+        // Agent chats follow the Mac's light or dark mode, like pages do.
+        DistributedNotificationCenter.default().addObserver(forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
+                                                            object: nil, queue: .main) { [weak self] _ in
+            // AppKit's own appearance changes a moment after the notification.
+            guard let self else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                MainActor.assumeIsolated { self?.applyTheme() }
+            }
+        }
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
             NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.applyTheme() }

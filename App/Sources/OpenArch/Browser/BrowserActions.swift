@@ -225,8 +225,10 @@ extension BrowserWindowController {
             for tab in container.allTabs {
                 unload(tab)
             }
+            // An import replaces the sidebar: its agent chats go with it.
             for item in container.allItems where item.kind == .agent {
-                item.agentSession?.stop()
+                item.agentSession?.discard()
+                AgentSession.deleteTranscript(item.id)
             }
         }
         state.activeItem = nil

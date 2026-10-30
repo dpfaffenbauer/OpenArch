@@ -64,7 +64,7 @@ extension BrowserWindowController {
     /// Ends a chat for good: its run stops and its transcript goes. Claude
     /// Code keeps the session itself (`claude --resume` in its folder).
     func discardAgentChat(_ item: Item) {
-        item.agentSession?.stop()
+        item.agentSession?.discard()
         item.agentSession = nil
         AgentSession.deleteTranscript(item.id)
         item.detach()

@@ -85,7 +85,10 @@ final class Library {
         guard spaces.count > 1 else { return }
         for item in space.pinned.allItems + space.today.allItems {
             item.pane?.close()
-            item.agentSession?.stop()
+            if item.kind == .agent {
+                item.agentSession?.discard()
+                AgentSession.deleteTranscript(item.id)
+            }
         }
         spaces.removeAll { $0 === space }
         setNeedsSave()

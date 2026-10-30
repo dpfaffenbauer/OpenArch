@@ -108,6 +108,8 @@ final class AgentSession {
     @ObservationIgnored private var run = 0
     @ObservationIgnored private var sawResult = false
     @ObservationIgnored private var stopped = false
+    /// Deleted: nothing is saved any more.
+    @ObservationIgnored private var discarded = false
 
     /// Chats with a run going, to stop them when OpenArch quits.
     private static var running: [ObjectIdentifier: AgentSession] = [:]
@@ -152,6 +154,16 @@ final class AgentSession {
             run += 1
             messages.append(AgentMessage(role: .note, text: "Angehalten."))
             finish()
+        }
+    }
+
+    /// The chat is gone for good: its run stops, its transcript goes and is
+    /// not written again when the run ends.
+    func discard() {
+        discarded = true
+        stop()
+        if let item {
+            Self.deleteTranscript(item.id)
         }
     }
 
@@ -422,7 +434,7 @@ final class AgentSession {
 
     func saveTranscript() {
         // A chat that was deleted while it ran stays deleted.
-        guard let item, item.container != nil else { return }
+        guard !discarded, let item, item.container != nil else { return }
         do {
             try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
             try JSONEncoder().encode(messages).write(to: Self.transcriptURL(item.id), options: .atomic)
@@ -599,7 +611,8 @@ enum AgentEnvironment {
             return nil
         }
         guard done.wait(timeout: .now() + timeout) == .success else {
-            process.terminate()
+            // An interactive shell ignores SIGTERM.
+            kill(process.processIdentifier, SIGKILL)
             return nil
         }
         return try? String(contentsOf: file, encoding: .utf8)

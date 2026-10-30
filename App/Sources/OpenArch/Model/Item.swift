@@ -266,11 +266,18 @@ final class Item: Identifiable {
     }
 
     var data: ItemData {
-        ItemData(id: id, kind: kind,
-                 title: kind == .tab ? (liveTitle ?? savedTitle) : (kind == .agent && !savedTitle.isEmpty ? savedTitle : nil),
+        var title: String?
+        if kind == .tab {
+            title = liveTitle ?? savedTitle
+        } else if kind == .agent, !savedTitle.isEmpty {
+            title = savedTitle
+        }
+        let hasChildren = kind == .folder || kind == .split
+        return ItemData(id: id, kind: kind,
+                 title: title,
                  url: kind == .tab ? (role == .today ? currentURL : savedURL) : nil,
                  customTitle: customTitle,
-                 children: kind == .tab || kind == .agent ? nil : children.map(\.data),
+                 children: hasChildren ? children.map(\.data) : nil,
                  isExpanded: kind == .folder ? isExpanded : nil,
                  splitFractions: kind == .split && !splitFractions.isEmpty ? splitFractions : nil,
                  splitStacked: kind == .split && splitStacked ? true : nil,
