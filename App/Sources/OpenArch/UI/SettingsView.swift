@@ -254,7 +254,7 @@ private struct GeneralPage: View {
                     .onChange(of: library.settings.sidebarWidth) { app.browsers.forEach { $0.layoutContent() } }
             }
             Row(symbol: "rectangle.on.rectangle", color: .cyan, title: "Glas-Effekt",
-                detail: "Der Schreibtisch scheint verschwommen durch die Sidebar, getönt in der Farbe des Space. Die Seiten liegen als Karten darauf.") {
+                detail: "Der Schreibtisch scheint durch das Fenster. Ab macOS 26 schwebt die Sidebar als Liquid Glass darüber, getönt in der Farbe des Space; die Seiten liegen als Karten daneben.") {
                 Toggle("", isOn: $library.settings.glass).labelsHidden().toggleStyle(.switch)
             }
             Row(symbol: "drop.halffull", color: .cyan, title: "Farbe über dem Glas",

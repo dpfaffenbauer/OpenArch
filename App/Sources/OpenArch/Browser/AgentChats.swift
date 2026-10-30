@@ -70,16 +70,21 @@ extension BrowserWindowController {
         item.detach()
     }
 
-    /// The overview of Claude Code sessions, in the content area.
-    func showAgentOverview() {
+    /// Agents (⌃0): the sidebar lists every agent chat and Claude Code
+    /// session, like a space of its own; the page or chat in front stays.
+    func toggleAgents() {
+        guard !isPrivate else { return }
         guard library.settings.agentChats else {
             (NSApp.delegate as? AppDelegate)?.showSettings(page: .ai)
             return
         }
-        showNothing()
-        state.agentOverviewVisible = true
+        state.agentsVisible.toggle()
+        if state.agentsVisible {
+            state.libraryVisible = false
+            state.sidebarVisible = true
+            ClaudeSessions.shared.refresh()
+        }
         layoutContent()
-        ClaudeSessions.shared.refresh()
     }
 
     /// A session from the overview as an agent chat: the one in the sidebar

@@ -407,7 +407,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func reopenTab(_ sender: Any?) { browser?.reopenClosedTab() }
     @objc func newFolder(_ sender: Any?) { browser?.newFolder() }
     @objc func newAgentChat(_ sender: Any?) { mainBrowser?.newAgentChat() }
-    @objc func showAgentOverview(_ sender: Any?) { mainBrowser?.showAgentOverview() }
+    @objc func toggleAgents(_ sender: Any?) { mainBrowser?.toggleAgents() }
     @objc func newSpace(_ sender: Any?) { browser?.addSpace() }
     @objc func editSpace(_ sender: Any?) {
         guard let browser else { return }
@@ -606,7 +606,7 @@ enum MainMenu {
             item("Sidebar ein-/ausblenden", #selector(AppDelegate.toggleSidebar(_:)), "s"),
             item("Bibliothek", #selector(AppDelegate.toggleLibrary(_:)), "l", [.command, .shift]),
             item("Bibliothek", #selector(AppDelegate.toggleLibrary(_:)), "b", [.command, .option], hidden: true),
-            item("Agent-Übersicht", #selector(AppDelegate.showAgentOverview(_:))),
+            item("Agents", #selector(AppDelegate.toggleAgents(_:)), "0", .control),
             item("Chrome-Toolbar ein-/ausblenden", #selector(AppDelegate.toggleToolbar(_:)), "d", [.command, .shift]),
             item("Boost bearbeiten …", #selector(AppDelegate.editBoost(_:)), "b", [.command, .control]),
             item("Website-Einstellungen …", #selector(AppDelegate.showSiteControls(_:)), "i", [.command, .control]),

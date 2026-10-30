@@ -524,8 +524,8 @@ final class CommandBarModel {
         ]
         if browser.library.settings.agentChats, !browser.isPrivate {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
-            let overview: Command = ("Agent-Übersicht", "rectangle.stack", nil, { browser.showAgentOverview() })
-            commands += [agent, overview]
+            let agents: Command = ("Agents", "sparkles", "⌃0", { browser.toggleAgents() })
+            commands += [agent, agents]
         }
         if let active, active.kind == .tab {
             let tabCommands: [Command] = [

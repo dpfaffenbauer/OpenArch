@@ -39,24 +39,29 @@ struct SidebarView: View {
                 AddressPill(browser: browser, theme: theme)
                     .padding(.bottom, 8)
             }
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 10) {
-                    if browser.isPrivate {
-                        PrivateHeader(theme: theme)
-                    } else {
-                        FavoritesGrid(browser: browser, theme: theme)
-                        SpaceHeader(browser: browser, space: space, theme: theme)
-                        PinnedSection(browser: browser, space: space, theme: theme)
+            if state.agentsVisible {
+                AgentsList(browser: browser, theme: theme)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            } else {
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if browser.isPrivate {
+                            PrivateHeader(theme: theme)
+                        } else {
+                            FavoritesGrid(browser: browser, theme: theme)
+                            SpaceHeader(browser: browser, space: space, theme: theme)
+                            PinnedSection(browser: browser, space: space, theme: theme)
+                        }
+                        TodaySection(browser: browser, space: space, theme: theme)
                     }
-                    TodaySection(browser: browser, space: space, theme: theme)
+                    .padding(.bottom, 12)
                 }
-                .padding(.bottom, 12)
-            }
-            .scrollIndicators(.never)
-            // The free space under the tabs takes drops too: they go last.
-            .contentShape(Rectangle())
-            .onDrop(of: UTType.sidebarDrops, isTargeted: nil) { providers in
-                browser.handleDrop(providers, target: .end(space.today))
+                .scrollIndicators(.never)
+                // The free space under the tabs takes drops too: they go last.
+                .contentShape(Rectangle())
+                .onDrop(of: UTType.sidebarDrops, isTargeted: nil) { providers in
+                    browser.handleDrop(providers, target: .end(space.today))
+                }
             }
             if let playing = browser.nowPlaying {
                 MediaCard(browser: browser, item: playing, theme: theme)
@@ -799,9 +804,6 @@ private struct TodaySection: View {
                 browser.handleDrop(providers, target: .end(space.today))
             }
 
-            if browser.library.settings.agentChats, !browser.isPrivate {
-                AgentsRow(browser: browser, theme: theme)
-            }
             NewTabRow(browser: browser, theme: theme)
                 .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
                     browser.handleDrop(providers, target: space.today.items.first.map { .before($0) } ?? .end(space.today))
@@ -811,36 +813,6 @@ private struct TodaySection: View {
             }
         }
         .background(RoundedRectangle(cornerRadius: 8).fill(dropTargeted ? theme.hover : .clear))
-    }
-}
-
-/// Opens the overview of Claude Code sessions; the number is how many wait
-/// for you.
-private struct AgentsRow: View {
-    let browser: BrowserWindowController
-    let theme: SpaceTheme
-    @State private var hovering = false
-
-    var body: some View {
-        let waiting = ClaudeSessions.shared.waitingCount
-        HStack(spacing: 10) {
-            Image(systemName: "rectangle.stack").font(.system(size: 13, weight: .medium)).frame(width: 16)
-            Text("Agents").font(.system(size: 14))
-            Spacer()
-            if waiting > 0 {
-                Text("\(waiting)")
-                    .font(.system(size: 11, weight: .bold))
-                    .padding(.horizontal, 6)
-                    .frame(minWidth: 18, minHeight: 18)
-                    .background(Capsule().fill(theme.selection))
-                    .help(waiting == 1 ? "Eine Session wartet auf dich" : "\(waiting) Sessions warten auf dich")
-            }
-        }
-        .foregroundStyle(browser.state.agentOverviewVisible ? theme.foreground : theme.secondary)
-        .rowStyle(depth: 0, isActive: browser.state.agentOverviewVisible, hovering: hovering, theme: theme, dropZone: nil)
-        .onTapGesture { browser.showAgentOverview() }
-        .onHover { hovering = $0 }
-        .help("Alle Claude-Code-Sessions: was läuft und was auf dich wartet")
     }
 }
 
@@ -888,6 +860,9 @@ private struct SpaceBar: View {
             }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {
+                    if browser.library.settings.agentChats, !browser.isPrivate {
+                        AgentsSpaceButton(browser: browser, theme: theme)
+                    }
                     ForEach(Array(browser.library.spaces.enumerated()), id: \.element.id) { index, space in
                         SpaceButton(browser: browser, space: space, index: index, theme: theme)
                     }
@@ -950,6 +925,33 @@ private struct DownloadRing: View {
     }
 }
 
+/// Agents, at the start of the space bar like a space of its own (⌃0); a
+/// dot while sessions wait for you.
+private struct AgentsSpaceButton: View {
+    let browser: BrowserWindowController
+    let theme: SpaceTheme
+    @State private var hovering = false
+
+    var body: some View {
+        let isCurrent = browser.state.agentsVisible
+        let waiting = ClaudeSessions.shared.waitingCount
+        Image(systemName: "sparkles")
+            .font(.system(size: 12, weight: .semibold))
+            .frame(width: 28, height: 28)
+            .background(Circle().fill(isCurrent ? theme.selection : (hovering ? theme.hover : .clear)))
+            .overlay(alignment: .topTrailing) {
+                if waiting > 0, !isCurrent {
+                    Circle().fill(Color.orange).frame(width: 7, height: 7).offset(x: -3, y: 3)
+                }
+            }
+            .opacity(isCurrent ? 1 : 0.6)
+            .contentShape(Circle())
+            .onTapGesture { browser.toggleAgents() }
+            .onHover { hovering = $0 }
+            .help(waiting > 0 ? "Agents (⌃0): \(waiting) warten auf dich" : "Agents (⌃0)")
+    }
+}
+
 private struct SpaceButton: View {
     let browser: BrowserWindowController
     let space: Space
@@ -958,13 +960,16 @@ private struct SpaceButton: View {
     @State private var hovering = false
 
     var body: some View {
-        let isCurrent = browser.state.space === space
+        let isCurrent = browser.state.space === space && !browser.state.agentsVisible
         SpaceIcon(icon: space.icon, size: 12)
             .frame(width: 28, height: 28)
             .background(Circle().fill(isCurrent ? theme.selection : (hovering ? theme.hover : .clear)))
             .opacity(isCurrent ? 1 : 0.6)
             .contentShape(Circle())
-            .onTapGesture { browser.switchSpace(to: space) }
+            .onTapGesture {
+                browser.state.agentsVisible = false
+                browser.switchSpace(to: space)
+            }
             .onHover { hovering = $0 }
             .help(index < 9 ? "\(space.name) (⌃\(index + 1))" : space.name)
             .onDrag {
@@ -1119,7 +1124,7 @@ enum DropZone {
     }
 }
 
-private extension View {
+extension View {
     func rowStyle(depth: Int, isActive: Bool, hovering: Bool, theme: SpaceTheme, dropZone: DropZone?,
                   horizontalPadding: CGFloat = 10) -> some View {
         self

@@ -350,8 +350,8 @@ struct Settings: Codable, Equatable {
     /// The glass look: the desktop shows blurred through the sidebar,
     /// tinted with the space's color.
     var glass = false
-    /// How much of the space's color lies over the glass (0–1).
-    var glassTint = 0.55
+    /// How much of the space's color is in the glass (0–1).
+    var glassTint = 0.4
 
     init() {}
 

@@ -881,6 +881,7 @@ final class SelfTest {
         library.settings.agentFolder = folder.path
         let shown = browser.state.activeItem
         func done() {
+            browser.state.agentsVisible = false
             AgentEnvironment.stub = nil
             library.settings.agentChats = false
             library.settings.agentFolder = ""
@@ -909,9 +910,10 @@ final class SelfTest {
         let history = ClaudeSessions.messages(in: project.appendingPathComponent("demo.jsonl"))
         expect(history.map(\.role) == [.user, .tool, .assistant] && history[1].output == "ok",
                "a session opens as a chat with its history (\(history.map(\.role)))")
-        browser.showAgentOverview()
-        expect(browser.state.agentOverviewVisible && browser.state.activeItem == nil && browser.shownTabs.isEmpty,
-               "the agent overview shows in place of the page")
+        let page = browser.state.activeItem
+        browser.toggleAgents()
+        expect(browser.state.agentsVisible && browser.state.activeItem === page,
+               "Agents take the sidebar's place like a space, and the page stays")
 
         // The glass look lets the desktop through the window.
         library.settings.glass = true
@@ -926,7 +928,9 @@ final class SelfTest {
             expect(false, "a new agent chat")
             return done()
         }
-        expect(!browser.state.agentOverviewVisible, "a chat takes the overview's place")
+        expect(browser.state.agentsVisible && browser.state.activeItem === chat
+               && AgentEntry.all(browser: browser).contains { $0.chat === chat },
+               "a new chat opens next to the Agents list and is in it")
         expect(browser.state.activeItem === chat && browser.shownTabs.isEmpty && chat.role == .today,
                "an agent chat shows in place of the page, under the line")
         eventually({ !session.isRunning }, timeout: 5) { finished in

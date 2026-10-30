@@ -23,6 +23,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// window, and the space's color over it.
     private let glass = NSVisualEffectView()
     private let glassTint = NSView()
+    /// macOS 26: the sidebar floats on it as a pane of Liquid Glass.
+    private var sidebarGlass: NSView?
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
     private var agentHost: NSHostingView<AgentContentView>!
@@ -74,6 +76,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         glassTint.wantsLayer = true
         rootView.addSubview(glass)
         rootView.addSubview(glassTint)
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *) {
+            let pane = NSGlassEffectView()
+            pane.cornerRadius = 16
+            sidebarGlass = pane
+            rootView.addSubview(pane)
+        }
+        #endif
         sidebarHost = NSHostingView(rootView: SidebarView(browser: self))
         sidebarHost.sizingOptions = []
         emptyHost = NSHostingView(rootView: EmptyContentView(browser: self))
@@ -169,9 +179,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let theme = SpaceTheme(hex: state.space.colorHex)
         let base = isFrontmost ? theme.base : theme.inactiveBase
         let glassy = library.settings.glass
+        let tint = library.settings.glassTint
         glass.isHidden = !glassy
         glassTint.isHidden = !glassy
-        glassTint.layer?.backgroundColor = base.withAlphaComponent(library.settings.glassTint).cgColor
+        // With Liquid Glass the color is in the glass; the desktop around it
+        // shows clearer.
+        glassTint.layer?.backgroundColor = base.withAlphaComponent(sidebarGlass == nil ? tint : tint * 0.35).cgColor
+        #if compiler(>=6.2)
+        if #available(macOS 26.0, *), let pane = sidebarGlass as? NSGlassEffectView {
+            pane.tintColor = base.withAlphaComponent(tint)
+        }
+        #endif
+        sidebarGlass?.isHidden = !glassy || !state.sidebarVisible
         window?.isOpaque = !glassy
         window?.backgroundColor = glassy ? .clear : base
         if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
@@ -226,6 +245,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let bounds = rootView.bounds
         glass.frame = bounds
         glassTint.frame = bounds
+        // Inset from the window's edges, the window buttons inside it.
+        sidebarGlass?.frame = NSRect(x: 5, y: 5, width: max(0, sidebarWidth - 8), height: max(0, bounds.height - 10))
+        sidebarGlass?.isHidden = !library.settings.glass || !state.sidebarVisible
         sidebarHost.isHidden = !state.sidebarVisible
         sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible
@@ -233,7 +255,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         sidebarEdge.isHidden = state.sidebarVisible
         sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
         let content = contentRect
-        let showsAgent = state.activeItem?.kind == .agent || state.agentOverviewVisible
+        let showsAgent = state.activeItem?.kind == .agent
         emptyHost.frame = content
         emptyHost.isHidden = !visibleTabs.isEmpty || showsAgent
         agentHost.frame = content
@@ -462,6 +484,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         state.libraryVisible.toggle()
         if state.libraryVisible {
             state.sidebarVisible = true
+            state.agentsVisible = false
         }
         layoutContent()
     }
@@ -529,11 +552,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .tab, .agent:
             break
         }
-        state.agentOverviewVisible = false
         if peek.isOpen {
             peek.close()
         }
-        if let space = library.space(containing: item), space !== state.space {
+        // From the Agents list, a chat opens where you are, whichever space keeps it.
+        if !(item.kind == .agent && state.agentsVisible), let space = library.space(containing: item), space !== state.space {
             switchSpace(to: space, restoring: false)
         }
         item.lastActiveAt = Date()

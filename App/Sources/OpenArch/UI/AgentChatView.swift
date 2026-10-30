@@ -8,9 +8,7 @@ struct AgentContentView: View {
     let browser: BrowserWindowController
 
     var body: some View {
-        if browser.state.agentOverviewVisible {
-            AgentOverviewView(browser: browser)
-        } else if let item = browser.state.activeItem, item.kind == .agent, let session = item.agentSession {
+        if let item = browser.state.activeItem, item.kind == .agent, let session = item.agentSession {
             AgentChatView(browser: browser, item: item, session: session)
                 .id(item.id)
         }
