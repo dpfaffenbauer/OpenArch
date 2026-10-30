@@ -179,12 +179,10 @@ final class Sharing {
         save()
     }
 
-    /// A folder, tab or space was deleted: its shares end, and nothing is
-    /// followed into it any more.
+    /// A folder or space was deleted: nothing is followed into it any more.
+    /// Its own share keeps the last state until it is ended in Settings, as
+    /// on the Mac.
     func forget(_ id: UUID) {
-        for share in records.owned where share.source == id {
-            Task { try? await end(share) }
-        }
         if records.subscriptions.contains(where: { $0.target == id }) {
             unsubscribe(id)
         }

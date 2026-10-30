@@ -31,16 +31,20 @@ struct SettingsView: View {
 
                 Section {
                     ForEach(sharing.records.owned) { share in
+                        let target = sharing.target(of: share)
                         Button {
-                            if let target = sharing.target(of: share) { browser.present(.share(target)) }
+                            if let target { browser.present(.share(target)) }
                         } label: {
                             LabeledContent {
-                                Text("Version \(share.version)")
+                                Text(target == nil ? "Gelöscht" : "Version \(share.version)")
                             } label: {
                                 Label(share.name, systemImage: share.kind == .space ? "square.on.square" : "folder")
                             }
                         }
                         .buttonStyle(.plain)
+                        .swipeActions {
+                            Button("Beenden", role: .destructive) { Task { try? await sharing.end(share) } }
+                        }
                     }
                     ForEach(sharing.records.subscriptions) { subscription in
                         LabeledContent {
