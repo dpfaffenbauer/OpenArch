@@ -20,7 +20,7 @@ enum ShareTarget {
         }
     }
 
-    var name: String {
+    @MainActor var name: String {
         switch self {
         case .folder(let item): item.displayTitle
         case .space(let space): space.name
