@@ -943,8 +943,9 @@ final class SelfTest {
                         "the message goes to claude on stdin and names the chat (\(prompt ?? "nothing"))")
             self.expect(chat.agent?.sessionID == "selftest-session", "the chat remembers Claude Code's session")
             let restored = Item(data: chat.data)
-            self.expect(restored.kind == .agent && restored.agent == chat.agent && restored.displayTitle == chat.displayTitle,
-                        "an agent chat is saved with its folder and session")
+            self.expect(restored.kind == .agent && restored.agent == chat.agent && restored.displayTitle == chat.displayTitle
+                        && chat.data.kind == .tab,
+                        "an agent chat is saved with its folder and session, as a tab to builds without agent chats")
             session.send("Weiter")
             self.eventually({ !session.isRunning }, timeout: 5) { _ in
                 let arguments = (try? String(contentsOf: folder.appendingPathComponent("arguments.txt"), encoding: .utf8)) ?? ""

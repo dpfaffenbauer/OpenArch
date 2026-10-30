@@ -254,7 +254,7 @@ final class Item: Identifiable {
     // MARK: Persistence
 
     convenience init(data: ItemData) {
-        self.init(id: data.id, kind: data.kind, title: data.title ?? "", url: data.url ?? "",
+        self.init(id: data.id, kind: data.agent != nil ? .agent : data.kind, title: data.title ?? "", url: data.url ?? "",
                   customTitle: data.customTitle, children: (data.children ?? []).map(Item.init(data:)),
                   lastActiveAt: data.lastActiveAt ?? Date())
         isExpanded = data.isExpanded ?? true
@@ -273,7 +273,10 @@ final class Item: Identifiable {
             title = savedTitle
         }
         let hasChildren = kind == .folder || kind == .split
-        return ItemData(id: id, kind: kind,
+        // An agent chat is saved as a tab with its settings: a build without
+        // agent chats then reads a tab, instead of failing on the whole
+        // library and starting over with an empty one.
+        return ItemData(id: id, kind: kind == .agent ? .tab : kind,
                  title: title,
                  url: kind == .tab ? (role == .today ? currentURL : savedURL) : nil,
                  customTitle: customTitle,
