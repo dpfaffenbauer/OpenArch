@@ -52,13 +52,17 @@ npx wrangler@3 kv namespace create SHARES   # put the id it prints into wrangler
 npx wrangler@3 deploy
 ```
 
-The relay is then at `https://openarch-share-relay.<account>.workers.dev`.
-For `share.openarch.app`, OpenArch's default, uncomment the route in
-`wrangler.toml` (the domain's DNS must be on Cloudflare).
+`wrangler.toml` is set up for `share.openarch.app`, OpenArch's default. For a
+relay of your own, change its `routes` to your domain (its DNS must be on
+Cloudflare), or remove them: the relay is then at
+`https://openarch-share-relay.<account>.workers.dev`.
 
-`.github/workflows/relay.yml` deploys from `main` when the repository has
-the secrets `CLOUDFLARE_API_TOKEN` (a token with *Workers Scripts: Edit*
-and *Workers KV Storage: Edit*) and `CLOUDFLARE_ACCOUNT_ID`.
+`share.openarch.app` itself deploys from `main` through Cloudflare's GitHub
+connection (Workers Builds, root directory `relay`).
+`.github/workflows/relay.yml` can deploy instead when the repository has the
+secrets `CLOUDFLARE_API_TOKEN` (a token with *Workers Scripts: Edit* and
+*Workers KV Storage: Edit*) and `CLOUDFLARE_ACCOUNT_ID`; without them it only
+runs the tests.
 
 Worth setting up in Cloudflare as well: a rate-limiting rule on `PUT` and
 `DELETE` for `/v1/shares/*`, since anyone may create shares.
