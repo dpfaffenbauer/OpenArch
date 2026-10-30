@@ -25,6 +25,7 @@ struct ShareView: View {
                     HStack(spacing: 12) {
                         SymbolOrEmoji(icon: payload.icon ?? (target.kind == .space ? "square.on.square" : "folder.fill"), size: 20)
                             .frame(width: 30)
+                            .foregroundStyle(Color(uiColor: UIColor(hex: payload.color ?? "") ?? .tintColor))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(payload.name).font(.headline)
                             Text(payload.allTabs.count == 1 ? "1 Lesezeichen" : "\(payload.allTabs.count) Lesezeichen")

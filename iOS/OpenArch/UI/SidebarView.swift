@@ -33,6 +33,9 @@ struct SidebarView: View {
         .onChange(of: browser.renaming?.id) {
             renameText = browser.renaming?.displayTitle ?? ""
         }
+        // On the iPhone, pulling the list only drags the sheet: what is
+        // followed is checked whenever the sidebar opens.
+        .task { await browser.sharing.refresh() }
     }
 
     private var spaceSelection: Binding<UUID> {
@@ -155,6 +158,9 @@ private struct SpaceHeader: View {
                 Button("Space bearbeiten …", systemImage: "pencil") { browser.present(.editSpace(space)) }
                 Button("Space teilen …", systemImage: "square.and.arrow.up") { browser.present(.share(.space(space))) }
                 if followed != nil {
+                    Button("Jetzt aktualisieren", systemImage: "arrow.clockwise") {
+                        Task { await browser.sharing.refresh() }
+                    }
                     Button("Nicht mehr folgen", systemImage: "person.2.slash") { browser.sharing.unsubscribe(space.id) }
                 }
                 Divider()

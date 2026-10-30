@@ -28,7 +28,9 @@ extension UIColor {
 }
 
 /// Colors derived from a space's color, as in OpenArch for Mac: white text
-/// on everything but very light colors.
+/// on everything but light colors. The line is a little lower than on the
+/// Mac, where text is smaller on a screen in the shade: white on the orange
+/// and olive presets is about 2.2:1, dark text about 7.5:1.
 struct SpaceTheme: Equatable {
     let base: UIColor
 
@@ -36,14 +38,14 @@ struct SpaceTheme: Equatable {
         base = UIColor(hex: hex) ?? .systemPurple
     }
 
-    var isDark: Bool { base.luminance < 0.72 }
+    var isDark: Bool { base.luminance < 0.62 }
     var background: Color { Color(uiColor: base) }
     var backgroundBottom: Color { Color(uiColor: base.mixed(with: isDark ? .black : .white, 0.18)) }
     var gradient: LinearGradient {
         LinearGradient(colors: [background, backgroundBottom], startPoint: .top, endPoint: .bottom)
     }
     var foreground: Color { isDark ? .white : Color(white: 0.1) }
-    var secondary: Color { foreground.opacity(0.62) }
+    var secondary: Color { foreground.opacity(0.72) }
     var tile: Color { isDark ? Color.white.opacity(0.17) : Color.black.opacity(0.06) }
     var selection: Color { isDark ? Color.white.opacity(0.26) : Color.white.opacity(0.7) }
     var colorScheme: ColorScheme { isDark ? .dark : .light }

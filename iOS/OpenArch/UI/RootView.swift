@@ -182,7 +182,8 @@ struct BottomBar: View {
         .padding(.top, 6)
         .padding(.bottom, 2)
         .foregroundStyle(theme.foreground)
-        .background(theme.background.ignoresSafeArea(edges: .bottom))
+        // Where the start page's gradient ends, so that there is no edge.
+        .background(theme.backgroundBottom.ignoresSafeArea(edges: [.horizontal, .bottom]))
         .environment(\.colorScheme, theme.colorScheme)
     }
 }
