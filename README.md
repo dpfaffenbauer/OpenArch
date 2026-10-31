@@ -73,9 +73,9 @@ run. Data lives in
   the Mac after asking, as in Chrome; „immer öffnen“ remembers it per site.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and
   favicons taken from Arc's own icon cache. Or glass (Settings › Allgemein ›
-  Sidebar): the desktop shows through the window, and on macOS 26 the
-  sidebar floats on it as Liquid Glass tinted with the space's color, the
-  pages beside it as cards. Drag the sidebar edge far to the
+  Sidebar): the desktop shows through the window, on macOS 26 as one sheet
+  of Liquid Glass tinted with the space's color, the sidebar directly on it
+  and the pages floating above as cards. Drag the sidebar edge far to the
   left to collapse it, ⌘S brings it back.
 - **Arc's gestures and shortcuts:** swipe sideways over the sidebar
   (trackpad or Magic Mouse) to change spaces, and past the first one to open
