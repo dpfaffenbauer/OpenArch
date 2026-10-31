@@ -14,8 +14,8 @@ struct ClaudeSession: Identifiable, Equatable, Sendable {
             case .working: "Arbeitet"
             case .approval: "Wartet vielleicht auf Freigabe"
             case .waiting: "Wartet auf dich"
-            case .open: "Offene Punkte"
-            case .done: "Zuletzt"
+            case .open: "Offene Todos"
+            case .done: "Ruhend"
             }
         }
 
@@ -62,6 +62,8 @@ final class ClaudeSessions {
     @ObservationIgnored private weak var library: Library?
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var refreshing = false
+    /// Sessions already read, by file: only changed transcripts are read again.
+    @ObservationIgnored private var cache: [URL: ClaudeSession] = [:]
 
     /// Sessions that wait for you: answered, or maybe asking for a tool.
     var waitingCount: Int {
@@ -87,11 +89,14 @@ final class ClaudeSessions {
         guard !refreshing else { return }
         refreshing = true
         isLoading = sessions.isEmpty
+        let cache = self.cache
         Task {
-            let found = await Task.detached {
-                ClaudeSessions.scan(root: ClaudeSessions.defaultRoot, now: Date(), running: ClaudeSessions.runningFolders())
+            let (found, read) = await Task.detached {
+                ClaudeSessions.scan(root: ClaudeSessions.defaultRoot, now: Date(), running: ClaudeSessions.runningFolders(),
+                                    cache: cache)
             }.value
             self.sessions = found
+            self.cache = read
             self.refreshing = false
             self.isLoading = false
         }
@@ -105,21 +110,33 @@ final class ClaudeSessions {
         return config.appendingPathComponent("projects", isDirectory: true)
     }
 
-    /// The sessions of the last week below |root|, those that wait or work
-    /// first. |running| are the folders a claude process works in.
     nonisolated static func scan(root: URL, now: Date, running: Set<String>) -> [ClaudeSession] {
+        scan(root: root, now: now, running: running, cache: [:]).sessions
+    }
+
+    /// The sessions of the last 30 days below |root|, those that wait or
+    /// work first. |running| are the folders a claude process works in;
+    /// transcripts unchanged since |cache| was made are not read again.
+    nonisolated static func scan(root: URL, now: Date, running: Set<String>,
+                                 cache: [URL: ClaudeSession]) -> (sessions: [ClaudeSession], cache: [URL: ClaudeSession]) {
         let files = FileManager.default
         guard let projects = try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
-        else { return [] }
-        let cutoff = now.addingTimeInterval(-7 * 24 * 3600)
+        else { return ([], [:]) }
+        let cutoff = now.addingTimeInterval(-30 * 24 * 3600)
         var sessions: [ClaudeSession] = []
+        var read: [URL: ClaudeSession] = [:]
         for project in projects {
             let entries = (try? files.contentsOfDirectory(at: project, includingPropertiesForKeys: [.contentModificationDateKey],
                                                           options: [.skipsHiddenFiles])) ?? []
             for file in entries where file.pathExtension == "jsonl" {
                 let date = (try? file.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
-                if date > cutoff, let session = read(file, date: date) {
+                guard date > cutoff else { continue }
+                if let known = cache[file], known.date == date {
+                    sessions.append(known)
+                    read[file] = known
+                } else if let session = self.read(file, date: date) {
                     sessions.append(session)
+                    read[file] = session
                 }
             }
         }
@@ -135,7 +152,7 @@ final class ClaudeSessions {
                 && (session.date == newest[session.folder] || now.timeIntervalSince(session.date) < 120)
             sessions[index].status = status(of: session, live: live, now: now)
         }
-        return sessions.sorted { ($0.status, $1.date) < ($1.status, $0.date) }
+        return (sessions.sorted { ($0.status, $1.date) < ($1.status, $0.date) }, read)
     }
 
     nonisolated static func status(of session: ClaudeSession, live: Bool, now: Date) -> ClaudeSession.Status {
@@ -202,11 +219,27 @@ final class ClaudeSessions {
             }
         }
         guard !firstPrompt.isEmpty || !session.lastMessage.isEmpty else { return nil }
-        let name = summary.isEmpty ? firstPrompt : summary
-        let line = name.split(whereSeparator: \.isNewline).first.map(String.init) ?? name
-        session.title = line.isEmpty ? URL(fileURLWithPath: session.folder).lastPathComponent
-            : (line.count > 70 ? String(line.prefix(68)) + "…" : line)
+        let title = tidy(summary.isEmpty ? firstPrompt : summary)
+        session.title = title.isEmpty ? URL(fileURLWithPath: session.folder).lastPathComponent : title
         return session
+    }
+
+    /// A title from a first message: its first line without Markdown marks,
+    /// an address without its scheme, spaces evened out.
+    nonisolated static func tidy(_ text: String) -> String {
+        var line = text.split(whereSeparator: \.isNewline).first.map(String.init) ?? text
+        line = line.trimmingCharacters(in: .whitespaces)
+        while let first = line.first, "#>*-`_".contains(first) {
+            line.removeFirst()
+            line = line.trimmingCharacters(in: .whitespaces)
+        }
+        for scheme in ["https://", "http://"] where line.hasPrefix(scheme) {
+            line.removeFirst(scheme.count)
+        }
+        if line.hasPrefix("www.") { line.removeFirst(4) }
+        line = line.replacingOccurrences(of: "**", with: "").replacingOccurrences(of: "`", with: "")
+        line = line.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return line.count > 70 ? String(line.prefix(68)) + "…" : line
     }
 
     /// Something you typed, not a command's output or a note of claude's
@@ -222,7 +255,8 @@ final class ClaudeSessions {
             return nil
         }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty || trimmed.hasPrefix("<") ? nil : trimmed
+        // Claude Code's own note when you stop it is no message of yours.
+        return trimmed.isEmpty || trimmed.hasPrefix("<") || trimmed.hasPrefix("[Request interrupted") ? nil : trimmed
     }
 
     /// The JSON lines of the first |head| and the last |tail| bytes of a
