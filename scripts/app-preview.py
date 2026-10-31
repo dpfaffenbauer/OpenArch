@@ -5,6 +5,7 @@ Store Connect takes: 886x1920, H.264, 30 fps, stereo AAC, at most 30 seconds.
 
     scripts/app-preview.py record <udid> <display or -> <take.mov> <take.log>
     scripts/app-preview.py cut iphone|duo <take.mov> <take.log> <out.mp4>
+    scripts/app-preview.py shots <udid> <display or -> <out directory>
 """
 import re
 import signal
@@ -69,6 +70,51 @@ def record(udid, display, out, log, seconds=80):
     recorder.send_signal(signal.SIGINT)
     recorder.wait(timeout=60)
     app.terminate()
+
+
+# The screenshots: file, the scene's mark, seconds after it.
+SHOTS = [
+    ("03-spaces", "spaces", 1.3),
+    ("04-adresse", "command", 1.0),
+    ("02-seite", "page", 0.6),
+    ("01-seitenleiste", "pin", 1.2),
+    ("05-lesen", "read", 1.1),
+    ("06-teilen", "qr", 0.6),
+    ("07-start", "end", 0.4),
+]
+
+
+def shots(udid, display, directory):
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["xcrun", "simctl", "terminate", udid, "at.pfaffenbauer.openarch"], capture_output=True)
+    with tempfile.TemporaryDirectory() as temp:
+        log = Path(temp) / "run.log"
+        with open(log, "w") as file:
+            app = subprocess.Popen(["xcrun", "simctl", "launch", "--console-pty", udid, "at.pfaffenbauer.openarch", "-demo"],
+                                   stdout=file, stderr=subprocess.STDOUT)
+            waiting = list(SHOTS)
+            end = time.time() + 120
+            while time.time() < end:
+                text = log.read_text(errors="ignore")
+                found = {m.group(1): float(m.group(2)) for m in re.finditer(r"\[demo\] scene (\w+) ([\d.]+)", text)}
+                for shot in list(waiting):
+                    name, scene, delay = shot
+                    if scene in found and time.time() >= found[scene] + delay:
+                        waiting.remove(shot)
+                        path = directory / f"{name}.png"
+                        command = ["xcrun", "simctl", "io", udid, "screenshot"]
+                        if display != "-":
+                            command.append(f"--display={display}")
+                        subprocess.run([*command, str(path)], capture_output=True)
+                        # App Store Connect takes no alpha channel.
+                        image = Image.open(path).convert("RGB")
+                        image.save(path)
+                        print(path.name, image.size)
+                if not waiting or "[demo] done" in text:
+                    break
+                time.sleep(0.05)
+            app.terminate()
 
 
 def marks(log):
@@ -292,5 +338,7 @@ def cut(variant, take, log, out):
 if __name__ == "__main__":
     if sys.argv[1] == "record":
         record(*sys.argv[2:6])
+    elif sys.argv[1] == "shots":
+        shots(*sys.argv[2:5])
     else:
         cut(*sys.argv[2:6])

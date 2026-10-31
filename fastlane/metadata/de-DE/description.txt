@@ -1,0 +1,21 @@
+OpenArch ist ein Browser, der Ordnung hält: Alles, was du brauchst, liegt in einer Seitenleiste, getrennt nach Spaces. Open Source, ohne Konto.
+
+SPACES
+Arbeit, Reise, Küche: Jeder Space hat seine eigene Farbe, sein eigenes Symbol, eigene Ordner und eigene Tabs. Mit einem Wisch wechselst du zum nächsten.
+
+FAVORITEN, ORDNER UND HEUTE
+Deine Favoriten sind in jedem Space einen Tipp entfernt. Was bleiben soll, heftest du an und sortierst es in Ordner und Unterordner. Alles andere liegt unter „Heute“ und wandert später von selbst ins Archiv, ohne verloren zu gehen.
+
+EINE ADRESSZEILE FÜR ALLES
+Tippe eine Adresse oder eine Suche, mit Vorschlägen deiner Suchmaschine. Dieselbe Zeile findet auch offene Tabs, Favoriten und archivierte Tabs. Zur Wahl stehen Google, DuckDuckGo, Ecosia, Bing und Kagi. Die Suchvorschläge lassen sich abschalten.
+
+TEILEN OHNE KONTO
+Teile einen Ordner oder einen ganzen Space als Link oder QR-Code. Die Lesezeichen sind verschlüsselt, der Schlüssel steht nur im Link, und auf Wunsch schützt du sie zusätzlich mit einem Passwort. Eine Momentaufnahme kommt ganz ohne Server aus. Eine Live-Freigabe bleibt aktuell, sodass Änderungen bei allen ankommen, die den Link hinzugefügt haben.
+
+FÜR JEDEN BILDSCHIRM
+Auf dem iPhone kommt die Seitenleiste als Blatt von unten. Auf dem iPad und auf dem iPhone Duo liegt sie neben der Seite. Auf dem iPhone Duo geht die Seite bis an den Rand, die Bedienelemente schweben neben den Statussymbolen, und beim Falten bleiben Seitenleiste und Seite getrennt auf beiden Seiten des Falzes.
+
+OPEN SOURCE
+OpenArch steht unter der MIT-Lizenz, der Code liegt offen auf GitHub. Es gibt keine Werbung und kein Konto.
+
+Die App ist auf Deutsch.

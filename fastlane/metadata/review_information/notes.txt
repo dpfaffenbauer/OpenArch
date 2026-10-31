@@ -1,0 +1,14 @@
+OpenArch is a web browser built on WKWebView. It needs no account or login and has no in-app purchases. The interface is in German.
+
+To try it:
+1. Open the sidebar with the first button in the bar. On iPad and iPhone Duo it is already beside the page.
+2. Tap "Neuer Tab" and enter an address or a search.
+3. Long-press a tab and choose "Anheften" to pin it, or "In Ordner verschieben" to put it in a folder.
+4. Long-press a folder and choose "Ordner teilen ...". Turn off "Aktuell halten" and tap "Link erstellen": this shows a link and a QR code, with no server involved. With "Aktuell halten" on, the encrypted bookmarks go to our relay at share.openarch.app.
+5. To add a share: "+" at the bottom of the sidebar, then "Code scannen" or "Geteilten Link einfügen".
+
+The camera is used only for scanning those QR codes, through VisionKit.
+
+The relay receives only encrypted data; the key is in the link's fragment and never reaches the server. Whoever holds a link can read that share. The source code is public: https://github.com/dpfaffenbauer/OpenArch
+
+The app preview and screenshots show made-up demo websites under the reserved .example domain, so that no third-party brands appear. They were captured from a debug build of this app, which loads these pages locally. The release build has no such pages and opens real websites.
