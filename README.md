@@ -97,14 +97,18 @@ run. Data lives in
   set per chat (ask, edit files, everything); a refused command shows in
   the chat with a button to allow it. Start one from the sidebar's + menu,
   Ablage › Neuer Agent-Chat, or the command bar (a sentence, then
-  "Agent-Chat starten").
+  "Agent-Chat starten"). Beside the chat, as in the Claude app, a panel
+  shows where the agent works (folder, repository, branch, model), how full
+  its context is, its connectors (MCP servers), the files changed since the
+  last commit with their diff, and the output of its last commands.
 - **Agents** (the ✨ in the space bar, or ⌃0): like a space of its own,
   the sidebar lists every agent chat and every Claude Code session on this
-  Mac from the last week (read from Claude Code's own transcripts in
-  `~/.claude/projects`), grouped by status (at work, waiting for you, open
-  todos, done) or by project; the page or chat in front stays. The ✨ gets a
-  dot while sessions wait for you. A session continues as an agent chat
-  with its history, or in Terminal.
+  Mac from the last 30 days (read from Claude Code's own transcripts in
+  `~/.claude/projects`), one line each like in the Claude app, grouped by
+  status (waiting for you, at work, open todos, resting) or by project, with
+  a search field; the page or chat in front stays. The ✨ gets a dot while
+  sessions wait for you. A session continues as an agent chat with its
+  history, or in Terminal.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:

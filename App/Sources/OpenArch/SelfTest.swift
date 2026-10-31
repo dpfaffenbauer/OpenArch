@@ -865,15 +865,15 @@ final class SelfTest {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-agent-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let events = [
-            #"{"type":"system","subtype":"init","session_id":"selftest-session"}"#,
+            #"{"type":"system","subtype":"init","session_id":"selftest-session","model":"claude-test","mcp_servers":[{"name":"openarch","status":"connected"},{"name":"jira","status":"failed"}]}"#,
             #"{"type":"stream_event","event":{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}}"#,
             #"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Ich schaue "}}}"#,
             #"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"nach."}}}"#,
             #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich schaue nach."}]}}"#,
             #"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"Bash","input":{"command":"ls -la"}}]}}"#,
             #"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"Not allowed","is_error":true}]}}"#,
-            #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich darf **ls** nicht ausführen."}]}}"#,
-            #"{"type":"result","subtype":"success","is_error":false,"session_id":"selftest-session","permission_denials":[{"tool_name":"Bash","tool_use_id":"toolu_1","tool_input":{"command":"ls -la"}}]}"#,
+            #"{"type":"assistant","message":{"content":[{"type":"text","text":"Ich darf **ls** nicht ausführen."}],"usage":{"input_tokens":1000,"cache_read_input_tokens":40000,"output_tokens":500}}}"#,
+            #"{"type":"result","subtype":"success","is_error":false,"session_id":"selftest-session","modelUsage":{"claude-test":{"contextWindow":200000}},"permission_denials":[{"tool_name":"Bash","tool_use_id":"toolu_1","tool_input":{"command":"ls -la"}}]}"#,
         ]
         let claude = folder.appendingPathComponent("claude")
         let script = """
@@ -925,6 +925,22 @@ final class SelfTest {
         expect(browser.state.agentsVisible && browser.state.activeItem === page,
                "Agents take the sidebar's place like a space, and the page stays")
 
+        // The panel beside a chat reads the folder with git.
+        let repo = folder.appendingPathComponent("repo")
+        try? FileManager.default.createDirectory(at: repo, withIntermediateDirectories: true)
+        try? "eins\nzwei\n".write(to: repo.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+        for arguments in [["init", "-q", "-b", "main"], ["add", "."], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "a"],
+                          ["remote", "add", "origin", "git@github.com:dpfaffenbauer/OpenArch.git"]] {
+            _ = AgentEnvironment.run("/usr/bin/git", ["-C", repo.path] + arguments)
+        }
+        try? "eins\ndrei\nvier\n".write(to: repo.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
+        try? "neu\n".write(to: repo.appendingPathComponent("b.txt"), atomically: true, encoding: .utf8)
+        let workspace = AgentWorkspace.read(folder: repo.path)
+        let changed = workspace.changes.first { $0.path == "a.txt" }
+        expect(workspace.branch == "main" && workspace.repository == "dpfaffenbauer/OpenArch"
+               && changed?.added == 2 && changed?.removed == 1 && workspace.changes.contains { $0.path == "b.txt" && $0.isNew },
+               "the panel beside a chat shows repository, branch and changed files (\(workspace))")
+
         // The glass look lets the desktop through the window.
         library.settings.glass = true
         browser.applyTheme()
@@ -956,6 +972,9 @@ final class SelfTest {
             self.expect(prompt == "Was liegt hier?" && chat.displayTitle == "Was liegt hier?",
                         "the message goes to claude on stdin and names the chat (\(prompt ?? "nothing"))")
             self.expect(chat.agent?.sessionID == "selftest-session", "the chat remembers Claude Code's session")
+            self.expect(session.model == "claude-test" && session.connectors.map(\.name) == ["openarch", "jira"]
+                        && session.contextUsed == 41_500 && session.contextWindow == 200_000,
+                        "the chat knows its model, connectors and how full its context is (\(session.contextUsed ?? 0))")
             let restored = Item(data: chat.data)
             self.expect(restored.kind == .agent && restored.agent == chat.agent && restored.displayTitle == chat.displayTitle
                         && chat.data.kind == .tab,

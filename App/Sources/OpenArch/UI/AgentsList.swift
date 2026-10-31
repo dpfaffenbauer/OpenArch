@@ -2,56 +2,74 @@ import AppKit
 import SwiftUI
 
 /// Agents (⌃0, the ✨ in the space bar): in place of a space's tabs, every
-/// agent chat and every Claude Code session of the last week, grouped by
-/// what they are doing or by project. The page or chat in front stays.
+/// agent chat and every Claude Code session of the last 30 days, one line
+/// each, grouped like the Claude app: what waits for you, what works, what
+/// has open todos, what rests. The page or chat in front stays.
 struct AgentsList: View {
     let browser: BrowserWindowController
     let theme: SpaceTheme
     @AppStorage("agentGrouping") private var grouping = AgentGrouping.status
+    @State private var query = ""
+    /// Groups closed by hand; resting sessions start closed.
+    @State private var collapsed: Set<String> = [AgentGroup.restingTitle]
+    /// Groups showing all their rows, not the first few.
+    @State private var expanded: Set<String> = []
 
     var body: some View {
-        let entries = AgentEntry.all(browser: browser)
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles").font(.system(size: 12, weight: .semibold))
+        let entries = AgentEntry.all(browser: browser).filter(matches)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 2) {
                 Text("Agents").font(.system(size: 13, weight: .semibold))
                 Spacer()
-                Picker("", selection: $grouping) {
-                    ForEach(AgentGrouping.allCases) { Text($0.title).tag($0) }
+                Menu {
+                    Picker("Gruppieren nach", selection: $grouping) {
+                        ForEach(AgentGrouping.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease").font(.system(size: 12, weight: .semibold))
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
                 .fixedSize()
-                .controlSize(.small)
-                IconButton(symbol: "plus", help: "Neuer Agent-Chat") { browser.newAgentChat() }
+                .frame(width: 28, height: 24)
+                .help("Gruppieren nach Status oder Projekt")
+                IconButton(symbol: "square.and.pencil", help: "Neuer Agent-Chat") { browser.newAgentChat() }
             }
             .foregroundStyle(theme.secondary)
             .padding(.leading, 10)
+            .frame(height: 28)
+
+            HStack(spacing: 6) {
+                Image(systemName: "magnifyingglass").font(.system(size: 11)).opacity(0.6)
+                TextField("Suchen", text: $query).textFieldStyle(.plain).font(.system(size: 13))
+                if !query.isEmpty {
+                    Button { query = "" } label: { Image(systemName: "xmark.circle.fill").font(.system(size: 11)) }
+                        .buttonStyle(.plain)
+                        .opacity(0.6)
+                }
+            }
+            .padding(.horizontal, 10)
             .frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 9).fill(theme.tile))
 
             ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 14) {
                     if entries.isEmpty {
-                        Text("Noch keine Agents. Starte einen Agent-Chat mit +. Sessions von claude im Terminal oder im Editor aus der letzten Woche erscheinen hier auch.")
+                        Text(query.isEmpty
+                             ? "Noch keine Agents. Starte einen Agent-Chat oben rechts. Sessions von claude im Terminal oder im Editor erscheinen hier auch."
+                             : "Nichts gefunden.")
                             .font(.system(size: 12))
                             .foregroundStyle(theme.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal, 10)
-                            .padding(.top, 8)
+                            .padding(.top, 6)
                     }
                     ForEach(groups(of: entries)) { group in
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("\(group.title) · \(group.entries.count)")
-                                .font(.system(size: 11.5, weight: .semibold))
-                                .foregroundStyle(theme.secondary)
-                                .padding(.leading, 10)
-                                .padding(.bottom, 2)
-                            ForEach(group.entries) { entry in
-                                AgentListRow(browser: browser, entry: entry, theme: theme, showsProject: grouping == .status)
-                            }
-                        }
+                        groupView(group)
                     }
                 }
+                .padding(.top, 4)
                 .padding(.bottom, 12)
             }
             .scrollIndicators(.never)
@@ -66,14 +84,69 @@ struct AgentsList: View {
         }
     }
 
+    @ViewBuilder
+    private func groupView(_ group: AgentGroup) -> some View {
+        let isCollapsed = collapsed.contains(group.title) && query.isEmpty
+        let limit = expanded.contains(group.title) || !query.isEmpty ? group.entries.count : 8
+        VStack(alignment: .leading, spacing: 1) {
+            Button {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    if collapsed.contains(group.title) { collapsed.remove(group.title) } else { collapsed.insert(group.title) }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(group.title).font(.system(size: 11.5, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 8, weight: .bold))
+                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
+                        .opacity(0.7)
+                    Spacer()
+                    if isCollapsed {
+                        Text("\(group.entries.count)").font(.system(size: 11)).opacity(0.8)
+                    }
+                }
+                .foregroundStyle(theme.secondary)
+                .padding(.horizontal, 10)
+                .frame(height: 22)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if !isCollapsed {
+                ForEach(group.entries.prefix(limit)) { entry in
+                    AgentListRow(browser: browser, entry: entry, theme: theme, showsProject: grouping == .status)
+                }
+                if group.entries.count > limit {
+                    Button("\(group.entries.count - limit) weitere zeigen") { expanded.insert(group.title) }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 12))
+                        .foregroundStyle(theme.secondary)
+                        .padding(.horizontal, 10)
+                        .frame(height: 26)
+                }
+            }
+        }
+    }
+
+    private func matches(_ entry: AgentEntry) -> Bool {
+        let needle = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !needle.isEmpty else { return true }
+        let haystack = "\(entry.title) \(entry.project) \(entry.detail)".lowercased()
+        return needle.split(separator: " ").allSatisfy { haystack.contains($0) }
+    }
+
     private func groups(of entries: [AgentEntry]) -> [AgentGroup] {
         switch grouping {
         case .status:
-            let byStatus = Dictionary(grouping: entries, by: \.status)
-            return [ClaudeSession.Status.working, .approval, .waiting, .open, .done].compactMap { status in
-                guard let group = byStatus[status], !group.isEmpty else { return nil }
-                let sorted = group.sorted { $0.date > $1.date }
-                return AgentGroup(title: status.title, entries: status == .done ? Array(sorted.prefix(30)) : sorted)
+            // Like the Claude app: what needs you first, resting last.
+            let order: [(String, [ClaudeSession.Status])] = [
+                ("Wartet auf dich", [.approval, .waiting]),
+                ("Arbeitet", [.working]),
+                ("Offene Todos", [.open]),
+                (AgentGroup.restingTitle, [.done]),
+            ]
+            return order.compactMap { title, statuses in
+                let group = entries.filter { statuses.contains($0.status) }.sorted { $0.date > $1.date }
+                return group.isEmpty ? nil : AgentGroup(title: title, entries: group)
             }
         case .project:
             let byFolder = Dictionary(grouping: entries, by: \.folder)
@@ -86,6 +159,8 @@ struct AgentsList: View {
 }
 
 struct AgentGroup: Identifiable {
+    static let restingTitle = "Ruhend"
+
     let title: String
     let entries: [AgentEntry]
     var id: String { title + (entries.first?.folder ?? "") }
@@ -123,6 +198,17 @@ struct AgentEntry: Identifiable {
         folder.isEmpty ? "Ohne Ordner" : URL(fileURLWithPath: folder).lastPathComponent
     }
 
+    /// How long ago, coarsely: a list that ticks every second looks busy.
+    static func age(_ date: Date, now: Date = Date()) -> String {
+        let seconds = now.timeIntervalSince(date)
+        if seconds < 60 { return "jetzt" }
+        if seconds < 3600 { return "\(Int(seconds / 60)) Min." }
+        if seconds < 86_400 { return "\(Int(seconds / 3600)) Std." }
+        if Calendar.current.isDateInYesterday(date) { return "gestern" }
+        if seconds < 6 * 86_400 { return date.formatted(.dateTime.weekday(.wide)) }
+        return date.formatted(.dateTime.day().month(.abbreviated))
+    }
+
     @MainActor static func all(browser: BrowserWindowController) -> [AgentEntry] {
         let sessions = ClaudeSessions.shared.sessions
         let chats = browser.library.spaces.flatMap { ($0.pinned.allItems + $0.today.allItems).filter { $0.kind == .agent } }
@@ -143,7 +229,7 @@ struct AgentEntry: Identifiable {
                 status = .waiting
             }
             let answer = live?.messages.last { $0.role == .assistant }?.text ?? session?.lastMessage ?? ""
-            entries.append(AgentEntry(id: "chat:\(chat.id)", title: chat.displayTitle, folder: chat.agent?.folder ?? "",
+            entries.append(AgentEntry(id: "chat:\(chat.id)", title: ClaudeSessions.tidy(chat.displayTitle), folder: chat.agent?.folder ?? "",
                                       status: status, date: max(chat.lastActiveAt, session?.date ?? .distantPast),
                                       detail: answer, openTodos: session?.openTodos ?? 0,
                                       isUnread: live?.isUnread == true, chat: chat, session: session))
@@ -157,52 +243,44 @@ struct AgentEntry: Identifiable {
     }
 }
 
+/// One line, like the Claude app: the title, and on the right what needs
+/// you (a dot), what works (a wheel), or on hover how long ago.
 private struct AgentListRow: View {
     let browser: BrowserWindowController
     let entry: AgentEntry
     let theme: SpaceTheme
-    /// Grouped by status, a row names its project; grouped by project, its status.
+    /// Grouped by status, the project goes in the tooltip line.
     let showsProject: Bool
     @State private var hovering = false
 
     var body: some View {
         let isActive = entry.chat != nil && browser.state.activeItem === entry.chat
-        HStack(spacing: 10) {
-            Group {
-                if entry.status == .working {
-                    ProgressView().controlSize(.mini)
-                } else {
-                    Image(systemName: entry.chat == nil ? entry.status.symbol : "sparkles")
-                        .font(.system(size: 12, weight: .medium))
-                        .opacity(entry.status == .done ? 0.6 : 1)
-                }
-            }
-            .frame(width: 16)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(entry.title).font(.system(size: 13.5)).lineLimit(1)
-                Text("\(showsProject ? entry.project : entry.status.title) · \(entry.date, style: .relative)")
+        HStack(spacing: 8) {
+            Text(entry.title)
+                .font(.system(size: 13.5))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 6)
+            if hovering {
+                Text(showsProject ? "\(entry.project) · \(AgentEntry.age(entry.date))" : AgentEntry.age(entry.date))
                     .font(.system(size: 11))
                     .foregroundStyle(theme.secondary)
                     .lineLimit(1)
-            }
-            Spacer(minLength: 2)
-            if entry.openTodos > 0 {
-                Text("\(entry.openTodos)")
-                    .font(.system(size: 10.5, weight: .bold))
-                    .padding(.horizontal, 5)
-                    .frame(minWidth: 16, minHeight: 16)
-                    .background(Capsule().fill(theme.tile))
-                    .help("\(entry.openTodos) offene Todos")
-            }
-            if entry.isUnread || entry.status == .waiting || entry.status == .approval {
-                Circle().fill(entry.status == .approval ? Color.orange : theme.foreground).frame(width: 7, height: 7)
-                    .padding(.trailing, 4)
+            } else {
+                if entry.openTodos > 0 {
+                    Text("\(entry.openTodos)")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundStyle(theme.secondary)
+                        .help("\(entry.openTodos) offene Todos")
+                }
+                indicator
             }
         }
+        .frame(height: 30)
         .rowStyle(depth: 0, isActive: isActive, hovering: hovering, theme: theme, dropZone: nil)
         .onTapGesture { open() }
         .onHover { hovering = $0 }
-        .help(entry.detail.isEmpty ? entry.folder : "\(entry.folder)\n\n\(entry.detail.prefix(300))")
+        .help(tooltip)
         .contextMenu {
             Button(entry.chat == nil ? "Als Agent-Chat öffnen" : "Öffnen") { open() }
             if let session = entry.session {
@@ -221,6 +299,31 @@ private struct AgentListRow: View {
                 Button("Chat löschen") { browser.deleteAgentChat(chat) }
             }
         }
+    }
+
+    /// Working: a wheel. Needs you: a dot, orange when it may be waiting to
+    /// be allowed something. Resting: nothing.
+    @ViewBuilder private var indicator: some View {
+        switch entry.status {
+        case .working:
+            ProgressView().controlSize(.mini).frame(width: 12)
+        case .approval:
+            Circle().fill(Color.orange).frame(width: 7, height: 7)
+        case .waiting:
+            Circle().fill(Color.yellow).frame(width: 7, height: 7)
+        case .open:
+            Circle().strokeBorder(theme.secondary, lineWidth: 1.2).frame(width: 7, height: 7)
+        case .done:
+            if entry.isUnread {
+                Circle().fill(Color.blue).frame(width: 7, height: 7)
+            }
+        }
+    }
+
+    private var tooltip: String {
+        var lines = ["\(entry.project) · \(entry.status.title) · \(AgentEntry.age(entry.date))"]
+        if !entry.detail.isEmpty { lines.append(String(entry.detail.prefix(300))) }
+        return lines.joined(separator: "\n\n")
     }
 
     private func open() {
