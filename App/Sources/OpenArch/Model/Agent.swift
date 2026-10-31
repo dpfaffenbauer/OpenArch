@@ -100,6 +100,12 @@ final class AgentSession {
     var draft = ""
     /// Bumped to put the cursor into the chat's field.
     var focusRequest = 0
+    /// What Claude Code says about the session: its model, its MCP servers
+    /// (at the start of each run) and how full its context is.
+    private(set) var model: String?
+    private(set) var connectors: [AgentConnector] = []
+    private(set) var contextUsed: Int?
+    private(set) var contextWindow: Int?
 
     @ObservationIgnored private weak var item: Item?
     private let library: Library
@@ -263,14 +269,27 @@ final class AgentSession {
         if event["parent_tool_use_id"] is String { return }
         switch event["type"] as? String {
         case "system":
-            if event["subtype"] as? String == "init", let id = event["session_id"] as? String {
+            guard event["subtype"] as? String == "init" else { break }
+            if let id = event["session_id"] as? String {
                 remember(sessionID: id)
+            }
+            if let model = event["model"] as? String {
+                self.model = model
+            }
+            if let servers = event["mcp_servers"] as? [[String: Any]] {
+                connectors = servers.compactMap { server in
+                    (server["name"] as? String).map { AgentConnector(name: $0, status: server["status"] as? String ?? "") }
+                }
             }
         case "stream_event":
             streamed(event["event"] as? [String: Any] ?? [:])
         case "assistant":
             for block in Self.content(of: event) {
                 assistantBlock(block)
+            }
+            if let message = event["message"] as? [String: Any], let usage = message["usage"] as? [String: Any] {
+                contextUsed = Self.contextTokens(usage)
+                if let model = message["model"] as? String { self.model = model }
             }
         case "user":
             for block in Self.content(of: event) where block["type"] as? String == "tool_result" {
@@ -338,6 +357,13 @@ final class AgentSession {
 
     private func result(_ event: [String: Any]) {
         sawResult = true
+        // The context window of the models it used ("modelUsage"), where
+        // Claude Code reports it.
+        let windows = (event["modelUsage"] as? [String: Any] ?? [:]).values
+            .compactMap { ($0 as? [String: Any])?["contextWindow"] as? Int }
+        if let window = windows.max() {
+            contextWindow = window
+        }
         if let id = event["session_id"] as? String {
             remember(sessionID: id)
         }
@@ -394,6 +420,26 @@ final class AgentSession {
     }
 
     // MARK: Helpers
+
+    /// Usage from a session's transcript, for a chat opened from the
+    /// terminal before it has run here.
+    func noteUsage(model: String?, used: Int?) {
+        if self.model == nil { self.model = model }
+        if contextUsed == nil { contextUsed = used }
+    }
+
+    /// The context a message filled: everything it was given and wrote.
+    nonisolated static func contextTokens(_ usage: [String: Any]) -> Int {
+        ["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"]
+            .compactMap { usage[$0] as? Int }
+            .reduce(0, +)
+    }
+
+    /// The context window when Claude Code has not said: a million tokens
+    /// for the 1M variants, else 200,000.
+    nonisolated static func defaultContextWindow(for model: String?) -> Int {
+        model?.lowercased().contains("1m") == true ? 1_000_000 : 200_000
+    }
 
     nonisolated static func text(of content: Any?) -> String {
         if let text = content as? String { return text }
@@ -456,6 +502,14 @@ final class AgentSession {
     static func deleteTranscript(_ id: UUID) {
         try? FileManager.default.removeItem(at: transcriptURL(id))
     }
+}
+
+/// An MCP server of a session, as Claude Code reports it at the start of a
+/// run ("connected", "failed", "needs-auth" …).
+struct AgentConnector: Identifiable, Sendable {
+    let name: String
+    let status: String
+    var id: String { name }
 }
 
 /// How the chat names the tools Claude Code uses, and what allowing a

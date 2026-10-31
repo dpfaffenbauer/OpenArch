@@ -22,10 +22,25 @@ struct AgentChatView: View {
     @FocusState private var inputFocused: Bool
     /// The chat follows new text only while it is scrolled to the end.
     @State private var followsEnd = true
+    @AppStorage("agentInspector") private var showsInspector = true
 
     private let end = "end"
 
     var body: some View {
+        HStack(spacing: 0) {
+            chat
+            if showsInspector {
+                Divider().opacity(0.6)
+                AgentInspector(item: item, session: session)
+            }
+        }
+        .background(Color(nsColor: .textBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .onAppear { inputFocused = true }
+        .onChange(of: session.focusRequest) { inputFocused = true }
+    }
+
+    private var chat: some View {
         VStack(spacing: 0) {
             AgentHeader(browser: browser, item: item, session: session)
             Divider().opacity(0.6)
@@ -63,10 +78,6 @@ struct AgentChatView: View {
             }
             AgentInput(session: session, focused: $inputFocused)
         }
-        .background(Color(nsColor: .textBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .onAppear { inputFocused = true }
-        .onChange(of: session.focusRequest) { inputFocused = true }
     }
 
     /// Changes whenever the chat grows.
@@ -117,11 +128,18 @@ private struct AgentHeader: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
             .help("Was der Agent ohne Rückfrage darf")
+            Button { showsInspector.toggle() } label: {
+                Image(systemName: "sidebar.right").font(.system(size: 13))
+            }
+            .buttonStyle(.borderless)
+            .help(showsInspector ? "Infos ausblenden" : "Infos einblenden: Umgebung, Kontext, Connectors, Änderungen, Ausgabe")
         }
         .font(.system(size: 12))
         .padding(.horizontal, 16)
         .frame(height: 44)
     }
+
+    @AppStorage("agentInspector") private var showsInspector = true
 
     private func chooseFolder() {
         let panel = NSOpenPanel()
@@ -134,6 +152,211 @@ private struct AgentHeader: View {
         item.agent?.folder = url.path
         browser.library.setNeedsSave()
         session.focusRequest += 1
+    }
+}
+
+/// Beside the chat, like the Claude app: where the agent works, how full
+/// its context is, its connectors, the files it changed and what its
+/// commands printed.
+private struct AgentInspector: View {
+    let item: Item
+    let session: AgentSession
+    @State private var workspace: AgentWorkspace?
+    @State private var diff: AgentDiff?
+
+    var body: some View {
+        let folder = item.agent?.folder ?? ""
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                section("Umgebung") {
+                    line("laptopcomputer", "Lokal")
+                    line("folder", URL(fileURLWithPath: folder).lastPathComponent)
+                        .help(folder)
+                    if let repository = workspace?.repository {
+                        line("shippingbox", repository)
+                    }
+                    if let branch = workspace?.branch {
+                        line("arrow.triangle.branch", branch)
+                    }
+                    if let model = session.model {
+                        line("cpu", model)
+                    }
+                }
+                section("Kontext") { context }
+                section("Connectors") {
+                    if session.connectors.isEmpty {
+                        note("Claude Code nennt sie beim nächsten Lauf.")
+                    }
+                    ForEach(session.connectors) { connector in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(connector.status == "connected" ? Color.green : (connector.status == "failed" ? Color.red : Color.orange))
+                                .frame(width: 6, height: 6)
+                            Text(connector.name).lineLimit(1)
+                            Spacer(minLength: 4)
+                            if connector.status != "connected" {
+                                Text(connector.status).font(.system(size: 11)).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                section(changesTitle) { changes(folder: folder) }
+                section("Ausgabe") {
+                    let commands = session.messages.filter { $0.role == .tool && $0.tool == "Bash" }.suffix(5).reversed()
+                    if commands.isEmpty {
+                        note("Noch keine Befehle.")
+                    }
+                    ForEach(Array(commands)) { message in
+                        AgentToolRow(message: message, isRunning: session.isRunning)
+                    }
+                }
+            }
+            .font(.system(size: 12.5))
+            .padding(16)
+        }
+        .frame(width: 280)
+        .background(Color.primary.opacity(0.025))
+        // Again after each run, and every ten seconds while it is open.
+        .task(id: session.isRunning) {
+            while !Task.isCancelled {
+                workspace = await Task.detached { AgentWorkspace.read(folder: folder) }.value
+                if session.contextUsed == nil, let id = item.agent?.sessionID {
+                    let usage = await Task.detached { ClaudeSessions.lastUsage(sessionID: id) }.value
+                    session.noteUsage(model: usage.model, used: usage.used)
+                }
+                try? await Task.sleep(for: .seconds(10))
+            }
+        }
+        .sheet(item: $diff) { diff in
+            AgentDiffView(diff: diff) { self.diff = nil }
+        }
+    }
+
+    private var changesTitle: String {
+        guard let count = workspace?.changes.count, count > 0 else { return "Änderungen" }
+        return "Änderungen · \(count)"
+    }
+
+    @ViewBuilder private var context: some View {
+        if let used = session.contextUsed {
+            let window = session.contextWindow ?? AgentSession.defaultContextWindow(for: session.model)
+            let fraction = min(1, Double(used) / Double(max(window, 1)))
+            VStack(alignment: .leading, spacing: 6) {
+                ProgressView(value: fraction)
+                    .tint(fraction > 0.85 ? Color.orange : Color.accentColor)
+                Text("\(Int((fraction * 100).rounded())) % · \(used / 1000)k von \(window / 1000)k Tokens")
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            note("Nach der ersten Antwort.")
+        }
+    }
+
+    @ViewBuilder private func changes(folder: String) -> some View {
+        if let workspace {
+            if !workspace.isRepository {
+                note("Kein Git-Repository.")
+            } else if workspace.changes.isEmpty {
+                note("Keine Änderungen seit dem letzten Commit.")
+            }
+            ForEach(workspace.changes.prefix(100)) { change in
+                Button {
+                    Task {
+                        let text = await Task.detached { AgentWorkspace.diff(folder: folder, change: change) }.value
+                        diff = AgentDiff(path: change.path, text: text)
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(URL(fileURLWithPath: change.path).lastPathComponent).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 4)
+                        if change.isNew {
+                            Text("neu").foregroundStyle(.green)
+                        } else {
+                            if let added = change.added { Text("+\(added)").foregroundStyle(.green) }
+                            if let removed = change.removed { Text("−\(removed)").foregroundStyle(.red) }
+                        }
+                    }
+                    .font(.system(size: 12, design: .monospaced))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(change.path)
+            }
+        } else {
+            ProgressView().controlSize(.small)
+        }
+    }
+
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(.secondary)
+            content()
+        }
+    }
+
+    private func line(_ symbol: String, _ text: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).frame(width: 16).foregroundStyle(.secondary)
+            Text(text).lineLimit(1).truncationMode(.middle)
+        }
+    }
+
+    private func note(_ text: String) -> some View {
+        Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+    }
+}
+
+struct AgentDiff: Identifiable {
+    let path: String
+    let text: String
+    var id: String { path }
+}
+
+/// A file's diff, lines colored as in a terminal.
+private struct AgentDiffView: View {
+    let diff: AgentDiff
+    let close: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(diff.path).font(.system(size: 13, weight: .semibold)).lineLimit(1).truncationMode(.middle)
+                Spacer()
+                Button("Fertig", action: close).keyboardShortcut(.defaultAction)
+            }
+            .padding(14)
+            Divider()
+            ScrollView([.vertical, .horizontal]) {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(diff.text.split(separator: "\n", omittingEmptySubsequences: false).prefix(3000).enumerated()),
+                            id: \.offset) { _, line in
+                        Text(line.isEmpty ? " " : String(line))
+                            .font(.system(size: 11.5, design: .monospaced))
+                            .foregroundStyle(color(of: line))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .background(background(of: line))
+                    }
+                }
+                .textSelection(.enabled)
+                .padding(.vertical, 8)
+            }
+        }
+        .frame(minWidth: 640, minHeight: 460)
+    }
+
+    private func color(of line: Substring) -> Color {
+        if line.hasPrefix("@@") { return .blue }
+        if line.hasPrefix("+"), !line.hasPrefix("+++") { return .green }
+        if line.hasPrefix("-"), !line.hasPrefix("---") { return .red }
+        return .primary
+    }
+
+    private func background(of line: Substring) -> Color {
+        if line.hasPrefix("+"), !line.hasPrefix("+++") { return Color.green.opacity(0.08) }
+        if line.hasPrefix("-"), !line.hasPrefix("---") { return Color.red.opacity(0.08) }
+        return .clear
     }
 }
 

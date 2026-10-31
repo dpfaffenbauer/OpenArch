@@ -97,7 +97,10 @@ run. Data lives in
   set per chat (ask, edit files, everything); a refused command shows in
   the chat with a button to allow it. Start one from the sidebar's + menu,
   Ablage › Neuer Agent-Chat, or the command bar (a sentence, then
-  "Agent-Chat starten").
+  "Agent-Chat starten"). Beside the chat, as in the Claude app, a panel
+  shows where the agent works (folder, repository, branch, model), how full
+  its context is, its connectors (MCP servers), the files changed since the
+  last commit with their diff, and the output of its last commands.
 - **Agents** (the ✨ in the space bar, or ⌃0): like a space of its own,
   the sidebar lists every agent chat and every Claude Code session on this
   Mac from the last 30 days (read from Claude Code's own transcripts in

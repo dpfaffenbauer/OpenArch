@@ -328,6 +328,22 @@ final class ClaudeSessions {
         return Array(messages.suffix(limit))
     }
 
+    /// The model and the context the last answer filled, from a session's
+    /// transcript (found by its id in any project folder).
+    nonisolated static func lastUsage(sessionID: String) -> (model: String?, used: Int?) {
+        let projects = (try? FileManager.default.contentsOfDirectory(at: defaultRoot, includingPropertiesForKeys: nil,
+                                                                     options: [.skipsHiddenFiles])) ?? []
+        guard let file = projects.lazy.map({ $0.appendingPathComponent(sessionID + ".jsonl") })
+            .first(where: { FileManager.default.fileExists(atPath: $0.path) }) else { return (nil, nil) }
+        for entry in entries(in: file, head: 0, tail: 256 * 1024).reversed() {
+            guard entry["type"] as? String == "assistant", entry["isSidechain"] as? Bool != true,
+                  let message = entry["message"] as? [String: Any],
+                  let usage = message["usage"] as? [String: Any] else { continue }
+            return (message["model"] as? String, AgentSession.contextTokens(usage))
+        }
+        return (nil, nil)
+    }
+
     /// The folders claude processes work in, from ps and lsof.
     nonisolated static func runningFolders() -> Set<String> {
         guard let list = AgentEnvironment.run("/bin/ps", ["-Ao", "pid=,args="]) else { return [] }
