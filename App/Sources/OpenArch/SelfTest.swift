@@ -946,28 +946,21 @@ final class SelfTest {
                "the panel beside a chat shows repository, branch and changed files (\(workspace))")
 
         // The glass look lets the desktop through the window; from macOS 26
-        // on the sidebar floats on it as Liquid Glass, the window buttons in it.
+        // on the whole window is one sheet of Liquid Glass.
         library.settings.glass = true
         browser.applyTheme()
         browser.layoutContent()
         expect(browser.window?.isOpaque == false && browser.window?.backgroundColor.alphaComponent == 0,
                "the glass look makes the window see-through")
-        if #available(macOS 26.0, *), let window = browser.window, let close = window.standardWindowButton(.closeButton) {
-            let pane = browser.sidebarGlassFrame ?? .zero
-            let button = close.convert(close.bounds, to: nil)
-            let left = button.minX - pane.minX, above = pane.maxY - button.maxY
-            expect(window.toolbar != nil && left >= 8 && above >= 8 && abs(left - above) < 3,
-                   "the window buttons sit in the glass sidebar with room around them (\(left) left, \(above) above)")
-            // The favorites row lies under the taller title bar and still takes clicks.
-            let hit = window.contentView?.superview?.hitTest(NSPoint(x: pane.midX, y: pane.maxY - 52))
-            expect(sequence(first: hit, next: { $0?.superview }).contains { $0 is NSHostingView<SidebarView> },
-                   "under the title bar the glass sidebar still takes clicks (\(hit.map { String(describing: type(of: $0)) } ?? "nothing"))")
+        if #available(macOS 26.0, *), let window = browser.window, let root = window.contentView {
+            expect(browser.windowGlassFrame == root.bounds && window.toolbar == nil,
+                   "the Liquid Glass fills the window, with no pane or toolbar of its own")
         }
         library.settings.glass = false
         browser.applyTheme()
         browser.layoutContent()
-        expect(browser.window?.isOpaque == true && browser.window?.toolbar == nil,
-               "and without it the window is solid again, the buttons where they were")
+        expect(browser.window?.isOpaque == true && browser.windowGlassFrame == nil,
+               "and without it the window is solid again")
 
         guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
             expect(false, "a new agent chat")
@@ -1283,6 +1276,7 @@ final class SelfTest {
     private func glassShots() {
         populate()
         browser.openInNewTab("https://example.com/glass")
+        browser.window?.orderFrontRegardless()
         let color = browser.state.space.colorHex
         let variants: [(name: String, glass: Bool, tint: Double, color: String, sidebar: Bool)] = [
             ("glass", true, 0.4, color, true),
