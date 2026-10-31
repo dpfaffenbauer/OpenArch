@@ -33,7 +33,7 @@ Apple's page lists the medium iPhone (6.1") as the required slot and says larger
 
 ## Before submitting
 
-1. `website/datenschutz/index.html`: replace `[ANSCHRIFT UND E-MAIL ERGÄNZEN]`, have the text checked, merge, and open https://openarch.app/datenschutz/.
+1. `website/datenschutz/`: have the text checked, merge, and open https://openarch.app/datenschutz/.
 2. Create the app record in App Store Connect, with primary language German.
 3. Archive with Xcode 27.1 or later, and upload.
 
