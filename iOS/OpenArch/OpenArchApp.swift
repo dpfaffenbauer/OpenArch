@@ -4,7 +4,7 @@ import SwiftUI
 @main
 struct OpenArchApp: App {
     // The self-test starts from a fresh library per run, as on the Mac.
-    @State private var browser = Browser(library: Library.load(fresh: SelfTest.isRequested))
+    @State private var browser = Browser(library: Demo.prepared(Library.load(fresh: SelfTest.isRequested || Demo.isRequested)))
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -17,6 +17,12 @@ struct OpenArchApp: App {
                         await SelfTest(browser: browser).run()
                         return
                     }
+                    #if DEBUG
+                    if Demo.isRequested {
+                        await DemoDirector(browser: browser).run()
+                        return
+                    }
+                    #endif
                     while !Task.isCancelled {
                         await browser.sharing.refresh()
                         try? await Task.sleep(for: .seconds(300))

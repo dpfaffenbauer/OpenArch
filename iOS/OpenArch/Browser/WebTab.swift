@@ -10,6 +10,7 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
     private(set) weak var item: Item?
     private weak var browser: Browser?
     private var observations: [NSKeyValueObservation] = []
+    private var lastOffset: CGFloat = 0
 
     init(item: Item, browser: Browser) {
         let configuration = WKWebViewConfiguration()
@@ -35,7 +36,7 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
         webView.scrollView.refreshControl = refresh
         observe()
         if let url = URL(string: item.currentURL), !item.currentURL.isEmpty {
-            webView.load(URLRequest(url: url))
+            start(url)
         }
     }
 
@@ -49,6 +50,16 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
 
     func load(_ address: String) {
         guard let url = URL(string: address) else { return }
+        start(url)
+    }
+
+    private func start(_ url: URL) {
+        #if DEBUG
+        if let page = Demo.page(for: url) {
+            webView.loadSimulatedRequest(URLRequest(url: url), responseHTML: page)
+            return
+        }
+        #endif
         webView.load(URLRequest(url: url))
     }
 
@@ -64,6 +75,27 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
         watch(\.isLoading)
         watch(\.canGoBack)
         watch(\.canGoForward)
+        watch(\.underPageBackgroundColor)
+        observations.append(webView.scrollView.observe(\.contentOffset, options: [.new]) { [weak self] scrollView, _ in
+            // Without the bounce at the page's end, which is no going back up.
+            let end = scrollView.contentSize.height + scrollView.adjustedContentInset.bottom - scrollView.bounds.height
+            let offset = min(scrollView.contentOffset.y, max(end, 0)) + scrollView.adjustedContentInset.top
+            let tracking = scrollView.isTracking || scrollView.isDecelerating || scrollView.isDragging
+            MainActor.assumeIsolated { self?.didScroll(to: offset, byUser: tracking) }
+        })
+    }
+
+    /// Reading on hides the floating bars; going back up shows them.
+    private func didScroll(to offset: CGFloat, byUser: Bool) {
+        defer { lastOffset = offset }
+        guard let browser, browser.activeItem === item else { return }
+        if offset < 40 {
+            browser.barsCollapsed = false
+        } else if offset - lastOffset > 4 {
+            browser.barsCollapsed = true
+        } else if lastOffset - offset > 4, byUser {
+            browser.barsCollapsed = false
+        }
     }
 
     private func update() {
@@ -80,6 +112,8 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
         if item.isLoading != webView.isLoading { item.isLoading = webView.isLoading }
         if item.canGoBack != webView.canGoBack { item.canGoBack = webView.canGoBack }
         if item.canGoForward != webView.canGoForward { item.canGoForward = webView.canGoForward }
+        let dark = webView.underPageBackgroundColor.resolvedColor(with: webView.traitCollection).luminance < 0.5
+        if item.pageIsDark != dark { item.pageIsDark = dark }
     }
 
     // MARK: WKNavigationDelegate

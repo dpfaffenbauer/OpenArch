@@ -21,6 +21,12 @@ final class Favicons {
         images[host]
     }
 
+    #if DEBUG
+    func seed(_ host: String, _ image: UIImage) {
+        images[host] = image
+    }
+    #endif
+
     /// Loads the icon for |host| unless it is there or on its way.
     func request(_ host: String) {
         guard !host.isEmpty, images[host] == nil, !requested.contains(host) else { return }

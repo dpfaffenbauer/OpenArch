@@ -102,6 +102,14 @@ struct ShareView: View {
                 Text("Der Link zeigt danach nichts mehr. Wer die Lesezeichen hinzugefügt hat, behält den letzten Stand.")
             }
         }
+        #if DEBUG
+        .onChange(of: browser.demoCreatesLink) { _, creates in
+            if creates {
+                live = false
+                create()
+            }
+        }
+        #endif
     }
 
     private func create() {
@@ -120,6 +128,9 @@ struct ShareView: View {
                     + (live ? " Ohne „Aktuell halten“ geht es ganz ohne Server." : "")
             }
             busy = false
+            #if DEBUG
+            browser.demoLinkIsReady = true
+            #endif
         }
     }
 

@@ -29,6 +29,8 @@ final class Item: Identifiable {
     var isLoading = false
     var canGoBack = false
     var canGoForward = false
+    /// Whether the page's background is dark; nil before it has loaded.
+    var pageIsDark: Bool?
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", icon: String? = nil,
          children: [Item] = [], isExpanded: Bool = true, lastActiveAt: Date = Date()) {
