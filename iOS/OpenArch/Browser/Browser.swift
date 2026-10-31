@@ -72,6 +72,14 @@ final class Browser {
     /// The item whose rename alert is open.
     var renaming: Item?
     var toast: String?
+    /// iPhone Duo: the floating bars small, while the page is being read.
+    var barsCollapsed = false
+    #if DEBUG
+    /// The demo's typing into the address field, and its tap on "Link erstellen".
+    var demoQuery: String?
+    var demoCreatesLink = false
+    var demoLinkIsReady = false
+    #endif
 
     @ObservationIgnored private var tabs: [UUID: WebTab] = [:]
     /// Tabs with a page, the one shown last first.
@@ -119,6 +127,7 @@ final class Browser {
         item.isLoading = false
         item.canGoBack = false
         item.canGoForward = false
+        item.pageIsDark = nil
     }
 
     private func touch(_ item: Item) {
@@ -147,6 +156,7 @@ final class Browser {
             switchSpace(to: owner, restoring: false)
         }
         activeItem = item
+        barsCollapsed = false
         item.lastActiveAt = Date()
         space.activeItemID = item.id
         touch(item)

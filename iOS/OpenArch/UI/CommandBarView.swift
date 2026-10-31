@@ -102,6 +102,9 @@ struct CommandBarView: View {
             focused = true
         }
         .task(id: text) { await fetchSuggestions(for: text) }
+        #if DEBUG
+        .onChange(of: browser.demoQuery) { _, query in text = query ?? text }
+        #endif
     }
 
     private func matchingTabs(_ query: String) -> [Item] {

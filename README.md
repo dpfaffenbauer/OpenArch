@@ -24,6 +24,12 @@ OpenArch for iPhone and iPad: open `iOS/OpenArch.xcodeproj` in Xcode and run
 it (choose your team under Signing for a device). `ios.yml` builds it for the
 simulator on every push that touches it, runs its self-test there
 (`-selftest`, see `iOS/OpenArch/SelfTest.swift`) and keeps the screenshots.
+On iPhone Duo (built with Xcode 27.1 or later), the page goes to the display's
+edges, the controls float beside the status bar's symbols and shrink while
+reading, and the layout keeps clear of the fold.
+
+The App Store previews come from a debug build's `-demo` run with made-up sites
+(`iOS/OpenArch/Demo.swift`), cut by `scripts/app-preview.py`.
 
 GitHub Actions builds every push (`.github/workflows/build.yml`) and keeps
 the newest build of `main` as the
