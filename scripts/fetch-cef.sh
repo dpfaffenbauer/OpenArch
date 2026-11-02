@@ -7,9 +7,9 @@
 # cef-<version>-codecs. scripts/update-cef.sh moves the pin.
 set -euo pipefail
 
-CEF_VERSION="156.0.14+g4fa4ab5+chromium-156.0.8078.48"
+CEF_VERSION="156.0.15+gcf671c0+chromium-156.0.8078.80"
 CEF_PLATFORM="macosarm64"
-CEF_SHA256="ac5dfc9a904defca4a7ecdeb2270d2a8e37daf0612a95076e73acec372561378"
+CEF_SHA256="1cb698cf96f9bd7b1511779aa8098c437c58ab77153ec4a06b38c052d0aa388d"
 CEF_REPO="dpfaffenbauer/OpenArch"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
