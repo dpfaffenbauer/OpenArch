@@ -224,9 +224,13 @@ class PaneClient : public CefClient,
                    public CefCommandHandler,
                    public CefFocusHandler,
                    public CefRequestHandler,
-                   public CefDownloadHandler {
+                   public CefDownloadHandler,
+                   public CefJSDialogHandler {
  public:
   explicit PaneClient(OACPane* pane) : pane_(pane) {}
+
+  // The pane closes its browser: the page may no longer ask to stay.
+  void SetClosing() { closing_ = true; }
 
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
@@ -235,6 +239,7 @@ class PaneClient : public CefClient,
   CefRefPtr<CefFocusHandler> GetFocusHandler() override { return this; }
   CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
   CefRefPtr<CefDownloadHandler> GetDownloadHandler() override { return this; }
+  CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override { return this; }
 
   // CefLifeSpanHandler
 
@@ -527,6 +532,23 @@ class PaneClient : public CefClient,
     [Own(browser) oac_didActivate];
   }
 
+  // CefJSDialogHandler
+
+  // Closing the tab leaves the page, as CloseBrowser(true) promises. Chrome
+  // style still runs beforeunload: it would ask "Leave site?" in a window
+  // no tab owns anymore, bring that window back on screen (hidden tabs
+  // too) and keep the page running until someone answers.
+  bool OnBeforeUnloadDialog(CefRefPtr<CefBrowser> browser,
+                            const CefString& message_text,
+                            bool is_reload,
+                            CefRefPtr<CefJSDialogCallback> callback) override {
+    if (!closing_) {
+      return false;
+    }
+    callback->Continue(true, CefString());
+    return true;
+  }
+
  private:
   // Normal tabs only: not popups (chrome.windows.create type "popup",
   // OAuth windows) and not incognito windows, which have no cache path.
@@ -574,6 +596,7 @@ class PaneClient : public CefClient,
 
   __weak OACPane* pane_;
   int own_id_ = 0;
+  bool closing_ = false;
 
   IMPLEMENT_REFCOUNTING(PaneClient);
 };
@@ -1145,6 +1168,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     return;
   }
   _closed = YES;
+  // Off screen now: Chrome may take a moment to close the page, and the
+  // tab it belonged to is already gone.
+  [self hide];
+  if (_client) {
+    _client->SetClosing();
+  }
   if (_browser) {
     _browser->GetHost()->CloseBrowser(true);
   } else if (_cefWindow) {
