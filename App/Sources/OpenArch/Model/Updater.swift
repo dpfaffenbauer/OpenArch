@@ -7,6 +7,11 @@ import Observation
 /// newer build, checks its SHA-256, unpacks it next to the cache and swaps
 /// the app when it quits or restarts. Downloads go through curl (URLSession
 /// fails inside Chromium's process), which also leaves no quarantine flag.
+///
+/// The checksum comes from the same release as the zip, so it only shows
+/// that the download is complete, not who made it. That is what the code
+/// signature is for: the new app must be signed with OpenArch's Developer ID,
+/// and it must come from OpenArch's own releases.
 @MainActor @Observable
 final class Updater {
     enum Phase: Equatable {
@@ -33,6 +38,11 @@ final class Updater {
 
     static let shared = Updater()
     static let releaseManifest = "https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/latest.json"
+    /// Where updates may come from: files of OpenArch's own releases.
+    static let releaseDownloads = "https://github.com/dpfaffenbauer/OpenArch/releases/download/"
+    /// OpenArch's Apple developer team (TEAM_ID in .github/workflows/build.yml),
+    /// whose Developer ID signs the releases.
+    static let teamID = "5QAM4Z73EV"
 
     private(set) var phase = Phase.idle
     private(set) var lastCheck: Date?
@@ -44,6 +54,9 @@ final class Updater {
     }
     /// Where latest.json comes from; the self-test points it at a local file.
     var manifestURL = releaseManifest
+    /// The self-test's fake builds are local files without a signature.
+    var allowsLocalFiles = false
+    var requiresDeveloperID = true
     let currentBuild: Int
     let currentCommit: String
 
@@ -113,6 +126,10 @@ final class Updater {
         guard FileManager.default.isWritableFile(atPath: target.deletingLastPathComponent().path) else {
             throw UpdateError("Keine Schreibrechte für \(target.deletingLastPathComponent().path).")
         }
+        let isLocalFile = allowsLocalFiles && URL(string: manifest.url)?.isFileURL == true
+        guard isLocalFile || Self.isReleaseAsset(manifest.url) else {
+            throw UpdateError("Das Update kommt nicht aus OpenArchs Releases auf GitHub.")
+        }
         let folder = Self.cacheFolder
         try? FileManager.default.removeItem(at: folder)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -127,7 +144,8 @@ final class Updater {
             }
         }
         defer { progress.invalidate() }
-        try await Self.run("/usr/bin/curl", ["-fsSL", "--max-time", "1800", "-o", zip.path, manifest.url])
+        try await Self.run("/usr/bin/curl", ["-fsSL", "--proto-redir", "=https", "--max-time", "1800",
+                                             "-o", zip.path, manifest.url])
 
         guard try Self.sha256(of: zip) == manifest.sha256.lowercased() else {
             throw UpdateError("Die heruntergeladene Datei stimmt nicht mit der Prüfsumme überein.")
@@ -138,6 +156,15 @@ final class Updater {
         guard let bundle = Bundle(url: app), bundle.bundleIdentifier == Bundle.main.bundleIdentifier,
               Int(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") == manifest.build else {
             throw UpdateError("Das Update enthält keine passende OpenArch-App.")
+        }
+        if requiresDeveloperID {
+            do {
+                try await Self.run("/usr/bin/codesign", ["--verify", "--deep", "--strict",
+                                                         "-R", Self.codeRequirement(bundleID: Bundle.main.bundleIdentifier ?? ""),
+                                                         app.path])
+            } catch {
+                throw UpdateError("Das Update ist nicht mit OpenArchs Developer ID signiert.")
+            }
         }
         try? FileManager.default.removeItem(at: zip)
         stagedApp = app
@@ -194,8 +221,30 @@ final class Updater {
     private static func fetch(_ url: String) async throws -> Data {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-latest-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: file) }
-        try await run("/usr/bin/curl", ["-fsSL", "--max-time", "30", "-o", file.path, url])
+        try await run("/usr/bin/curl", ["-fsSL", "--proto-redir", "=https", "--max-time", "30", "-o", file.path, url])
         return try Data(contentsOf: file)
+    }
+
+    /// Whether |text| is a file of one of OpenArch's releases:
+    /// releases/download/<tag>/<file>, over https, with nothing in it that
+    /// could lead somewhere else (no "..", no percent escapes, no query).
+    static func isReleaseAsset(_ text: String) -> Bool {
+        guard text.hasPrefix(releaseDownloads) else { return false }
+        let parts = text.dropFirst(releaseDownloads.count).split(separator: "/", omittingEmptySubsequences: false)
+        return parts.count == 2 && parts.allSatisfy { part in
+            !part.isEmpty && part != "." && part != ".."
+                && part.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "._-+".contains($0)) }
+        }
+    }
+
+    /// What `codesign -R` checks an update against: Apple's Developer ID
+    /// certificates (not a development certificate), this app's bundle
+    /// identifier and OpenArch's team. The leading "=" makes it inline text.
+    static func codeRequirement(bundleID: String) -> String {
+        "=anchor apple generic and identifier \"\(bundleID)\""
+            + " and certificate 1[field.1.2.840.113635.100.6.2.6] exists"
+            + " and certificate leaf[field.1.2.840.113635.100.6.1.13] exists"
+            + " and certificate leaf[subject.OU] = \"\(teamID)\""
     }
 
     private static func run(_ tool: String, _ arguments: [String]) async throws {

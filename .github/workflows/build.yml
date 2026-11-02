@@ -8,8 +8,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# The build only reads the repository. Releases are written by the publish
+# job below, for main and version tags only: every OpenArch updates itself
+# from them, so a token that can change them stays away from pull requests'
+# code, brew and the self-test's live web pages.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: build-${{ github.ref }}
@@ -23,8 +27,13 @@ jobs:
   build:
     runs-on: macos-latest
     timeout-minutes: 60
+    outputs:
+      cef: ${{ steps.package.outputs.cef }}
+      notarized: ${{ steps.package.outputs.notarized }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Toolchain
         run: |
@@ -43,7 +52,10 @@ jobs:
       # The Developer ID from the repository's secrets: the build is signed
       # with it (hardened runtime) and notarized below. Without the secrets,
       # or if they do not work, it is signed ad hoc as before, with a warning.
+      # Pull requests are always signed ad hoc: their code must not get at the
+      # Developer ID, which would sign anything as OpenArch.
       - name: Signing identity
+        if: github.event_name != 'pull_request'
         env:
           MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
@@ -58,7 +70,8 @@ jobs:
           curl -fsSL -o "$RUNNER_TEMP/DeveloperIDG2CA.cer" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
           security import "$RUNNER_TEMP/DeveloperIDG2CA.cer" -k "$keychain" || true
           printf '%s' "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/identity.p12"
-          if ! security import "$RUNNER_TEMP/identity.p12" -k "$keychain" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign; then
+          # -x: the private key cannot be exported from the keychain again.
+          if ! security import "$RUNNER_TEMP/identity.p12" -k "$keychain" -P "$MACOS_CERT_PASSWORD" -x -T /usr/bin/codesign; then
             rm -f "$RUNNER_TEMP/identity.p12"
             echo "::warning::MACOS_CERT_P12 could not be imported (is MACOS_CERT_PASSWORD set?). Signing ad hoc."
             exit 0
@@ -97,12 +110,19 @@ jobs:
       # Notarized with the App Store Connect API key from the secrets, and the
       # ticket stapled to the app, so Gatekeeper lets it open on first launch.
       - name: Package
+        id: package
         env:
-          NOTARY_KEY: ${{ secrets.NOTARY_KEY }}
-          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
-          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+          NOTARY_KEY: ${{ github.event_name != 'pull_request' && secrets.NOTARY_KEY || '' }}
+          NOTARY_KEY_ID: ${{ github.event_name != 'pull_request' && secrets.NOTARY_KEY_ID || '' }}
+          NOTARY_ISSUER_ID: ${{ github.event_name != 'pull_request' && secrets.NOTARY_ISSUER_ID || '' }}
         run: |
           codesign --verify --deep --strict --verbose=2 App/build/OpenArch.app
+          echo "cef=$(cat Vendor/cef/.version)" >> "$GITHUB_OUTPUT"
+          if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+            # The requirement OpenArch's updater checks downloads against
+            # (Updater.codeRequirement): keep the two the same.
+            codesign --verify --deep --strict --verbose=2 -R "=anchor apple generic and identifier \"dev.openarch.browser\" and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = \"$TEAM_ID\"" App/build/OpenArch.app
+          fi
           ditto -c -k --keepParent App/build/OpenArch.app OpenArch.zip
           if [[ -z "${SIGN_IDENTITY:-}" || -z "$NOTARY_KEY" || -z "$NOTARY_KEY_ID" ]]; then
             echo "Not notarized (no Developer ID or no notary key)"
@@ -119,7 +139,7 @@ jobs:
             xcrun stapler staple App/build/OpenArch.app
             rm OpenArch.zip
             ditto -c -k --keepParent App/build/OpenArch.app OpenArch.zip
-            echo "NOTARIZED=1" >> "$GITHUB_ENV"
+            echo "notarized=1" >> "$GITHUB_OUTPUT"
           else
             id="$(jq -r '.id // empty' <<< "$result")"
             if [[ -n "$id" ]]; then xcrun notarytool log "$id" "${auth[@]}" || true; fi
@@ -133,23 +153,56 @@ jobs:
           path: OpenArch.zip
           retention-days: 14
 
+  # Writes the releases, with the build job's zip. Every OpenArch updates
+  # itself from them, so this is the only job whose token may change them.
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      CEF: ${{ needs.build.outputs.cef }}
+      NOTARIZED: ${{ needs.build.outputs.notarized }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: OpenArch
+
+      # The updater only installs builds signed with OpenArch's Developer ID,
+      # and people download these releases directly too: a build that is not
+      # signed and notarized (missing secrets, an expired certificate, Apple's
+      # notary service down) fails here instead of being published. Forks
+      # publish their builds as before.
+      - name: Only signed and notarized builds
+        if: github.repository == 'dpfaffenbauer/OpenArch'
+        run: |
+          if [[ "$NOTARIZED" != 1 ]]; then
+            echo "::error::This build is not signed with the Developer ID and notarized, so it is not published. See the build job's Signing identity and Package steps."
+            exit 1
+          fi
+
       # The newest build of main, for downloading without building.
       - name: Update the "nightly" release
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
+        if: github.ref == 'refs/heads/main'
         run: |
-          cef="$(cat Vendor/cef/.version)"
-          if [[ -n "${NOTARIZED:-}" ]]; then
-            notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Signed with a Developer ID and notarized."
+          if [[ "$NOTARIZED" == 1 ]]; then
+            notes="Build of $(git rev-parse --short HEAD) with CEF $CEF. Signed with a Developer ID and notarized."
           else
-            notes="Build of $(git rev-parse --short HEAD) with CEF $cef. Not notarized: after downloading, run
+            notes="Build of $(git rev-parse --short HEAD) with CEF $CEF. Not notarized: after downloading, run
           xattr -dr com.apple.quarantine OpenArch.app"
           fi
           # What OpenArch's updater reads; uploaded after the zip it points to.
           cat > latest.json <<JSON
-          {"build": ${{ github.run_number }}, "commit": "$(git rev-parse --short HEAD)", "chromium": "$cef",
-           "sha256": "$(shasum -a 256 OpenArch.zip | cut -d' ' -f1)", "size": $(stat -f%z OpenArch.zip),
+          {"build": ${{ github.run_number }}, "commit": "$(git rev-parse --short HEAD)", "chromium": "$CEF",
+           "sha256": "$(sha256sum OpenArch.zip | cut -d' ' -f1)", "size": $(stat -c%s OpenArch.zip),
            "url": "https://github.com/${{ github.repository }}/releases/download/nightly/OpenArch.zip"}
           JSON
           if gh release view nightly >/dev/null 2>&1; then
@@ -163,8 +216,6 @@ jobs:
       # A version tag: the release, with notes from .github/release-notes.
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
           notes=".github/release-notes/$GITHUB_REF_NAME.md"
