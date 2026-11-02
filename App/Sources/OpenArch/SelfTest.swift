@@ -140,7 +140,7 @@ final class SelfTest {
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
             (73, "sharing", { self.sharingTest() }),
-            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } } }),
+            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -1037,6 +1037,37 @@ final class SelfTest {
                         self.browser.close(asking)
                         next()
                     }
+                }
+            }
+        }
+    }
+
+    /// Closing a tab ends its page, also one that asks before leaving: no
+    /// "Leave site?" for a tab that is gone, nothing left running or on
+    /// screen, whether the tab was shown or not when it closed.
+    private func closingPagesThatAsk(then next: @escaping () -> Void) {
+        let shown = browser.state.activeItem
+        let hidden = browser.openInNewTab("https://example.com/?asks-hidden", select: false)
+        let front = browser.openInNewTab("https://example.com/?asks-shown", select: false)
+        browser.select(hidden, focus: false)
+        browser.select(front, focus: false)
+        after(3) {
+            // After a click on the page, Chrome really asks.
+            for tab in [hidden, front] {
+                tab.pane?.executeJavaScript("addEventListener('beforeunload', e => { e.preventDefault(); e.returnValue = '' })",
+                                            userGesture: true)
+            }
+            after(0.5) {
+                let panes = [hidden, front].compactMap(\.pane)
+                let windows = panes.compactMap(\.window)
+                self.browser.close(hidden)
+                self.browser.close(front)
+                if let shown { self.browser.select(shown, focus: false) }
+                self.eventually({ panes.allSatisfy { !$0.isLoaded } && !windows.contains { $0.isVisible } }, timeout: 5) { closed in
+                    self.expect(closed && panes.count == 2,
+                                "closing tabs whose pages ask before leaving ends the pages, nothing stays on screen "
+                                + "(\(panes.filter(\.isLoaded).count) running, \(windows.filter(\.isVisible).count) shown)")
+                    next()
                 }
             }
         }
