@@ -1611,7 +1611,9 @@ final class SelfTest {
     }
 
     /// A fake newer build behind a local latest.json: the updater downloads,
-    /// verifies and unpacks it, and refuses one with a wrong checksum.
+    /// verifies and unpacks it, and refuses one with a wrong checksum, one
+    /// without OpenArch's Developer ID and one from anywhere but OpenArch's
+    /// releases.
     private func updaterTest() {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("openarch-update-test-\(UUID().uuidString)")
         let app = folder.appendingPathComponent("build/OpenArch.app/Contents")
@@ -1631,21 +1633,52 @@ final class SelfTest {
             return url.absoluteString
         }
         let sha = (try? Updater.sha256(of: zip)) ?? ""
-        let good = Updater()
-        good.manifestURL = manifest("latest.json", sha: sha)
-        good.check()
+        let release = Updater.releaseDownloads
+        let accepted = [release + "nightly/OpenArch.zip", release + "v0.1.0/OpenArch.zip"]
+        let refused = [
+            release + "../../../someone/else/releases/download/v1/OpenArch.zip",
+            release + "nightly/%2e%2e/OpenArch.zip",
+            release + "nightly/OpenArch.zip?x=1",
+            "https://github.com/someone/OpenArch/releases/download/nightly/OpenArch.zip",
+            "http://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/OpenArch.zip",
+            zip.absoluteString,
+        ]
+        expect(accepted.allSatisfy { Updater.isReleaseAsset($0) } && !refused.contains { Updater.isReleaseAsset($0) },
+               "updates come only from OpenArch's own releases")
+        // The fake build is a local file without a signature.
+        func fakeUpdate(_ manifestName: String, sha: String, signed: Bool = false) -> Updater {
+            let updater = Updater()
+            updater.allowsLocalFiles = true
+            updater.requiresDeveloperID = signed
+            updater.manifestURL = manifest(manifestName, sha: sha)
+            updater.check()
+            return updater
+        }
+        func refuses(_ updater: Updater, because reason: String, _ text: String) {
+            if case .failed(let message) = updater.phase, message.contains(reason) {
+                expect(true, text)
+            } else {
+                expect(false, "\(text) (\(updater.phase))")
+            }
+        }
+        let good = fakeUpdate("latest.json", sha: sha)
         after(3) {
             self.expect(good.phase == .ready(999), "the updater downloads, verifies and unpacks a newer build (\(good.phase))")
-            let bad = Updater()
-            bad.manifestURL = manifest("tampered.json", sha: String(repeating: "0", count: 64))
-            bad.check()
+            let bad = fakeUpdate("tampered.json", sha: String(repeating: "0", count: 64))
             after(3) {
-                if case .failed = bad.phase {
-                    self.expect(true, "the updater refuses a download with the wrong checksum")
-                } else {
-                    self.expect(false, "the updater refuses a download with the wrong checksum (\(bad.phase))")
+                refuses(bad, because: "Prüfsumme", "the updater refuses a download with the wrong checksum")
+                let unsigned = fakeUpdate("unsigned.json", sha: sha, signed: true)
+                after(3) {
+                    refuses(unsigned, because: "Developer ID", "the updater refuses a build without OpenArch's Developer ID")
+                    let elsewhere = Updater()
+                    elsewhere.requiresDeveloperID = false
+                    elsewhere.manifestURL = manifest("elsewhere.json", sha: sha)
+                    elsewhere.check()
+                    after(3) {
+                        refuses(elsewhere, because: "Releases", "the updater refuses a download from anywhere but OpenArch's releases")
+                        try? FileManager.default.removeItem(at: folder)
+                    }
                 }
-                try? FileManager.default.removeItem(at: folder)
             }
         }
     }

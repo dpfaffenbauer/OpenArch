@@ -44,8 +44,11 @@ on:
         description: Runner (macOS on Apple silicon)
         default: macos-26
 
+# The build jobs run Chromium's toolchains and hooks for hours, so they only
+# read the repository and delete this run's artifacts; only the publish job
+# writes the release. The token goes only to the steps that call gh.
 permissions:
-  contents: write # the release
+  contents: read
   actions: write # deleting the intermediate artifacts
 
 concurrency:
@@ -67,7 +70,6 @@ env:
   # The number of the last build job below. It fails if the build is still
   # not done; add jobs if that happens.
   LAST_PART: "20"
-  GH_TOKEN: ${{ github.token }}
 
 jobs:
   build-01:
@@ -86,6 +88,8 @@ jobs:
 
       - &checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       # For automate-git.py; the image's default Python is newer than
       # depot_tools supports.
@@ -142,6 +146,8 @@ jobs:
       - &drop-previous
         name: Delete the previous job's build tree
         if: steps.build.outputs.status == 'running' && env.PREVIOUS != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: scripts/cef-codecs.sh drop-artifacts "cef-state-$PREVIOUS"
 
       - &out-of-jobs
@@ -369,8 +375,15 @@ jobs:
     # Runs when one build job finished and none failed.
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && contains(needs.*.outputs.status, 'finished') }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # the release
+      actions: write # deleting the intermediate artifacts
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v4
         with:

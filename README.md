@@ -144,7 +144,7 @@ run. Data lives in
 - **Hover sidebar:** with the sidebar collapsed, the window's left edge
   brings it back over the page.
 - **Updates:** OpenArch updates itself from the nightly release (checked
-  at launch and every six hours, SHA-256 verified).
+  at launch and every six hours; only builds signed with OpenArch's Developer ID, from its own GitHub releases).
 - **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
 - **Über OpenArch:** a flight through OpenArch's arches; click the logo for
   warp speed.
