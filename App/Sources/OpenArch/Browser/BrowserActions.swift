@@ -9,8 +9,13 @@ extension BrowserWindowController {
     @discardableResult
     func handleDrop(_ providers: [NSItemProvider], target: DropTarget) -> Bool {
         loadDroppedString(providers) { string in
-            if let id = UUID(uuidString: string), let item = self.library.item(id: id) {
+            if let id = UUID(uuidString: string), let item = self.ownItem(id: id) {
                 self.move(item, to: target)
+            } else if let id = UUID(uuidString: string), let (item, owner) = self.separateWindowItem(id: id) {
+                // Back from a separate window: into this space, and shown here.
+                owner.moveToSpace(item, self.state.space)
+                self.move(item, to: target)
+                self.select(item)
             } else if let url = Self.droppedLink(string) {
                 let item = Item.tab(url: url)
                 self.state.space.today.insert(item, at: 0)
@@ -27,12 +32,30 @@ extension BrowserWindowController {
 
     /// A tab dropped on a space's icon moves there; a link opens there.
     func drop(_ string: String, toSpace space: Space) {
-        if let id = UUID(uuidString: string), let item = library.item(id: id) {
+        if let id = UUID(uuidString: string), let item = ownItem(id: id) {
             moveToSpace(item, space)
+        } else if let id = UUID(uuidString: string), let (item, owner) = separateWindowItem(id: id) {
+            owner.moveToSpace(item, space)
+            select(item)
         } else if let url = Self.droppedLink(string) {
             switchSpace(to: space)
             openInNewTab(url)
         }
+    }
+
+    /// A dragged sidebar item of this window: the library's, or a private or
+    /// separate window's own (they take no others).
+    func ownItem(id: UUID) -> Item? {
+        isStandalone ? state.space.today.find(id: id) : library.item(id: id)
+    }
+
+    /// A tab dragged out of a separate window, which a library window takes.
+    private func separateWindowItem(id: UUID) -> (Item, BrowserWindowController)? {
+        guard !isStandalone, let app = NSApp.delegate as? AppDelegate else { return nil }
+        for browser in app.browsers where browser.isSeparate {
+            if let item = browser.state.space.today.find(id: id) { return (item, browser) }
+        }
+        return nil
     }
 
     /// A dropped string worth a tab: a web or file address, or one without
@@ -105,7 +128,7 @@ extension BrowserWindowController {
     /// under the line.
     func restore(_ archived: ArchivedTab) {
         let item = Item.tab(url: archived.url, title: archived.title)
-        let space = isPrivate ? state.space : (library.space(id: archived.spaceID) ?? state.space)
+        let space = isStandalone ? state.space : (library.space(id: archived.spaceID) ?? state.space)
         space.today.insert(item, at: min(archived.index ?? 0, space.today.items.count))
         select(item)
         library.setNeedsSave()
@@ -138,6 +161,16 @@ extension BrowserWindowController {
         library.setNeedsSave()
     }
 
+    /// From a separate window: |item| goes to |space| and shows there, in
+    /// the main window.
+    func moveBack(_ item: Item, to space: Space) {
+        guard isSeparate, let main = (NSApp.delegate as? AppDelegate)?.mainBrowser else { return }
+        let anchor = item.split ?? item
+        moveToSpace(anchor, space)
+        main.showWindow(nil)
+        main.select(anchor)
+    }
+
     func deletePinned(_ item: Item) {
         let anchor = item.split ?? item
         for tab in anchor.kind == .tab ? [anchor] : anchor.descendants where tab.kind == .tab {
@@ -156,7 +189,7 @@ extension BrowserWindowController {
         let tabs = state.space.today.allTabs
         let activeWasToday = tabs.contains { $0 === state.activeItem }
         for tab in tabs {
-            if !isPrivate { library.archive(tab) }
+            if !isPrivate { library.archive(tab, from: homeSpace) }
             unload(tab)
         }
         for item in state.space.today.items where item.kind != .agent {

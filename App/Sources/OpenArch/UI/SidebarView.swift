@@ -48,7 +48,8 @@ struct SidebarView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         if browser.isPrivate {
                             PrivateHeader(theme: theme)
-                        } else {
+                        } else if !browser.isSeparate {
+                            // A separate window has only tabs, no bookmarks.
                             FavoritesGrid(browser: browser, theme: theme)
                             SpaceHeader(browser: browser, space: space, theme: theme)
                             PinnedSection(browser: browser, space: space, theme: theme)
@@ -70,7 +71,7 @@ struct SidebarView: View {
             if case .ready = Updater.shared.phase {
                 UpdateBanner(theme: theme)
             }
-            if browser.isPrivate {
+            if browser.isStandalone {
                 Spacer().frame(height: 12)
             } else {
                 SpaceBar(browser: browser, theme: theme, isDocked: !floating)
@@ -748,22 +749,25 @@ private struct TabContextMenu: View {
         Button("Umbenennen") { browser.state.renamingItemID = item.id }
         Button("URL kopieren") { copy(item.currentURL) }
         Divider()
-        if item.role == .today {
-            Button("Anheften (⌘D)") { browser.togglePin(item) }
-        } else if item.role == .pinned {
-            Button("Lösen") { browser.togglePin(item) }
-            Button("Zur angehefteten URL") { browser.goToSavedURL(item) }.disabled(!item.hasNavigatedAway)
-            Button("Aktuelle URL anheften") { browser.resetSavedURL(item) }.disabled(item.liveURL == nil)
-        }
-        Button("Zu Favoriten hinzufügen") { browser.addToFavorites(item) }
-        Menu("In Ordner verschieben") {
-            ForEach(browser.state.space.pinned.allItems.filter { $0.kind == .folder }) { folder in
-                Button(folderPath(folder)) { browser.pin(item, into: folder) }
+        // Private and separate windows have no pinned tabs, favorites or folders.
+        if !browser.isStandalone {
+            if item.role == .today {
+                Button("Anheften (⌘D)") { browser.togglePin(item) }
+            } else if item.role == .pinned {
+                Button("Lösen") { browser.togglePin(item) }
+                Button("Zur angehefteten URL") { browser.goToSavedURL(item) }.disabled(!item.hasNavigatedAway)
+                Button("Aktuelle URL anheften") { browser.resetSavedURL(item) }.disabled(item.liveURL == nil)
+            }
+            Button("Zu Favoriten hinzufügen") { browser.addToFavorites(item) }
+            Menu("In Ordner verschieben") {
+                ForEach(browser.state.space.pinned.allItems.filter { $0.kind == .folder }) { folder in
+                    Button(folderPath(folder)) { browser.pin(item, into: folder) }
+                }
+                Divider()
+                Button("Neuer Ordner") { browser.pin(item, into: browser.newFolder()) }
             }
             Divider()
-            Button("Neuer Ordner") { browser.pin(item, into: browser.newFolder()) }
         }
-        Divider()
         if let split = item.split {
             Button("Split View aufheben") { browser.unsplit(item) }
             Button("Seiten tauschen (⌃⇧S)") { browser.swapSplit(split) }
@@ -774,9 +778,19 @@ private struct TabContextMenu: View {
             Button("Split View mit aktuellem Tab") { browser.split(item) }
                 .disabled(browser.state.activeItem == nil || browser.state.activeItem === item)
         }
-        Menu("In Space verschieben") {
-            ForEach(browser.library.spaces.filter { $0 !== browser.state.space }) { space in
-                Button(space.name) { browser.moveToSpace(item, space) }
+        if browser.isSeparate {
+            // Back into the main window, the space it came from first.
+            Menu("In Space verschieben") {
+                let spaces = browser.library.spaces
+                ForEach(spaces.filter { $0 === browser.homeSpace } + spaces.filter { $0 !== browser.homeSpace }) { space in
+                    Button(space.name) { browser.moveBack(item, to: space) }
+                }
+            }
+        } else {
+            Menu("In Space verschieben") {
+                ForEach(browser.library.spaces.filter { $0 !== browser.state.space }) { space in
+                    Button(space.name) { browser.moveToSpace(item, space) }
+                }
             }
         }
         Divider()
@@ -850,7 +864,7 @@ private struct NewTabRow: View {
             Spacer()
             if hovering {
                 Text("⌘T").font(.system(size: 11)).opacity(0.6)
-                if browser.library.settings.agentChats, !browser.isPrivate {
+                if browser.library.settings.agentChats, !browser.isStandalone {
                     SmallButton(symbol: "sparkles", help: "Neuer Agent-Chat") { browser.newAgentChat() }
                 }
             }

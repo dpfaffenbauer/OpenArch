@@ -7,7 +7,7 @@ extension BrowserWindowController {
     /// cursor in its field; |prompt| is sent right away.
     @discardableResult
     func newAgentChat(prompt: String? = nil) -> Item? {
-        guard !isPrivate else { return nil }
+        guard !isStandalone else { return nil }
         guard library.settings.agentChats else {
             (NSApp.delegate as? AppDelegate)?.showSettings(page: .ai)
             return nil
@@ -73,7 +73,7 @@ extension BrowserWindowController {
     /// Agents (⌃0): the sidebar lists every agent chat and Claude Code
     /// session, like a space of its own; the page or chat in front stays.
     func toggleAgents() {
-        guard !isPrivate else { return }
+        guard !isStandalone else { return }
         guard library.settings.agentChats else {
             (NSApp.delegate as? AppDelegate)?.showSettings(page: .ai)
             return
@@ -93,7 +93,7 @@ extension BrowserWindowController {
         if let chat = agentChat(forSession: session.id) {
             return select(chat)
         }
-        guard !isPrivate else { return }
+        guard !isStandalone else { return }
         let item = Item(kind: .agent, title: session.title)
         var config = AgentConfig(folder: session.folder)
         config.sessionID = session.id

@@ -14,6 +14,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// that are gone once it closes.
     let isPrivate: Bool
     private var privateProfile: OACProfile?
+    /// A window of its own, for tabs dragged out of the sidebar: the space
+    /// it came from (its profile and color), with tabs but without
+    /// favorites, pinned tabs or other spaces. Its tabs go to the archive
+    /// once it closes.
+    let homeSpace: Space?
+    var isSeparate: Bool { homeSpace != nil }
+    /// A private or separate window: a space of its own, not one of the
+    /// library's, and only tabs under the line.
+    var isStandalone: Bool { isPrivate || isSeparate }
 
     /// Tabs whose panes are currently shown, left to right.
     private(set) var visibleTabs: [Item] = []
@@ -46,14 +55,19 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     static let windowCornerRadius: CGFloat = 16
     static let splitGap: CGFloat = 8
 
-    init(library: Library, history: History, isPrivate: Bool = false, cascadingFrom other: NSWindow? = nil) {
+    init(library: Library, history: History, isPrivate: Bool = false, separateFrom home: Space? = nil,
+         cascadingFrom other: NSWindow? = nil) {
         self.library = library
         self.history = history
         self.isPrivate = isPrivate
+        homeSpace = isPrivate ? nil : home
         if isPrivate {
             // Not part of the library: never saved, never in the space bar.
             state = BrowserState(space: Space(name: "Privates Fenster", icon: "eyeglasses", colorHex: "#2C2C30", profileID: ""))
             privateProfile = OACProfile.makePrivate()
+        } else if let home {
+            // Not part of the library either, but on the home space's profile.
+            state = BrowserState(space: Space(name: home.name, icon: home.icon, colorHex: home.colorHex, profileID: home.profileID))
         } else {
             state = BrowserState(space: library.space(id: library.selectedSpaceID) ?? library.spaces[0])
         }
@@ -123,6 +137,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         applyTheme()
         observeChanges()
+        closeWhenEmpty()
         sidebarSwipe = SidebarSwipe(browser: self)
         // Agent chats follow the Mac's light or dark mode, like pages do.
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("AppleInterfaceThemeChangedNotification"),
@@ -167,9 +182,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         withObservationTracking {
             _ = state.space.colorHex
             _ = state.space.id
+            _ = homeSpace?.colorHex
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
+                    // A separate window keeps its home space's color.
+                    if let self, let home = self.homeSpace { self.state.space.colorHex = home.colorHex }
                     self?.applyTheme()
                     self?.observeChanges()
                 }
@@ -201,7 +219,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         windowGlass?.isHidden = !glassy
         window?.isOpaque = !glassy
         window?.backgroundColor = glassy ? .clear : base
-        if isFrontmost, !isPrivate, !AppPaths.isSelfTest {
+        if isFrontmost, !isStandalone, !AppPaths.isSelfTest {
             AppIcons.spaceDidChange(state.space.colorHex)
         }
         window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
@@ -514,19 +532,22 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         hidePanesForTransition()
         library.save()
         if let app = NSApp.delegate as? AppDelegate, app.browserMayClose(self) {
-            closeForGood(handingTabsTo: app.browsers.first { $0 !== self && !$0.isPrivate })
+            closeForGood(handingTabsTo: app.browsers.first { $0 !== self && !$0.isStandalone })
             return true
         }
         sender.orderOut(nil)
         return false
     }
 
-    /// A private window's tabs end with it; a normal window's tabs stay open
-    /// and |heir| takes over their pages.
+    /// A private window's tabs end with it, a separate window's go to the
+    /// archive; a normal window's tabs stay open and |heir| takes over their
+    /// pages.
     private func closeForGood(handingTabsTo heir: BrowserWindowController?) {
         archiveTimer?.invalidate()
+        closesWhenEmpty = false
         commandBar.hide()
-        if isPrivate {
+        if isStandalone {
+            archiveTabs()
             for tab in state.space.today.allTabs { unload(tab) }
         } else if let heir {
             for item in itemsByPane.values {
@@ -539,6 +560,41 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         itemsByPane = [:]
         visibleTabs = []
         (NSApp.delegate as? AppDelegate)?.browserDidClose(self)
+    }
+
+    /// A separate window's tabs are not in the library: closing the window
+    /// (or quitting) puts them in the archive, for their home space.
+    func archiveTabs() {
+        guard let homeSpace else { return }
+        // Top to bottom: ⌘⇧T brings the bottom one back first and each next
+        // one above it, so they end up in their order again.
+        for tab in state.space.today.allTabs {
+            library.archive(tab, from: homeSpace)
+        }
+        library.setNeedsSave()
+    }
+
+    /// Watches a separate window's tabs: once the last one is gone (closed,
+    /// dragged out or moved to a space) the window closes too.
+    private var closesWhenEmpty = false
+
+    private func closeWhenEmpty() {
+        guard isSeparate else { return }
+        closesWhenEmpty = true
+        withObservationTracking {
+            _ = state.space.today.items
+        } onChange: { [weak self] in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    guard let self, self.closesWhenEmpty else { return }
+                    if self.state.space.today.items.isEmpty {
+                        self.window?.performClose(nil)
+                    } else {
+                        self.closeWhenEmpty()
+                    }
+                }
+            }
+        }
     }
 
     func windowDidBecomeMain(_ notification: Notification) {
@@ -703,7 +759,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func switchSpace(to space: Space, restoring: Bool = true) {
-        guard space !== state.space, !isPrivate else { return }
+        guard space !== state.space, !isStandalone else { return }
         state.space = space
         library.selectedSpaceID = space.id
         library.setNeedsSave()
@@ -726,7 +782,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Tabs in sidebar order for the current space: favorites, pinned, today.
     var orderedTabs: [Item] {
-        if isPrivate { return flattenVisible(state.space.today.items) }
+        if isStandalone { return flattenVisible(state.space.today.items) }
         let favorites = library.profile(id: state.space.profileID).favorites.allTabs
         let pinned = state.space.pinned.items.flatMap { item -> [Item] in
             item.kind == .folder ? (item.isExpanded ? flattenVisible(item.children) : []) : flattenVisible([item])
@@ -785,6 +841,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func selectFavorite(at index: Int) {
+        guard !isStandalone else { return }
         let favorites = library.profile(id: state.space.profileID).favorites.items
         if index >= 0, index < favorites.count {
             select(favorites[index])
@@ -857,7 +914,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let wasActive = state.activeItem === item
         let neighbor = wasActive ? neighbor(forClosing: item) : nil
         if item.role == .today {
-            if !isPrivate { library.archive(item) }
+            if !isPrivate { library.archive(item, from: homeSpace) }
             unload(item)
             item.detach()
         } else {
@@ -918,7 +975,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private func archiveInactiveTabs() {
         let hours = library.settings.archiveAfterHours
-        guard hours > 0, !isPrivate else { return }
+        guard hours > 0, !isStandalone else { return }
         let cutoff = Date().addingTimeInterval(-Double(hours) * 3600)
         for space in library.spaces {
             // Not what any window shows right now.
@@ -984,7 +1041,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     // MARK: Pinning, favorites, folders, splits
 
     func pin(_ item: Item, into folder: Item? = nil) {
-        guard !isPrivate else { return }
+        guard !isStandalone else { return }
         let anchor = item.split ?? item
         if anchor.role != .pinned {
             anchor.savedURL = anchor.kind == .tab ? anchor.currentURL : anchor.savedURL
@@ -1009,7 +1066,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func addToFavorites(_ item: Item) {
-        guard item.kind == .tab, !isPrivate else { return }
+        guard item.kind == .tab, !isStandalone else { return }
         let favorites = library.profile(id: state.space.profileID).favorites
         if item.split != nil {
             // Take the tab out of the split view first.
@@ -1162,31 +1219,29 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// Like Arc: a tab dragged out of the sidebar becomes a window of its
-    /// own (Little OpenArch) where it was dropped. A today tab takes its page
-    /// along without reloading; pinned tabs and favorites stay and open a copy.
-    func openInSeparateWindow(_ item: Item, at point: NSPoint?) {
-        guard item.kind == .tab, !isPrivate, let app = NSApp.delegate as? AppDelegate else { return }
-        let url = item.currentURL
-        guard item.role == .today, let pane = item.pane else {
-            LittleOpenArchWindowController.show(url: url, app: app, at: point)
-            return
+    /// own where it was dropped, with tabs but without favorites and pinned
+    /// tabs. A today tab moves there and takes its page along without
+    /// reloading; pinned tabs and favorites stay and open a copy.
+    @discardableResult
+    func openInSeparateWindow(_ item: Item, at point: NSPoint?) -> BrowserWindowController? {
+        guard item.kind == .tab, !isPrivate, let app = NSApp.delegate as? AppDelegate else { return nil }
+        let separate = app.openSeparateWindow(home: homeSpace ?? state.space, from: self, at: point)
+        guard item.role == .today else {
+            separate.openInNewTab(item.currentURL)
+            return separate
         }
         let wasActive = state.activeItem === item
         let next = wasActive ? neighbor(forClosing: item) : nil
-        itemsByPane[ObjectIdentifier(pane)] = nil
-        visibleTabs.removeAll { $0 === item }
-        pane.hide()
-        let title = item.displayTitle, favicon = item.favicon
-        item.pane = nil
-        item.detach()
+        separate.state.space.today.insert(item)
+        // Its page moves over as it is (see claim).
+        separate.select(item)
         if wasActive {
             if let next { select(next) } else { showNothing() }
         } else {
             layoutContent()
         }
         library.setNeedsSave()
-        LittleOpenArchWindowController.show(adopting: pane, url: url, title: title, favicon: favicon, space: state.space,
-                                            app: app, at: point)
+        return separate
     }
 
     /// A tab dropped on the left or right half of the page.
@@ -1589,10 +1644,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// The tab whose media the sidebar shows controls for: something playing
     /// (or paused) in a tab that is not on screen right now.
-    /// Every tab this window can show: the library's, or a private
-    /// window's own.
+    /// Every tab this window can show: the library's, or a private or
+    /// separate window's own.
     var allTabs: [Item] {
-        isPrivate ? state.space.today.allTabs : library.allContainers.flatMap(\.allTabs)
+        isStandalone ? state.space.today.allTabs : library.allContainers.flatMap(\.allTabs)
     }
 
     var nowPlaying: Item? {
