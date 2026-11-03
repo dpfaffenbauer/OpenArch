@@ -58,6 +58,7 @@
 namespace {
 
 void (^g_external_tab_handler)(NSString*) = nil;
+void (^g_about_page_handler)(void) = nil;
 void (^g_download_handler)(OACDownload*) = nil;
 
 // Names of downloads, as Chrome suggested them when they started: later
@@ -484,12 +485,23 @@ class PaneClient : public CefClient,
       [pane oac_wantsExternalURL:OACToNSString(request->GetURL())];
       return true;
     }
-    if (!pane || !frame->IsMain() || !user_gesture || is_redirect) {
+    if (!pane || !frame->IsMain() || is_redirect) {
       return false;
     }
     // Back/forward and reloads stay in the tab.
     const int transition = request->GetTransitionType();
     if ((transition & TT_FORWARD_BACK_FLAG) || (transition & TT_SOURCE_MASK) == TT_RELOAD) {
+      return false;
+    }
+    // Also without a gesture: OpenArch's own address fields load it
+    // (-loadURL:). Not as a tab's first page, though, or a tab restored on
+    // chrome://help would open the window at launch.
+    if (g_about_page_handler && browser->HasDocument() &&
+        [OACPane isAboutPageURL:OACToNSString(request->GetURL())]) {
+      g_about_page_handler();
+      return true;
+    }
+    if (!user_gesture) {
       return false;
     }
     return [pane oac_shouldInterceptNavigationToURL:OACToNSString(request->GetURL())];
@@ -843,6 +855,20 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 
 + (void)setExternalTabHandler:(void (^)(NSString*))handler {
   g_external_tab_handler = [handler copy];
+}
+
++ (void (^)(void))aboutPageHandler {
+  return g_about_page_handler;
+}
+
++ (void)setAboutPageHandler:(void (^)(void))handler {
+  g_about_page_handler = [handler copy];
+}
+
++ (BOOL)isAboutPageURL:(NSString*)url {
+  NSURL* parsed = [NSURL URLWithString:url];
+  return [parsed.scheme.lowercaseString isEqualToString:@"chrome"] &&
+         [parsed.host.lowercaseString isEqualToString:@"help"];
 }
 
 + (BOOL)cancelDownload:(uint32_t)identifier {

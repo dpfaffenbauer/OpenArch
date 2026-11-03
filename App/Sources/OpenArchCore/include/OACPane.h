@@ -209,6 +209,13 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 /// and incognito windows are left alone.
 @property(class, nonatomic, copy, nullable) void (^externalTabHandler)(NSString* url);
 
+/// Chrome's About page (chrome://help) is not part of CEF; Chromium only
+/// shows ERR_INVALID_URL. With a handler set, going there from a page that
+/// is already open calls it instead, and the navigation is cancelled.
+@property(class, nonatomic, copy, nullable) void (^aboutPageHandler)(void);
+/// Whether |url| is Chrome's About page (chrome://help, any path).
++ (BOOL)isAboutPageURL:(NSString*)url;
+
 /// Gets every download's progress, from any tab or window, including tabs
 /// that closed after starting one.
 @property(class, nonatomic, copy, nullable) void (^downloadHandler)(OACDownload* download);
