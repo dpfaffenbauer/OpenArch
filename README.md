@@ -39,7 +39,8 @@ OpenArch's Chromium is its own build of CEF with the proprietary codecs
 `cef-codecs.yml` and published as a release (`cef-156.0.14-codecs`). Once a
 day, `update-cef.yml` checks for a newer stable CEF. When there is one, it
 starts that build (about ten hours); the next check after it has finished
-builds OpenArch with it, commits the update to `main` and publishes a new
+builds OpenArch with it and opens the update as a pull request, which merges
+itself once the checks `main` requires have passed and so publishes a new
 nightly. A failed build stops the update and shows up as a failed workflow
 run. Data lives in
 `~/Library/Application Support/OpenArch` (`Library.json` for the sidebar,

@@ -2,17 +2,27 @@ name: Update Chromium
 
 # Every day: if a newer stable CEF (Chromium) build exists, start its build
 # with the proprietary codecs (cef-codecs.yml). Once that has published its
-# release, build OpenArch with it and, when that works, commit the update and
-# publish a new nightly. A failing build stops here and GitHub reports the
-# failed run.
+# release, build OpenArch with it and, when that works, open the update as a
+# pull request that merges itself once main's required checks have passed.
+# The merge builds main and publishes a new nightly. A failing build stops
+# here and GitHub reports the failed run.
+#
+# The pull request is pushed, opened and set to auto-merge with a token of
+# OpenArch's GitHub App: repository variable UPDATE_APP_CLIENT_ID (its Client
+# ID) and secret UPDATE_APP_PRIVATE_KEY (a private key of it); the app needs
+# Contents and Pull requests, read and write. Done with github.token, the pull
+# request's checks would wait for someone to approve them, and its merge would
+# not start the build of main.
 
 on:
   schedule:
     - cron: "23 5 * * *"
   workflow_dispatch:
 
+# update-cef.sh starts cef-codecs.yml. Everything that writes to the
+# repository uses the app's token.
 permissions:
-  contents: write
+  contents: read
   actions: write
 
 jobs:
@@ -21,6 +31,8 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Look for a newer CEF
         id: cef
@@ -34,17 +46,39 @@ jobs:
           brew list ninja >/dev/null 2>&1 || brew install ninja
           CONFIG=release App/build.sh
 
-      - name: Commit the update to main
+      # After the build: the token is valid for an hour.
+      - name: Token of the app
+        id: app
+        if: steps.cef.outputs.updated == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # Always the branch update-cef: an update pull request that is still
+      # open (its checks failed, or this is a newer CEF) gets the new commit
+      # instead of a second pull request next to it. gh merges a new pull
+      # request right away when main requires no checks.
+      - name: Open the update as a pull request
         if: steps.cef.outputs.updated == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           VERSION: ${{ steps.cef.outputs.version }}
           PREVIOUS: ${{ steps.cef.outputs.previous }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -am "Update CEF to $VERSION" -m "Automatic update from CEF $PREVIOUS. OpenArch built successfully with it."
-          git push origin HEAD:main
-          # Pushes made with this token do not start workflows, so start the
-          # build of main (and its nightly release) explicitly.
-          gh workflow run build.yml --ref main
+          git push --force "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" HEAD:refs/heads/update-cef
+          title="Update CEF to $VERSION"
+          body="Automatic update from CEF $PREVIOUS. OpenArch built successfully with it in [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). Merges itself once the required checks have passed; the merge publishes a new nightly."
+          pr="$(gh pr list --head update-cef --state open --json url --jq '.[0].url // empty')"
+          if [[ -n "$pr" ]]; then
+            gh pr edit "$pr" --title "$title" --body "$body"
+          else
+            pr="$(gh pr create --base main --head update-cef --title "$title" --body "$body")"
+            gh pr merge "$pr" --auto --merge
+          fi
+          echo "$pr"
