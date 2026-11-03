@@ -645,6 +645,8 @@ class DevToolsWindowDelegate : public CefWindowDelegate {
   }
   bool CanMaximize(CefRefPtr<CefWindow> window) override { return false; }
   bool CanMinimize(CefRefPtr<CefWindow> window) override { return false; }
+  // Its size follows the page's; see PaneWindowDelegate.
+  bool CanResize(CefRefPtr<CefWindow> window) override { return false; }
   CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override {
     return CefRect(0, 0, 600, 600);
   }
@@ -771,6 +773,10 @@ class PaneWindowDelegate : public CefWindowDelegate {
   }
   bool CanMaximize(CefRefPtr<CefWindow> window) override { return false; }
   bool CanMinimize(CefRefPtr<CefWindow> window) override { return false; }
+  // OpenArch's window lays the pane out. Resizable, its left edge took the
+  // drags meant for the sidebar's edge next to it, and the next layout put
+  // it back.
+  bool CanResize(CefRefPtr<CefWindow> window) override { return false; }
   // Frameless windows crash without an initial size. The pane sets the real
   // frame before showing.
   CefRect GetInitialBounds(CefRefPtr<CefWindow> window) override {
@@ -1589,6 +1595,8 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     return;
   }
   _fullScreen = YES;
+  // Resizable again while full screen, as panes were before CanResize().
+  window.styleMask |= NSWindowStyleMaskResizable;
   [window.parentWindow removeChildWindow:window];
   window.collectionBehavior =
       (window.collectionBehavior & ~NSWindowCollectionBehaviorFullScreenAuxiliary) |
@@ -1610,6 +1618,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   _fullScreenObserver = nil;
   _fullScreen = NO;
   NSWindow* window = _window;
+  window.styleMask &= ~NSWindowStyleMaskResizable;
   window.collectionBehavior =
       (window.collectionBehavior & ~NSWindowCollectionBehaviorFullScreenPrimary) |
       NSWindowCollectionBehaviorFullScreenAuxiliary;

@@ -855,6 +855,21 @@ final class SelfTest {
         expect(!browser.state.sidebarVisible, "dragging the sidebar edge far left collapses it")
         browser.resizeSidebar(to: 280)
         expect(browser.state.sidebarVisible, "dragging back out opens it again")
+        // The narrowest sidebar keeps its top bar inside: a wider bar made
+        // the sidebar wider than its room, centered under the window buttons.
+        browser.resizeSidebar(to: 196)
+        after(0.5) {
+            let frame = self.browser.state.sidebarFrame
+            self.expect(self.browser.sidebarWidth == 200 && frame.minX >= 0 && frame.width <= 200,
+                        "the narrowest sidebar stays inside its room (\(frame))")
+            // Its edge takes the drag, not the page's window above it.
+            let page = self.browser.state.activeItem?.pane?.window
+            let content = self.browser.window?.contentView
+            let edge = content?.hitTest(NSPoint(x: self.browser.sidebarWidth - 1, y: (content?.bounds.midY ?? 0)))
+            self.expect(page != nil && page?.styleMask.contains(.resizable) == false && edge is SplitDividerView,
+                        "the sidebar's edge can be dragged; the page's window cannot be resized (\(String(describing: edge)))")
+            self.browser.resizeSidebar(to: 280)
+        }
     }
 
     /// Swipes with the fingers to the right (positive) or left.

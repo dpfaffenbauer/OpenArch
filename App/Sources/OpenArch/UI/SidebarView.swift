@@ -191,28 +191,49 @@ private struct SidebarTopBar: View {
     let theme: SpaceTheme
     var floating = false
 
+    private static let antennaWidth: CGFloat = 20
+
     var body: some View {
         let active = browser.state.activeItem
+        let remote = OACEngine.remoteDebuggingPort > 0
+        let remoteHelp = "KI-Steuerung aktiv: Chrome DevTools Protocol auf 127.0.0.1:\(OACEngine.remoteDebuggingPort)"
+        let toggleHelp = floating ? "Sidebar anheften (⌘S)" : "Sidebar ausblenden (⌘S)"
+        // What is left beside the window buttons, the toggle and back,
+        // forward and reload, less the sidebar's padding. The narrowest
+        // sidebar has room for nothing more: a wider bar widened the whole
+        // sidebar, which SwiftUI centered and so pushed under the window
+        // buttons.
+        let room = browser.sidebarWidth - 16 - (floating ? 4 : 72) - 4 * IconButton.width
+        let siteControls = active?.kind == .tab && !floating
+        let siteButton = siteControls && room >= IconButton.width
+        // Without room the antenna is a dot on the toggle.
+        let antenna = remote && room - (siteButton ? IconButton.width : 0) >= Self.antennaWidth
         HStack(spacing: 0) {
             // Room for the window buttons, which a floating sidebar sits below.
             Spacer().frame(width: floating ? 4 : 72)
-            IconButton(symbol: "sidebar.left", help: floating ? "Sidebar anheften (⌘S)" : "Sidebar ausblenden (⌘S)") {
+            IconButton(symbol: "sidebar.left", help: remote && !antenna ? "\(toggleHelp)\n\(remoteHelp)" : toggleHelp) {
                 browser.toggleSidebar()
             }
-            if OACEngine.remoteDebuggingPort > 0 {
+            .overlay(alignment: .topTrailing) {
+                if remote && !antenna {
+                    Circle().fill(Color.orange).frame(width: 6, height: 6).offset(x: -3, y: 3)
+                        .allowsHitTesting(false)
+                }
+            }
+            if antenna {
                 Image(systemName: "antenna.radiowaves.left.and.right")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.orange)
+                    .frame(width: Self.antennaWidth - 4)
                     .padding(.leading, 4)
-                    .help("KI-Steuerung aktiv: Chrome DevTools Protocol auf 127.0.0.1:\(OACEngine.remoteDebuggingPort)")
+                    .help(remoteHelp)
             }
-            Spacer()
-            if let active, active.kind == .tab, !floating {
+            Spacer(minLength: 0)
+            if siteButton, let active {
                 IconButton(symbol: "slider.horizontal.3", help: "Website-Einstellungen: Berechtigungen, Zoom, Daten") {
                     browser.state.siteControlsVisible.toggle()
                 }
-                .popover(isPresented: Binding(get: { browser.state.siteControlsVisible },
-                                              set: { browser.state.siteControlsVisible = $0 }), arrowEdge: .bottom) {
+                .popover(isPresented: siteControlsShown, arrowEdge: .bottom) {
                     SiteControls(browser: browser, item: active)
                 }
             }
@@ -225,12 +246,24 @@ private struct SidebarTopBar: View {
             }
             .disabled(active == nil)
         }
+        // Without its button, ⌃⌘I shows the site controls under the bar.
+        .popover(isPresented: siteControls && !siteButton ? siteControlsShown : .constant(false), arrowEdge: .bottom) {
+            if let active {
+                SiteControls(browser: browser, item: active)
+            }
+        }
         .frame(height: 30)
         .padding(.bottom, 6)
+    }
+
+    private var siteControlsShown: Binding<Bool> {
+        Binding(get: { browser.state.siteControlsVisible }, set: { browser.state.siteControlsVisible = $0 })
     }
 }
 
 struct IconButton: View {
+    static let width: CGFloat = 28
+
     let symbol: String
     var help: String = ""
     var size: CGFloat = 13
@@ -242,7 +275,7 @@ struct IconButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: size, weight: .medium))
-                .frame(width: 28, height: 24)
+                .frame(width: Self.width, height: 24)
                 .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(hovering && isEnabled ? 0.1 : 0)))
                 .contentShape(Rectangle())
         }
