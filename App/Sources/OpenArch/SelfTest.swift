@@ -862,6 +862,12 @@ final class SelfTest {
             let frame = self.browser.state.sidebarFrame
             self.expect(self.browser.sidebarWidth == 200 && frame.minX >= 0 && frame.width <= 200,
                         "the narrowest sidebar stays inside its room (\(frame))")
+            // Its edge takes the drag, not the page's window above it.
+            let page = self.browser.state.activeItem?.pane?.window
+            let content = self.browser.window?.contentView
+            let edge = content?.hitTest(NSPoint(x: self.browser.sidebarWidth - 1, y: (content?.bounds.midY ?? 0)))
+            self.expect(page != nil && page?.styleMask.contains(.resizable) == false && edge is SplitDividerView,
+                        "the sidebar's edge can be dragged; the page's window cannot be resized (\(String(describing: edge)))")
             self.browser.resizeSidebar(to: 280)
         }
     }

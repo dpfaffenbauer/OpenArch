@@ -121,7 +121,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         loadingLine.sizingOptions = []
         loadingLine.safeAreaRegions = []  // it sits under the title bar
         rootView.addSubview(loadingLine)
-        sidebarHandle.onDrag = { [weak self] _, x in self?.resizeSidebar(to: x) }
+        // The handle's middle is 4 pt inside the sidebar's edge.
+        sidebarHandle.onDrag = { [weak self] _, x in self?.resizeSidebar(to: x + 4) }
         rootView.addSubview(sidebarHandle)
         sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
         rootView.addSubview(sidebarEdge)
@@ -280,7 +281,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         sidebarHost.isHidden = !state.sidebarVisible
         sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
         sidebarHandle.isHidden = !state.sidebarVisible
-        sidebarHandle.frame = NSRect(x: sidebarWidth - 5, y: 0, width: 8, height: max(0, bounds.height - 40))
+        // All of it left of the page: the page's window lies above this one,
+        // so a part under it never got the mouse.
+        sidebarHandle.frame = NSRect(x: sidebarWidth - 8, y: 0, width: 8, height: max(0, bounds.height - 40))
         sidebarEdge.isHidden = state.sidebarVisible
         sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
         let content = contentRect
