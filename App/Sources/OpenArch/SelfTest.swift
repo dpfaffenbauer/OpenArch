@@ -855,6 +855,15 @@ final class SelfTest {
         expect(!browser.state.sidebarVisible, "dragging the sidebar edge far left collapses it")
         browser.resizeSidebar(to: 280)
         expect(browser.state.sidebarVisible, "dragging back out opens it again")
+        // The narrowest sidebar keeps its top bar inside: a wider bar made
+        // the sidebar wider than its room, centered under the window buttons.
+        browser.resizeSidebar(to: 196)
+        after(0.5) {
+            let frame = self.browser.state.sidebarFrame
+            self.expect(self.browser.sidebarWidth == 200 && frame.minX >= 0 && frame.width <= 200,
+                        "the narrowest sidebar stays inside its room (\(frame))")
+            self.browser.resizeSidebar(to: 280)
+        }
     }
 
     /// Swipes with the fingers to the right (positive) or left.
