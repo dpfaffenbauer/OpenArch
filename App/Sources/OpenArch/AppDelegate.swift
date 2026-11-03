@@ -71,6 +71,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             OACPane.externalTabHandler = { [weak self] url in
                 MainActor.assumeIsolated { _ = self?.mainBrowser?.openInNewTab(url) }
             }
+            // chrome://help: OpenArch's own About window, with both versions.
+            OACPane.aboutPageHandler = { [weak self] in
+                MainActor.assumeIsolated { self?.showAbout(nil) }
+            }
             LiveFolders.shared.start(library)
             if !selfTest { Sharing.shared.start(library) }
             ClaudeSessions.shared.start(library)

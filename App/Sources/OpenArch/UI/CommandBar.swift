@@ -477,6 +477,11 @@ final class CommandBarModel {
             ShareWindows.open(link, app: app)
             return
         }
+        // Chrome's About page is OpenArch's About window, not a tab.
+        if OACPane.isAboutPageURL(InternalURL.resolve(url)) {
+            (NSApp.delegate as? AppDelegate)?.showAbout(nil)
+            return
+        }
         switch mode {
         case .newTab:
             browser.openInNewTab(url)

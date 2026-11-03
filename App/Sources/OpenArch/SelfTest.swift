@@ -140,7 +140,7 @@ final class SelfTest {
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
             (73, "sharing", { self.sharingTest() }),
-            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.externalAppLinks() } } } } } }),
+            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.aboutPage { self.externalAppLinks() } } } } } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -151,7 +151,7 @@ final class SelfTest {
         let stay = CommandLine.arguments.contains("--stay")
         if CommandLine.arguments.contains("--arc"), ArcImporter.isAvailable {
             // The user's real Arc sidebar, without loading any of its tabs.
-            after(89.5) {
+            after(95.5) {
                 guard let (data, _) = try? ArcImporter.load() else { return }
                 self.browser.prepareForLibraryReplacement()
                 self.library.replace(with: data)
@@ -162,7 +162,7 @@ final class SelfTest {
                 Swift.print("[selftest] STEP arc sidebar")
             }
         }
-        after(CommandLine.arguments.contains("--arc") ? 94 : 89) {
+        after(CommandLine.arguments.contains("--arc") ? 100 : 95) {
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
             if !stay { Self.quit() }
         }
@@ -1131,6 +1131,35 @@ final class SelfTest {
         }
     }
 
+    /// chrome://help, which CEF does not have, opens Über OpenArch and the tab
+    /// stays on its page. A tab whose first page it is (restored at launch)
+    /// opens no window.
+    private func aboutPage(then next: @escaping () -> Void) {
+        guard let tab = browser.state.activeItem, let pane = tab.pane else {
+            expect(false, "a tab for chrome://help")
+            return next()
+        }
+        let about = AboutWindowController.shared
+        about.window?.close()
+        let before = tab.currentURL
+        pane.loadURL("chrome://help")
+        after(1.2) {
+            self.expect(about.window?.isVisible == true && tab.currentURL == before,
+                        "chrome://help opens Über OpenArch and the tab stays on its page (\(tab.currentURL))")
+            about.window?.close()
+            let first = self.browser.openInNewTab("chrome://help", select: false)
+            self.browser.select(first, focus: false)
+            after(2) {
+                self.expect(first.pane != nil && about.window?.isVisible != true,
+                            "a tab that starts on chrome://help opens no window")
+                about.window?.close()
+                self.browser.select(tab, focus: false)
+                self.browser.close(first)
+                next()
+            }
+        }
+    }
+
     /// An address another app opens (here one no app knows) does not
     /// replace the page with Chromium's error; OpenArch says so instead.
     private func externalAppLinks() {
@@ -1888,6 +1917,11 @@ final class SelfTest {
     private func internalURLs() {
         expect(CommandBarModel.url(fromInput: "openarch://history") == "chrome://history", "openarch://history opens Chrome's history page")
         expect(CommandBarModel.shortURL("chrome://settings/passwords") == "openarch://settings/passwords", "chrome:// pages are shown as openarch://")
+        expect(["chrome://help", "chrome://help/", "CHROME://HELP", CommandBarModel.url(fromInput: "openarch://help") ?? ""]
+                .allSatisfy(OACPane.isAboutPageURL),
+               "chrome://help and openarch://help are Chrome's About page")
+        expect(!["chrome://history", "https://help.example.com", "help"].contains(where: OACPane.isAboutPageURL),
+               "other addresses are not the About page")
     }
 
     private func spaceEditor() {
