@@ -91,6 +91,7 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   </dict></array>
   <key>NSCameraUsageDescription</key><string>Websites can ask to use your camera.</string>
   <key>NSMicrophoneUsageDescription</key><string>Websites can ask to use your microphone.</string>
+  <key>NSBluetoothAlwaysUsageDescription</key><string>Websites can ask to use your Bluetooth devices.</string>
   <key>NSLocationUsageDescription</key><string>Websites can ask for your location.</string>"
 rsync -a --delete "$CEF/Release/Chromium Embedded Framework.framework" "$APP/Contents/Frameworks/"
 rsync -a --delete "$APP_DIR/Resources/" "$APP/Contents/Resources/"
