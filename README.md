@@ -122,7 +122,12 @@ run. Data lives in
   An antenna icon in the sidebar shows while the port is open.
 - **Windows:** ⌘N opens another window on the same spaces and tabs; a tab
   moves to the window that shows it. ⌘⇧N opens a private window with its
-  own in-memory profile and no history.
+  own in-memory profile and no history. A tab dragged out of the sidebar
+  onto the desktop becomes a window of its own there: its space's profile
+  and color, tabs of its own, but no favorites, pinned tabs or other
+  spaces. "In Space verschieben" (or dragging a tab back into the main
+  window) brings a tab back; closing the window puts its tabs in the
+  archive.
 - **Peek:** links from pinned tabs and favorites to other sites open in a
   card over the page, which can become a tab or a split.
 - **Site Control Center** (⌃⌘I, or the sliders at the top of the sidebar):

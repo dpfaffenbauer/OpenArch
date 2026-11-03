@@ -21,7 +21,7 @@ final class SplitDropOverlay {
         panel.isReleasedWhenClosed = false
         panel.contentView = dropView
         dropView.onDrop = { [weak browser] id, zone in
-            guard let browser, let item = browser.library.item(id: id) else { return false }
+            guard let browser, let item = browser.ownItem(id: id) else { return false }
             browser.dropForSplit(item, leading: zone.isFirst, stacked: zone.isStacked)
             return true
         }

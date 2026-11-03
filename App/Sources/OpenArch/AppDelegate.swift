@@ -18,10 +18,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// The last normal window: links from other apps, Little OpenArch and
-    /// tabs Chrome opens by itself go there, never into a private window.
+    /// tabs Chrome opens by itself go there, never into a private or
+    /// separate window.
     var mainBrowser: BrowserWindowController? {
-        if let last = lastActiveBrowser, !last.isPrivate { return last }
-        return browsers.first { !$0.isPrivate }
+        if let last = lastActiveBrowser, !last.isStandalone { return last }
+        return browsers.first { !$0.isStandalone }
     }
     private(set) var settingsWindow: NSWindow?
     private var pendingURLs: [String] = []
@@ -126,6 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return .terminateCancel
         }
         AgentSession.stopAll()
+        for browser in browsers { browser.archiveTabs() }
         library?.freeze()
         if !selfTest {
             AppIcons.saveForDock()
@@ -155,6 +157,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return browser
     }
 
+    /// A window of its own for tabs dragged out of the sidebar, at |point|
+    /// (under the mouse, fully on its screen). Smaller than the main window.
+    func openSeparateWindow(home: Space, from source: BrowserWindowController, at point: NSPoint?) -> BrowserWindowController {
+        let browser = BrowserWindowController(library: library, history: history, separateFrom: home,
+                                              cascadingFrom: source.window)
+        browsers.append(browser)
+        if let window = browser.window {
+            var frame = window.frame
+            frame.size = NSSize(width: min(frame.width, 1180), height: min(frame.height, 780))
+            if let point {
+                let screen = NSScreen.screens.first { $0.frame.contains(point) }?.visibleFrame ?? frame
+                frame.origin.x = min(max(point.x - 160, screen.minX), screen.maxX - frame.width)
+                frame.origin.y = min(max(point.y - frame.height + 20, screen.minY), screen.maxY - frame.height)
+            }
+            window.setFrame(frame, display: false)
+        }
+        if selfTest {
+            // The background self-test never puts a window in front.
+            browser.window?.orderBack(nil)
+            browser.layoutContent()
+        } else {
+            browser.showWindow(nil)
+        }
+        return browser
+    }
+
     @objc func newWindow(_ sender: Any?) { openWindow(isPrivate: false) }
     @objc func newPrivateWindow(_ sender: Any?) { openWindow(isPrivate: true) }
     @objc func closeWindow(_ sender: Any?) { (NSApp.keyWindow?.parent ?? NSApp.mainWindow)?.performClose(nil) }
@@ -174,9 +202,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// The last normal window only hides (its tabs keep running); private
-    /// windows and further normal windows close.
+    /// and separate windows and further normal windows close.
     func browserMayClose(_ browser: BrowserWindowController) -> Bool {
-        browser.isPrivate || browsers.filter { !$0.isPrivate }.count > 1
+        browser.isStandalone || browsers.filter { !$0.isStandalone }.count > 1
     }
 
     func browserDidClose(_ browser: BrowserWindowController) {

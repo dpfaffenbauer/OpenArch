@@ -589,29 +589,50 @@ final class SelfTest {
     }
 
     /// A today tab dragged out of the sidebar onto the desktop becomes a
-    /// Little OpenArch window there, keeping its page; a pinned tab stays and
-    /// opens a copy.
+    /// window of its own there, keeping its page: tabs, but no favorites or
+    /// pinned tabs. A pinned tab stays and opens a copy. A tab moved back
+    /// shows in the main window; closing the window archives its tabs.
     private func dragOutTest() {
+        guard let app = NSApp.delegate as? AppDelegate else { return expect(false, "the app delegate") }
         let tab = browser.openInNewTab("https://example.com/drag-out")
         after(2.5) {
             guard let pane = tab.pane, let screen = self.browser.window?.screen?.visibleFrame else {
                 return self.expect(false, "a tab to drag out")
             }
             let point = NSPoint(x: screen.midX, y: screen.midY)
-            self.browser.openInSeparateWindow(tab, at: point)
-            let little = LittleOpenArchWindowController.all.last
-            self.expect(little?.shownPane === pane && pane.window?.parent === little?.window
-                        && !self.browser.state.space.today.allTabs.contains { $0 === tab }
-                        && little?.window?.frame.contains(NSPoint(x: point.x, y: point.y - 10)) == true,
-                        "a tab dragged out of the sidebar opens with its page in its own window where it was dropped")
-            let pinnedCount = self.browser.state.space.pinned.allTabs.count
-            if let pinned = self.browser.state.space.pinned.allTabs.first {
-                self.browser.openInSeparateWindow(pinned, at: point)
-                self.expect(self.browser.state.space.pinned.allTabs.count == pinnedCount
-                            && LittleOpenArchWindowController.all.last?.shownPane !== pinned.pane,
+            let home = self.browser.state.space
+            let separate = self.browser.openInSeparateWindow(tab, at: point)
+            self.expect(separate?.isSeparate == true && separate?.state.activeItem === tab && tab.pane === pane
+                        && pane.window?.parent === separate?.window && separate?.state.space.today.items.first === tab
+                        && !home.today.allTabs.contains { $0 === tab } && self.library.space(containing: tab) == nil
+                        && separate?.window?.frame.contains(NSPoint(x: point.x, y: point.y - 10)) == true,
+                        "a tab dragged out of the sidebar opens with its page in a window of its own where it was dropped")
+            self.expect(separate?.orderedTabs.count == 1 && separate?.state.space.profileID == home.profileID
+                        && separate?.state.space.colorHex == home.colorHex,
+                        "the window shows only its tabs, no favorites or pinned tabs, on the space's profile and color")
+            let second = separate?.openInNewTab("https://example.com/drag-out-second")
+            self.expect(separate?.state.space.today.items.count == 2 && app.mainBrowser === self.browser
+                        && self.library.space(containing: tab) == nil,
+                        "it opens further tabs itself; links from other apps still go to the main window")
+            let pinnedCount = home.pinned.allTabs.count
+            if let pinned = home.pinned.allTabs.first {
+                let copy = self.browser.openInSeparateWindow(pinned, at: point)
+                self.expect(home.pinned.allTabs.count == pinnedCount && copy?.state.activeItem !== pinned
+                            && copy?.state.activeItem?.currentURL == pinned.currentURL,
                             "a pinned tab dragged out stays pinned and opens a copy")
+                copy?.window?.performClose(nil)
             }
-            LittleOpenArchWindowController.closeAll()
+            if let second {
+                separate?.moveBack(second, to: home)
+                self.expect(home.today.items.first === second && self.browser.state.activeItem === second
+                            && second.pane?.delegate === self.browser && separate?.state.activeItem === tab,
+                            "a tab moved back to its space shows in the main window")
+            }
+            let url = tab.currentURL
+            separate?.window?.performClose(nil)
+            self.expect(app.browsers.count == 1 && tab.pane == nil && self.library.archive.first?.url == url
+                        && self.library.archive.first?.spaceID == home.id,
+                        "closing the window puts its tabs in the archive, for their space")
         }
     }
 

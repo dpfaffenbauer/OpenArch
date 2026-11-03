@@ -409,13 +409,13 @@ final class CommandBarModel {
     /// A new agent chat (Claude Code in the sidebar) with the input as its
     /// first message.
     private func agentResult(_ text: String) -> CommandResult? {
-        guard case .newTab = mode, browser.library.settings.agentChats, !browser.isPrivate else { return nil }
+        guard case .newTab = mode, browser.library.settings.agentChats, !browser.isStandalone else { return nil }
         return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: "Agent-Chat starten",
                              action: { [unowned self] in self.browser.newAgentChat(prompt: text) })
     }
 
     private func matchingAgentChats(_ text: String) -> [Item] {
-        guard !browser.isPrivate else { return [] }
+        guard !browser.isStandalone else { return [] }
         return browser.library.spaces
             .flatMap { ($0.pinned.allItems + $0.today.allItems).filter { $0.kind == .agent } }
             .filter { matches(text, $0.displayTitle) }
@@ -450,8 +450,8 @@ final class CommandBarModel {
     }
 
     private func matchingTabs(_ text: String) -> [Item] {
-        if browser.isPrivate {
-            // Normal tabs would move into the private window.
+        if browser.isStandalone {
+            // Library tabs would move into the private or separate window.
             return browser.state.space.today.allTabs.filter { matches(text, $0.displayTitle, $0.currentURL) }
         }
         let profileFavorites = browser.library.profile(id: browser.state.space.profileID).favorites.allTabs
@@ -528,28 +528,34 @@ final class CommandBarModel {
             ("OpenArch-Einstellungen", "gearshape", "⌘,", { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
             ("Aus Arc importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }),
         ]
-        if browser.library.settings.agentChats, !browser.isPrivate {
+        if browser.library.settings.agentChats, !browser.isStandalone {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
             let agents: Command = ("Agents", "sparkles", "⌃0", { browser.toggleAgents() })
             commands += [agent, agents]
         }
         if let active, active.kind == .tab {
-            let tabCommands: [Command] = [
+            var tabCommands: [Command] = [
                 ("URL kopieren", "link", "⌘⇧C", { browser.copyURL() }),
-                (active.role == .today ? "Tab anheften" : "Tab lösen", "pin", "⌘D", { browser.togglePin(active) }),
-                ("Zu Favoriten hinzufügen", "star", nil, { browser.addToFavorites(active) }),
                 ("Entwicklertools", "hammer", "⌥⌘I", { active.pane?.showDevTools() }),
                 ("Neu laden", "arrow.clockwise", "⌘R", { active.pane?.reload() }),
                 ("Tab duplizieren", "plus.square.on.square", nil, { browser.duplicate(active) }),
                 ("Boost bearbeiten", "paintbrush", "⌃⌘B", { browser.editBoost() }),
             ]
+            // Private and separate windows keep no pinned tabs or favorites.
+            if !browser.isStandalone {
+                let bookmarkCommands: [Command] = [
+                    (active.role == .today ? "Tab anheften" : "Tab lösen", "pin", "⌘D", { browser.togglePin(active) }),
+                    ("Zu Favoriten hinzufügen", "star", nil, { browser.addToFavorites(active) }),
+                ]
+                tabCommands.insert(contentsOf: bookmarkCommands, at: 1)
+            }
             commands += tabCommands
             if active.split != nil {
                 let unsplit: Command = ("Split View aufheben", "rectangle", "⌃⇧-", { browser.unsplit() })
                 commands.append(unsplit)
             }
         }
-        for space in browser.library.spaces where space !== browser.state.space && !browser.isPrivate {
+        for space in browser.library.spaces where space !== browser.state.space && !browser.isStandalone {
             let switchSpace: Command = ("Zu Space „\(space.name)“ wechseln", "square.stack", nil, { browser.switchSpace(to: space) })
             commands.append(switchSpace)
         }

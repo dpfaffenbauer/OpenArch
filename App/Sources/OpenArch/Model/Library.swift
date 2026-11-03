@@ -109,12 +109,14 @@ final class Library {
         moveSpace(space, by: to - from)
     }
 
-    func archive(_ item: Item) {
+    /// |home|: the space a tab outside the library (in a window of its own)
+    /// belongs to, so ⌘⇧T brings it back there.
+    func archive(_ item: Item, from home: Space? = nil) {
         guard item.kind == .tab else { return }
         // The place under the line: of the tab, or of the split it was in.
         var root = item.split ?? item
         while let parent = root.parent { root = parent }
-        let space = space(containing: item)
+        let space = space(containing: item) ?? home
         let index = space.map { root.container === $0.today } == true ? root.indexInParent : nil
         archive.insert(ArchivedTab(title: item.displayTitle, url: item.currentURL, date: Date(),
                                    spaceID: space?.id, index: index), at: 0)
