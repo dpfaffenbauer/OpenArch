@@ -127,14 +127,18 @@ final class LibraryFiles {
         isLoaded = true
     }
 
-    nonisolated private static func scan(_ directory: URL) -> [LibraryFile] {
-        let keys: [URLResourceKey] = [.contentModificationDateKey, .fileSizeKey, .isDirectoryKey, .contentTypeKey]
+    /// The folder's files, newest first: by when they came into it, like
+    /// the Dock's stacks, so a file unpacked or moved there counts as new.
+    /// Chrome's partial downloads are left out.
+    nonisolated static func scan(_ directory: URL) -> [LibraryFile] {
+        let keys: [URLResourceKey] = [.addedToDirectoryDateKey, .contentModificationDateKey, .fileSizeKey,
+                                      .isDirectoryKey, .contentTypeKey]
         let urls = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: keys,
                                                                  options: [.skipsHiddenFiles])) ?? []
         return urls.compactMap { url in
-            guard let values = try? url.resourceValues(forKeys: Set(keys)) else { return nil }
+            guard url.pathExtension != "crdownload", let values = try? url.resourceValues(forKeys: Set(keys)) else { return nil }
             let type = values.contentType
-            return LibraryFile(url: url, date: values.contentModificationDate ?? .distantPast,
+            return LibraryFile(url: url, date: values.addedToDirectoryDate ?? values.contentModificationDate ?? .distantPast,
                                size: values.fileSize ?? 0, isDirectory: values.isDirectory ?? false,
                                isMedia: type?.conforms(to: .image) == true || type?.conforms(to: .movie) == true)
         }
@@ -168,7 +172,7 @@ private struct MediaSection: View {
                         .contentShape(Rectangle())
                         .onTapGesture { NSWorkspace.shared.open(file.url) }
                         .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
-                        .contextMenu { FileMenu(browser: browser, file: file) }
+                        .contextMenu { FileMenu(browser: browser, file: file) { Task { await files.reload() } } }
                         .help(file.url.lastPathComponent)
                 }
             }
@@ -194,7 +198,9 @@ private struct DownloadsSection: View {
                     RunningDownloadRow(download: download, theme: theme)
                 }
                 ForEach(items) { file in
-                    DownloadFileRow(browser: browser, file: file, subtitle: subtitle(file), theme: theme)
+                    DownloadFileRow(browser: browser, file: file, subtitle: subtitle(file), theme: theme) {
+                        Task { await files.reload() }
+                    }
                 }
             }
         }
@@ -242,6 +248,7 @@ private struct DownloadFileRow: View {
     let file: LibraryFile
     let subtitle: String
     let theme: SpaceTheme
+    var recycled: @MainActor () -> Void = {}
     @State private var hovering = false
     @State private var previewing = false
 
@@ -256,7 +263,7 @@ private struct DownloadFileRow: View {
         }
         .onTapGesture { NSWorkspace.shared.open(file.url) }
         .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
-        .contextMenu { FileMenu(browser: browser, file: file) }
+        .contextMenu { FileMenu(browser: browser, file: file, recycled: recycled) }
         .onHover { hovering = $0 }
         .task(id: hovering) {
             // Only after the pointer rests a moment, not while it passes by.
@@ -281,16 +288,22 @@ private struct DownloadFileRow: View {
     }
 }
 
-private struct FileMenu: View {
+struct FileMenu: View {
     let browser: BrowserWindowController
     let file: LibraryFile
+    /// Once the file is in the trash.
+    var recycled: @MainActor () -> Void = {}
 
     var body: some View {
         Button("Öffnen") { NSWorkspace.shared.open(file.url) }
         Button("In neuem Tab öffnen") { browser.openInNewTab(file.url.absoluteString) }
         Button("Im Finder zeigen") { NSWorkspace.shared.activateFileViewerSelecting([file.url]) }
         Divider()
-        Button("In den Papierkorb") { NSWorkspace.shared.recycle([file.url]) }
+        Button("In den Papierkorb") {
+            NSWorkspace.shared.recycle([file.url]) { _, _ in
+                Task { @MainActor in recycled() }
+            }
+        }
     }
 }
 
