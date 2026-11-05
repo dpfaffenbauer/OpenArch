@@ -1161,34 +1161,28 @@ final class SelfTest {
                 after(1) {
                     stack.dismiss()
                     self.expect(!stack.isShown, "the downloads stack goes away again")
-                    self.downloadStackHover()
+                    self.downloadStackClicks()
                 }
             }
         }
     }
 
-    /// The pointer passing over the library button does nothing; resting on
-    /// it brings the stack, which stays while the pointer moves up onto the
-    /// files and goes once it leaves them.
-    private func downloadStackHover() {
+    /// A click on the library button brings up the stack and another puts
+    /// it away; so does Escape.
+    private func downloadStackClicks() {
         let stack = browser.state.downloadStack
-        stack.hoverButton(true)
-        after(0.1) {
-            stack.hoverButton(false)
-            after(0.5) {
-                self.expect(!stack.isShown, "passing over the library button does not bring up the downloads")
-                stack.hoverButton(true)
-                after(0.6) {
-                    self.expect(stack.isShown, "resting on the library button brings up the downloads")
-                    stack.hoverButton(false)
-                    after(0.1) { stack.hoverFiles(true) }
-                    after(0.6) {
-                        self.expect(stack.isShown, "the downloads stay while the pointer is on them")
-                        stack.hoverFiles(false)
-                        after(0.6) { self.expect(!stack.isShown, "the downloads go once the pointer leaves them") }
-                    }
-                }
-            }
+        stack.toggle()
+        expect(stack.isShown, "a click on the library button brings up the downloads")
+        stack.toggle()
+        expect(!stack.isShown, "another click puts them away")
+        stack.toggle()
+        let escape = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                      windowNumber: browser.window?.windowNumber ?? 0, context: nil,
+                                      characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)
+        if let escape { NSApp.postEvent(escape, atStart: false) }
+        eventually({ !stack.isShown }) { gone in
+            self.expect(gone, "Escape puts the downloads away")
+            stack.dismiss()
         }
     }
 
