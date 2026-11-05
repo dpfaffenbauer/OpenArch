@@ -3,18 +3,17 @@ import QuickLookThumbnailing
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The newest downloads over the library button, like Arc: they show while
-/// the pointer rests on the button and stay while it is on them. A click on
-/// one opens it, and it can be dragged out.
+/// The newest downloads over the library button, like Arc: a click on the
+/// button brings them up, and a click on it again, beside them, on the page
+/// or Escape puts them away. A click on a file opens it, and it can be
+/// dragged out like from Finder.
 @MainActor @Observable
 final class DownloadStack {
     private(set) var isShown = false
     /// The files in the download folder, newest first.
     private(set) var files: [LibraryFile] = []
     private(set) var isLoaded = false
-    @ObservationIgnored private var onButton = false
-    @ObservationIgnored private var onFiles = false
-    @ObservationIgnored private var pending: Task<Void, Never>?
+    @ObservationIgnored private var monitor: Any?
 
     /// Where downloads land: the self-test's own folder, else Downloads.
     static var folder: URL {
@@ -22,29 +21,29 @@ final class DownloadStack {
             : FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads", isDirectory: true)
     }
 
-    func hoverButton(_ hovering: Bool) {
-        onButton = hovering
-        // Read the folder while the pointer rests, so the files are there
-        // when the stack comes up.
-        if hovering, !isShown { Task { await reload() } }
-        settle(after: hovering ? 0.35 : 0.3)
-    }
-
-    func hoverFiles(_ hovering: Bool) {
-        onFiles = hovering
-        settle(after: 0.3)
+    func toggle() {
+        if isShown { dismiss() } else { show() }
     }
 
     func show() {
-        pending?.cancel()
         Task { await reload() }
+        guard !isShown else { return }
+        // A click in another window (a page is a window of its own) or
+        // Escape puts the stack away; clicks in the sidebar are its own.
+        weak var window = NSApp.currentEvent?.window
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .keyDown]) { [weak self] event in
+            let escape = event.type == .keyDown && event.keyCode == 53
+            let elsewhere = event.type != .keyDown && event.window !== window
+            guard escape || elsewhere else { return event }
+            MainActor.assumeIsolated { self?.dismiss() }
+            return escape ? nil : event
+        }
         set(true)
     }
 
     func dismiss() {
-        pending?.cancel()
-        onButton = false
-        onFiles = false
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
         set(false)
     }
 
@@ -53,19 +52,6 @@ final class DownloadStack {
         let files = await Task.detached { LibraryFiles.scan(folder) }.value
         self.files = files
         isLoaded = true
-    }
-
-    /// Shows or hides the stack once the pointer has stayed a moment, so
-    /// that passing over the button or the gap to the files does nothing.
-    private func settle(after delay: Double) {
-        pending?.cancel()
-        let wanted = onButton || onFiles
-        guard wanted != isShown else { return }
-        pending = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(delay))
-            guard !Task.isCancelled else { return }
-            self?.set(wanted)
-        }
     }
 
     private func set(_ shown: Bool) {
@@ -149,7 +135,6 @@ struct DownloadStackView: View {
                 }
                 .padding(.vertical, 6)
                 .contentShape(Rectangle())
-                .onHover { stack.hoverFiles($0) }
             }
             .frame(width: proxy.size.width, height: proxy.size.height, alignment: .bottomLeading)
         }
@@ -195,11 +180,14 @@ private struct StackFileRow: View {
         .background(RoundedRectangle(cornerRadius: 10).fill(hovering ? theme.hover : .clear))
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .onTapGesture {
-            NSWorkspace.shared.open(file.url)
-            stack.dismiss()
+        .overlay {
+            FileDrag(url: file.url) {
+                NSWorkspace.shared.open(file.url)
+                stack.dismiss()
+            } moved: {
+                Task { await stack.reload() }
+            }
         }
-        .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
         .contextMenu {
             FileMenu(browser: browser, file: file) { Task { await stack.reload() } }
         }
@@ -276,7 +264,7 @@ struct LibraryButtonMenu: View {
         Button("Downloads in der Bibliothek") { browser.showLibrary(.downloads) }
         Button("Downloads-Ordner im Finder") { NSWorkspace.shared.open(DownloadStack.folder) }
         Divider()
-        Toggle("Letzte Downloads beim Darüberfahren", isOn: Binding(
+        Toggle("Klick zeigt die letzten Downloads", isOn: Binding(
             get: { library.settings.downloadStack },
             set: {
                 library.settings.downloadStack = $0
@@ -294,5 +282,68 @@ struct LibraryButtonMenu: View {
             }
         }
         .disabled(!library.settings.downloadStack)
+    }
+}
+
+/// Clicks and drags on a file, the way Finder does them: the file's URL on
+/// the pasteboard and its icon under the pointer, so that other apps get
+/// the file itself; dropped on a folder in Finder, it moves there. Right
+/// clicks go on to SwiftUI for the context menu.
+private struct FileDrag: NSViewRepresentable {
+    let url: URL
+    let click: () -> Void
+    /// The file left its folder (moved or put in the trash by the drop).
+    let moved: () -> Void
+
+    func makeNSView(context: Context) -> FileDragView { FileDragView() }
+
+    func updateNSView(_ view: FileDragView, context: Context) {
+        view.url = url
+        view.click = click
+        view.moved = moved
+    }
+}
+
+private final class FileDragView: NSView, NSDraggingSource {
+    var url: URL?
+    var click: () -> Void = {}
+    var moved: () -> Void = {}
+    private var mouseDown: NSPoint?
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        switch NSApp.currentEvent?.type {
+        case .leftMouseDown, .leftMouseDragged, .leftMouseUp: super.hitTest(point)
+        default: nil
+        }
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        mouseDown = event.locationInWindow
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let start = mouseDown, let url,
+              hypot(event.locationInWindow.x - start.x, event.locationInWindow.y - start.y) > 3 else { return }
+        mouseDown = nil
+        let item = NSDraggingItem(pasteboardWriter: url as NSURL)
+        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        let point = convert(event.locationInWindow, from: nil)
+        item.setDraggingFrame(NSRect(x: point.x - 24, y: point.y - 24, width: 48, height: 48), contents: icon)
+        beginDraggingSession(with: [item], event: event, source: self)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if mouseDown != nil { click() }
+        mouseDown = nil
+    }
+
+    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        context == .outsideApplication ? [.copy, .link, .generic, .move, .delete] : [.copy, .generic]
+    }
+
+    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        if operation.contains(.move) || operation.contains(.delete) { moved() }
     }
 }

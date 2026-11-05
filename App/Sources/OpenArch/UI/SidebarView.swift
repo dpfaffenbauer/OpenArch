@@ -938,11 +938,12 @@ private struct SpaceBar: View {
 
     var body: some View {
         let stack = browser.state.downloadStack
-        // Resting on the button shows the downloads, which a tooltip would cover.
-        let help = browser.library.settings.downloadStack ? "" : "Bibliothek: Medien, Downloads, Spaces, Archiv (⌥⌘B)"
+        let downloads = browser.library.settings.downloadStack
+        let help = downloads ? "Letzte Downloads; Bibliothek mit ⌥⌘B oder Rechtsklick"
+            : "Bibliothek: Medien, Downloads, Spaces, Archiv (⌥⌘B)"
         HStack(spacing: 4) {
             IconButton(symbol: "books.vertical", help: help) {
-                browser.toggleLibrary()
+                if downloads { stack.toggle() } else { browser.toggleLibrary() }
             }
             .background(RoundedRectangle(cornerRadius: 6).fill(stack.isShown ? theme.tile : .clear))
             .overlay { DownloadRing(theme: theme) }
@@ -950,7 +951,6 @@ private struct SpaceBar: View {
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                 if isDocked { browser.state.libraryButtonFrame = $0 }
             }
-            .onHover { stack.hoverButton($0 && browser.library.settings.downloadStack) }
             .contextMenu { LibraryButtonMenu(browser: browser) }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {

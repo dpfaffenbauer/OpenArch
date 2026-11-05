@@ -358,8 +358,8 @@ struct Settings: Codable, Equatable {
     var glass = false
     /// How much of the space's color is in the glass (0–1).
     var glassTint = 0.4
-    /// The newest downloads show over the library button while the pointer
-    /// rests on it, as in Arc.
+    /// A click on the library button shows the newest downloads over it, as
+    /// in Arc, instead of the library.
     var downloadStack = true
     /// Kinds of files (DownloadKind) they leave out, as strings, so that a
     /// kind unknown to this version does not spoil the settings.
