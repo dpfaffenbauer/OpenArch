@@ -342,5 +342,33 @@ struct MediaState: Equatable, Decodable {
     var audible = false
     var title = ""
     var artist = ""
+    var album = ""
+    /// The cover: the Media Session's artwork, or a video's poster.
+    var artwork = ""
     var pip = false
+    /// Where playback was when the page reported it; it moves on from
+    /// there at `rate` while playing. 0 when the length is not known.
+    var time = 0.0
+    var duration = 0.0
+    var rate = 1.0
+    /// A stream without an end (radio, a live video).
+    var live = false
+    /// The page has a previous or next track of its own (Media Session).
+    var previous = false
+    var next = false
+    /// When the report arrived (not part of it).
+    var reportedAt = Date()
+
+    private enum CodingKeys: String, CodingKey {
+        case playing, video, audible, title, artist, album, artwork, pip, time, duration, rate, live, previous, next
+    }
+
+    var isSeekable: Bool { duration > 0 && !live }
+
+    /// The position now, moved on from the last report.
+    func position(at date: Date) -> Double {
+        let moved = playing ? max(0, date.timeIntervalSince(reportedAt)) * rate : 0
+        let position = max(0, time + moved)
+        return duration > 0 ? min(duration, position) : position
+    }
 }

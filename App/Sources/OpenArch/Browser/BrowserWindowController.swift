@@ -1677,10 +1677,17 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         item.mediaDismissed = true
     }
 
-    /// "toggle", "pip" or "exitpip", carried out by the built-in extension.
+    /// "toggle", "previous", "next", "pip" or "exitpip", carried out by the
+    /// built-in extension (previous and next with the page's own tracks).
     func mediaCommand(_ item: Item, _ command: String) {
         item.pane?.executeJavaScript("document.dispatchEvent(new CustomEvent('openarch-media', {detail: '\(command)'}))",
                                      userGesture: true)
+    }
+
+    /// Jumps to a position (seconds) in what the tab plays.
+    func seekMedia(_ item: Item, to seconds: Double) {
+        guard seconds.isFinite else { return }
+        mediaCommand(item, "seek:" + String(format: "%.2f", max(0, seconds)))
     }
 
     /// Like Arc: leaving a tab with a video playing (with sound) keeps the

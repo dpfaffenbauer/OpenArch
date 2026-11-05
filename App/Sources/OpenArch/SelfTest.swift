@@ -1714,8 +1714,10 @@ final class SelfTest {
     }
 
     /// A video (from a canvas, silent) plays in a tab: OpenArch learns about
-    /// it, shows it in the sidebar once you leave the tab, and pauses it from
-    /// there. Picture-in-picture is left out: its window would pop up.
+    /// it and what the page says it is (title, artist, cover, its own next
+    /// track), shows it in the sidebar once you leave the tab, and pauses it
+    /// and skips to the next track from there. Picture-in-picture is left
+    /// out: its window would pop up.
     private func mediaTest() {
         let previous = browser.state.activeItem
         let tab = browser.openInNewTab("https://example.com/media")
@@ -1725,18 +1727,31 @@ final class SelfTest {
                 (() => { const c = document.createElement('canvas'); c.width = 320; c.height = 180;
                   const g = c.getContext('2d'); let i = 0;
                   setInterval(() => { g.fillStyle = `hsl(${i++ % 360} 80% 50%)`; g.fillRect(0, 0, 320, 180); }, 50);
-                  const v = document.createElement('video'); v.srcObject = c.captureStream(20); document.body.append(v); })()
+                  const v = document.createElement('video'); v.srcObject = c.captureStream(20); document.body.append(v);
+                  navigator.mediaSession.metadata = new MediaMetadata({ title: 'Starboy', artist: 'The Weeknd',
+                    artwork: [{ src: 'https://example.com/small.png', sizes: '64x64' },
+                              { src: 'https://example.com/cover.png', sizes: '512x512' }] });
+                  navigator.mediaSession.setActionHandler('nexttrack', () => console.debug('__selftest_media__ nexttrack')); })()
                 """)
             after(0.5) { self.browser.mediaCommand(tab, "toggle") }
         }
         after(5) {
             self.expect(tab.media?.playing == true && tab.media?.video == true,
                         "a playing video is reported to OpenArch (\(String(describing: tab.media)))")
+            let media = tab.media ?? MediaState()
+            self.expect(media.title == "Starboy" && media.artist == "The Weeknd"
+                        && media.artwork == "https://example.com/cover.png",
+                        "the player shows the page's title, artist and sharpest small cover (\(media.title), \(media.artist), \(media.artwork))")
+            self.expect(media.next && !media.previous, "the player knows the page has a next track of its own")
+            self.expect(media.live && !media.isSeekable, "a stream without an end has no position to drag")
             if let previous { self.browser.select(previous) }
             self.expect(self.browser.nowPlaying === tab, "the sidebar offers controls for the video in the other tab")
+            self.mediaChecks = []
+            self.browser.mediaCommand(tab, "next")
             self.browser.mediaCommand(tab, "toggle")
         }
         after(6.5) {
+            self.expect(self.mediaChecks == ["nexttrack"], "the player's next button calls the page's own next track (\(self.mediaChecks))")
             self.expect(tab.media?.playing == false, "the sidebar's pause button pauses it")
             self.browser.dismissMedia(tab)
             self.expect(self.browser.nowPlaying == nil, "the media card closes")
@@ -2321,6 +2336,8 @@ final class SelfTest {
     }
 
     private var boostChecks: [String] = []
+    /// The page's media session actions the player called.
+    private var mediaChecks: [String] = []
 
     /// A boost recolors the page background and zaps the paragraphs, live and
     /// again after a reload; deleting it restores the page.
@@ -2355,6 +2372,10 @@ final class SelfTest {
     }
 
     func consoleMessage(_ message: String, from item: Item?) {
+        if message.hasPrefix("__selftest_media__ ") {
+            mediaChecks.append(String(message.dropFirst("__selftest_media__ ".count)))
+            return
+        }
         if message.hasPrefix("__selftest_boost__ ") {
             boostChecks.append(String(message.dropFirst("__selftest_boost__ ".count)))
             return
