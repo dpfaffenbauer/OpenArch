@@ -510,6 +510,12 @@ final class SelfTest {
         if let item = space.today.items.first {
             browser.select(item)
             expect(library.profile(for: item, in: space).id == "Profile 2", "space 2 tab uses its own profile")
+            let profile = library.profile(id: "Profile 2").chromium
+            profile.whenReady {
+                let own = profile.cachePath, other = OACProfile.default.cachePath
+                self.expect(own.hasSuffix("/Chromium/Profile 2") && own != other,
+                            "space 2 keeps its cookies apart from Default (\(own) vs \(other))")
+            }
         }
     }
 
