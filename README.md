@@ -147,9 +147,13 @@ run. Data lives in
   press Tab (yt, gh, w, maps …); the sites are editable in Settings.
 - **Link rules:** links from other apps open in a space by address
   (github.com, *.atlassian.net, docs.google.com/spreadsheets).
-- **Media:** controls for audio and video playing in another tab at the
-  bottom of the sidebar, and picture-in-picture when you leave a tab with a
-  video playing.
+- **Media:** a small player at the bottom of the sidebar for audio and
+  video playing in another tab: the cover, title and artist from the page
+  (its Media Session) and an equalizer while it plays. Resting the pointer
+  on it opens the controls: a position bar to click or drag, the time
+  played and left, the page's own previous and next track, play/pause,
+  sound and picture-in-picture; ↗ goes to the tab. Leaving a tab with a
+  video playing keeps it going in picture-in-picture.
 - **Hover sidebar:** with the sidebar collapsed, the window's left edge
   brings it back over the page.
 - **Updates:** OpenArch updates itself from the nightly release (checked

@@ -124,24 +124,50 @@ private struct PrivateHeader: View {
     }
 }
 
-/// Media playing in another tab: play/pause, picture-in-picture, sound, and
-/// a click on the card goes to the tab.
+/// Media playing in another tab, as a small player: the cover, what plays
+/// and an equalizer while it plays. Resting the pointer on it opens the
+/// controls (position, previous, play, next, sound, picture-in-picture); a
+/// click on the cover or the title goes to the tab.
 private struct MediaCard: View {
     let browser: BrowserWindowController
     let item: Item
     let theme: SpaceTheme
-    @State private var hovering = false
+    @State private var expanded = false
+    @State private var collapsing: Task<Void, Never>?
 
     var body: some View {
         let media = item.media ?? MediaState()
-        HStack(spacing: 8) {
+        VStack(spacing: 0) {
+            header(media)
+            if expanded {
+                VStack(spacing: 2) {
+                    if media.isSeekable {
+                        MediaProgress(media: media, theme: theme) { browser.seekMedia(item, to: $0) }
+                    } else if media.live {
+                        LiveBadge()
+                    }
+                    controls(media)
+                }
+                .padding(.top, 6)
+                .transition(.opacity)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(expanded ? theme.tileHover : theme.tile))
+        .onHover { hover($0) }
+        .padding(.top, 6)
+    }
+
+    private func header(_ media: MediaState) -> some View {
+        HStack(spacing: 4) {
             Button { browser.select(item) } label: {
                 HStack(spacing: 9) {
-                    FaviconView(item: item, size: 18)
+                    MediaArtwork(item: item, media: media, theme: theme)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(media.title.isEmpty ? item.displayTitle : media.title)
                             .font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
-                        Text(media.artist.isEmpty ? CommandBarModel.shortURL(item.currentURL) : media.artist)
+                        Text(subtitle(media))
                             .font(.system(size: 11)).opacity(0.65).lineLimit(1)
                     }
                     Spacer(minLength: 0)
@@ -150,31 +176,228 @@ private struct MediaCard: View {
             }
             .buttonStyle(.plain)
             .help("Zum Tab wechseln")
-            IconButton(symbol: media.playing ? "pause.fill" : "play.fill", help: media.playing ? "Pause" : "Abspielen") {
-                browser.mediaCommand(item, "toggle")
-            }
-            if media.video {
-                IconButton(symbol: media.pip ? "pip.exit" : "pip.enter", help: "Bild-in-Bild") {
-                    browser.mediaCommand(item, media.pip ? "exitpip" : "pip")
+            if expanded {
+                if media.video {
+                    IconButton(symbol: media.pip ? "pip.exit" : "pip.enter", help: "Bild-in-Bild", size: 12) {
+                        browser.mediaCommand(item, media.pip ? "exitpip" : "pip")
+                    }
                 }
-            }
-            if hovering {
                 IconButton(symbol: "xmark", help: "Schließen (hält die Wiedergabe an)", size: 11) {
                     browser.dismissMedia(item)
                 }
             } else {
-                IconButton(symbol: item.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
-                           help: item.isMuted ? "Ton einschalten" : "Stummschalten") {
-                    browser.toggleMute(item)
-                }
+                Equalizer(playing: media.playing)
+                    .padding(.trailing, 7)
             }
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 4)
-        .frame(height: 46)
-        .background(RoundedRectangle(cornerRadius: 10).fill(hovering ? theme.tileHover : theme.tile))
+    }
+
+    private func subtitle(_ media: MediaState) -> String {
+        if !media.artist.isEmpty { return media.artist }
+        if !media.album.isEmpty { return media.album }
+        return CommandBarModel.shortURL(item.currentURL)
+    }
+
+    private func controls(_ media: MediaState) -> some View {
+        HStack(spacing: 0) {
+            IconButton(symbol: "arrow.up.right", help: "Zum Tab wechseln", size: 11) {
+                browser.select(item)
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 6) {
+                IconButton(symbol: "backward.fill", help: media.previous ? "Vorheriger Titel" : "Zum Anfang", size: 12) {
+                    browser.mediaCommand(item, "previous")
+                }
+                .disabled(!media.previous && !media.isSeekable)
+                PlayPauseButton(playing: media.playing, theme: theme) {
+                    browser.mediaCommand(item, "toggle")
+                }
+                IconButton(symbol: "forward.fill", help: "Nächster Titel", size: 12) {
+                    browser.mediaCommand(item, "next")
+                }
+                .disabled(!media.next)
+            }
+            Spacer(minLength: 0)
+            IconButton(symbol: item.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                       help: item.isMuted ? "Ton einschalten" : "Stummschalten", size: 12) {
+                browser.toggleMute(item)
+            }
+        }
+    }
+
+    private func hover(_ inside: Bool) {
+        collapsing?.cancel()
+        if inside {
+            withAnimation(.spring(duration: 0.3)) { expanded = true }
+        } else {
+            // A moment's grace, so the controls stay when the pointer slips off.
+            collapsing = Task {
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+                withAnimation(.spring(duration: 0.3)) { expanded = false }
+            }
+        }
+    }
+}
+
+/// The cover of what plays, or the site's icon on a tile.
+private struct MediaArtwork: View {
+    let item: Item
+    let media: MediaState
+    let theme: SpaceTheme
+    private static let size: CGFloat = 32
+
+    var body: some View {
+        ZStack {
+            if let cover = ArtworkStore.shared.image(for: media.artwork, profile: item.pane?.profile) {
+                Image(nsImage: cover)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: Self.size, height: Self.size)
+                    .transition(.opacity)
+            } else {
+                Rectangle().fill(theme.tile)
+                FaviconView(item: item, size: 16)
+            }
+        }
+        .frame(width: Self.size, height: Self.size)
+        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .shadow(color: .black.opacity(0.15), radius: 1.5, y: 1)
+        .animation(.easeOut(duration: 0.2), value: media.artwork)
+    }
+}
+
+/// Four bars that dance while something plays and rest when it pauses.
+private struct Equalizer: View {
+    let playing: Bool
+    private static let speeds: [Double] = [2.6, 3.7, 3.1, 4.3]
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: !playing)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 2) {
+                ForEach(0..<4, id: \.self) { index in
+                    let level = CGFloat(playing ? 0.3 + 0.7 * abs(sin(time * Self.speeds[index] + Double(index) * 1.3)) : 0.25)
+                    Capsule().frame(width: 2.5, height: 12 * level)
+                }
+            }
+            .frame(height: 12)
+        }
+        .opacity(playing ? 0.85 : 0.45)
+        .accessibilityLabel(playing ? "Spielt" : "Pausiert")
+    }
+}
+
+/// Play and pause, on a round tile like a player's main button.
+private struct PlayPauseButton: View {
+    let playing: Bool
+    let theme: SpaceTheme
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: playing ? "pause.fill" : "play.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 30, height: 30)
+                .background(Circle().fill(hovering ? theme.selection : theme.tile))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .padding(.top, 6)
+        .help(playing ? "Pause" : "Abspielen")
+    }
+}
+
+/// The position as a bar that can be clicked and dragged, with the time
+/// played and the time left below it.
+private struct MediaProgress: View {
+    let media: MediaState
+    let theme: SpaceTheme
+    let seek: (Double) -> Void
+    /// Where the bar is held (0–1), while dragging and until the page
+    /// reports the new position.
+    @State private var scrub: Double?
+    @State private var dragging = false
+    @State private var hovering = false
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 0.25, paused: !media.playing || scrub != nil)) { context in
+            let duration = media.duration
+            let position = scrub.map { $0 * duration } ?? media.position(at: context.date)
+            let fraction = duration > 0 ? min(1, position / duration) : 0
+            VStack(spacing: 1) {
+                GeometryReader { geometry in
+                    let width = max(1, geometry.size.width)
+                    let thickness: CGFloat = hovering || dragging ? 6 : 4
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(theme.foreground.opacity(0.18))
+                        Capsule().fill(theme.foreground.opacity(0.85))
+                            .frame(width: max(thickness, width * CGFloat(fraction)))
+                    }
+                    .frame(height: thickness)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                dragging = true
+                                scrub = Double(max(0, min(1, value.location.x / width)))
+                            }
+                            .onEnded { value in
+                                let target = Double(max(0, min(1, value.location.x / width)))
+                                dragging = false
+                                scrub = target
+                                seek(target * duration)
+                                settle()
+                            }
+                    )
+                }
+                .frame(height: 14)
+                .onHover { hovering = $0 }
+                .animation(.easeOut(duration: 0.12), value: hovering || dragging)
+                HStack {
+                    Text(Self.format(position))
+                    Spacer()
+                    Text("−" + Self.format(max(0, duration - position)))
+                }
+                .font(.system(size: 9.5, weight: .medium).monospacedDigit())
+                .opacity(0.6)
+            }
+        }
+        .onChange(of: media.reportedAt) {
+            if !dragging { scrub = nil }
+        }
+    }
+
+    /// Lets go of the held position if the page does not report a new one
+    /// (a jump too small to report, or a page that ignores it).
+    private func settle() {
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            if !dragging { scrub = nil }
+        }
+    }
+
+    static func format(_ seconds: Double) -> String {
+        let total = Int(max(0, seconds).rounded(.down))
+        let hours = total / 3600, minutes = total / 60 % 60, rest = total % 60
+        return hours > 0 ? String(format: "%d:%02d:%02d", hours, minutes, rest) : String(format: "%d:%02d", minutes, rest)
+    }
+}
+
+/// A stream without an end has no position to show.
+private struct LiveBadge: View {
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(Color.red).frame(width: 6, height: 6)
+            Text("LIVE").font(.system(size: 9.5, weight: .bold)).opacity(0.75)
+            Spacer()
+        }
+        .padding(.horizontal, 4)
+        .frame(height: 16)
     }
 }
 
