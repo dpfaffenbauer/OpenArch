@@ -1143,6 +1143,52 @@ final class SelfTest {
             self.expect(saved, "a download is saved (to the self-test's folder)")
             self.expect(Downloads.shared.finished == finished + 1 && Downloads.shared.progress.isEmpty,
                         "the library hears when a download finishes (\(Downloads.shared.finished - finished))")
+            self.downloadStackTest()
+        }
+    }
+
+    /// Resting on the library button shows the newest downloads over the
+    /// sidebar, the new file nearest the button.
+    private func downloadStackTest() {
+        let stack = browser.state.downloadStack
+        stack.show()
+        eventually({ stack.files.first?.url.lastPathComponent == "openarch-selftest.txt" }) { found in
+            let kind = stack.files.first.map(DownloadKind.init)
+            self.expect(stack.isShown && found && kind == .documents,
+                        "the downloads stack lists the new file first (\(stack.files.map(\.url.lastPathComponent)), \(String(describing: kind)))")
+            after(0.8) {
+                Swift.print("[selftest] STEP shot download stack \(self.browser.window?.windowNumber ?? 0)")
+                after(1) {
+                    stack.dismiss()
+                    self.expect(!stack.isShown, "the downloads stack goes away again")
+                    self.downloadStackHover()
+                }
+            }
+        }
+    }
+
+    /// The pointer passing over the library button does nothing; resting on
+    /// it brings the stack, which stays while the pointer moves up onto the
+    /// files and goes once it leaves them.
+    private func downloadStackHover() {
+        let stack = browser.state.downloadStack
+        stack.hoverButton(true)
+        after(0.1) {
+            stack.hoverButton(false)
+            after(0.5) {
+                self.expect(!stack.isShown, "passing over the library button does not bring up the downloads")
+                stack.hoverButton(true)
+                after(0.6) {
+                    self.expect(stack.isShown, "resting on the library button brings up the downloads")
+                    stack.hoverButton(false)
+                    after(0.1) { stack.hoverFiles(true) }
+                    after(0.6) {
+                        self.expect(stack.isShown, "the downloads stay while the pointer is on them")
+                        stack.hoverFiles(false)
+                        after(0.6) { self.expect(!stack.isShown, "the downloads go once the pointer leaves them") }
+                    }
+                }
+            }
         }
     }
 

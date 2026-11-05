@@ -69,6 +69,8 @@ final class FloatingSidebar {
         watch = nil
         guard isShown, let panel else { return }
         isShown = false
+        // Its pointer is gone with it; the stack would still be up next time.
+        browser.state.downloadStack.dismiss()
         panel.parent?.removeChildWindow(panel)
         panel.orderOut(nil)
     }

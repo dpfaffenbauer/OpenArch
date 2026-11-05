@@ -520,6 +520,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func toggleLibrary() {
         state.libraryVisible.toggle()
+        state.downloadStack.dismiss()
         if state.libraryVisible {
             state.sidebarVisible = true
             state.agentsVisible = false
@@ -1415,6 +1416,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func toggleSidebar() {
         state.sidebarVisible.toggle()
+        state.downloadStack.dismiss()
         layoutContent()
     }
 

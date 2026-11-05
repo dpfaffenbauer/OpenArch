@@ -358,6 +358,12 @@ struct Settings: Codable, Equatable {
     var glass = false
     /// How much of the space's color is in the glass (0–1).
     var glassTint = 0.4
+    /// The newest downloads show over the library button while the pointer
+    /// rests on it, as in Arc.
+    var downloadStack = true
+    /// Kinds of files (DownloadKind) they leave out, as strings, so that a
+    /// kind unknown to this version does not spoil the settings.
+    var downloadStackHidden: [String] = []
 
     init() {}
 
@@ -385,6 +391,8 @@ struct Settings: Codable, Equatable {
         agentFolder = try container.decodeIfPresent(String.self, forKey: .agentFolder) ?? defaults.agentFolder
         glass = try container.decodeIfPresent(Bool.self, forKey: .glass) ?? defaults.glass
         glassTint = try container.decodeIfPresent(Double.self, forKey: .glassTint) ?? defaults.glassTint
+        downloadStack = try container.decodeIfPresent(Bool.self, forKey: .downloadStack) ?? defaults.downloadStack
+        downloadStackHidden = try container.decodeIfPresent([String].self, forKey: .downloadStackHidden) ?? defaults.downloadStackHidden
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

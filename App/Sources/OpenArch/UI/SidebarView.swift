@@ -31,9 +31,38 @@ struct SidebarView: View {
     }
 
     private var sidebar: some View {
+        let theme = SpaceTheme(hex: browser.state.space.colorHex)
+        let stack = browser.state.downloadStack
+        return VStack(alignment: .leading, spacing: 0) {
+            content(theme: theme)
+                // The newest downloads over the library button, the sidebar
+                // blurred away behind them.
+                .blur(radius: stack.isShown ? 18 : 0)
+                .opacity(stack.isShown ? 0 : 1)
+                .allowsHitTesting(!stack.isShown)
+                .overlay {
+                    if stack.isShown {
+                        DownloadStackView(browser: browser, stack: stack, theme: theme)
+                            .transition(.opacity)
+                    }
+                }
+            if browser.isStandalone {
+                Spacer().frame(height: 12)
+            } else {
+                SpaceBar(browser: browser, theme: theme, isDocked: !floating)
+            }
+        }
+        .padding(.horizontal, 8)
+        .ignoresSafeArea()
+        .foregroundStyle(theme.foreground)
+        .environment(\.colorScheme, theme.colorScheme)
+        .tint(theme.foreground)
+    }
+
+    /// Everything above the space bar.
+    private func content(theme: SpaceTheme) -> some View {
         let state = browser.state
         let space = state.space
-        let theme = SpaceTheme(hex: space.colorHex)
         return VStack(alignment: .leading, spacing: 0) {
             SidebarTopBar(browser: browser, theme: theme, floating: floating)
             if browser.library.settings.showSidebarAddress {
@@ -71,17 +100,7 @@ struct SidebarView: View {
             if case .ready = Updater.shared.phase {
                 UpdateBanner(theme: theme)
             }
-            if browser.isStandalone {
-                Spacer().frame(height: 12)
-            } else {
-                SpaceBar(browser: browser, theme: theme, isDocked: !floating)
-            }
         }
-        .padding(.horizontal, 8)
-        .ignoresSafeArea()
-        .foregroundStyle(theme.foreground)
-        .environment(\.colorScheme, theme.colorScheme)
-        .tint(theme.foreground)
     }
 }
 
@@ -918,15 +937,21 @@ private struct SpaceBar: View {
     var isDocked = true
 
     var body: some View {
+        let stack = browser.state.downloadStack
+        // Resting on the button shows the downloads, which a tooltip would cover.
+        let help = browser.library.settings.downloadStack ? "" : "Bibliothek: Medien, Downloads, Spaces, Archiv (⌥⌘B)"
         HStack(spacing: 4) {
-            IconButton(symbol: "books.vertical", help: "Bibliothek: Medien, Downloads, Spaces, Archiv (⌥⌘B)") {
+            IconButton(symbol: "books.vertical", help: help) {
                 browser.toggleLibrary()
             }
+            .background(RoundedRectangle(cornerRadius: 6).fill(stack.isShown ? theme.tile : .clear))
             .overlay { DownloadRing(theme: theme) }
             .symbolEffect(.bounce, value: Downloads.shared.finished)
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
                 if isDocked { browser.state.libraryButtonFrame = $0 }
             }
+            .onHover { stack.hoverButton($0 && browser.library.settings.downloadStack) }
+            .contextMenu { LibraryButtonMenu(browser: browser) }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {
                     if browser.library.settings.agentChats, !browser.isPrivate {

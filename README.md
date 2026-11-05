@@ -75,7 +75,10 @@ run. Data lives in
   flies into the library button, a ring around it shows the progress, and
   it bounces when the file is there. Running downloads are listed in the
   library with a button to cancel them; resting the pointer on a file shows
-  a preview.
+  a preview. As in Arc, resting the pointer on the library button shows the
+  newest downloads over the sidebar, the newest nearest the button: a click
+  opens one, and it can be dragged out. A right click on the button chooses
+  which kinds of files they show, or turns them off.
 - **Links to apps** (bambustudioopen:, zoommtg:, mailto: …) open the app on
   the Mac after asking, as in Chrome; „immer öffnen“ remembers it per site.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and

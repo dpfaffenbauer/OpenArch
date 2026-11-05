@@ -21,6 +21,8 @@ final class BrowserState {
     /// The library (media, downloads, spaces, archive) replaces the sidebar.
     var libraryVisible = false
     var librarySection = LibrarySection.media
+    /// The newest downloads over the library button.
+    let downloadStack = DownloadStack()
     /// Horizontal offset of the sidebar while it is being swiped.
     var swipeOffset: CGFloat = 0
     /// The library button and the whole sidebar, both in SwiftUI's global
