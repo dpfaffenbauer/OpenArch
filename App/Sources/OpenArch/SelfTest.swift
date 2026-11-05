@@ -30,6 +30,9 @@ final class SelfTest {
         try? FileManager.default.createDirectory(at: Self.downloadFolder, withIntermediateDirectories: true)
         OACProfile.setPreference("download.default_directory", value: Self.downloadFolder.path)
         OACProfile.setPreference("download.prompt_for_download", value: false)
+        let defaultPath = OACProfile.default.cachePath
+        expect(defaultPath.hasSuffix("/Chromium/Default"),
+               "the default profile opens Default, not the profile used last (\(defaultPath))")
         if CommandLine.arguments.contains("--popup-test") {
             popupTest()
             return

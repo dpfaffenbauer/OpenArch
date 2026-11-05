@@ -44,6 +44,9 @@ NS_SWIFT_UI_ACTOR
 @property(readonly, copy) NSString* directoryName;
 /// Whether Chromium finished loading the profile from disk.
 @property(readonly) BOOL isReady;
+/// The folder Chromium keeps this profile in ("" for a private profile, or
+/// before the profile is ready).
+@property(readonly, copy) NSString* cachePath;
 /// Runs |block| once the profile is ready (immediately if it already is).
 - (void)whenReady:(dispatch_block_t)block;
 

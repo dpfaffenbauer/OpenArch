@@ -56,6 +56,13 @@ if AppPaths.isSelfTest {
         let preferences: [String: Any] = ["extensions": ["pinned_extensions": pinned]]
         try? JSONSerialization.data(withJSONObject: preferences).write(to: profile.appendingPathComponent("Preferences"))
     }
+    // As after a session in a space on another profile: Chrome would then
+    // start its global context ("Default") on that profile (see OACEngine).
+    let localState = AppPaths.chromiumData.appendingPathComponent("Local State")
+    if !FileManager.default.fileExists(atPath: localState.path) {
+        let state: [String: Any] = ["profile": ["last_used": "Profile 2"]]
+        try? JSONSerialization.data(withJSONObject: state).write(to: localState)
+    }
     settings.extraSwitches = [
         "disable-backgrounding-occluded-windows", "disable-renderer-backgrounding",
         "disable-background-timer-throttling", "autoplay-policy=no-user-gesture-required",

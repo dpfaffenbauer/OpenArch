@@ -282,6 +282,13 @@ NSMutableDictionary<NSString*, OACProfile*>* ProfilesByDirectory() {
   }
 }
 
+- (NSString*)cachePath {
+  if (!_isReady || !_context) {
+    return @"";
+  }
+  return @(_context->GetCachePath().ToString().c_str());
+}
+
 - (CefRefPtr<CefRequestContext>)cefContext {
   return _context;
 }

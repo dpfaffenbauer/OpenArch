@@ -53,6 +53,11 @@ class OACApp : public CefApp, public CefBrowserProcessHandler {
     if (!process_type.empty()) {
       return;
     }
+    // The global context is OACProfile.defaultProfile ("Default"). Without
+    // this switch Chrome starts it on the profile used last (Local State's
+    // profile.last_used), so after a space on "Profile 2" every space of
+    // "Default" would open in "Profile 2", without its logins.
+    command_line->AppendSwitchWithValue("profile-directory", "Default");
     if (use_mock_keychain_) {
       command_line->AppendSwitch("use-mock-keychain");
     }
