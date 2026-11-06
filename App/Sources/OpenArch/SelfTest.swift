@@ -1720,7 +1720,8 @@ final class SelfTest {
     /// it and what the page says it is (title, artist, cover, its own next
     /// track), shows it in the sidebar once you leave the tab, and pauses it
     /// and skips to the next track from there. Picture-in-picture is left
-    /// out: its window would pop up.
+    /// out: its window would pop up. Then Spotify on the Mac, from the
+    /// notification Spotify sends (its buttons would need Spotify).
     private func mediaTest() {
         let previous = browser.state.activeItem
         let tab = browser.openInNewTab("https://example.com/media")
@@ -1767,7 +1768,32 @@ final class SelfTest {
                         "a muted video playing in another tab gets no media card (\(String(describing: tab.media)))")
             self.library.settings.autoPictureInPicture = true
             self.browser.close(tab)
+            // Spotify on the Mac, as its own notification tells every app
+            // (a local file: no cover to fetch).
+            Self.postSpotify(["Player State": "Playing", "Name": "Blinding Lights", "Artist": "The Weeknd",
+                              "Album": "After Hours", "Track ID": "spotify:local:selftest",
+                              "Playback Position": 42.0, "Duration": 200_040])
         }
+        after(8.5) {
+            if case .spotify(let media)? = self.browser.player {
+                self.expect(media.title == "Blinding Lights" && media.artist == "The Weeknd" && media.playing
+                            && abs(media.duration - 200.04) < 0.01 && media.time == 42 && media.next,
+                            "Spotify playing on the Mac shows in the sidebar's player (\(media))")
+            } else {
+                self.expect(false, "Spotify playing on the Mac shows in the sidebar's player (\(String(describing: self.browser.player)))")
+            }
+            Self.postSpotify(["Player State": "Stopped"])
+        }
+        after(9.5) {
+            self.expect(SpotifyPlayer.shared.media == nil && self.browser.player == nil,
+                        "the player goes when Spotify stops (\(String(describing: SpotifyPlayer.shared.media)))")
+        }
+    }
+
+    private static func postSpotify(_ info: [String: Any]) {
+        DistributedNotificationCenter.default().postNotificationName(
+            Notification.Name("com.spotify.client.PlaybackStateChanged"), object: nil, userInfo: info,
+            deliverImmediately: true)
     }
 
     /// A fake newer build behind a local latest.json: the updater downloads,

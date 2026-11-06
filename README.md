@@ -153,8 +153,10 @@ run. Data lives in
   (its Media Session) and an equalizer while it plays. Resting the pointer
   on it opens the controls: a position bar to click or drag, the time
   played and left, the page's own previous and next track, play/pause,
-  sound and picture-in-picture; ↗ goes to the tab. Leaving a tab with a
-  video playing keeps it going in picture-in-picture.
+  sound and picture-in-picture; ↗ goes to the tab. Spotify on the Mac
+  shows there too, from what Spotify tells every app; its buttons control
+  Spotify after macOS asks once. Leaving a tab with a video playing keeps
+  it going in picture-in-picture.
 - **Hover sidebar:** with the sidebar collapsed, the window's left edge
   brings it back over the page.
 - **Updates:** OpenArch updates itself from the nightly release (checked

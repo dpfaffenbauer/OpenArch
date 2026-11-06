@@ -94,8 +94,8 @@ struct SidebarView: View {
                     browser.handleDrop(providers, target: .end(space.today))
                 }
             }
-            if let playing = browser.nowPlaying {
-                MediaCard(browser: browser, item: playing, theme: theme)
+            if let player = browser.player {
+                MediaCard(browser: browser, source: player, theme: theme)
             }
             if case .ready = Updater.shared.phase {
                 UpdateBanner(theme: theme)
@@ -124,25 +124,39 @@ private struct PrivateHeader: View {
     }
 }
 
-/// Media playing in another tab, as a small player: the cover, what plays
-/// and an equalizer while it plays. Resting the pointer on it opens the
-/// controls (position, previous, play, next, sound, picture-in-picture); a
-/// click on the cover or the title goes to the tab.
+/// Media playing in another tab or in Spotify, as a small player: the
+/// cover, what plays and an equalizer while it plays. Resting the pointer on
+/// it opens the controls (position, previous, play, next, sound,
+/// picture-in-picture); a click on the cover or the title goes to the tab
+/// (or Spotify).
 private struct MediaCard: View {
     let browser: BrowserWindowController
-    let item: Item
+    let source: NowPlaying
     let theme: SpaceTheme
     @State private var expanded = false
     @State private var collapsing: Task<Void, Never>?
 
+    private var media: MediaState {
+        switch source {
+        case .tab(let item): return item.media ?? MediaState()
+        case .spotify(let media): return media
+        }
+    }
+
+    /// The tab it plays in; nil for Spotify.
+    private var tab: Item? {
+        if case .tab(let item) = source { return item }
+        return nil
+    }
+
     var body: some View {
-        let media = item.media ?? MediaState()
+        let media = self.media
         VStack(spacing: 0) {
             header(media)
             if expanded {
                 VStack(spacing: 2) {
                     if media.isSeekable {
-                        MediaProgress(media: media, theme: theme) { browser.seekMedia(item, to: $0) }
+                        MediaProgress(media: media, theme: theme) { seek(to: $0) }
                     } else if media.live {
                         LiveBadge()
                     }
@@ -161,11 +175,11 @@ private struct MediaCard: View {
 
     private func header(_ media: MediaState) -> some View {
         HStack(spacing: 4) {
-            Button { browser.select(item) } label: {
+            Button { show() } label: {
                 HStack(spacing: 9) {
-                    MediaArtwork(item: item, media: media, theme: theme)
+                    MediaArtwork(source: source, media: media, theme: theme)
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(media.title.isEmpty ? item.displayTitle : media.title)
+                        Text(media.title.isEmpty ? (tab?.displayTitle ?? "Spotify") : media.title)
                             .font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
                         Text(subtitle(media))
                             .font(.system(size: 11)).opacity(0.65).lineLimit(1)
@@ -175,15 +189,15 @@ private struct MediaCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Zum Tab wechseln")
+            .help(showHelp)
             if expanded {
-                if media.video {
+                if let tab, media.video {
                     IconButton(symbol: media.pip ? "pip.exit" : "pip.enter", help: "Bild-in-Bild", size: 12) {
-                        browser.mediaCommand(item, media.pip ? "exitpip" : "pip")
+                        browser.mediaCommand(tab, media.pip ? "exitpip" : "pip")
                     }
                 }
                 IconButton(symbol: "xmark", help: "Schließen (hält die Wiedergabe an)", size: 11) {
-                    browser.dismissMedia(item)
+                    dismiss()
                 }
             } else {
                 Equalizer(playing: media.playing)
@@ -195,33 +209,68 @@ private struct MediaCard: View {
     private func subtitle(_ media: MediaState) -> String {
         if !media.artist.isEmpty { return media.artist }
         if !media.album.isEmpty { return media.album }
-        return CommandBarModel.shortURL(item.currentURL)
+        return tab.map { CommandBarModel.shortURL($0.currentURL) } ?? "Spotify"
     }
 
     private func controls(_ media: MediaState) -> some View {
         HStack(spacing: 0) {
-            IconButton(symbol: "arrow.up.right", help: "Zum Tab wechseln", size: 11) {
-                browser.select(item)
+            IconButton(symbol: "arrow.up.right", help: showHelp, size: 11) {
+                show()
             }
             Spacer(minLength: 0)
             HStack(spacing: 6) {
                 IconButton(symbol: "backward.fill", help: media.previous ? "Vorheriger Titel" : "Zum Anfang", size: 12) {
-                    browser.mediaCommand(item, "previous")
+                    command("previous")
                 }
                 .disabled(!media.previous && !media.isSeekable)
                 PlayPauseButton(playing: media.playing, theme: theme) {
-                    browser.mediaCommand(item, "toggle")
+                    command("toggle")
                 }
                 IconButton(symbol: "forward.fill", help: "Nächster Titel", size: 12) {
-                    browser.mediaCommand(item, "next")
+                    command("next")
                 }
                 .disabled(!media.next)
             }
             Spacer(minLength: 0)
-            IconButton(symbol: item.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
-                       help: item.isMuted ? "Ton einschalten" : "Stummschalten", size: 12) {
-                browser.toggleMute(item)
+            if let tab {
+                IconButton(symbol: tab.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+                           help: tab.isMuted ? "Ton einschalten" : "Stummschalten", size: 12) {
+                    browser.toggleMute(tab)
+                }
+            } else {
+                // Keeps the middle buttons in the middle.
+                Color.clear.frame(width: IconButton.width, height: 24)
             }
+        }
+    }
+
+    private var showHelp: String { tab == nil ? "Spotify öffnen" : "Zum Tab wechseln" }
+
+    private func show() {
+        switch source {
+        case .tab(let item): browser.select(item)
+        case .spotify: SpotifyPlayer.shared.show()
+        }
+    }
+
+    private func command(_ command: String) {
+        switch source {
+        case .tab(let item): browser.mediaCommand(item, command)
+        case .spotify: SpotifyPlayer.shared.command(command)
+        }
+    }
+
+    private func seek(to seconds: Double) {
+        switch source {
+        case .tab(let item): browser.seekMedia(item, to: seconds)
+        case .spotify: SpotifyPlayer.shared.seek(to: seconds)
+        }
+    }
+
+    private func dismiss() {
+        switch source {
+        case .tab(let item): browser.dismissMedia(item)
+        case .spotify: SpotifyPlayer.shared.dismiss()
         }
     }
 
@@ -240,16 +289,16 @@ private struct MediaCard: View {
     }
 }
 
-/// The cover of what plays, or the site's icon on a tile.
+/// The cover of what plays, or the site's (or Spotify's) icon on a tile.
 private struct MediaArtwork: View {
-    let item: Item
+    let source: NowPlaying
     let media: MediaState
     let theme: SpaceTheme
     private static let size: CGFloat = 32
 
     var body: some View {
         ZStack {
-            if let cover = ArtworkStore.shared.image(for: media.artwork, profile: item.pane?.profile) {
+            if let cover = ArtworkStore.shared.image(for: media.artwork, profile: profile) {
                 Image(nsImage: cover)
                     .resizable()
                     .interpolation(.high)
@@ -258,13 +307,30 @@ private struct MediaArtwork: View {
                     .transition(.opacity)
             } else {
                 Rectangle().fill(theme.tile)
-                FaviconView(item: item, size: 16)
+                switch source {
+                case .tab(let item):
+                    FaviconView(item: item, size: 16)
+                case .spotify:
+                    if let icon = SpotifyPlayer.shared.icon {
+                        Image(nsImage: icon).resizable().frame(width: 22, height: 22)
+                    } else {
+                        Image(systemName: "music.note").font(.system(size: 13, weight: .semibold))
+                    }
+                }
             }
         }
         .frame(width: Self.size, height: Self.size)
         .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
         .shadow(color: .black.opacity(0.15), radius: 1.5, y: 1)
         .animation(.easeOut(duration: 0.2), value: media.artwork)
+    }
+
+    /// Covers load through the tab's profile; Spotify's through the default one.
+    private var profile: OACProfile? {
+        switch source {
+        case .tab(let item): return item.pane?.profile
+        case .spotify: return OACProfile.default
+        }
     }
 }
 

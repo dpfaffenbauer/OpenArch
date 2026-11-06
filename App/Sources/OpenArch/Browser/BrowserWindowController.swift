@@ -1669,6 +1669,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             }
     }
 
+    /// What the sidebar's player shows: media in a tab that is not on
+    /// screen, or Spotify on the Mac. What plays comes before what is
+    /// paused, a tab before Spotify.
+    var player: NowPlaying? {
+        let tab = nowPlaying
+        let spotify = SpotifyPlayer.shared.dismissed ? nil : SpotifyPlayer.shared.media
+        if let tab, tab.media?.playing == true { return .tab(tab) }
+        if let spotify, spotify.playing { return .spotify(spotify) }
+        if let tab { return .tab(tab) }
+        return spotify.map { .spotify($0) }
+    }
+
     /// Closes the media card: the playback stops, and the card stays away
     /// until the page plays again.
     func dismissMedia(_ item: Item) {
