@@ -46,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         log("Chromium \(OACEngine.versionString)")
         AppIcons.repairBundle()
+        SpotifyPlayer.shared.start()
         library = Library.load()
         library.settings.applyToChromium()
         history = History()

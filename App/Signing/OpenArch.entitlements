@@ -10,5 +10,8 @@
   <key>com.apple.security.device.usb</key><true/>
   <key>com.apple.security.device.print</key><true/>
   <key>com.apple.security.personal-information.location</key><true/>
+  <!-- The sidebar's player pauses and skips Spotify with Apple Events;
+       macOS asks the first time. -->
+  <key>com.apple.security.automation.apple-events</key><true/>
 </dict>
 </plist>
