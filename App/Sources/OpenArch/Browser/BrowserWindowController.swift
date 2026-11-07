@@ -1006,6 +1006,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 unload(tab)
                 tab.detach()
             }
+            // Folders under the line (Tabs mit KI aufräumen) go once they are empty.
+            for folder in space.today.items where folder.kind == .folder && folder.children.isEmpty {
+                folder.detach()
+            }
         }
         library.setNeedsSave()
     }
@@ -1405,11 +1409,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private(set) var toast: ToastWindow?
 
-    func showToast(_ text: String, symbol: String = "checkmark.circle.fill") {
+    func showToast(_ text: String, symbol: String = "checkmark.circle.fill", action: ToastAction? = nil) {
         guard let window else { return }
         let toast = self.toast ?? ToastWindow()
         self.toast = toast
-        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window)
+        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action)
     }
 
     /// ⌃⇧1…4: focus a side of the split view; ⌃⇧[ and ⌃⇧] the neighbours.

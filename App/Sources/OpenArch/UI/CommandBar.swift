@@ -543,7 +543,8 @@ final class CommandBarModel {
         }
         if !browser.isStandalone {
             let brief: Command = ("Morning Brief jetzt erstellen", "sun.horizon", nil, { MorningBrief.shared.run(in: browser, manual: true) })
-            commands.append(brief)
+            let tidy: Command = ("Tabs mit KI aufräumen", "wand.and.stars", nil, { browser.tidyTabsWithAI() })
+            commands += [brief, tidy]
         }
         if let active, active.kind == .tab {
             var tabCommands: [Command] = [

@@ -8,28 +8,38 @@ extension SelfTest {
     func aiFeatures(then next: @escaping () -> Void) {
         let stub = ClaudeStub()
         AgentEnvironment.stub = AgentEnvironment.Resolved(claude: stub.executable.path, variables: ProcessInfo.processInfo.environment)
-        Swift.print("[selftest] STEP page chat")
-        pageChatTest(stub) {
-            Swift.print("[selftest] STEP skills")
-            self.skillsTest(stub) {
-                Swift.print("[selftest] STEP morning brief")
-                self.morningBriefTest(stub) {
-                    AgentEnvironment.stub = nil
-                    stub.remove()
-                    guard CommandLine.arguments.contains("--shots"), let app = NSApp.delegate as? AppDelegate else { return next() }
-                    app.showSettings(page: .ai)
-                    self.shot("settings", of: app.settingsWindow) {
-                        app.settingsWindow?.close()
-                        next()
-                    }
-                }
+        let steps: [(String, (@escaping () -> Void) -> Void)] = [
+            ("page chat", { self.pageChatTest(stub, then: $0) }),
+            ("skills", { self.skillsTest(stub, then: $0) }),
+            ("morning brief", { self.morningBriefTest(stub, then: $0) }),
+            ("tidy tabs", { self.tidyTest(stub, then: $0) }),
+            ("ai settings", { self.aiSettingsShot(then: $0) }),
+        ]
+        func run(_ index: Int) {
+            guard index < steps.count else {
+                AgentEnvironment.stub = nil
+                stub.remove()
+                return next()
             }
+            Swift.print("[selftest] STEP \(steps[index].0)")
+            steps[index].1 { run(index + 1) }
+        }
+        run(0)
+    }
+
+    /// Settings › KI with the morning brief, for a picture (--shots).
+    private func aiSettingsShot(then next: @escaping () -> Void) {
+        guard CommandLine.arguments.contains("--shots"), let app = NSApp.delegate as? AppDelegate else { return next() }
+        app.showSettings(page: .ai)
+        shot("settings", of: app.settingsWindow) {
+            app.settingsWindow?.close()
+            next()
         }
     }
 
     /// The command bar lists your Claude Code skills and commands by name
     /// and runs one on the page, in the page's chat.
-    private func skillsTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
+    fileprivate func skillsTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
         let root = stub.folder.appendingPathComponent("claude-config", isDirectory: true)
         let files: [String: String] = [
             "skills/zusammenfassen/SKILL.md": """
@@ -94,7 +104,7 @@ extension SelfTest {
     /// ⌘E opens a chat beside the page that gets the page, the selection
     /// and a tab named with @, continues its session, closes with ⌘E and
     /// keeps its conversation until the tab closes.
-    private func pageChatTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
+    fileprivate func pageChatTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
         guard let app = NSApp.delegate as? AppDelegate, let space = library.spaces.first else { return next() }
         browser.switchSpace(to: space)
         let shown = browser.state.activeItem
@@ -278,6 +288,95 @@ extension SelfTest {
                         self.browser.close(tab)
                         if let shown, shown.container != nil { self.browser.select(shown, focus: false) }
                         next()
+                    }
+                }
+            }
+        }
+    }
+}
+
+extension SelfTest {
+    /// Tidying with AI: Claude gets titles and addresses, the proposal shows
+    /// first, applying makes folders at the top of the today tabs with
+    /// shorter titles, pinned tabs stay, and ⌘Z puts it all back.
+    fileprivate func tidyTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
+        guard let space = library.spaces.first else { return next() }
+        browser.switchSpace(to: space)
+        let shown = browser.state.activeItem
+        let mine = [
+            Item.tab(url: "https://docs.swift.org/swift-book/concurrency", title: "Concurrency | The Swift Programming Language (6.2) | Documentation"),
+            Item.tab(url: "https://developer.apple.com/documentation/appkit/nspanel", title: "NSPanel | Apple Developer Documentation"),
+            Item.tab(url: "https://www.tagesschau.de/", title: "tagesschau.de - die erste Adresse für Nachrichten und Information"),
+            Item.tab(url: "https://www.spiegel.de/", title: "DER SPIEGEL | Online-Nachrichten"),
+        ]
+        for tab in mine.reversed() { space.today.insert(tab, at: 0) }
+        let tabs = TabTidy.tabs(in: space)
+        let number = { (tab: Item) in (tabs.firstIndex { $0 === tab } ?? -10) + 1 }
+        let answer = """
+            ```json
+            {"folders": [{"name": "📚 Doku", "tabs": [\(number(mine[0])), \(number(mine[1]))]},
+                         {"name": "📰 News", "tabs": [\(number(mine[2])), "\(number(mine[3]))"]},
+                         {"name": "Allein", "tabs": [\(number(mine[0]))]}],
+             "titles": {"\(number(mine[0]))": "Swift Concurrency", "99": "Gibt es nicht"}}
+            ```
+            """
+        stub.answer([ClaudeStub.initEvent(session: "selftest-tidy"), ClaudeStub.resultEvent(session: "selftest-tidy", result: answer)])
+        let order = space.today.items.map(\.id)
+        let pinned = space.pinned.allItems.map { "\($0.id) \($0.displayTitle) \($0.parent?.id.uuidString ?? "")" }
+        func finish() {
+            for tab in mine where tab.container != nil { browser.close(tab) }
+            if let shown, shown.container != nil { browser.select(shown, focus: false) }
+            next()
+        }
+        guard let tidy = browser.tidyTabsWithAI() else {
+            expect(false, "Tabs mit KI aufräumen starts")
+            return finish()
+        }
+        expect(tidy.window?.isVisible == true && tidy.phase == .working, "tidying shows a panel while Claude sorts")
+        eventually({ tidy.phase != .working }, timeout: 10) { _ in
+            let prompt = stub.lastPrompt
+            self.expect(tidy.phase == .ready && tidy.folders.map(\.name) == ["📚 Doku", "📰 News"]
+                        && tidy.folders[0].tabs.count == 2 && tidy.folders[1].tabs.map(\.id) == [mine[2].id, mine[3].id]
+                        && tidy.title(of: mine[0]) == "Swift Concurrency" && tidy.looseTabs.count == tabs.count - 4,
+                        "the proposal has Claude's folders and shorter titles, and the rest stays loose (\(tidy.phase), \(tidy.folders.map(\.name)))")
+            self.expect(prompt.contains("\(number(mine[2])). tagesschau.de - die erste Adresse für Nachrichten und Information — https://www.tagesschau.de/")
+                        && !prompt.contains("<page"),
+                        "Claude gets only the tabs' titles and addresses")
+            self.expect(space.today.items.map(\.id) == order, "nothing changes before the proposal is taken")
+            self.shot("tidy proposal", of: tidy.window) {
+                tidy.apply()
+                let top = space.today.items
+                let doku = top.first, news = top.count > 1 ? top[1] : nil
+                self.expect(doku?.kind == .folder && doku?.displayTitle == "📚 Doku" && doku?.children.map(\.id) == [mine[0].id, mine[1].id]
+                            && news?.displayTitle == "📰 News" && news?.children.count == 2
+                            && mine[0].displayTitle == "Swift Concurrency" && tidy.window?.isVisible != true,
+                            "applying puts the folders at the top of the today tabs, with the shorter titles")
+                self.expect(space.pinned.allItems.map { "\($0.id) \($0.displayTitle) \($0.parent?.id.uuidString ?? "")" } == pinned,
+                            "pinned tabs stay as they were")
+                self.expect(self.browser.toast?.isVisible == true && TabTidy.lastUndo != nil, "a toast offers Rückgängig")
+                self.shot("tidy applied") {
+                    let undo = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command,
+                                                timestamp: ProcessInfo.processInfo.systemUptime,
+                                                windowNumber: self.browser.window?.windowNumber ?? 0, context: nil,
+                                                characters: "z", charactersIgnoringModifiers: "z", isARepeat: false, keyCode: 6)
+                    // As the key monitor gets it, from wherever the focus is.
+                    if let undo { self.expect(TabTidy.takesUndoKey(undo), "⌘Z is taken while the toast shows") }
+                    self.eventually({ TabTidy.lastUndo == nil }) { undone in
+                        self.expect(undone && space.today.items.map(\.id) == order && mine[0].customTitle == nil
+                                    && mine[0].displayTitle.hasPrefix("Concurrency |") && !space.today.allItems.contains { $0.kind == .folder },
+                                    "⌘Z puts the tabs back in their order, with their titles (undone \(undone), order \(space.today.items.map(\.id) == order), title \(mine[0].displayTitle), folders \(space.today.allItems.filter { $0.kind == .folder }.count))")
+                        stub.answer([ClaudeStub.initEvent(session: "selftest-tidy"),
+                                     ClaudeStub.resultEvent(session: "selftest-tidy", result: "Das kann ich nicht sortieren.")])
+                        guard let again = self.browser.tidyTabsWithAI() else { return finish() }
+                        self.eventually({ again.phase != .working }, timeout: 10) { _ in
+                            if case .failed(let message) = again.phase {
+                                self.expect(message.hasPrefix("Claude hat keinen brauchbaren Vorschlag"), "an answer without folders says so")
+                            } else {
+                                self.expect(false, "an answer without folders says so (\(again.phase))")
+                            }
+                            again.close()
+                            finish()
+                        }
                     }
                 }
             }

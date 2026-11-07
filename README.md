@@ -145,6 +145,13 @@ run. Data lives in
   prompt is a file of its own (`App/Resources/MorningBrief.md`; Bearbeiten …
   in the settings makes your own copy). Without `claude` on the Mac, or
   without its login, the tab says so.
+- **Tidy tabs with AI** ("Tabs mit KI aufräumen" in the command bar): Claude
+  sorts the current space's today tabs into folders with short names, an
+  emoji in front, and suggests shorter titles. It gets only the tabs' titles
+  and addresses. The proposal shows first and changes nothing until
+  "Übernehmen"; then the folders sit at the top under the line, and ⌘Z or
+  Rückgängig in the toast puts everything back. Pinned tabs and favorites
+  stay as they are.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:
