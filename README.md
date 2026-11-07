@@ -16,6 +16,7 @@ Status: early, but usable as a daily browser for testing.
 App/build.sh                      # fetches CEF, builds App/build/OpenArch.app
 open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, runs behind other windows
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test   # only the AI features, with a stand-in for claude
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
