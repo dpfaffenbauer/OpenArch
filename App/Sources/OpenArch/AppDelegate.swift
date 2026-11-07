@@ -78,6 +78,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             LiveFolders.shared.start(library)
             if !selfTest { Sharing.shared.start(library) }
+            MorningBrief.shared.start(library)
             ClaudeSessions.shared.start(library)
             // DevTools' own Dock side menu: the choice is kept like the menu's.
             OACPane.devToolsDockHandler = { [weak self] dock in

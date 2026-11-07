@@ -652,6 +652,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             switchSpace(to: space, restoring: false)
         }
         item.lastActiveAt = Date()
+        item.isUnread = false
         state.activeItem = item
         state.space.activeItemID = item.id
 

@@ -541,6 +541,10 @@ final class CommandBarModel {
             let agents: Command = ("Agents", "sparkles", "⌃0", { browser.toggleAgents() })
             commands += [agent, agents]
         }
+        if !browser.isStandalone {
+            let brief: Command = ("Morning Brief jetzt erstellen", "sun.horizon", nil, { MorningBrief.shared.run(in: browser, manual: true) })
+            commands.append(brief)
+        }
         if let active, active.kind == .tab {
             var tabCommands: [Command] = [
                 ("URL kopieren", "link", "⌘⇧C", { browser.copyURL() }),

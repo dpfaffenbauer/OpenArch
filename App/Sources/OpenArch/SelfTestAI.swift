@@ -12,9 +12,17 @@ extension SelfTest {
         pageChatTest(stub) {
             Swift.print("[selftest] STEP skills")
             self.skillsTest(stub) {
-                AgentEnvironment.stub = nil
-                stub.remove()
-                next()
+                Swift.print("[selftest] STEP morning brief")
+                self.morningBriefTest(stub) {
+                    AgentEnvironment.stub = nil
+                    stub.remove()
+                    guard CommandLine.arguments.contains("--shots"), let app = NSApp.delegate as? AppDelegate else { return next() }
+                    app.showSettings(page: .ai)
+                    self.shot("settings", of: app.settingsWindow) {
+                        app.settingsWindow?.close()
+                        next()
+                    }
+                }
             }
         }
     }
@@ -198,11 +206,82 @@ extension SelfTest {
 
 extension SelfTest {
     /// With --shots, names the window to take a picture of and waits for it.
-    func shot(_ name: String, then next: @escaping () -> Void) {
-        guard CommandLine.arguments.contains("--shots") else { return next() }
-        browser.window?.orderFrontRegardless()
-        Swift.print("[selftest] SHOT \(name) \(browser.window?.windowNumber ?? 0)")
+    func shot(_ name: String, of window: NSWindow? = nil, then next: @escaping () -> Void) {
+        guard CommandLine.arguments.contains("--shots"), let window = window ?? browser.window else { return next() }
+        window.orderFrontRegardless()
+        Swift.print("[selftest] SHOT \(name) \(window.windowNumber)")
         after(4) { next() }
+    }
+}
+
+extension SelfTest {
+    /// The morning brief: due once a day, made with the connectors' reading
+    /// tools only, opened at the top of the today tabs with a dot, and a
+    /// page that says so when claude is not signed in or not there.
+    fileprivate func morningBriefTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
+        let midnight = Calendar.current.startOfDay(for: Date())
+        let seven = midnight.addingTimeInterval(7 * 3600), eight = midnight.addingTimeInterval(8 * 3600)
+        expect(!MorningBrief.isDue(now: seven, minutes: 450, lastDay: nil) && MorningBrief.isDue(now: eight, minutes: 450, lastDay: nil)
+               && MorningBrief.isDue(now: eight, minutes: 450, lastDay: "2000-01-01")
+               && !MorningBrief.isDue(now: eight, minutes: 450, lastDay: MorningBrief.day(eight)),
+               "the morning brief is due once a day, from its time on")
+        let tools = ["Read", "Bash", "mcp__cal__list_events", "mcp__cal__create_event", "mcp__mail__searchThreads",
+                     "mcp__mail__sendMessage", "mcp__tasks__get_today", "mcp__tasks__complete_item", "mcp__tasks__getOrCreateList",
+                     "mcp__claude_ai_Slack__search_messages"]
+        let reading = MorningBrief.readingTools(tools)
+        expect(reading == ["mcp__cal__list_events", "mcp__mail__searchThreads", "mcp__tasks__get_today", "mcp__claude_ai_Slack__search_messages"],
+               "the brief gets only the connectors' reading tools (\(reading))")
+        let html = "<!DOCTYPE html><html><head><title>Morning Brief</title></head><body><h1>Guten Morgen</h1></body></html>"
+        stub.answer([ClaudeStub.initEvent(session: "selftest-brief", tools: tools), ClaudeStub.textEvent("Hier ist er."),
+                     ClaudeStub.resultEvent(session: "selftest-brief", result: "Hier ist er:\n```html\n\(html)\n```")])
+        guard let space = library.spaces.first else { return next() }
+        browser.switchSpace(to: space)
+        let shown = browser.state.activeItem
+        func page(of tab: Item?) -> String {
+            guard let url = tab.flatMap({ URL(string: $0.currentURL) }) else { return "" }
+            return (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        }
+        MorningBrief.shared.run(in: browser, manual: false)
+        eventually({ !MorningBrief.shared.isRunning }, timeout: 10) { done in
+            let tab = MorningBrief.tab(in: space)
+            self.expect(done && tab != nil && tab === space.today.items.first && tab?.displayTitle == "Morning Brief"
+                        && tab?.isUnread == true && page(of: tab) == html && self.browser.state.activeItem === shown,
+                        "the brief opens as a tab at the top of the today tabs, with a dot and Claude's page (\(page(of: tab).prefix(60)))")
+            let date = DateFormatter()
+            date.locale = Locale(identifier: "de_DE")
+            date.dateFormat = "EEEE, d. MMMM yyyy"
+            self.expect(stub.lastArguments.contains("--allowedTools\n" + reading.joined(separator: ",") + "\n")
+                        && stub.lastPrompt.contains(date.string(from: Date())) && stub.lastPrompt.contains("<!DOCTYPE html>"),
+                        "Claude is asked for today's brief as a page, with the reading tools allowed")
+            guard let tab else { return next() }
+            self.expect(Item(data: tab.data).isUnread, "the dot stays until the brief is read, also after a restart")
+            self.browser.select(tab, focus: false)
+            self.expect(!tab.isUnread, "reading the brief takes the dot away")
+            stub.answer([ClaudeStub.initEvent(session: "selftest-brief"),
+                         ClaudeStub.resultEvent(session: "selftest-brief", result: "Invalid API key · Please run /login", isError: true)])
+            MorningBrief.shared.run(in: self.browser, manual: true)
+            self.expect(self.browser.state.activeItem === tab && page(of: tab).contains("entsteht"),
+                        "made from the command bar, the brief shows at once and says it is being made")
+            self.eventually({ !MorningBrief.shared.isRunning }, timeout: 10) { _ in
+                let briefs = space.today.allTabs.filter { $0.currentURL.hasPrefix(MorningBrief.folder.absoluteString) }
+                self.expect(page(of: tab).contains("Claude Code ist nicht angemeldet.") && page(of: tab).contains("Please run /login")
+                            && briefs.count == 1,
+                            "without a login the brief tab says so plainly, and stays the only one")
+                self.shot("morning brief") {
+                    let saved = AgentEnvironment.stub
+                    AgentEnvironment.stub = AgentEnvironment.Resolved(claude: nil, variables: [:])
+                    MorningBrief.shared.run(in: self.browser, manual: false)
+                    self.eventually({ !MorningBrief.shared.isRunning }, timeout: 5) { _ in
+                        self.expect(page(of: tab).contains("Claude Code wurde nicht gefunden."),
+                                    "without claude on the Mac the brief tab says so")
+                        AgentEnvironment.stub = saved
+                        self.browser.close(tab)
+                        if let shown, shown.container != nil { self.browser.select(shown, focus: false) }
+                        next()
+                    }
+                }
+            }
+        }
     }
 }
 

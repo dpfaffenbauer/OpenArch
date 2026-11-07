@@ -364,6 +364,11 @@ struct Settings: Codable, Equatable {
     /// Kinds of files (DownloadKind) they leave out, as strings, so that a
     /// kind unknown to this version does not spoil the settings.
     var downloadStackHidden: [String] = []
+    /// The morning brief: once a day Claude Code writes a page about the
+    /// day ahead (see MorningBrief).
+    var morningBrief = false
+    /// When, in minutes after midnight (7:30).
+    var morningBriefMinutes = 450
 
     init() {}
 
@@ -393,6 +398,8 @@ struct Settings: Codable, Equatable {
         glassTint = try container.decodeIfPresent(Double.self, forKey: .glassTint) ?? defaults.glassTint
         downloadStack = try container.decodeIfPresent(Bool.self, forKey: .downloadStack) ?? defaults.downloadStack
         downloadStackHidden = try container.decodeIfPresent([String].self, forKey: .downloadStackHidden) ?? defaults.downloadStackHidden
+        morningBrief = try container.decodeIfPresent(Bool.self, forKey: .morningBrief) ?? defaults.morningBrief
+        morningBriefMinutes = try container.decodeIfPresent(Int.self, forKey: .morningBriefMinutes) ?? defaults.morningBriefMinutes
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
