@@ -575,7 +575,9 @@ class PaneClient : public CefClient,
                            CefRefPtr<CefFrame> frame,
                            CefRefPtr<CefContextMenuParams> params,
                            CefRefPtr<CefMenuModel> model) override {
-    if (!Own(browser) || !g_ask_selection_title.length ||
+    OACPane* pane = Own(browser);
+    if (!pane || !pane.offersAskAboutSelection || !g_ask_selection_title.length ||
+        ![pane.delegate respondsToSelector:@selector(pane:askAboutSelection:)] ||
         !(params->GetTypeFlags() & CM_TYPEFLAG_SELECTION) ||
         params->GetSelectionText().empty()) {
       return;
@@ -947,6 +949,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     _toolbarVisible = YES;
     _activatesOnShow = YES;
     _cornerRadius = 0;
+    _offersAskAboutSelection = YES;
   }
   return self;
 }

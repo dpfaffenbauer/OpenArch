@@ -450,7 +450,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func newFolder(_ sender: Any?) { browser?.newFolder() }
     @objc func newAgentChat(_ sender: Any?) { mainBrowser?.newAgentChat() }
     @objc func toggleAgents(_ sender: Any?) { mainBrowser?.toggleAgents() }
-    @objc func togglePageChat(_ sender: Any?) { browser?.togglePageChat() }
+    @objc func togglePageChat(_ sender: Any?) {
+        // Little OpenArch has no room for it; "In Space öffnen" first.
+        guard LittleOpenArchWindowController.current == nil else { return NSSound.beep() }
+        browser?.togglePageChat()
+    }
     @objc func newSpace(_ sender: Any?) { browser?.addSpace() }
     @objc func editSpace(_ sender: Any?) {
         guard let browser else { return }

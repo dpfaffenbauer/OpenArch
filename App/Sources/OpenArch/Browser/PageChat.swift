@@ -298,7 +298,7 @@ extension BrowserWindowController {
     /// "Claude fragen" on selected text: the chat opens with it as its focus.
     @objc(pane:askAboutSelection:)
     func pane(_ pane: OACPane, askAboutSelection text: String) {
-        guard let tab = allTabs.first(where: { $0.pane === pane }) else { return }
+        guard !isPrivate, let tab = allTabs.first(where: { $0.pane === pane }) else { return }
         if state.activeItem !== tab { select(tab) }
         openPageChat(tab, selection: text)
     }

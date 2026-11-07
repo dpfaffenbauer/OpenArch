@@ -749,6 +749,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         pane.cornerRadius = 8
         pane.activatesOnShow = !AppPaths.isSelfTest
         pane.toolbarVisible = library.settings.showChromeToolbar
+        pane.offersAskAboutSelection = !isPrivate
         tab.pane = pane
         tab.isAsleep = false
         tab.loadedAt = Date()

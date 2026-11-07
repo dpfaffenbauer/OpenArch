@@ -141,6 +141,9 @@ NS_SWIFT_UI_ACTOR
 @property(nonatomic) BOOL activatesOnShow;
 /// Corner radius of the pane window's content.
 @property(nonatomic) CGFloat cornerRadius;
+/// Whether selected text's context menu offers askAboutSelectionTitle
+/// (when the delegate handles it). Off in private windows.
+@property(nonatomic) BOOL offersAskAboutSelection;
 /// Self-test: the browser refuses to close, like one that never finishes
 /// closing, so quitting has to get by without it.
 @property(nonatomic) BOOL refusesToCloseForTesting;
