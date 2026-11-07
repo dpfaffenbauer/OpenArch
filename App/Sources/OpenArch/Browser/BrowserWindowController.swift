@@ -38,6 +38,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
     private var agentHost: NSHostingView<AgentContentView>!
+    /// The chat beside the page (⌘E, see PageChat).
+    private(set) var pageChatHost: NSHostingView<PageChatContainer>!
     private var loadingLine: NSHostingView<PageLoadingLine>!
     private var dividers: [SplitDividerView] = []
     private let focusRing = FocusRingView()
@@ -115,6 +117,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         agentHost.sizingOptions = []
         agentHost.safeAreaRegions = []  // its top runs under the title bar, like a page
         rootView.addSubview(agentHost)
+        pageChatHost = NSHostingView(rootView: PageChatContainer(browser: self))
+        pageChatHost.sizingOptions = []
+        pageChatHost.safeAreaRegions = []
+        pageChatHost.isHidden = true
+        rootView.addSubview(pageChatHost)
         rootView.addSubview(sidebarHost)
         rootView.addSubview(focusRing)
         loadingLine = NSHostingView(rootView: PageLoadingLine(browser: self))
@@ -227,6 +234,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
         // An agent chat is light or dark like the pages, not like the space.
         agentHost?.appearance = NSApp.effectiveAppearance
+        pageChatHost?.appearance = NSApp.effectiveAppearance
         floatingSidebar.applyTheme()
     }
 
@@ -238,8 +246,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return state.libraryVisible ? max(width, 400) : width
     }
 
-    /// The area right of the sidebar where panes go, in window coordinates.
+    /// Where panes go, in window coordinates: the content area, less the
+    /// chat beside the page while it is open.
     var contentRect: NSRect {
+        pageArea(in: contentAreaRect)
+    }
+
+    /// The area right of the sidebar, in window coordinates.
+    var contentAreaRect: NSRect {
         let bounds = rootView.bounds
         let inset = Self.contentInset
         var rect = bounds
@@ -303,6 +317,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             }
         }
         layoutDividers(frames: frames, content: content)
+        layoutPageChat()
         layoutFocusRing(frames: frames)
         layoutLoadingLine(frames: frames)
         floatingSidebar.layout()
@@ -917,6 +932,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         let wasActive = state.activeItem === item
         let neighbor = wasActive ? neighbor(forClosing: item) : nil
+        discardPageChat(item)
         if item.role == .today {
             if !isPrivate { library.archive(item, from: homeSpace) }
             unload(item)

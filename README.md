@@ -120,6 +120,14 @@ run. Data lives in
   a search field; the page or chat in front stays. The ✨ gets a dot while
   sessions wait for you. A session continues as an agent chat with its
   history, or in Terminal.
+- **Chat with the page** (⌘E, as in Dia): a chat with Claude opens beside
+  the page and gets its address, title and text. Text selected on the page
+  goes along as the focus of the question (also right-click › Claude
+  fragen), and @ in the field lists the space's tabs and adds their text,
+  to compare or sum up several. Answers stream in as in agent chats, and
+  their links open as tabs. ⌘E or Esc closes the chat; it keeps its
+  conversation until the tab closes. Like agent chats it runs the `claude`
+  command line tool on your own login, in a folder of its own.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:

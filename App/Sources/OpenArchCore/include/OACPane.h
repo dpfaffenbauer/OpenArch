@@ -105,6 +105,9 @@ NS_SWIFT_UI_ACTOR
 /// The page went to an address another app opens (bambustudioopen:,
 /// zoommtg:, mailto: ...). The navigation was cancelled.
 - (void)pane:(OACPane*)pane wantsToOpenExternalURL:(NSString*)url;
+/// "Claude fragen" (askAboutSelectionTitle) was chosen in the context menu
+/// of text selected on the page.
+- (void)pane:(OACPane*)pane askAboutSelection:(NSString*)text;
 @end
 
 /// One Chrome tab. It is hosted in its own borderless Chrome-style window
@@ -215,6 +218,10 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 @property(class, nonatomic, copy, nullable) void (^aboutPageHandler)(void);
 /// Whether |url| is Chrome's About page (chrome://help, any path).
 + (BOOL)isAboutPageURL:(NSString*)url;
+
+/// With a title set, the context menu of selected text starts with an item
+/// of that name, which calls the delegate's -pane:askAboutSelection:.
+@property(class, nonatomic, copy, nullable) NSString* askAboutSelectionTitle;
 
 /// Gets every download's progress, from any tab or window, including tabs
 /// that closed after starting one.

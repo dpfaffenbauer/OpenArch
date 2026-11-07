@@ -117,6 +117,8 @@ final class Item: Identifiable {
     var agent: AgentConfig?
     /// Agent chats: the chat itself, from the first time it is shown.
     var agentSession: AgentSession?
+    /// Tabs: the chat beside the page (⌘E), until the tab closes.
+    var pageChat: PageChat?
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", customTitle: String? = nil,
          children: [Item] = [], lastActiveAt: Date = Date()) {

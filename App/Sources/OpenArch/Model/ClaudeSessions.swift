@@ -95,7 +95,10 @@ final class ClaudeSessions {
                 ClaudeSessions.scan(root: ClaudeSessions.defaultRoot, now: Date(), running: ClaudeSessions.runningFolders(),
                                     cache: cache)
             }.value
-            self.sessions = found
+            // OpenArch's own runs (page chats and the like) work in its
+            // Application Support folder; they are not yours to continue.
+            let own = AppPaths.support.path + "/"
+            self.sessions = found.filter { !$0.folder.hasPrefix(own) }
             self.cache = read
             self.refreshing = false
             self.isLoading = false
