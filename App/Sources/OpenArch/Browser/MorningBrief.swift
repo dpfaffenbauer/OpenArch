@@ -136,11 +136,18 @@ final class MorningBrief {
     static func make(now: Date) async -> String {
         // First only which tools Claude Code has, so the brief may use the
         // connectors' reading ones: claude -p cannot ask for permission, and
-        // a mail must not be able to make it send or delete anything.
-        let probe = await ClaudeRun.run("OK", in: folder, untilInit: true, timeout: 120)
-        if let problem = problemPage(probe) { return problem }
+        // a mail must not be able to make it send or delete anything. The
+        // claude.ai connectors bring their tools a moment later, so it asks
+        // again (no model call) until each connected server has shown them.
+        var offered = Set<String>()
+        for _ in 0..<3 {
+            let probe = await ClaudeRun.run("OK", in: folder, untilInit: true, timeout: 120)
+            if let problem = problemPage(probe) { return problem }
+            offered.formUnion(probe.tools)
+            if serversWithoutTools(probe.servers, tools: offered).isEmpty { break }
+        }
         var arguments = ["--permission-mode", "default"]
-        let tools = readingTools(probe.tools)
+        let tools = readingTools(offered.sorted())
         if !tools.isEmpty {
             arguments += ["--allowedTools", tools.joined(separator: ",")]
         }
@@ -165,11 +172,24 @@ final class MorningBrief {
                           detail: error)
     }
 
+    /// Servers that are (being) connected but have not shown any tools yet.
+    /// Their tools start with mcp__ and the name, other characters as _
+    /// ("claude.ai Gmail" → mcp__claude_ai_Gmail__).
+    nonisolated static func serversWithoutTools(_ servers: [String: String], tools: Set<String>) -> [String] {
+        servers.filter { name, status in
+            guard status == "connected" || status == "pending" else { return false }
+            let prefix = "mcp__" + String(name.map { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" ? $0 : "_" }) + "__"
+            return !tools.contains { $0.hasPrefix(prefix) }
+        }
+        .map(\.key)
+        .sorted()
+    }
+
     /// Connector tools whose names say they read: get, list, search … and
     /// nothing that creates, sends, changes or deletes.
     nonisolated static func readingTools(_ tools: [String]) -> [String] {
         let reading: Set<String> = ["get", "list", "search", "read", "fetch", "find", "query", "show", "view", "lookup",
-                                    "look", "describe", "retrieve", "check", "count", "browse", "export", "my", "today",
+                                    "look", "describe", "retrieve", "check", "count", "browse", "my", "today",
                                     "day", "recent", "upcoming"]
         let writing: Set<String> = ["create", "update", "delete", "remove", "send", "set", "add", "post", "write", "edit",
                                     "move", "archive", "complete", "log", "book", "start", "stop", "publish", "install",
@@ -179,8 +199,10 @@ final class MorningBrief {
         return tools.filter { tool in
             guard tool.hasPrefix("mcp__") else { return false }
             let parts = tool.dropFirst(5).components(separatedBy: "__")
-            guard parts.count >= 2, let name = parts.last else { return false }
-            let words = Self.words(name)
+            guard parts.count >= 2, let server = parts.first, let name = parts.last else { return false }
+            var words = Self.words(name)
+            // "slack_read_channel" of the Slack server reads.
+            if words.count > 1, words.first == Self.words(server).last { words.removeFirst() }
             guard let first = words.first, reading.contains(first) else { return false }
             return !words.contains { writing.contains($0) }
         }

@@ -237,10 +237,14 @@ extension SelfTest {
                "the morning brief is due once a day, from its time on")
         let tools = ["Read", "Bash", "mcp__cal__list_events", "mcp__cal__create_event", "mcp__mail__searchThreads",
                      "mcp__mail__sendMessage", "mcp__tasks__get_today", "mcp__tasks__complete_item", "mcp__tasks__getOrCreateList",
-                     "mcp__claude_ai_Slack__search_messages"]
+                     "mcp__claude_ai_Slack__slack_read_channel", "mcp__claude_ai_Slack__slack_send_message"]
         let reading = MorningBrief.readingTools(tools)
-        expect(reading == ["mcp__cal__list_events", "mcp__mail__searchThreads", "mcp__tasks__get_today", "mcp__claude_ai_Slack__search_messages"],
+        expect(reading == ["mcp__cal__list_events", "mcp__mail__searchThreads", "mcp__tasks__get_today", "mcp__claude_ai_Slack__slack_read_channel"],
                "the brief gets only the connectors' reading tools (\(reading))")
+        let waiting = MorningBrief.serversWithoutTools(["claude.ai Gmail": "connected", "chronos": "connected", "Figma": "pending",
+                                                        "Notion": "needs-auth"],
+                                                       tools: ["mcp__chronos__list_issues", "mcp__Figma__get_file"])
+        expect(waiting == ["claude.ai Gmail"], "a connected server without tools yet is asked about again (\(waiting))")
         let html = "<!DOCTYPE html><html><head><title>Morning Brief</title></head><body><h1>Guten Morgen</h1></body></html>"
         stub.answer([ClaudeStub.initEvent(session: "selftest-brief", tools: tools), ClaudeStub.textEvent("Hier ist er."),
                      ClaudeStub.resultEvent(session: "selftest-brief", result: "Hier ist er:\n```html\n\(html)\n```")])
@@ -260,7 +264,7 @@ extension SelfTest {
             let date = DateFormatter()
             date.locale = Locale(identifier: "de_DE")
             date.dateFormat = "EEEE, d. MMMM yyyy"
-            self.expect(stub.lastArguments.contains("--allowedTools\n" + reading.joined(separator: ",") + "\n")
+            self.expect(stub.lastArguments.contains("--allowedTools\n" + MorningBrief.readingTools(tools.sorted()).joined(separator: ",") + "\n")
                         && stub.lastPrompt.contains(date.string(from: Date())) && stub.lastPrompt.contains("<!DOCTYPE html>"),
                         "Claude is asked for today's brief as a page, with the reading tools allowed")
             guard let tab else { return next() }

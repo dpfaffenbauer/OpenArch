@@ -17,6 +17,8 @@ enum ClaudeRun {
         var needsLogin = false
         /// The tools Claude Code offered (its init event), MCP servers' included.
         var tools: [String] = []
+        /// Its MCP servers and how they are: "connected", "pending", "needs-auth" …
+        var servers: [String: String] = [:]
 
         var succeeded: Bool { error == nil && !isMissing }
     }
@@ -62,6 +64,7 @@ enum ClaudeRun {
 private final class Answer: @unchecked Sendable {
     private let lock = NSLock()
     private var tools: [String] = []
+    private var servers: [String: String] = [:]
     private var sawInit = false
     private var result: String?
     private var resultIsError = false
@@ -77,6 +80,9 @@ private final class Answer: @unchecked Sendable {
             switch event["type"] as? String {
             case "system" where event["subtype"] as? String == "init":
                 tools = event["tools"] as? [String] ?? []
+                for case let server as [String: Any] in event["mcp_servers"] as? [Any] ?? [] {
+                    if let name = server["name"] as? String { servers[name] = server["status"] as? String ?? "" }
+                }
                 sawInit = true
             case "assistant":
                 let content = (event["message"] as? [String: Any])?["content"] as? [[String: Any]] ?? []
@@ -98,7 +104,7 @@ private final class Answer: @unchecked Sendable {
 
     func outcome(status: Int32, errors: String, untilInit: Bool) -> ClaudeRun.Outcome {
         lock.withLock {
-            var outcome = ClaudeRun.Outcome(tools: tools)
+            var outcome = ClaudeRun.Outcome(tools: tools, servers: servers)
             let errors = errors.trimmingCharacters(in: .whitespacesAndNewlines)
             if untilInit, sawInit { return outcome }
             if let result, !resultIsError {
