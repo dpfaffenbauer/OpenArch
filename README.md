@@ -128,6 +128,11 @@ run. Data lives in
   their links open as tabs. ⌘E or Esc closes the chat; it keeps its
   conversation until the tab closes. Like agent chats it runs the `claude`
   command line tool on your own login, in a folder of its own.
+- **Skills in the command bar:** typing the name of one of your Claude Code
+  skills (`~/.claude/skills`) or slash commands (`~/.claude/commands`) lists
+  it with its description, and a / lists them all. Choosing one runs it on
+  the page in front, in the page's chat. OpenArch only reads their names
+  and descriptions; Claude Code runs them.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:

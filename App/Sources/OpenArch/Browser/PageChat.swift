@@ -318,12 +318,23 @@ extension BrowserWindowController {
             .map { $0 }
     }
 
+    /// Runs one of your Claude Code skills or commands on |tab|'s page, in
+    /// its chat (from the command bar).
+    func runSkill(_ skill: ClaudeSkill, on tab: Item) {
+        guard tab.kind == .tab else { return }
+        if state.activeItem !== tab { select(tab) }
+        let chat = openPageChat(tab)
+        guard !chat.session.isRunning, !chat.isPreparing else { return }
+        sendPageChat(tab, skill: skill)
+    }
+
     /// Sends what was written in |tab|'s chat, with the page, the selection
-    /// and the tabs named with @.
-    func sendPageChat(_ tab: Item) {
+    /// and the tabs named with @. |skill| runs one of your Claude Code
+    /// skills or commands on the page, with what was written as its words.
+    func sendPageChat(_ tab: Item, skill: ClaudeSkill? = nil) {
         guard let chat = tab.pageChat, !chat.session.isRunning, !chat.isPreparing else { return }
         let text = chat.session.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty || skill != nil else { return }
         let selection = chat.selection
         let mentions = chat.mentions.filter { $0.container != nil || $0.pane != nil }
         chat.isPreparing = true
@@ -337,7 +348,8 @@ extension BrowserWindowController {
             chat.isPreparing = false
             guard tab.pageChat === chat else { return }
             // The page goes along when it is new to the chat.
-            let givesPage = page.url != chat.sentURL
+            // A skill always gets the page, a question when it is new to the chat.
+            let givesPage = skill != nil || page.url != chat.sentURL
             var attachments: [AgentAttachment] = []
             if givesPage {
                 attachments.append(AgentAttachment(kind: .page, title: PageChat.shortTitle(page.title.isEmpty ? page.url : page.title),
@@ -350,8 +362,15 @@ extension BrowserWindowController {
                 attachments.append(AgentAttachment(kind: .tab, title: PageChat.shortTitle(content.title.isEmpty ? content.url : content.title),
                                                    url: content.url))
             }
-            let prompt = PageChat.prompt(text, page: givesPage ? page : nil, selection: selection, tabs: tabs)
-            chat.session.send(text, prompt: prompt, attachments: attachments)
+            var shown = text
+            var prompt = PageChat.prompt(text, page: givesPage ? page : nil, selection: selection, tabs: tabs)
+            if let skill {
+                // Claude Code runs "/name words" as the skill or command, the words as its arguments.
+                shown = "/\(skill.name)" + (text.isEmpty ? "" : " " + text)
+                prompt = "/\(skill.name) " + PageChat.prompt(text.isEmpty ? "Wende das auf diese Seite an." : text,
+                                                            page: page, selection: selection, tabs: tabs)
+            }
+            chat.session.send(shown, prompt: prompt, attachments: attachments)
             chat.sentURL = page.url
             chat.selection = nil
             chat.mentions = []

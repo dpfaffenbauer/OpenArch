@@ -10,9 +10,76 @@ extension SelfTest {
         AgentEnvironment.stub = AgentEnvironment.Resolved(claude: stub.executable.path, variables: ProcessInfo.processInfo.environment)
         Swift.print("[selftest] STEP page chat")
         pageChatTest(stub) {
-            AgentEnvironment.stub = nil
-            stub.remove()
-            next()
+            Swift.print("[selftest] STEP skills")
+            self.skillsTest(stub) {
+                AgentEnvironment.stub = nil
+                stub.remove()
+                next()
+            }
+        }
+    }
+
+    /// The command bar lists your Claude Code skills and commands by name
+    /// and runs one on the page, in the page's chat.
+    private func skillsTest(_ stub: ClaudeStub, then next: @escaping () -> Void) {
+        let root = stub.folder.appendingPathComponent("claude-config", isDirectory: true)
+        let files: [String: String] = [
+            "skills/zusammenfassen/SKILL.md": """
+                ---
+                name: zusammenfassen
+                description: >
+                  Fasst eine Seite in fünf Punkten
+                  zusammen.
+                metadata:
+                  type: test
+                ---
+                # Zusammenfassen
+                """,
+            "skills/ohne-datei/README.md": "Kein Skill",
+            "commands/tldr.md": "---\ndescription: \"Kurz und knapp\"\n---\nSchreib eine Kurzfassung von $ARGUMENTS\n",
+            "commands/team/standup.md": "# Bereite das Standup vor.\n\nMehr dazu.\n",
+        ]
+        for (path, text) in files {
+            let file = root.appendingPathComponent(path)
+            try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? text.write(to: file, atomically: true, encoding: .utf8)
+        }
+        let skills = ClaudeSkills.load(root: root)
+        expect(skills.map(\.name) == ["standup", "tldr", "zusammenfassen"]
+               && skills.map(\.description) == ["Bereite das Standup vor.", "Kurz und knapp", "Fasst eine Seite in fünf Punkten zusammen."]
+               && skills.map(\.kind) == [.command, .command, .skill],
+               "skills and commands are read with their names and descriptions (\(skills.map { "\($0.name): \($0.description)" }))")
+        let originalRoot = ClaudeSkills.root
+        ClaudeSkills.root = root
+        stub.answer([ClaudeStub.initEvent(session: "selftest-skill"), ClaudeStub.textEvent("- Punkt eins"),
+                     ClaudeStub.resultEvent(session: "selftest-skill")])
+        let shown = browser.state.activeItem
+        let tab = browser.openInNewTab("https://example.com/?skill")
+        after(2.5) {
+            let bar = self.browser.commandBar
+            bar.show(mode: .newTab)
+            bar.model.query = "zusam"
+            let row = bar.model.results.first { $0.title == "/zusammenfassen" }
+            self.expect(row?.subtitle == "Skill · Fasst eine Seite in fünf Punkten zusammen.",
+                        "typing a skill's name lists it in the command bar (\(bar.model.results.map(\.title)))")
+            bar.model.query = "/"
+            self.expect(bar.model.results.prefix(3).map(\.title) == ["/standup", "/tldr", "/zusammenfassen"],
+                        "a / lists the skills and commands first")
+            bar.model.query = "/zusam"
+            bar.model.run(0)
+            self.eventually({ tab.pageChat?.session.messages.count ?? 0 >= 2 && tab.pageChat?.session.isRunning == false }, timeout: 10) { ran in
+                let prompt = stub.lastPrompt
+                let message = tab.pageChat?.session.messages.first
+                self.expect(ran && tab.pageChat?.isOpen == true
+                            && prompt.hasPrefix("/zusammenfassen <page url=\"https://example.com/?skill\"")
+                            && prompt.hasSuffix("Wende das auf diese Seite an.")
+                            && message?.text == "/zusammenfassen" && message?.attachments?.first?.kind == .page,
+                            "choosing it runs the skill on the page, in the page's chat (\(prompt.prefix(60)))")
+                ClaudeSkills.root = originalRoot
+                self.browser.close(tab)
+                if let shown, shown.container != nil { self.browser.select(shown, focus: false) }
+                next()
+            }
         }
     }
 
