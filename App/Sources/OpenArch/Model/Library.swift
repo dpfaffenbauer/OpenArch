@@ -392,6 +392,9 @@ struct Settings: Codable, Equatable {
     var morningBrief = false
     /// When, in minutes after midnight (7:30).
     var morningBriefMinutes = 450
+    /// Long tab titles get a short name from Apple's on-device model
+    /// (ShortTitles), while Apple Intelligence is there.
+    var tidyTitles = false
 
     init() {}
 
@@ -427,6 +430,7 @@ struct Settings: Codable, Equatable {
         shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts
         morningBrief = try container.decodeIfPresent(Bool.self, forKey: .morningBrief) ?? defaults.morningBrief
         morningBriefMinutes = try container.decodeIfPresent(Int.self, forKey: .morningBriefMinutes) ?? defaults.morningBriefMinutes
+        tidyTitles = try container.decodeIfPresent(Bool.self, forKey: .tidyTitles) ?? defaults.tidyTitles
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

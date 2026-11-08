@@ -14,6 +14,7 @@ extension SelfTest {
             ("skills", { self.skillsTest(stub, then: $0) }),
             ("morning brief", { self.morningBriefTest(stub, then: $0) }),
             ("tidy tabs", { self.tidyTest(stub, then: $0) }),
+            ("short tab titles", { self.shortTitlesTest(then: $0) }),
             ("ai settings", { self.aiSettingsShot(then: $0) }),
         ]
         func run(_ index: Int) {
@@ -354,8 +355,9 @@ extension SelfTest {
                 let doku = top.first, news = top.count > 1 ? top[1] : nil
                 self.expect(doku?.kind == .folder && doku?.displayTitle == "📚 Doku" && doku?.children.map(\.id) == [mine[0].id, mine[1].id]
                             && news?.displayTitle == "📰 News" && news?.children.count == 2
-                            && mine[0].displayTitle == "Swift Concurrency" && tidy.window?.isVisible != true,
-                            "applying puts the folders at the top of the today tabs, with the shorter titles")
+                            && ShortTitles.shared.title(of: mine[0], in: self.browser) == "Swift Concurrency"
+                            && mine[0].customTitle == nil && tidy.window?.isVisible != true,
+                            "applying puts the folders at the top of the today tabs, with the shorter titles as short names (not renames)")
                 self.expect(space.pinned.allItems.map { "\($0.id) \($0.displayTitle) \($0.parent?.id.uuidString ?? "")" } == pinned,
                             "pinned tabs stay as they were")
                 self.expect(self.browser.toast?.isVisible == true && TabTidy.lastUndo != nil, "a toast offers Rückgängig")
@@ -368,7 +370,8 @@ extension SelfTest {
                     if let undo { self.expect(TabTidy.takesUndoKey(undo), "⌘Z is taken while the toast shows") }
                     self.eventually({ TabTidy.lastUndo == nil }) { undone in
                         self.expect(undone && space.today.items.map(\.id) == order && mine[0].customTitle == nil
-                                    && mine[0].displayTitle.hasPrefix("Concurrency |") && !space.today.allItems.contains { $0.kind == .folder },
+                                    && ShortTitles.shared.title(of: mine[0], in: self.browser).hasPrefix("Concurrency |")
+                                    && !space.today.allItems.contains { $0.kind == .folder },
                                     "⌘Z puts the tabs back in their order, with their titles (undone \(undone), order \(space.today.items.map(\.id) == order), title \(mine[0].displayTitle), folders \(space.today.allItems.filter { $0.kind == .folder }.count))")
                         stub.answer([ClaudeStub.initEvent(session: "selftest-tidy"),
                                      ClaudeStub.resultEvent(session: "selftest-tidy", result: "Das kann ich nicht sortieren.")])

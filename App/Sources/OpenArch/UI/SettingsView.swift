@@ -495,6 +495,38 @@ private struct LinkRulesSection: View {
     }
 }
 
+/// Short names for long tab titles, from Apple's model on this Mac; greyed
+/// out with the reason while Apple Intelligence isn't there.
+private struct TabTitlesSection: View {
+    @Bindable var library: Library
+    let titles = ShortTitles.shared
+
+    var body: some View {
+        let availability = titles.availability
+        Section(title: "Tabs",
+                footer: "Die Namen macht Apples Modell auf diesem Mac. Es bekommt nur den Titel ohne Zähler und E-Mail-Adressen und den Host der Seite, nie ihren Inhalt, den Verlauf oder den Rest der Adresse. Umbenannte Tabs, Favoriten, Ordner, Splits und private Fenster bleiben, wie sie sind. Ausschalten löscht die Namen.") {
+            Row(symbol: "textformat.size.smaller", color: .teal, title: "Tab-Titel kürzen",
+                detail: availability.isAvailable
+                    ? "Angeheftete und heutige Tabs mit langem Titel bekommen einen kurzen Namen wie „Gmail Inbox“. Den ganzen Titel zeigt die Vorschau des Tabs."
+                    : availability.reason,
+                showsDivider: false) {
+                HStack {
+                    if availability == .notEnabled {
+                        Button("Systemeinstellungen …") { AppleIntelligence.openSettings() }
+                    }
+                    Toggle("", isOn: Binding(get: { availability.isAvailable && library.settings.tidyTitles },
+                                             set: { library.settings.tidyTitles = $0 }))
+                        .labelsHidden().toggleStyle(.switch)
+                        .disabled(!availability.isAvailable)
+                }
+            }
+        }
+        .onAppear { titles.refreshAvailability() }
+        .onChange(of: library.settings.tidyTitles) { titles.settingChanged(enabled: library.settings.tidyTitles) }
+        .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
 /// Questions from the command bar go to a new chat on Claude or ChatGPT,
 /// signed in as you there.
 private struct AskAISection: View {
@@ -620,6 +652,7 @@ private struct AIPage: View {
 
     var body: some View {
         let running = OACEngine.remoteDebuggingPort
+        TabTitlesSection(library: app.library)
         AskAISection(library: app.library)
         AgentChatsSection(library: app.library)
         MorningBriefSection(app: app, library: app.library)

@@ -173,6 +173,17 @@ run. Data lives in
   "Übernehmen"; then the folders sit at the top under the line, and ⌘Z or
   Rückgängig in the toast puts everything back. Pinned tabs and favorites
   stay as they are.
+- **Short tab titles on the Mac** (Settings › KI › Tab-Titel kürzen, off by
+  default): with Apple Intelligence (macOS 26 or later), long or noisy titles
+  of pinned and today tabs get a short name from Apple's on-device model, as
+  in Arc Max ("Inbox (3) - x@y.de - Gmail" becomes "Gmail Inbox"). The model
+  sees only the title without counts and email addresses, and the host.
+  Renamed tabs, favorites, folders, splits and private windows keep their
+  titles; the tab preview (or the tooltip, with previews off) shows the full
+  one. Names are kept by address in `ShortTitles.json`, together with the
+  shorter titles from "Tabs mit KI aufräumen"; turning it off deletes the
+  ones made on the Mac. Without Apple Intelligence the switch is greyed out
+  with the reason, and OpenArch still runs on macOS 15.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:
@@ -322,6 +333,10 @@ Lessons learned on the way:
 - **Not built yet:** Easels and Notes.
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
+- **Short tab titles show in the sidebar only.** The command bar, the tab
+  switcher keep the page's own title. The self-test runs
+  them with a stand-in for Apple's model and makes one request to the real
+  model only where Apple Intelligence is on.
 
 ## Hosting
 

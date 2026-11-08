@@ -1093,7 +1093,7 @@ private struct TabRow: View {
             if item.hasNavigatedAway {
                 Text("/").font(.system(size: 14)).opacity(0.5).padding(.horizontal, -4)
             }
-            RenamableTitle(browser: browser, item: item)
+            RenamableTitle(browser: browser, item: item, title: ShortTitles.shared.title(of: item, in: browser))
                 .font(.system(size: 14))
             Spacer(minLength: 2)
             if hovering {
@@ -1133,8 +1133,8 @@ private struct TabRow: View {
         }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
         .contextMenu { TabContextMenu(browser: browser, item: item) }
-        // The preview shows the address; the tooltip would cover it.
-        .help(browser.library.settings.tabPreviews ? "" : item.currentURL)
+        // The preview shows the title and address; the tooltip would cover it.
+        .help(ShortTitles.shared.help(for: item, in: browser))
     }
 }
 
@@ -1155,7 +1155,7 @@ private struct AgentRow: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 13, weight: .medium))
                 .frame(width: 16)
-            RenamableTitle(browser: browser, item: item)
+            RenamableTitle(browser: browser, item: item, title: ShortTitles.shared.title(of: item, in: browser))
                 .font(.system(size: 14))
             Spacer(minLength: 2)
             if hovering {
@@ -1586,6 +1586,8 @@ private struct SmallButton: View {
 private struct RenamableTitle: View {
     let browser: BrowserWindowController
     let item: Item
+    /// What shows when not renaming (a tab's short name); its own title when nil.
+    var title: String?
     @State private var text = ""
     @FocusState private var focused: Bool
 
@@ -1604,7 +1606,7 @@ private struct RenamableTitle: View {
                     if !isFocused, browser.state.renamingItemID == item.id { browser.rename(item, to: text) }
                 }
         } else {
-            Text(item.displayTitle).lineLimit(1).truncationMode(.tail)
+            Text(title ?? item.displayTitle).lineLimit(1).truncationMode(.tail)
         }
     }
 }

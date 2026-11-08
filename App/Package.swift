@@ -33,7 +33,11 @@ let package = Package(
         .executableTarget(
             name: "OpenArch",
             dependencies: ["OpenArchCore", .product(name: "OpenArchShared", package: "Shared")],
-            linkerSettings: [.linkedLibrary("sqlite3")]
+            linkerSettings: [
+                .linkedLibrary("sqlite3"),
+                // Apple's on-device model (macOS 26 and later); OpenArch still starts on macOS 15.
+                .unsafeFlags(["-Xlinker", "-weak_framework", "-Xlinker", "FoundationModels"]),
+            ]
         ),
         .executableTarget(
             name: "OpenArchHelper",
