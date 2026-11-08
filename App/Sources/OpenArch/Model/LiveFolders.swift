@@ -23,6 +23,17 @@ struct LiveSource: Codable, Equatable {
     }
 }
 
+/// A pull request's CI checks, as GitHub sums them up.
+struct Checks: Equatable {
+    enum State: Equatable {
+        case success, failure, pending
+    }
+
+    var state: State
+    /// GitHub's words, e.g. "9 / 15 checks OK".
+    var label: String
+}
+
 /// How the last refresh of a live folder went.
 enum LiveStatus: Equatable {
     case loading, signedOut, failed
@@ -74,7 +85,73 @@ final class LiveFolders {
             folder.liveStatus = nil
             Self.apply(result.entries, to: folder)
             library.setNeedsSave()
+            if source.kind == .pullRequests {
+                for child in folder.children where child.kind == .tab {
+                    await refreshChecks(child, profile: profile)
+                }
+            }
         }
+    }
+
+    /// The pull request's checks, as GitHub shows them next to its newest
+    /// commit: that commit from the PR's commit list (JSON), then GitHub's
+    /// own status icon for it.
+    private func refreshChecks(_ item: Item, profile: OACProfile) async {
+        guard let path = Self.pullPath(item.savedURL),
+              let commitsURL = URL(string: "https://github.com\(path)/commits") else { return }
+        let headers = ["Accept": "application/json", "X-Requested-With": "XMLHttpRequest"]
+        let (data, status) = await ChromiumFetch.get(commitsURL, profile: profile, headers: headers)
+        guard status == 200, let data, let sha = Self.headSHA(fromCommits: data),
+              let iconURL = URL(string: "https://github.com\(path)/partials/commit_status_icon?oid=\(sha)") else { return }
+        let (icon, iconStatus) = await ChromiumFetch.get(iconURL, profile: profile, headers: ["X-Requested-With": "XMLHttpRequest"])
+        guard iconStatus == 200, let icon else { return }
+        item.checks = Self.checks(fromStatusIcon: String(decoding: icon, as: UTF8.self))
+    }
+
+    /// "/owner/repo/pull/123" of a pull request's address.
+    nonisolated static func pullPath(_ url: String) -> String? {
+        guard let components = URLComponents(string: url), components.host == "github.com" else { return nil }
+        let parts = components.path.split(separator: "/")
+        guard parts.count >= 4, parts[2] == "pull", Int(parts[3]) != nil else { return nil }
+        return "/" + parts.prefix(4).joined(separator: "/")
+    }
+
+    /// The newest commit of a pull request, from github.com's commit list
+    /// as JSON: its live-update channel names it, else the last commit.
+    nonisolated static func headSHA(fromCommits data: Data) -> String? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let route = (json["payload"] as? [String: Any])?["pullRequestsCommitsRoute"] as? [String: Any] else { return nil }
+        // The channel is base64 JSON like {"c":"repo:1:commit:<sha>"}, then "--" and a signature.
+        if let channel = (route["metadata"] as? [String: Any])?["commitHeadShaChannel"] as? String,
+           let encoded = channel.components(separatedBy: "--").first, let decoded = Data(base64Encoded: encoded),
+           let object = try? JSONSerialization.jsonObject(with: decoded) as? [String: Any],
+           let name = object["c"] as? String, let range = name.range(of: ":commit:") {
+            let sha = String(name[range.upperBound...])
+            if sha.count == 40 { return sha }
+        }
+        let groups = route["commitGroups"] as? [[String: Any]]
+        let commits = groups?.last?["commits"] as? [[String: Any]]
+        return commits?.last?["oid"] as? String
+    }
+
+    /// GitHub's status icon: a check, a cross or a dot, and its label
+    /// ("9 / 15 checks OK"). Nil when the commit has no checks.
+    nonisolated static func checks(fromStatusIcon html: String) -> Checks? {
+        let state: Checks.State
+        if html.contains("octicon-x") {
+            state = .failure
+        } else if html.contains("octicon-dot-fill") || html.contains("octicon-dot ") {
+            state = .pending
+        } else if html.contains("octicon-check") {
+            state = .success
+        } else {
+            return nil
+        }
+        var label = ""
+        if let range = html.range(of: #"aria-label="[^"]*""#, options: .regularExpression) {
+            label = plainText(String(html[range].dropFirst(12).dropLast()))
+        }
+        return Checks(state: state, label: label)
     }
 
     struct Entry: Equatable {

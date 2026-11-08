@@ -35,7 +35,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // The self-test runs in the background: no Dock icon, no focus.
         NSApp.setActivationPolicy(selfTest ? .accessory : .regular)
-        NSApp.mainMenu = MainMenu.build(target: self)
         ShortcutMonitor.install(target: self)
         NotificationCenter.default.addObserver(forName: NSWindow.didBecomeKeyNotification, object: nil,
                                                queue: .main) { [weak self] note in
@@ -48,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppIcons.repairBundle()
         SpotifyPlayer.shared.start()
         library = Library.load()
+        // With the user's own shortcuts (Settings › Tastatur).
+        rebuildMenu()
         library.settings.applyToChromium()
         history = History()
         // A second launch (another copy of the app, or `open` again) ends up
@@ -80,6 +81,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if !selfTest { Sharing.shared.start(library) }
             MorningBrief.shared.start(library)
             ClaudeSessions.shared.start(library)
+            Meetings.shared.onReminder = { [weak self] meeting in
+                guard let self, let browser = self.mainBrowser else { return }
+                browser.showToast("„\(meeting.title)“ beginnt gleich", symbol: "calendar")
+                if !NSApp.isActive, !self.selfTest { NSApp.requestUserAttention(.informationalRequest) }
+            }
+            if !selfTest { Meetings.shared.start(enabled: library.settings.meetingBar) }
             // DevTools' own Dock side menu: the choice is kept like the menu's.
             OACPane.devToolsDockHandler = { [weak self] dock in
                 MainActor.assumeIsolated {
@@ -119,6 +126,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The menu bar, again after a shortcut changed.
+    func rebuildMenu() {
+        NSApp.mainMenu = MainMenu.build(target: self)
+    }
+
     /// ⌘Q goes through OpenArch's shortcuts, so neither the page nor
     /// Chrome's own handling of the key can swallow it.
     @objc func quit(_ sender: Any?) {
@@ -153,14 +165,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// ⌘N and ⌘⇧N: another window on the same spaces and tabs, or a private
     /// one. It opens with the command bar, like a new tab.
     @discardableResult
-    func openWindow(isPrivate: Bool) -> BrowserWindowController {
+    func openWindow(isPrivate: Bool, showingCommandBar: Bool = true) -> BrowserWindowController {
         let browser = BrowserWindowController(library: library, history: history, isPrivate: isPrivate,
                                               cascadingFrom: self.browser?.window)
         browsers.append(browser)
         lastActiveBrowser = browser
         browser.showWindow(nil)
         browser.layoutContent()
-        browser.commandBar.show(mode: .newTab)
+        if showingCommandBar { browser.commandBar.show(mode: .newTab) }
         return browser
     }
 
@@ -446,7 +458,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser?.closeActiveTab()
         }
     }
-    @objc func reopenTab(_ sender: Any?) { browser?.reopenClosedTab() }
+    /// ⌘⇧T: the last closed tab, or the last closed window if it closed
+    /// later, as in Chrome.
+    @objc func reopenTab(_ sender: Any?) {
+        if ClosedWindows.shared.lastIsNewer(than: library.archive), ClosedWindows.shared.reopen(app: self) { return }
+        browser?.reopenClosedTab()
+    }
+    @objc func reopenWindow(_ sender: Any?) { ClosedWindows.shared.reopen(app: self) }
     @objc func newFolder(_ sender: Any?) { browser?.newFolder() }
     @objc func newAgentChat(_ sender: Any?) { mainBrowser?.newAgentChat() }
     @objc func toggleAgents(_ sender: Any?) { mainBrowser?.toggleAgents() }
@@ -623,6 +641,7 @@ enum MainMenu {
             item("Tab schließen", #selector(AppDelegate.closeTab(_:)), "w"),
             item("Fenster schließen", #selector(AppDelegate.closeWindow(_:)), "w", [.command, .shift]),
             item("Geschlossenen Tab wieder öffnen", #selector(AppDelegate.reopenTab(_:)), "t", [.command, .shift]),
+            item("Geschlossenes Fenster wieder öffnen", #selector(AppDelegate.reopenWindow(_:))),
             item("Heute aufräumen", #selector(AppDelegate.clearToday(_:)), "k", [.command, .shift]),
             .separator(),
             item("Seite sichern unter …", #selector(AppDelegate.savePage(_:)), "s", [.command, .shift]),
@@ -763,6 +782,7 @@ enum MainMenu {
         ])
         main.addItem(windowMenu)
         NSApp.windowsMenu = windowMenu.submenu
+        applyShortcuts(main, custom: target.library?.settings.shortcuts ?? [:])
         return main
     }
 }
@@ -896,6 +916,8 @@ enum ShortcutMonitor {
 
     /// Runs the OpenArch menu command for |event|, if there is one.
     static func handle(_ event: NSEvent, target: AppDelegate) -> Bool {
+        // Settings › Tastatur is recording a new shortcut.
+        if ShortcutRecorder.shared.capture(event) { return true }
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         guard !flags.intersection([.command, .control]).isEmpty, NSApp.modalWindow == nil,
               let menu = NSApp.mainMenu, let item = item(in: menu, matching: event, target: target),

@@ -300,6 +300,20 @@ final class CommandBarModel {
             return
         }
 
+        // "new doc", "neues ticket" …: the new document is the first row.
+        let creates = QuickCreate.matching(text) { [browser] in
+            QuickCreate.jiraHost(in: browser.history.search("atlassian.net", limit: 3).map(\.url))
+        }
+        if !creates.isEmpty {
+            completion = nil
+            for create in creates.prefix(4) {
+                results.append(CommandResult(id: "create:\(create.url)", icon: .url(create.icon), title: create.title,
+                                             subtitle: Self.shortURL(create.url), badge: "Erstellen",
+                                             action: { [unowned self] in self.open(create.url) }))
+                seenURLs.insert(create.url)
+            }
+        }
+
         if let completion {
             let url = completion.url
             results.append(CommandResult(id: "open:\(url)", icon: .url(url), title: completion.text,
@@ -536,6 +550,12 @@ final class CommandBarModel {
             ("OpenArch-Einstellungen", "gearshape", "⌘,", { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
             ("Aus Arc importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }),
         ]
+        if !ClosedWindows.shared.isEmpty {
+            let reopen: Command = ("Geschlossenes Fenster wieder öffnen", "macwindow.badge.plus", nil, {
+                if let app = NSApp.delegate as? AppDelegate { ClosedWindows.shared.reopen(app: app) }
+            })
+            commands.append(reopen)
+        }
         if browser.library.settings.agentChats, !browser.isStandalone {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
             let agents: Command = ("Agents", "sparkles", "⌃0", { browser.toggleAgents() })

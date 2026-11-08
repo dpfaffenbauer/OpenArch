@@ -35,6 +35,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// macOS 26: the whole window is one sheet of Liquid Glass, the sidebar
     /// and the window buttons directly on it and the page floating above.
     private var windowGlass: NSView?
+    /// Arc's grain on the space's color (Settings › Allgemein › Sidebar).
+    private let grainView = GrainView()
+    /// How much grain shows (self-test).
+    var grainAmount: Double { grainView.isHidden ? 0 : grainView.amount }
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
     private var agentHost: NSHostingView<AgentContentView>!
@@ -49,6 +53,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) lazy var peek = PeekController(browser: self)
     private(set) lazy var commandBar = CommandBarController(browser: self)
     private(set) lazy var tabSwitcher = TabSwitcher(browser: self)
+    private(set) lazy var tabPreview = TabPreview(browser: self)
     private(set) var sidebarSwipe: SidebarSwipe?
     private var archiveTimer: Timer?
 
@@ -108,6 +113,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             rootView.addSubview(sheet)
         }
         #endif
+        rootView.addSubview(grainView)
         sidebarHost = NSHostingView(rootView: SidebarView(browser: self))
         sidebarHost.sizingOptions = []
         emptyHost = NSHostingView(rootView: EmptyContentView(browser: self))
@@ -225,6 +231,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         #endif
         windowGlass?.isHidden = !glassy
+        grainView.amount = library.settings.grain
         window?.isOpaque = !glassy
         window?.backgroundColor = glassy ? .clear : base
         if isFrontmost, !isStandalone, !AppPaths.isSelfTest {
@@ -270,6 +277,17 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return rect
     }
 
+    /// The right edge of a sidebar row, at its middle, in window coordinates
+    /// (where a tab's preview goes). |row| is in the sidebar's SwiftUI
+    /// coordinates, like state.sidebarFrame.
+    func sidebarAnchor(forRow row: CGRect) -> NSPoint? {
+        let sidebar = state.sidebarFrame
+        guard state.sidebarVisible, !row.isEmpty, !sidebar.isEmpty else { return nil }
+        // Measured from the sidebar's bottom, as for the library button.
+        let point = NSPoint(x: sidebarWidth, y: sidebarHost.bounds.height - (sidebar.maxY - row.midY))
+        return sidebarHost.convert(point, to: nil)
+    }
+
     /// The library button in window coordinates (downloads fly into it); the
     /// bottom left corner while the sidebar is hidden.
     var libraryButtonCenter: NSPoint {
@@ -287,6 +305,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         glass.frame = bounds
         glassTint.frame = bounds
         windowGlass?.frame = bounds
+        grainView.frame = bounds
         #if compiler(>=6.2)
         if #available(macOS 26.0, *), let sheet = windowGlass as? NSGlassEffectView {
             sheet.cornerRadius = window.styleMask.contains(.fullScreen) ? 0 : Self.windowCornerRadius
@@ -565,8 +584,19 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         archiveTimer?.invalidate()
         closesWhenEmpty = false
         commandBar.hide()
-        if isStandalone {
+        var tabs: [ArchivedTab] = []
+        if isSeparate {
+            let count = state.space.today.allTabs.count
             archiveTabs()
+            // Archived top to bottom, each in front of the one before.
+            tabs = Array(library.archive.prefix(count).reversed())
+        }
+        // ⌘⇧T can bring the window back (not a private one).
+        if !isPrivate, let frame = window?.frame {
+            ClosedWindows.shared.remember(.init(date: Date(), frame: frame, spaceID: homeSpace?.id ?? state.space.id,
+                                                isSeparate: isSeparate, tabs: tabs))
+        }
+        if isStandalone {
             for tab in state.space.today.allTabs { unload(tab) }
         } else if let heir {
             for item in itemsByPane.values {
@@ -775,6 +805,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.isAudible = false
         tab.isMuted = false
         tab.media = nil
+        tab.screenShare = nil
+        tab.captureHandle = nil
         tab.isAsleep = false
         visibleTabs.removeAll { $0 === tab }
     }
@@ -1127,6 +1159,26 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         state.renamingItemID = folder.id
         library.setNeedsSave()
         return folder
+    }
+
+    /// Joins a meeting from the sidebar's card, as in Dia: the call opens in
+    /// a folder of its own under the line, and links opened from the call
+    /// land in it too. Joining again goes back to that tab.
+    func joinMeeting(_ meeting: Meetings.Meeting) {
+        guard let url = meeting.joinURL else { return }
+        let name = "📹 " + meeting.title
+        let today = state.space.today
+        if let folder = today.items.first(where: { $0.kind == .folder && $0.displayTitle == name }),
+           let call = folder.children.first(where: { $0.kind == .tab }) {
+            select(call)
+            return
+        }
+        let folder = Item.folder(name)
+        today.insert(folder, at: 0)
+        let call = Item.tab(url: url, title: meeting.title)
+        today.insert(call, into: folder, at: 0)
+        select(call)
+        library.setNeedsSave()
     }
 
     /// A pinned folder that fills itself from GitHub (see LiveFolders).
@@ -1564,7 +1616,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .closeTab:
             closeActiveTab()
         case .restoreTab:
-            reopenClosedTab()
+            // The last closed tab, or window if that closed later.
+            (NSApp.delegate as? AppDelegate)?.reopenTab(nil)
         case .selectNextTab:
             selectRecentTab(1)
         case .selectPreviousTab:
@@ -1619,6 +1672,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func pane(_ pane: OACPane, mainFrameLoadStarted started: Bool, url: String) {
+        // A new document shares nothing (yet); it names itself anew.
+        if started, let item = item(for: pane) { item.screenShare = nil }
         // Boosts go in as early as the page allows and again once it is
         // complete (the style sheet is replaced, the script runs once).
         if let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
@@ -1647,6 +1702,16 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             } else if message == zapPrefix + "-done" {
                 editor.isZapping = false
             }
+            return
+        }
+        let capturePrefix = "__openarch_capture__ "
+        if message.hasPrefix(capturePrefix), let item = item(for: pane) {
+            item.screenShare = try? JSONDecoder().decode(ScreenShare.self, from: Data(message.dropFirst(capturePrefix.count).utf8))
+            return
+        }
+        let handlePrefix = "__openarch_handle__ "
+        if message.hasPrefix(handlePrefix), let item = item(for: pane) {
+            item.captureHandle = String(message.dropFirst(handlePrefix.count))
             return
         }
         let mediaPrefix = "__openarch_media__ "
@@ -1709,6 +1774,28 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         if item.media?.playing == true { mediaCommand(item, "toggle") }
         if item.media?.pip == true { mediaCommand(item, "exitpip") }
         item.mediaDismissed = true
+    }
+
+    /// A tab of this window sharing the screen, and the tab it shares if
+    /// that is one of OpenArch's (in any space or window).
+    var screenShare: (sharer: Item, shared: Item?)? {
+        guard let sharer = allTabs.first(where: { $0.pane != nil && $0.screenShare != nil }),
+              let share = sharer.screenShare else { return nil }
+        guard share.surface == "browser", !share.handle.isEmpty else { return (sharer, nil) }
+        let tabs = (NSApp.delegate as? AppDelegate)?.browsers.flatMap(\.allTabs) ?? allTabs
+        return (sharer, tabs.first { $0.captureHandle == share.handle })
+    }
+
+    /// Whether a page somewhere shares |item|.
+    func isBeingShared(_ item: Item) -> Bool {
+        guard let handle = item.captureHandle else { return false }
+        let tabs = (NSApp.delegate as? AppDelegate)?.browsers.flatMap(\.allTabs) ?? allTabs
+        return tabs.contains { $0.screenShare?.handle == handle }
+    }
+
+    /// Ends the sharing as Chrome's own "Freigabe beenden" would.
+    func stopScreenShare(_ item: Item) {
+        item.pane?.executeJavaScript("document.dispatchEvent(new Event('openarch-capture-stop'))")
     }
 
     /// "toggle", "previous", "next", "pip" or "exitpip", carried out by the

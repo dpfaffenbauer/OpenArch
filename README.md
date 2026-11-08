@@ -62,12 +62,19 @@ run. Data lives in
   history, passwords and extensions apart.
 - **GitHub live folders** (+ › GitHub-Live-Ordner): pinned folders that
   fill themselves with your open pull requests, review requests or issues,
-  every five minutes, with the space's own GitHub login (no token).
+  every five minutes, with the space's own GitHub login (no token). A pull
+  request shows whether its checks passed, failed or still run, as on
+  GitHub (a check, a cross or a dotted circle; the pointer on it gives
+  GitHub's count).
 - **Command bar** (⌘T, ⌘L): completes the address as you type, like Chrome
   (→ keeps it, Backspace drops it); URL or search with suggestions, switch to open
   tabs, pinned tabs and favorites, history, archived tabs, commands. A
   sentence or a question opens a new chat on Claude or ChatGPT with it,
   signed in as you there (your subscription, no API key; Settings › KI).
+  "new doc", "new sheet", "new slides", "new meet", "new gist", "new repo",
+  "new notion", "new linear" or "new ticket" (also "neues Dokument" …) go
+  straight to a new one, as in Dia; "new ticket" opens your company's Jira
+  if the history knows it.
 - **Split view:** up to four tabs side by side or one above the other,
   with resizable dividers; ⌃⇧S swaps the sides. Use ⌃⇧=, or drag a tab from the sidebar onto a
   half of the page: left or right puts it beside, top or bottom above or
@@ -90,12 +97,18 @@ run. Data lives in
   Sidebar): the desktop shows through the window, on macOS 26 as one sheet
   of Liquid Glass tinted with the space's color, the sidebar directly on it
   and the pages floating above as cards. Drag the sidebar edge far to the
-  left to collapse it, ⌘S brings it back.
+  left to collapse it, ⌘S brings it back. Settings › Allgemein › Sidebar ›
+  Körnung puts Arc's grain on the color.
+- **Tab previews:** resting the pointer on a tab in the sidebar shows a
+  picture of its page beside the sidebar, with its title and address (and a
+  pull request's checks); moving down the list switches it at once.
 - **Arc's gestures and shortcuts:** swipe sideways over the sidebar
   (trackpad or Magic Mouse) to change spaces, and past the first one to open
   the library. Arc's shortcuts are there too: ⌘T, ⌘L, ⌘S, ⌘D, ⌘⇧K, ⌘⇧L,
   ⌘⇧J, ⌃Tab (hold ⌃ for the tab switcher), ⌘1–9, ⌃1–9, ⌘⌥←/→, ⌃⇧= / ⌃⇧-, ⌃⇧1–4, ⌘⇧⌥C and more. They take
-  precedence over the page, like in Arc.
+  precedence over the page, like in Arc. Settings › Tastatur lists every
+  menu command: click a shortcut and press new keys (with ⌘ or ⌃) to make it
+  your own; a shortcut taken from another command leaves it, ⌫ removes one.
 - **Little OpenArch** (⌥⌘N): a small window for quick links. Links from
   other apps open as a new tab in the window, or there if you turn it on
   under Settings › Links. It has back, forward and reload, and the puzzle
@@ -166,9 +179,21 @@ run. Data lives in
   and color, tabs of its own, but no favorites, pinned tabs or other
   spaces. "In Space verschieben" (or dragging a tab back into the main
   window) brings a tab back; closing the window puts its tabs in the
-  archive.
+  archive. ⌘⇧T brings back the last closed window where it was, tabs and
+  all, when it closed after the last tab (as in Chrome and Dia); Ablage ›
+  Geschlossenes Fenster wieder öffnen always does.
 - **Peek:** links from pinned tabs and favorites to other sites open in a
   card over the page, which can become a tab or a split.
+- **Meetings** (Settings › Allgemein › Kalender): the next meeting from the
+  Mac's calendars sits at the bottom of the sidebar, with when it starts and
+  a button to join the call (Meet, Zoom, Teams, Webex … links in the
+  invitation). Shortly before it starts a toast says so. Joining opens the
+  call in a folder of its own under the line, and the links you open from
+  the call land in it too, as in Dia.
+- **Screen sharing:** while a tab shares the screen, a window or a tab (a
+  video call), a red card at the bottom of the sidebar says what is shared;
+  a click goes to the shared tab, ■ ends the sharing. The sharing tab and
+  the shared one carry a red mark in the sidebar.
 - **Site Control Center** (⌃⌘I, or the sliders at the top of the sidebar):
   camera, microphone, location, notifications, pop-ups, sound, downloads,
   clipboard and JavaScript per site, the page's zoom, its boost, and

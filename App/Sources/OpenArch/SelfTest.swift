@@ -58,6 +58,18 @@ final class SelfTest {
             }
             return
         }
+        // --dia-test: only the features from Dia (SelfTestDia.swift), in a few seconds.
+        if CommandLine.arguments.contains("--dia-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.diaFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--marketing") {
             marketingScreens()
             return
@@ -151,6 +163,7 @@ final class SelfTest {
             (43.6, "media", { self.mediaTest() }),
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
+            (61, "dia features", { self.diaFeatures {} }),
             (64.5, "windows", { self.windowsTest() }),
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
