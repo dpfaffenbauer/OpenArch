@@ -85,12 +85,36 @@ struct AgentMessage: Codable, Identifiable, Equatable {
     var failed = false
     /// Text still arriving.
     var streaming = false
+    /// Page chats: what went along with a message (the page, the
+    /// selection, other tabs), shown under it.
+    var attachments: [AgentAttachment]?
+}
+
+/// Something a page chat sent along with a message.
+struct AgentAttachment: Codable, Equatable, Hashable {
+    enum Kind: String, Codable {
+        case page, selection, tab, skill
+    }
+
+    var kind: Kind
+    var title: String
+    var url: String?
+
+    var symbol: String {
+        switch kind {
+        case .page, .tab: "doc.text"
+        case .selection: "text.quote"
+        case .skill: "wand.and.stars"
+        }
+    }
 }
 
 /// A chat with Claude Code, on your own login (`claude` in the terminal,
 /// your subscription, no API key). Each message is one run of `claude -p`
 /// in the chat's folder that continues the same session; its answer comes
-/// back as stream-json, a JSON event per line.
+/// back as stream-json, a JSON event per line. An agent chat keeps its
+/// settings in its sidebar item and its messages on disk; a page chat (⌘E,
+/// see PageChat) keeps both here, for as long as its tab is open.
 @MainActor @Observable
 final class AgentSession {
     private(set) var messages: [AgentMessage] = []
@@ -109,6 +133,10 @@ final class AgentSession {
 
     @ObservationIgnored private weak var item: Item?
     private let library: Library
+    /// A chat beside a page (⌘E) instead of one in the sidebar.
+    let isPageChat: Bool
+    /// A page chat's folder, session and permissions.
+    private var pageConfig: AgentConfig?
     @ObservationIgnored private var process: AgentProcess?
     /// Counts runs, so a late line of an earlier one is ignored.
     @ObservationIgnored private var run = 0
@@ -123,16 +151,41 @@ final class AgentSession {
     init(item: Item, library: Library) {
         self.item = item
         self.library = library
+        isPageChat = false
         messages = Self.loadTranscript(item.id)
+    }
+
+    /// A page chat for |tab|, working in |folder|.
+    init(pageChatFor tab: Item, folder: String, library: Library) {
+        item = tab
+        self.library = library
+        isPageChat = true
+        pageConfig = AgentConfig(folder: folder)
+    }
+
+    /// Where the chat works, the session it continues and what it may do.
+    private var config: AgentConfig? {
+        get { isPageChat ? pageConfig : item?.agent }
+        set {
+            if isPageChat {
+                pageConfig = newValue
+            } else if let item {
+                item.agent = newValue
+                library.setNeedsSave()
+            }
+        }
     }
 
     // MARK: Running
 
-    func send(_ text: String) {
-        let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty, !isRunning, let item, item.agent != nil else { return }
-        messages.append(AgentMessage(role: .user, text: prompt))
-        if item.customTitle == nil, item.savedTitle.isEmpty {
+    /// Sends |text|. |prompt| goes to Claude instead when given (a page
+    /// chat's text with the page around it); |attachments| show under it.
+    func send(_ text: String, prompt: String? = nil, attachments: [AgentAttachment]? = nil) {
+        let shown = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let prompt = prompt?.trimmingCharacters(in: .whitespacesAndNewlines) ?? shown
+        guard !prompt.isEmpty, !isRunning, let item, config != nil else { return }
+        messages.append(AgentMessage(role: .user, text: shown, attachments: attachments?.isEmpty == false ? attachments : nil))
+        if !isPageChat, item.customTitle == nil, item.savedTitle.isEmpty {
             item.savedTitle = Self.title(for: prompt)
             library.setNeedsSave()
         }
@@ -168,7 +221,7 @@ final class AgentSession {
     func discard() {
         discarded = true
         stop()
-        if let item {
+        if let item, !isPageChat {
             Self.deleteTranscript(item.id)
         }
     }
@@ -176,16 +229,15 @@ final class AgentSession {
     /// Allows what the agent was refused (|message| is the refusal) and
     /// lets it carry on.
     func allow(_ message: AgentMessage) {
-        guard let rule = message.tool, let item, !isRunning else { return }
-        if item.agent?.allowedTools.contains(rule) == false {
-            item.agent?.allowedTools.append(rule)
-            library.setNeedsSave()
+        guard let rule = message.tool, !isRunning, config != nil else { return }
+        if config?.allowedTools.contains(rule) == false {
+            config?.allowedTools.append(rule)
         }
         send("Ich habe dir \(rule) erlaubt. Bitte mach weiter.")
     }
 
     func isAllowed(_ rule: String) -> Bool {
-        item?.agent?.allowedTools.contains(rule) == true || item?.agent?.permissions == .all
+        config?.allowedTools.contains(rule) == true || config?.permissions == .all
     }
 
     /// Stops every running chat; OpenArch is quitting.
@@ -198,7 +250,7 @@ final class AgentSession {
     }
 
     private func launch(_ prompt: String, environment: AgentEnvironment.Resolved, run: Int) {
-        guard isRunning, !stopped, let item, let config = item.agent else { return finish() }
+        guard isRunning, !stopped, item != nil, let config else { return finish() }
         guard let claude = environment.claude else {
             messages.append(AgentMessage(role: .error, text: """
                 Claude Code wurde auf diesem Mac nicht gefunden. Installiere es (claude.ai/code) und melde dich \
@@ -242,7 +294,8 @@ final class AgentSession {
         if !config.allowedTools.isEmpty {
             arguments += ["--allowedTools", config.allowedTools.joined(separator: ",")]
         }
-        arguments += ["--append-system-prompt", Self.systemPrompt(folder: config.folder, browser: port > 0)]
+        arguments += ["--append-system-prompt", isPageChat ? PageChat.systemPrompt(browser: port > 0)
+                                                           : Self.systemPrompt(folder: config.folder, browser: port > 0)]
         return arguments
     }
 
@@ -406,7 +459,7 @@ final class AgentSession {
         }
         isRunning = false
         saveTranscript()
-        guard let item, item.container != nil, !BrowserWindowController.isShowing(item) else { return }
+        guard !isPageChat, let item, item.container != nil, !BrowserWindowController.isShowing(item) else { return }
         isUnread = true
         if !NSApp.isActive, !AppPaths.isSelfTest {
             _ = NSApp.requestUserAttention(.informationalRequest)
@@ -414,9 +467,8 @@ final class AgentSession {
     }
 
     private func remember(sessionID: String) {
-        guard let item, item.agent != nil, item.agent?.sessionID != sessionID else { return }
-        item.agent?.sessionID = sessionID
-        library.setNeedsSave()
+        guard config != nil, config?.sessionID != sessionID else { return }
+        config?.sessionID = sessionID
     }
 
     // MARK: Helpers
@@ -479,8 +531,9 @@ final class AgentSession {
     }
 
     func saveTranscript() {
-        // A chat that was deleted while it ran stays deleted.
-        guard !discarded, let item, item.container != nil else { return }
+        // A chat that was deleted while it ran stays deleted; a page chat
+        // is never saved.
+        guard !discarded, !isPageChat, let item, item.container != nil else { return }
         do {
             try FileManager.default.createDirectory(at: Self.folder, withIntermediateDirectories: true)
             try JSONEncoder().encode(messages).write(to: Self.transcriptURL(item.id), options: .atomic)

@@ -16,6 +16,7 @@ Status: early, but usable as a daily browser for testing.
 App/build.sh                      # fetches CEF, builds App/build/OpenArch.app
 open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, runs behind other windows
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test   # only the AI features, with a stand-in for claude
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
@@ -44,7 +45,8 @@ itself once the checks `main` requires have passed and so publishes a new
 nightly. A failed build stops the update and shows up as a failed workflow
 run. Data lives in
 `~/Library/Application Support/OpenArch` (`Library.json` for the sidebar,
-`Chromium/` for Chromium's profiles, `Agents/` for agent chats).
+`Chromium/` for Chromium's profiles, `Agents/` for agent chats,
+`MorningBrief/` for the morning briefs).
 
 ## What works
 
@@ -120,6 +122,37 @@ run. Data lives in
   a search field; the page or chat in front stays. The ✨ gets a dot while
   sessions wait for you. A session continues as an agent chat with its
   history, or in Terminal.
+- **Chat with the page** (⌘E, as in Dia): a chat with Claude opens beside
+  the page and gets its address, title and text. Text selected on the page
+  goes along as the focus of the question (also right-click › Claude
+  fragen), and @ in the field lists the space's tabs and adds their text,
+  to compare or sum up several. Answers stream in as in agent chats, and
+  their links open as tabs. ⌘E or Esc closes the chat; it keeps its
+  conversation until the tab closes. Like agent chats it runs the `claude`
+  command line tool on your own login, in a folder of its own.
+- **Skills in the command bar:** typing the name of one of your Claude Code
+  skills (`~/.claude/skills`) or slash commands (`~/.claude/commands`) lists
+  it with its description, and a / lists them all. Choosing one runs it on
+  the page in front, in the page's chat. OpenArch only reads their names
+  and descriptions; Claude Code runs them.
+- **Morning Brief** (Settings › KI): once a day at the time you choose
+  (7:30 unless you change it), or at the first launch after it, Claude Code
+  looks through your calendar, new mail, chat messages and open tasks with
+  whatever connectors (MCP servers) it has and writes a page about the day.
+  It opens as a tab "Morning Brief" at the top of the today tabs, with a dot
+  until you read it; "Morning Brief jetzt erstellen" in the command bar
+  makes it at once. Claude only gets the connectors' reading tools (get,
+  list, search …), so a mail cannot make it send or delete anything. The
+  prompt is a file of its own (`App/Resources/MorningBrief.md`; Bearbeiten …
+  in the settings makes your own copy). Without `claude` on the Mac, or
+  without its login, the tab says so.
+- **Tidy tabs with AI** ("Tabs mit KI aufräumen" in the command bar): Claude
+  sorts the current space's today tabs into folders with short names, an
+  emoji in front, and suggests shorter titles. It gets only the tabs' titles
+  and addresses. The proposal shows first and changes nothing until
+  "Übernehmen"; then the folders sit at the top under the line, and ⌘Z or
+  Rückgängig in the toast puts everything back. Pinned tabs and favorites
+  stay as they are.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:

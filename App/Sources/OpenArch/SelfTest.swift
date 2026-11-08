@@ -13,8 +13,8 @@ import OpenArchShared
 final class SelfTest {
     static private(set) weak var current: SelfTest?
 
-    private let browser: BrowserWindowController
-    private var library: Library { browser.library }
+    let browser: BrowserWindowController
+    var library: Library { browser.library }
     private var failures: [String] = []
 
     init(browser: BrowserWindowController) {
@@ -86,6 +86,18 @@ final class SelfTest {
         }
         if CommandLine.arguments.contains("--quit-test") {
             quitWithStuckBrowser()
+            return
+        }
+        // --ai-test: only the AI features (SelfTestAI.swift), in a few seconds.
+        if CommandLine.arguments.contains("--ai-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.aiFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
             return
         }
         // --share-owner <relay> <folder>: a live share for another device to
@@ -416,7 +428,7 @@ final class SelfTest {
 
     /// Checks |condition| until it holds or |timeout| passes, for results
     /// that wait on the main thread while other steps keep it busy.
-    private func eventually(_ condition: @escaping () -> Bool, timeout: Double = 3, then report: @escaping (Bool) -> Void) {
+    func eventually(_ condition: @escaping () -> Bool, timeout: Double = 3, then report: @escaping (Bool) -> Void) {
         let deadline = Date().addingTimeInterval(timeout)
         func check() {
             if condition() { return report(true) }
@@ -426,7 +438,7 @@ final class SelfTest {
         check()
     }
 
-    private func expect(_ condition: Bool, _ message: String) {
+    func expect(_ condition: Bool, _ message: String) {
         Swift.print("[selftest] \(condition ? "ok  " : "FAIL") \(message)")
         if !condition { failures.append(message) }
     }
@@ -769,7 +781,7 @@ final class SelfTest {
     }
 
     /// Panes must sit exactly over the content area after the window changes.
-    private func checkPaneFrames(_ label: String) {
+    func checkPaneFrames(_ label: String) {
         let frames = browser.expectedPaneFrames
         let wrong = frames.filter { item, expected in
             guard let actual = item.pane?.window?.frame else { return true }

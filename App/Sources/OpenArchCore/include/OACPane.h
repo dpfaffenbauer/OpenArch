@@ -105,6 +105,9 @@ NS_SWIFT_UI_ACTOR
 /// The page went to an address another app opens (bambustudioopen:,
 /// zoommtg:, mailto: ...). The navigation was cancelled.
 - (void)pane:(OACPane*)pane wantsToOpenExternalURL:(NSString*)url;
+/// "Claude fragen" (askAboutSelectionTitle) was chosen in the context menu
+/// of text selected on the page.
+- (void)pane:(OACPane*)pane askAboutSelection:(NSString*)text;
 @end
 
 /// One Chrome tab. It is hosted in its own borderless Chrome-style window
@@ -138,6 +141,9 @@ NS_SWIFT_UI_ACTOR
 @property(nonatomic) BOOL activatesOnShow;
 /// Corner radius of the pane window's content.
 @property(nonatomic) CGFloat cornerRadius;
+/// Whether selected text's context menu offers askAboutSelectionTitle
+/// (when the delegate handles it). Off in private windows.
+@property(nonatomic) BOOL offersAskAboutSelection;
 /// Self-test: the browser refuses to close, like one that never finishes
 /// closing, so quitting has to get by without it.
 @property(nonatomic) BOOL refusesToCloseForTesting;
@@ -215,6 +221,10 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 @property(class, nonatomic, copy, nullable) void (^aboutPageHandler)(void);
 /// Whether |url| is Chrome's About page (chrome://help, any path).
 + (BOOL)isAboutPageURL:(NSString*)url;
+
+/// With a title set, the context menu of selected text starts with an item
+/// of that name, which calls the delegate's -pane:askAboutSelection:.
+@property(class, nonatomic, copy, nullable) NSString* askAboutSelectionTitle;
 
 /// Gets every download's progress, from any tab or window, including tabs
 /// that closed after starting one.
