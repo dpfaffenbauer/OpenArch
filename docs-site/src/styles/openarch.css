@@ -1,0 +1,74 @@
+/* OpenArch's look from openarch.app: Bricolage Grotesque for headings,
+   Instrument Sans for text, a green accent on warm paper or near-black. */
+
+:root {
+  --sl-font: 'Instrument Sans', system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --oa-display: 'Bricolage Grotesque', system-ui, sans-serif;
+
+  /* Dark (Starlight's default theme). */
+  --sl-color-accent-low: #0f2013;
+  --sl-color-accent: #3f9a4b;
+  --sl-color-accent-high: #a8e0af;
+  --sl-color-white: #eef1ec;
+  --sl-color-gray-1: #d9ded8;
+  --sl-color-gray-2: #aeb8b1;
+  --sl-color-gray-3: #8a948d;
+  --sl-color-gray-4: #4c5650;
+  --sl-color-gray-5: #2a322c;
+  --sl-color-gray-6: #171c18;
+  --sl-color-black: #0e110f;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e8f5ea;
+  --sl-color-accent: #2f7a3a;
+  --sl-color-accent-high: #1d5226;
+  --sl-color-white: #141814;
+  --sl-color-gray-1: #262d28;
+  --sl-color-gray-2: #4c5650;
+  --sl-color-gray-3: #5b655e;
+  --sl-color-gray-4: #8a948d;
+  --sl-color-gray-5: #d6dad3;
+  --sl-color-gray-6: #f1f2ee;
+  --sl-color-gray-7: #f6f7f3;
+  --sl-color-black: #fafaf7;
+}
+
+.site-title,
+.sl-markdown-content :is(h1, h2, h3),
+h1#_top,
+.hero h1 {
+  font-family: var(--oa-display);
+  letter-spacing: -0.01em;
+}
+
+.site-title {
+  font-weight: 700;
+}
+
+.site-title img {
+  border-radius: 22%;
+}
+
+/* Keys as on the website: a small raised cap. */
+.sl-markdown-content kbd {
+  font-family: var(--sl-font);
+  font-size: 0.85em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--sl-color-gray-5);
+  border-bottom-width: 2px;
+  border-radius: 0.35em;
+  background: var(--sl-color-gray-6);
+  white-space: nowrap;
+}
+
+/* Command line flags in tables stay whole (--resume, not -- / resume). */
+.sl-markdown-content td code {
+  white-space: nowrap;
+}
+
+/* German UI labels stay readable inside English sentences. */
+.sl-markdown-content .ui {
+  font-weight: 600;
+}

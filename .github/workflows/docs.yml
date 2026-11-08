@@ -1,0 +1,51 @@
+name: Docs
+
+# The documentation (docs-site/): built on every change, so a broken page or
+# link shows in the pull request, and published from main to
+# docs.openarch.app when the repository has Cloudflare credentials.
+
+on:
+  push:
+    branches: [main]
+    paths: ["docs-site/**", ".github/workflows/docs.yml"]
+  pull_request:
+    paths: ["docs-site/**", ".github/workflows/docs.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: docs-site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: docs-site/.nvmrc
+          cache: npm
+          cache-dependency-path: docs-site/package-lock.json
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+      # Without the secrets the site is not published; the build still runs.
+      - name: Deploy to Cloudflare
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo "::notice::No CLOUDFLARE_API_TOKEN: the docs are not published."
+            exit 0
+          fi
+          npx --yes wrangler@3 deploy

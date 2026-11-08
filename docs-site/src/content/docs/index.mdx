@@ -1,0 +1,45 @@
+---
+title: "OpenArch Docs"
+description: "How OpenArch works: the sidebar, spaces, the command bar, split view, sharing, and the AI features with how they reach Claude."
+template: splash
+hero:
+  title: "OpenArch Docs"
+  tagline: "Arc's sidebar, spaces and command bar as an open-source browser for the Mac, on real Chrome. Here is how all of it works."
+  image:
+    file: ../../assets/icon.png
+  actions:
+    - text: "Install OpenArch"
+      link: /start/install/
+      icon: right-arrow
+    - text: "Take the tour"
+      link: /start/tour/
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="The sidebar" icon="list-format">
+    Favorites, pinned folders and today tabs that tidy themselves away. [Read more](/sidebar/basics/)
+  </Card>
+  <Card title="Spaces" icon="seti:folder">
+    A space for every part of your day, each with its own color and logins. [Read more](/sidebar/spaces/)
+  </Card>
+  <Card title="The command bar" icon="magnifier">
+    <kbd>⌘T</kbd> finds tabs, history and commands, searches, and opens a new doc. [Read more](/browsing/command-bar/)
+  </Card>
+  <Card title="Split view" icon="laptop">
+    Up to four tabs side by side, dragged straight from the sidebar. [Read more](/browsing/split-view/)
+  </Card>
+  <Card title="AI on your own login" icon="rocket">
+    Chat with the page, a Morning Brief and agents, run by Claude Code on your Mac. [How it works](/ai/how-it-works/)
+  </Card>
+  <Card title="Sharing without an account" icon="external">
+    Folders and spaces as encrypted links that stay up to date. [Read more](/sharing/share/)
+  </Card>
+</CardGrid>
+
+## Coming from Arc?
+
+<LinkCard title="Move over from Arc" description="Spaces, favorites, pinned folders, logins, passwords and extensions in one step." href="/start/import-from-arc/" />
+<LinkCard title="Keyboard shortcuts" description="Arc's shortcuts are there, and every one can be changed." href="/reference/shortcuts/" />
