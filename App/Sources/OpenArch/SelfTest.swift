@@ -70,6 +70,18 @@ final class SelfTest {
             }
             return
         }
+        // --theme-test: only themes and the sidebar on the right (SelfTestTheme.swift).
+        if CommandLine.arguments.contains("--theme-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.themeFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--marketing") {
             marketingScreens()
             return
@@ -164,6 +176,7 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (61, "dia features", { self.diaFeatures {} }),
+            (63, "themes and sidebar right", { self.themeFeatures {} }),
             (64.5, "windows", { self.windowsTest() }),
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
@@ -1125,8 +1138,10 @@ final class SelfTest {
         library.settings.glass = false
         browser.applyTheme()
         browser.layoutContent()
-        expect(browser.window?.isOpaque == true && browser.windowGlassFrame == nil,
-               "and without it the window is solid again")
+        // Without it, the theme lies on white or black again, over the
+        // window's blur as in Arc.
+        expect(browser.windowGlassFrame == nil && browser.background.underlayOpacity > 0.75,
+               "and without it the window has the theme on white or black again (\(browser.background.underlayOpacity))")
 
         guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
             expect(false, "a new agent chat")
@@ -1542,23 +1557,36 @@ final class SelfTest {
     private func glassShots() {
         populate()
         browser.openInNewTab("https://example.com/glass")
-        browser.window?.orderFrontRegardless()
+        // --behind: stays behind other windows (for `screencapture -l`, which
+        // takes the window without the desktop).
+        if !CommandLine.arguments.contains("--behind") { browser.window?.orderFrontRegardless() }
+        Swift.print("[selftest] window \(browser.window?.windowNumber ?? 0)")
         let color = browser.state.space.colorHex
-        let variants: [(name: String, glass: Bool, tint: Double, color: String, sidebar: Bool)] = [
-            ("glass", true, 0.4, color, true),
-            ("light", true, 0.4, "#EDE6D6", true),
-            ("dark", true, 0.4, "#2C2C30", true),
-            ("tint0", true, 0, color, true),
-            ("tint9", true, 0.9, color, true),
-            ("hidden", true, 0.4, color, false),
-            ("solid", false, 0.4, color, true),
+        let gradient = ["#2F6AF0", "#E0559F", "#F2D46C"]
+        let variants: [(name: String, glass: Bool, tint: Double, colors: [String], sidebar: Bool, right: Bool)] = [
+            ("glass", true, 0.4, [color], true, false),
+            ("light", true, 0.4, ["#EDE6D6"], true, false),
+            ("dark", true, 0.4, ["#2C2C30"], true, false),
+            ("tint0", true, 0, [color], true, false),
+            ("tint9", true, 0.9, [color], true, false),
+            ("hidden", true, 0.4, [color], false, false),
+            ("solid", false, 0.4, [color], true, false),
+            // Arc's themes: a gradient of three colors with grain, and the
+            // sidebar on the right, solid and in glass.
+            ("gradient", false, 0.4, gradient, true, false),
+            ("right", false, 0.4, gradient, true, true),
+            ("right-glass", true, 0.4, gradient, true, true),
         ]
         for (index, variant) in variants.enumerated() {
             after(6 + Double(index) * 3) {
                 self.library.settings.glass = variant.glass
                 self.library.settings.glassTint = variant.tint
-                self.browser.state.space.colorHex = variant.color
+                self.browser.state.space.theme = ThemeData(colors: variant.colors, grain: variant.colors.count > 1 ? 0.5 : 0)
                 if self.browser.state.sidebarVisible != variant.sidebar { self.browser.toggleSidebar() }
+                if self.library.settings.sidebarOnRight != variant.right {
+                    self.library.settings.sidebarOnRight = variant.right
+                    self.browser.sidebarSideChanged()
+                }
                 self.browser.applyTheme()
             }
             after(7.5 + Double(index) * 3) { Swift.print("[selftest] STEP shot \(variant.name)") }

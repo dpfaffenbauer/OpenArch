@@ -217,8 +217,9 @@ final class Library {
         if profiles.isEmpty {
             profiles = [Profile(id: "Default", name: "Persönlich")]
         }
-        spaces = data.spaces.map(Space.init(data:))
         settings = data.settings ?? Settings()
+        // Before themes, grain was one setting for every space.
+        spaces = data.spaces.map { Space(data: $0, legacyGrain: settings.grain) }
         archive = data.archive ?? []
         selectedSpaceID = data.selectedSpaceID
     }
@@ -262,24 +263,27 @@ final class Space: Identifiable {
     var name: String
     /// SF Symbol name, or a single emoji.
     var icon: String
-    var colorHex: String
+    /// Arc's theme: colors, intensity, grain, light or dark.
+    var theme: ThemeData
     var profileID: String
     let pinned = Container(role: .pinned)
     let today = Container(role: .today)
 
-    init(id: UUID = UUID(), name: String, icon: String, colorHex: String, profileID: String) {
+    init(id: UUID = UUID(), name: String, icon: String, colorHex: String, profileID: String, theme: ThemeData? = nil) {
         self.id = id
         self.name = name
         self.icon = icon
-        self.colorHex = colorHex
+        self.theme = theme ?? ThemeData(hex: colorHex)
         self.profileID = profileID
     }
 
     /// The tab last shown in this space.
     var activeItemID: UUID?
 
-    convenience init(data: SpaceData) {
-        self.init(id: data.id, name: data.name, icon: data.icon, colorHex: data.colorHex, profileID: data.profileID)
+    /// |legacyGrain|: the grain of every space before each had its own.
+    convenience init(data: SpaceData, legacyGrain: Double = 0) {
+        self.init(id: data.id, name: data.name, icon: data.icon, colorHex: data.colorHex, profileID: data.profileID,
+                  theme: data.theme ?? ThemeData(hex: data.colorHex, grain: legacyGrain))
         pinned.replace(with: data.pinned.map(Item.init(data:)))
         today.replace(with: data.today.map(Item.init(data:)))
         activeItemID = data.activeItemID
@@ -287,7 +291,18 @@ final class Space: Identifiable {
 
     var data: SpaceData {
         SpaceData(id: id, name: name, icon: icon, colorHex: colorHex, profileID: profileID,
-                  pinned: pinned.items.map(\.data), today: today.items.map(\.data), activeItemID: activeItemID)
+                  pinned: pinned.items.map(\.data), today: today.items.map(\.data), activeItemID: activeItemID,
+                  theme: theme)
+    }
+
+    /// The theme's first color (the app icon, shared spaces). Setting it
+    /// changes only that color.
+    var colorHex: String {
+        get { theme.colors.first ?? "#7B6CF6" }
+        set {
+            guard RGB(hex: newValue) != nil else { return }
+            if theme.colors.isEmpty { theme.colors = [newValue] } else { theme.colors[0] = newValue }
+        }
     }
 
     var color: NSColor {
@@ -377,8 +392,11 @@ struct Settings: Codable, Equatable {
     /// Kinds of files (DownloadKind) they leave out, as strings, so that a
     /// kind unknown to this version does not spoil the settings.
     var downloadStackHidden: [String] = []
-    /// Arc's grain on the space's color (0 = none, 1 = strong).
+    /// The grain every space had before each space's theme got its own;
+    /// read once to carry it over (ThemeData.grain).
     var grain = 0.0
+    /// The sidebar on the window's right instead of its left, in every window.
+    var sidebarOnRight = false
     /// A picture of the page when the pointer rests on a tab in the sidebar.
     var tabPreviews = true
     /// The next meeting from the Mac's calendar at the bottom of the sidebar,
@@ -422,6 +440,7 @@ struct Settings: Codable, Equatable {
         downloadStack = try container.decodeIfPresent(Bool.self, forKey: .downloadStack) ?? defaults.downloadStack
         downloadStackHidden = try container.decodeIfPresent([String].self, forKey: .downloadStackHidden) ?? defaults.downloadStackHidden
         grain = try container.decodeIfPresent(Double.self, forKey: .grain) ?? defaults.grain
+        sidebarOnRight = try container.decodeIfPresent(Bool.self, forKey: .sidebarOnRight) ?? defaults.sidebarOnRight
         tabPreviews = try container.decodeIfPresent(Bool.self, forKey: .tabPreviews) ?? defaults.tabPreviews
         meetingBar = try container.decodeIfPresent(Bool.self, forKey: .meetingBar) ?? defaults.meetingBar
         shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts

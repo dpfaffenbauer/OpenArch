@@ -31,7 +31,7 @@ struct SidebarView: View {
     }
 
     private var sidebar: some View {
-        let theme = SpaceTheme(hex: browser.state.space.colorHex)
+        let theme = browser.theme
         let stack = browser.state.downloadStack
         return VStack(alignment: .leading, spacing: 0) {
             content(theme: theme)
@@ -649,15 +649,15 @@ private struct SidebarTopBar: View {
         // sidebar has room for nothing more: a wider bar widened the whole
         // sidebar, which SwiftUI centered and so pushed under the window
         // buttons.
-        let room = browser.sidebarWidth - 16 - (floating ? 4 : 72) - 4 * IconButton.width
+        let room = browser.sidebarWidth - 16 - browser.sidebarButtonRoom(floating: floating) - 4 * IconButton.width
         let siteControls = active?.kind == .tab && !floating
         let siteButton = siteControls && room >= IconButton.width
         // Without room the antenna is a dot on the toggle.
         let antenna = remote && room - (siteButton ? IconButton.width : 0) >= Self.antennaWidth
         HStack(spacing: 0) {
             // Room for the window buttons, which a floating sidebar sits below.
-            Spacer().frame(width: floating ? 4 : 72)
-            IconButton(symbol: "sidebar.left", help: remote && !antenna ? "\(toggleHelp)\n\(remoteHelp)" : toggleHelp) {
+            Spacer().frame(width: browser.sidebarButtonRoom(floating: floating))
+            IconButton(symbol: browser.sidebarSymbol, help: remote && !antenna ? "\(toggleHelp)\n\(remoteHelp)" : toggleHelp) {
                 browser.toggleSidebar()
             }
             .overlay(alignment: .topTrailing) {

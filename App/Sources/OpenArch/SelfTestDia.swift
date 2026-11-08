@@ -72,10 +72,11 @@ extension SelfTest {
     }
 
     private func grainTest() {
-        library.settings.grain = 0.6
+        let space = browser.state.space
+        space.theme.grain = 0.6
         browser.applyTheme()
-        expect(browser.grainAmount == 0.6, "the space's color gets Arc's grain")
-        library.settings.grain = 0
+        expect(browser.grainAmount == 0.6, "the space's theme gets Arc's grain")
+        space.theme.grain = 0
         browser.applyTheme()
         expect(browser.grainAmount == 0, "and none at zero")
     }

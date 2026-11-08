@@ -56,7 +56,7 @@ run. Data lives in
   × on a pinned tab unpins it; ⌘-click on a link opens it as a tab in the
   background. ⌘-click on a tab (or a folder) in the sidebar loads it in the
   background, so its page and title are there when you come to it.
-- **Spaces:** name, icon (SF Symbol or emoji), color, and a profile each.
+- **Spaces:** name, icon (SF Symbol or emoji), theme, and a profile each.
   Drag the icons at the bottom of the sidebar into the order you want.
   Profiles keep logins (e.g. a different Google account per space), cookies,
   history, passwords and extensions apart.
@@ -93,13 +93,24 @@ run. Data lives in
 - **Links to apps** (bambustudioopen:, zoommtg:, mailto: …) open the app on
   the Mac after asking, as in Chrome; „Links von <host> immer in „<App>“
   öffnen“ remembers it per site.
-- **Arc's look:** your space's color with white text, Arc's row sizes, and
-  favicons taken from Arc's own icon cache. Or glass (Settings › Allgemein ›
-  Sidebar): the desktop shows through the window, on macOS 26 as one sheet
-  of Liquid Glass tinted with the space's color, the sidebar directly on it
-  and the pages floating above as cards. Drag the sidebar edge far to the
-  left to collapse it, ⌘S brings it back. Settings › Allgemein › Sidebar ›
-  Körnung puts Arc's grain on the color.
+- **Arc's themes:** each space has Arc's theme picker (in its editor): a
+  color disc with one to three handles, Arc's nine swatches, Auto/Hell/Dunkel,
+  intensity (0.81 to start) and grain, and the window changes with every
+  move. It is drawn as Arc draws it: the colors blend in OKLab along the 45°
+  diagonal at 0.2 + 0.55 × intensity over white or black, over the window's
+  blur, with the grain on top (a quarter of it in a window not in front).
+  The same theme colors the sidebar's text, hover and selection, the command
+  bar, menus and toasts. Arc's row sizes, and favicons taken from Arc's own
+  icon cache. Or glass (Settings › Allgemein › Sidebar): the desktop shows
+  through the window, on macOS 26 as one sheet of Liquid Glass with the
+  space's colors over it, the sidebar directly on it and the pages floating
+  above as cards. Drag the sidebar edge far to the left to collapse it, ⌘S
+  brings it back.
+- **Sidebar on the right** (Settings › Allgemein › Sidebar ›
+  Sidebar-Position), for every window, with a short cross-fade: the pages,
+  resizing from the inner edge, the hover sidebar from the right edge, tab
+  previews (to the left of it), downloads flying into the library button
+  and swipes all follow; the window buttons stay at the top left.
 - **Tab previews:** resting the pointer on a tab in the sidebar shows a
   picture of its page beside the sidebar, with its title and address (and a
   pull request's checks); moving down the list switches it at once.
@@ -222,8 +233,8 @@ run. Data lives in
   shows there too, from what Spotify tells every app; its buttons control
   Spotify after macOS asks once. Leaving a tab with a video playing keeps
   it going in picture-in-picture.
-- **Hover sidebar:** with the sidebar collapsed, the window's left edge
-  brings it back over the page.
+- **Hover sidebar:** with the sidebar collapsed, the window's edge on the
+  sidebar's side brings it back over the page.
 - **Updates:** OpenArch updates itself from the nightly release (checked
   at launch and every six hours; only builds signed with OpenArch's Developer ID, from its own GitHub releases).
 - **Settings** in Arc's style: Allgemein, Profile, Links, Teilen, KI, Import,
@@ -247,7 +258,8 @@ run. Data lives in
   leaving, stay awake.
 - **HTTPS only** (Settings › Allgemein): Chromium's HTTPS-First mode,
   which loads http:// addresses over HTTPS and warns before falling back.
-- **Import from Arc:** spaces, favorites, pinned folders, today tabs and split
+- **Import from Arc:** spaces with their themes (gradient, intensity, grain,
+  light or dark, exactly), favorites, pinned folders, today tabs and split
   views (from Arc's `StorableSidebar.json`). "Alles übernehmen" also brings
   logins and cookies, saved passwords, history, website data and the
   installed extensions with their settings. Arc's profile is cloned, and
@@ -320,6 +332,9 @@ Lessons learned on the way:
 - **No Widevine.** DRM video such as Netflix does not play, and Google sync
   for Chromium forks is not available.
 - **Not built yet:** Easels and Notes.
+- **Themes:** Arc's other textures (sand, denim, tweed) come over as grain
+  of the same strength. ⌘S shows and hides the sidebar without a slide, on
+  either side.
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
 

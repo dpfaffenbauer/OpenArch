@@ -26,11 +26,16 @@ final class CommandBarController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { panel?.isVisible == true }
 
+    /// The space's theme, for the bar's card and its selected row.
+    var theme: SpaceTheme { browser.theme }
+
     func show(mode: Mode) {
         guard let window = browser.window else { return }
         model.reset(mode: mode)
         let panel = self.panel ?? makePanel()
         self.panel = panel
+        // Light or dark like the space's theme, whose colors it takes.
+        panel.appearance = browser.theme.appearance
         let width: CGFloat = min(720, max(480, window.frame.width - 160))
         let content = window.convertToScreen(browser.contentRect)
         let x = content.midX - width / 2
@@ -727,6 +732,7 @@ struct CommandBarView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let theme = controller.theme
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
@@ -752,7 +758,8 @@ struct CommandBarView: View {
                         ScrollView {
                             VStack(spacing: 2) {
                                 ForEach(Array(model.results.enumerated()), id: \.element.id) { index, result in
-                                    CommandResultRow(result: result, isSelected: index == model.selection)
+                                    CommandResultRow(result: result, isSelected: index == model.selection,
+                                                     selectionFill: theme.surfaceSelection)
                                         .id(index)
                                         .contentShape(Rectangle())
                                         .onTapGesture { model.run(index) }
@@ -770,12 +777,16 @@ struct CommandBarView: View {
                     }
                 }
             }
+            .foregroundStyle(theme.surfaceText)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(.regularMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 14).fill(theme.surface.opacity(0.9)))
                     .shadow(color: .black.opacity(0.35), radius: 24, y: 10))
             .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.12)))
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .environment(\.colorScheme, theme.colorScheme)
+            .tint(theme.accent)
             .padding(.horizontal, 24)
             .padding(.top, 4)
             .padding(.bottom, 40)
@@ -788,6 +799,7 @@ struct CommandBarView: View {
 private struct CommandResultRow: View {
     let result: CommandResult
     let isSelected: Bool
+    var selectionFill = Color.primary.opacity(0.13)
 
     var body: some View {
         HStack(spacing: 12) {
@@ -816,7 +828,7 @@ private struct CommandResultRow: View {
         }
         .padding(.horizontal, 10)
         .frame(minHeight: 42)
-        .background(RoundedRectangle(cornerRadius: 9).fill(isSelected ? Color.primary.opacity(0.13) : .clear))
+        .background(RoundedRectangle(cornerRadius: 9).fill(isSelected ? selectionFill : .clear))
     }
 
     private var isSymbol: Bool {

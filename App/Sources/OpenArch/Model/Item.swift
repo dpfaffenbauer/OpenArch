@@ -324,11 +324,16 @@ struct SpaceData: Codable {
     var id: UUID
     var name: String
     var icon: String
+    /// The theme's first color; all a space had before themes, and still
+    /// written for older versions of OpenArch.
     var colorHex: String
     var profileID: String
     var pinned: [ItemData]
     var today: [ItemData]
     var activeItemID: UUID?
+    /// Colors, intensity, grain and light or dark; nil in libraries from
+    /// before themes, whose spaces get their one color as the only handle.
+    var theme: ThemeData?
 }
 
 struct ItemData: Codable {

@@ -2,9 +2,9 @@ import AppKit
 import OpenArchCore
 import SwiftUI
 
-/// One browser window: the sidebar on the left and, to its right, the
-/// content area where the active tab's Chrome pane (or the panes of a split
-/// view) sit as child windows.
+/// One browser window: the sidebar on the left (or on the right, Settings ›
+/// Allgemein › Sidebar) and, beside it, the content area where the active
+/// tab's Chrome pane (or the panes of a split view) sit as child windows.
 @MainActor
 final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPaneDelegate {
     let library: Library
@@ -28,17 +28,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) var visibleTabs: [Item] = []
     private var itemsByPane: [ObjectIdentifier: Item] = [:]
     private let rootView = BrowserRootView()
-    /// The glass look (Settings › Allgemein): the desktop blurred behind the
-    /// window, and the space's color over it.
-    private let glass = NSVisualEffectView()
-    private let glassTint = NSView()
-    /// macOS 26: the whole window is one sheet of Liquid Glass, the sidebar
-    /// and the window buttons directly on it and the page floating above.
+    /// The space's theme behind the sidebar and around the pages: the
+    /// window's blur, white or black, the colors and the grain.
+    let background = SpaceBackgroundView()
+    /// macOS 26 in the glass look (Settings › Allgemein): the whole window is
+    /// one sheet of Liquid Glass, the sidebar and the window buttons directly
+    /// on it and the page floating above.
     private var windowGlass: NSView?
-    /// Arc's grain on the space's color (Settings › Allgemein › Sidebar).
-    private let grainView = GrainView()
     /// How much grain shows (self-test).
-    var grainAmount: Double { grainView.isHidden ? 0 : grainView.amount }
+    var grainAmount: Double { background.grainAmount }
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
     private var agentHost: NSHostingView<AgentContentView>!
@@ -70,11 +68,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         homeSpace = isPrivate ? nil : home
         if isPrivate {
             // Not part of the library: never saved, never in the space bar.
-            state = BrowserState(space: Space(name: "Privates Fenster", icon: "eyeglasses", colorHex: "#2C2C30", profileID: ""))
+            state = BrowserState(space: Space(name: "Privates Fenster", icon: "eyeglasses", colorHex: "#2C2C30", profileID: "",
+                                              theme: ThemeData(colors: ["#2C2C30"], appearance: .dark)))
             privateProfile = OACProfile.makePrivate()
         } else if let home {
             // Not part of the library either, but on the home space's profile.
-            state = BrowserState(space: Space(name: home.name, icon: home.icon, colorHex: home.colorHex, profileID: home.profileID))
+            state = BrowserState(space: Space(name: home.name, icon: home.icon, colorHex: home.colorHex, profileID: home.profileID,
+                                              theme: home.theme))
         } else {
             state = BrowserState(space: library.space(id: library.selectedSpaceID) ?? library.spaces[0])
         }
@@ -94,14 +94,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
         rootView.controller = self
         window.contentView = rootView
-        glass.material = .sidebar
-        glass.blendingMode = .behindWindow
-        // Glass in front or not: macOS would flatten an inactive window's
-        // glass to plain gray (with Settings in front, for instance).
-        glass.state = .active
-        glassTint.wantsLayer = true
-        rootView.addSubview(glass)
-        rootView.addSubview(glassTint)
+        state.systemDark = SpaceTheme.systemIsDark
+        rootView.addSubview(background)
         #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             let sheet = NSGlassEffectView()
@@ -110,10 +104,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             // readable; clear glass left it sharp behind the text.
             sheet.style = .regular
             windowGlass = sheet
-            rootView.addSubview(sheet)
+            background.setGlassSheet(sheet)
         }
         #endif
-        rootView.addSubview(grainView)
         sidebarHost = NSHostingView(rootView: SidebarView(browser: self))
         sidebarHost.sizingOptions = []
         emptyHost = NSHostingView(rootView: EmptyContentView(browser: self))
@@ -134,8 +127,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         loadingLine.sizingOptions = []
         loadingLine.safeAreaRegions = []  // it sits under the title bar
         rootView.addSubview(loadingLine)
-        // The handle's middle is 4 pt inside the sidebar's edge.
-        sidebarHandle.onDrag = { [weak self] _, x in self?.resizeSidebar(to: x + 4) }
+        // The handle's middle is 4 pt inside the sidebar's edge; on the
+        // right, the sidebar reaches from there to the window's edge.
+        sidebarHandle.onDrag = { [weak self] _, x in
+            guard let self else { return }
+            self.resizeSidebar(to: self.sidebarOnRight ? self.rootView.bounds.width - x - 4 : x + 4)
+        }
         rootView.addSubview(sidebarHandle)
         sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
         rootView.addSubview(sidebarEdge)
@@ -159,7 +156,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             // AppKit's own appearance changes a moment after the notification.
             guard let self else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-                MainActor.assumeIsolated { self?.applyTheme() }
+                MainActor.assumeIsolated {
+                    // Auto themes follow the Mac's light or dark mode.
+                    self?.state.systemDark = SpaceTheme.systemIsDark
+                    self?.applyTheme()
+                }
             }
         }
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
@@ -194,14 +195,16 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private func observeChanges() {
         withObservationTracking {
-            _ = state.space.colorHex
+            _ = state.space.theme
             _ = state.space.id
-            _ = homeSpace?.colorHex
+            _ = homeSpace?.theme
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    // A separate window keeps its home space's color.
-                    if let self, let home = self.homeSpace { self.state.space.colorHex = home.colorHex }
+                    // A separate window keeps its home space's theme.
+                    if let self, let home = self.homeSpace, self.state.space.theme != home.theme {
+                        self.state.space.theme = home.theme
+                    }
                     self?.applyTheme()
                     self?.observeChanges()
                 }
@@ -215,30 +218,28 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
     }
 
+    /// The space's theme, resolved for the Mac's light or dark mode: every
+    /// color of the sidebar, the command bar, menus and toasts comes from it.
+    var theme: SpaceTheme {
+        SpaceTheme.resolve(state.space.theme, systemDark: state.systemDark)
+    }
+
     func applyTheme() {
-        let theme = SpaceTheme(hex: state.space.colorHex)
-        let base = isFrontmost ? theme.base : theme.inactiveBase
+        let theme = self.theme
         let glassy = library.settings.glass
-        let tint = library.settings.glassTint
-        // macOS 26: Liquid Glass with the color in it, which the frosted glass
-        // under it would only turn gray. Before, frosted glass and color over it.
-        glass.isHidden = !glassy || windowGlass != nil
-        glassTint.isHidden = !glassy || windowGlass != nil
-        glassTint.layer?.backgroundColor = base.withAlphaComponent(tint).cgColor
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, *), let sheet = windowGlass as? NSGlassEffectView {
-            sheet.tintColor = base.withAlphaComponent(tint)
-        }
-        #endif
+        // macOS 26: Liquid Glass with the colors over it; before, frosted
+        // glass and the colors over that.
         windowGlass?.isHidden = !glassy
-        grainView.amount = library.settings.grain
-        window?.isOpaque = !glassy
-        window?.backgroundColor = glassy ? .clear : base
+        background.apply(theme, active: isFrontmost, glassTint: glassy ? library.settings.glassTint : nil)
+        // The desktop shows through: in the glass look, and faintly behind
+        // the theme while the window is in front.
+        window?.isOpaque = false
+        window?.backgroundColor = .clear
         if isFrontmost, !isStandalone, !AppPaths.isSelfTest {
             AppIcons.spaceDidChange(state.space.colorHex)
         }
-        window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
-        focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
+        window?.appearance = theme.appearance
+        focusRing.color = theme.focusRing
         // An agent chat is light or dark like the pages, not like the space.
         agentHost?.appearance = NSApp.effectiveAppearance
         pageChatHost?.appearance = NSApp.effectiveAppearance
@@ -259,7 +260,26 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         pageArea(in: contentAreaRect)
     }
 
-    /// The area right of the sidebar, in window coordinates.
+    /// The sidebar on the window's right (Settings › Allgemein › Sidebar).
+    var sidebarOnRight: Bool { library.settings.sidebarOnRight }
+
+    /// Room at the start of the sidebar's top bar for the window buttons,
+    /// which stay at the window's top left: none with the sidebar on the
+    /// right, or floating below them.
+    func sidebarButtonRoom(floating: Bool) -> CGFloat {
+        floating || sidebarOnRight ? 4 : 72
+    }
+
+    var sidebarSymbol: String { sidebarOnRight ? "sidebar.right" : "sidebar.left" }
+
+    /// |rect| laid out for a sidebar on the left, where it goes with the
+    /// sidebar on the right: mirrored across the window.
+    func mirrored(_ rect: NSRect) -> NSRect {
+        guard sidebarOnRight else { return rect }
+        return NSRect(x: rootView.bounds.width - rect.maxX, y: rect.minY, width: rect.width, height: rect.height)
+    }
+
+    /// The area beside the sidebar, in window coordinates.
     var contentAreaRect: NSRect {
         let bounds = rootView.bounds
         let inset = Self.contentInset
@@ -269,6 +289,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             rect.size.width = bounds.width - sidebarWidth - inset
             rect.origin.y = inset
             rect.size.height = bounds.height - 2 * inset
+            if sidebarOnRight {
+                // The window buttons stay at the top left, now over the page's
+                // side: room for them above it, as with the sidebar hidden.
+                let top: CGFloat = window?.styleMask.contains(.fullScreen) == true ? inset : 30
+                rect.size.height = bounds.height - inset - top
+                rect = mirrored(rect)
+            }
         } else {
             // Leave room for the window buttons above the content.
             let top: CGFloat = window?.styleMask.contains(.fullScreen) == true ? inset : 30
@@ -277,22 +304,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return rect
     }
 
-    /// The right edge of a sidebar row, at its middle, in window coordinates
-    /// (where a tab's preview goes). |row| is in the sidebar's SwiftUI
-    /// coordinates, like state.sidebarFrame.
+    /// The inner edge of a sidebar row (its right edge, or its left with the
+    /// sidebar on the right), at its middle, in window coordinates: where a
+    /// tab's preview goes. |row| is in the sidebar's SwiftUI coordinates,
+    /// like state.sidebarFrame.
     func sidebarAnchor(forRow row: CGRect) -> NSPoint? {
         let sidebar = state.sidebarFrame
         guard state.sidebarVisible, !row.isEmpty, !sidebar.isEmpty else { return nil }
         // Measured from the sidebar's bottom, as for the library button.
-        let point = NSPoint(x: sidebarWidth, y: sidebarHost.bounds.height - (sidebar.maxY - row.midY))
+        let point = NSPoint(x: sidebarOnRight ? 0 : sidebarWidth, y: sidebarHost.bounds.height - (sidebar.maxY - row.midY))
         return sidebarHost.convert(point, to: nil)
     }
 
     /// The library button in window coordinates (downloads fly into it); the
-    /// bottom left corner while the sidebar is hidden.
+    /// bottom corner on the sidebar's side while the sidebar is hidden.
     var libraryButtonCenter: NSPoint {
         let button = state.libraryButtonFrame, sidebar = state.sidebarFrame
-        guard state.sidebarVisible, !button.isEmpty, !sidebar.isEmpty else { return NSPoint(x: 24, y: 22) }
+        guard state.sidebarVisible, !button.isEmpty, !sidebar.isEmpty else {
+            return NSPoint(x: sidebarOnRight ? rootView.bounds.width - 24 : 24, y: 22)
+        }
         // Measured from the sidebar's bottom left corner, which is the
         // hosting view's (flipped) bottom left corner.
         let point = NSPoint(x: button.midX - sidebar.minX, y: sidebarHost.bounds.height - (sidebar.maxY - button.midY))
@@ -302,23 +332,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func layoutContent() {
         guard let window else { return }
         let bounds = rootView.bounds
-        glass.frame = bounds
-        glassTint.frame = bounds
-        windowGlass?.frame = bounds
-        grainView.frame = bounds
+        let corner = window.styleMask.contains(.fullScreen) ? 0 : Self.windowCornerRadius
+        background.frame = bounds
+        background.cornerRadius = corner
         #if compiler(>=6.2)
         if #available(macOS 26.0, *), let sheet = windowGlass as? NSGlassEffectView {
-            sheet.cornerRadius = window.styleMask.contains(.fullScreen) ? 0 : Self.windowCornerRadius
+            sheet.cornerRadius = corner
         }
         #endif
         sidebarHost.isHidden = !state.sidebarVisible
-        sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
+        sidebarHost.frame = mirrored(NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height))
         sidebarHandle.isHidden = !state.sidebarVisible
-        // All of it left of the page: the page's window lies above this one,
-        // so a part under it never got the mouse.
-        sidebarHandle.frame = NSRect(x: sidebarWidth - 8, y: 0, width: 8, height: max(0, bounds.height - 40))
+        // All of it on the sidebar's side of the page: the page's window lies
+        // above this one, so a part under it never got the mouse. (On the
+        // left it stops below the window buttons.)
+        sidebarHandle.frame = mirrored(NSRect(x: sidebarWidth - 8, y: 0, width: 8,
+                                              height: max(0, bounds.height - (sidebarOnRight ? 0 : 40))))
+        // The window's edge on the sidebar's side brings it back while hidden.
         sidebarEdge.isHidden = state.sidebarVisible
-        sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
+        sidebarEdge.frame = mirrored(NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30)))
         let content = contentRect
         let showsAgent = state.activeItem?.kind == .agent
         emptyHost.frame = content
@@ -446,8 +478,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         library.setNeedsSave()
     }
 
-    /// Dragging the sidebar's edge. Far enough to the left, it collapses
-    /// like Arc's; dragging back out (still holding) opens it again.
+    /// Dragging the sidebar's inner edge to make it |x| wide. Narrow enough
+    /// (far to the left, or to the right with the sidebar there), it
+    /// collapses like Arc's; dragging back out (still holding) opens it again.
     func resizeSidebar(to x: CGFloat) {
         if x < 150 {
             if state.sidebarVisible {
@@ -538,6 +571,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// (self-test).
     var windowGlassFrame: NSRect? {
         windowGlass.flatMap { $0.isHidden ? nil : $0.frame }
+    }
+
+    /// Where the sidebar, its resize handle and the strip that brings it
+    /// back are, in window coordinates, if shown (self-test).
+    var sidebarLayout: (sidebar: NSRect?, handle: NSRect?, edge: NSRect?) {
+        (sidebarHost.isHidden ? nil : sidebarHost.frame, sidebarHandle.isHidden ? nil : sidebarHandle.frame,
+         sidebarEdge.isHidden ? nil : sidebarEdge.frame)
     }
 
     /// Where the loading line above the page is, in window coordinates, if
@@ -1486,7 +1526,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard let window else { return }
         let toast = self.toast ?? ToastWindow()
         self.toast = toast
-        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action)
+        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action, theme: theme)
     }
 
     /// ⌃⇧1…4: focus a side of the split view; ⌃⇧[ and ⌃⇧] the neighbours.
@@ -1512,6 +1552,23 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         state.sidebarVisible.toggle()
         state.downloadStack.dismiss()
         layoutContent()
+    }
+
+    /// The sidebar moved to the other side (Settings › Allgemein › Sidebar):
+    /// a short cross-fade, since sliding it across the page looks like a
+    /// glitch, and everything laid out again.
+    func sidebarSideChanged() {
+        tabPreview.hide()
+        floatingSidebar.hide()
+        state.downloadStack.dismiss()
+        layoutContent()
+        if window?.isVisible == true, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            sidebarHost.alphaValue = 0
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.22
+                sidebarHost.animator().alphaValue = 1
+            }
+        }
     }
 
     func toggleChromeToolbar() {

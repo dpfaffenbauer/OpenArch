@@ -94,6 +94,6 @@ The space's name has a menu too: rest the pointer on it and click **…**. It ed
 
 Press <kbd>⌘S</kbd>, or click the sidebar button at the top, to hide the sidebar; the page then takes the whole window. Press <kbd>⌘S</kbd> again to bring it back. The menu command is **Ansicht › Sidebar ein-/ausblenden**.
 
-Drag the sidebar's right edge to make it wider or narrower, between 200 and 440 points. Drag it far to the left and it collapses, as in Arc; drag back out without letting go and it opens again. **Settings › Allgemein › Sidebar › Breite** sets the width too.
+Drag the sidebar's right edge to make it wider or narrower, between 200 and 440 points. Drag it far to the left and it collapses, as in Arc; drag back out without letting go and it opens again. **Settings › Allgemein › Sidebar › Breite** sets the width too. With the sidebar on the right (**Settings › Allgemein › Sidebar › Sidebar-Position**), all of this is mirrored: see [The sidebar on the right](/sidebar/appearance/#the-sidebar-on-the-right).
 
 While the sidebar is hidden, move the pointer to the window's left edge. The sidebar slides in over the page, and slides away again once the pointer has left it for a moment. Click its sidebar button (**Sidebar anheften**) to keep it open.

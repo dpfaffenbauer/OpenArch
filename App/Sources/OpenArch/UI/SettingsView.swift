@@ -256,8 +256,18 @@ private struct GeneralPage: View {
             }
         }
         Section(title: "Sidebar") {
-            Row(symbol: "sidebar.left", color: .purple, title: "Breite",
-                detail: "Auch durch Ziehen am Rand der Sidebar; ganz nach links zieht sie zu.") {
+            Row(symbol: library.settings.sidebarOnRight ? "sidebar.right" : "sidebar.left", color: .purple, title: "Sidebar-Position",
+                detail: "Links wie in Arc, oder rechts. Gilt für alle Fenster; die Ampel bleibt oben links.") {
+                Picker("", selection: $library.settings.sidebarOnRight) {
+                    Text("Links").tag(false)
+                    Text("Rechts").tag(true)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 160)
+            }
+            Row(symbol: "arrow.left.and.right", color: .purple, title: "Breite",
+                detail: "Auch durch Ziehen am inneren Rand der Sidebar; ganz an den Fensterrand gezogen, klappt sie zu.") {
                 Slider(value: $library.settings.sidebarWidth, in: 200...440, step: 10).frame(width: 160)
                     .onChange(of: library.settings.sidebarWidth) { app.browsers.forEach { $0.layoutContent() } }
             }
@@ -270,10 +280,6 @@ private struct GeneralPage: View {
                 Slider(value: $library.settings.glassTint, in: 0...0.9).frame(width: 160)
                     .disabled(!library.settings.glass)
             }
-            Row(symbol: "circle.dotted", color: .brown, title: "Körnung",
-                detail: "Feines Korn auf der Farbe des Space, wie in Arc. Ganz links ist es aus.") {
-                Slider(value: $library.settings.grain, in: 0...1).frame(width: 160)
-            }
             Row(symbol: "rectangle.on.rectangle.angled", color: .blue, title: "Vorschau beim Überfahren",
                 detail: "Ruht der Zeiger auf einem Tab in der Sidebar, zeigt OpenArch ein Bild der Seite daneben.",
                 showsDivider: false) {
@@ -282,7 +288,7 @@ private struct GeneralPage: View {
         }
         .onChange(of: library.settings.glass) { app.browsers.forEach { $0.applyTheme() } }
         .onChange(of: library.settings.glassTint) { app.browsers.forEach { $0.applyTheme() } }
-        .onChange(of: library.settings.grain) { app.browsers.forEach { $0.applyTheme() } }
+        .onChange(of: library.settings.sidebarOnRight) { app.browsers.forEach { $0.sidebarSideChanged() } }
         AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }
