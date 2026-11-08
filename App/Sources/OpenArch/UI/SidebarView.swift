@@ -1178,7 +1178,7 @@ private struct TodaySection: View {
             .padding(.horizontal, 8)
             .onHover { hoveringHeader = $0 }
             .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
-                browser.handleDrop(providers, target: .end(space.today))
+                browser.handleDrop(providers, target: space.today.items.first.map { .before($0) } ?? .end(space.today))
             }
 
             NewTabRow(browser: browser, theme: theme)

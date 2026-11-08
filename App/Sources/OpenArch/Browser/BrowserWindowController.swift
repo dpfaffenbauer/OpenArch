@@ -1356,7 +1356,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             container.insert(item, into: folder)
         case .end(let container):
             if container.role == .favorites, item.kind != .tab { return }
-            container.insert(item, at: container.role == .today ? 0 : nil)
+            container.insert(item)
         case .split(let other):
             dropForSplit(item, onto: other)
             return

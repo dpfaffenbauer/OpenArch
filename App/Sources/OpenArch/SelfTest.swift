@@ -770,6 +770,12 @@ final class SelfTest {
                    "a pinned tab dragged among the pinned keeps its pinned address, a today tab is pinned where it is")
             dragged.detach()
         }
+        // The free space under the today tabs puts a drop last, the line
+        // above them first.
+        let last = browser.openInNewTab("https://example.com/drop-last", select: false)
+        browser.move(last, to: .end(space.today))
+        expect(space.today.items.last === last && space.today.items.count > 1, "a tab dropped under the today tabs goes last")
+        last.detach()
     }
 
     private func arcImport() {
