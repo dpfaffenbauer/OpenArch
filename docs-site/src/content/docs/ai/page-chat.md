@@ -67,6 +67,28 @@ of your messages show what went with it.
 OpenArch reads the page through Chrome's DevTools protocol inside its own tab,
 not through an open port, so this works without [AI control](/ai/ai-control/).
 
+## Acting in the browser
+
+The chat can also work in your tabs, signed in as you: ask it to fill in a form, click through a page, open something in a new tab or delete what a page lists. It uses OpenArch's own browser tools:
+
+| Tool | What it does |
+| --- | --- |
+| `list_tabs` | Lists the space's tabs |
+| `read_page` | Reads a tab's text and numbers its links, buttons and fields |
+| `open_tab` | Opens an address in a new tab next to the page, in the background |
+| `navigate` | Opens an address in a tab |
+| `click` | Clicks an element by its number, as you would with the mouse |
+| `type` | Types into a field, or chooses an option in a menu |
+| `go_back` | Goes back a page |
+
+Without a tab id they work on the page the chat is about. Reading needs no permission. The first time Claude wants to act (open, click, type, go back), the chat shows **Browser-Steuerung nicht erlaubt** with **Erlauben und weiter**. Once allowed, it may act for the rest of this chat.
+
+These tools are part of OpenArch: they need no [AI control](/ai/ai-control/), no open DevTools port and no Node. Each chat reaches them at an address on `127.0.0.1` with a secret of its own, which only its own Claude Code runs get.
+
+:::caution
+A page can hide instructions for Claude in its text. Claude is told to act only when you ask it to, never because a page says so, but read what it proposes, and allow acting only in chats where you asked for it.
+:::
+
 ## Answers and links
 
 Answers stream in as they are written and show as Markdown: code in boxes,
@@ -112,8 +134,11 @@ the message.
 The chat runs with Claude Code's default permissions. A run cannot stop to ask
 you, so anything that would need your approval is refused and shows in the chat
 as "… nicht erlaubt" with a button **Erlauben und weiter** (Allow and continue),
-which allows it for this chat. With [AI control](/ai/ai-control/) on, the chat
-also gets OpenArch's browser tools; Claude is told to use them only when you
-ask it to do something in a tab, and the first use needs that same button.
+which allows it for this chat. The chat's browser tools read without asking;
+acting in the browser needs that button once per chat (see
+[Acting in the browser](#acting-in-the-browser)).
+
+Each tool Claude used shows as a row in the chat. Click it to see the whole
+command or input and what came back.
 
 How the runs work in detail: [How OpenArch talks to Claude](/ai/how-it-works/).

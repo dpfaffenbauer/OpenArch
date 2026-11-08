@@ -144,7 +144,12 @@ run. Data lives in
   to compare or sum up several. Answers stream in as in agent chats, and
   their links open as tabs. ⌘E or Esc closes the chat; it keeps its
   conversation until the tab closes. Like agent chats it runs the `claude`
-  command line tool on your own login, in a folder of its own.
+  command line tool on your own login, in a folder of its own. It can also
+  act in your tabs with OpenArch's own browser tools (`BrowserTools`, an MCP
+  server on 127.0.0.1 with a secret per chat; no AI control, no Node):
+  reading at once, clicking, typing and opening after „Erlauben und weiter“
+  once per chat. A tool row in a chat opens to the whole command and what
+  came back.
 - **Skills in the command bar:** typing the name of one of your Claude Code
   skills (`~/.claude/skills`) or slash commands (`~/.claude/commands`) lists
   it with its description, and a / lists them all. Choosing one runs it on
