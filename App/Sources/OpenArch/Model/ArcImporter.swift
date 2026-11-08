@@ -29,7 +29,10 @@ enum ArcImporter {
         }
     }
 
-    static func load(from url: URL = sidebarURL) throws -> (LibraryData, Summary) {
+    /// |currentProfiles|: OpenArch's profiles now, directory by name. An Arc
+    /// profile imported before keeps its directory, and its logins; any
+    /// other gets one no profile has used.
+    static func load(from url: URL = sidebarURL, currentProfiles: [String: String] = [:]) throws -> (LibraryData, Summary) {
         guard let raw = try? Data(contentsOf: url),
               let root = try? JSONSerialization.jsonObject(with: raw) as? [String: Any]
         else { throw ImportError.unreadable }
@@ -54,8 +57,15 @@ enum ArcImporter {
         func profileID(for arcProfile: Any?) -> String {
             let key = profileKey(arcProfile)
             if let existing = profileIDsByArcKey[key] { return existing }
-            let id = key == "default" ? "Default" : "Profile \(profiles.count + 1)"
             let name = key == "default" ? "Persönlich" : "Arc – \(key)"
+            let taken = Set(profiles.map(\.id))
+            let id = if key == "default" {
+                "Default"
+            } else if let kept = currentProfiles[name], kept != "Default", !taken.contains(kept) {
+                kept
+            } else {
+                AppPaths.unusedProfileDirectory(besides: taken.union(currentProfiles.values))
+            }
             profiles.append(ProfileData(id: id, name: name, favorites: []))
             profileIDsByArcKey[key] = id
             return id

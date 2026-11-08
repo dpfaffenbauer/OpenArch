@@ -761,6 +761,29 @@ final class SelfTest {
         expect(kept?.contains(library.spaces[0].name) == true, "the import keeps the sidebar it replaces (\(backup?.lastPathComponent ?? "-"))")
         if let backup { try? FileManager.default.removeItem(at: backup) }
 
+        // A space on another Arc profile gets a directory no profile has used
+        // (Profile 2 holds "Privat"'s logins), unless that Arc profile came
+        // over before and has one already.
+        let sidebar = AppPaths.support.appendingPathComponent("arc-sidebar-test.json")
+        let json = #"""
+            {"sidebar": {"containers": [{"global": {}}, {
+              "items": ["p", {"id": "p", "data": {}, "childrenIds": []}, "u", {"id": "u", "data": {}, "childrenIds": ["t"]},
+                        "t", {"id": "t", "data": {"tab": {"savedURL": "https://example.com/", "savedTitle": "Example"}}}],
+              "spaces": ["s", {"id": "5A1D2F3E-0000-4000-8000-000000000001", "title": "Work", "containerIDs": ["pinned", "p", "unpinned", "u"],
+                               "profile": {"custom": {"_0": {"directoryBasename": "Profile 1"}}}}],
+              "topAppsContainerIDs": []}]}}
+            """#
+        try? Data(json.utf8).write(to: sidebar)
+        try? FileManager.default.createDirectory(at: AppPaths.chromiumData.appendingPathComponent("Profile 2"),
+                                                 withIntermediateDirectories: true)
+        let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
+        let fresh = (try? ArcImporter.load(from: sidebar, currentProfiles: current))?.0.spaces.first?.profileID
+        let again = (try? ArcImporter.load(from: sidebar, currentProfiles: ["Arc – Profile 1": "Profile 7"]))?.0.spaces.first?.profileID
+        let created = AppPaths.unusedProfileDirectory(besides: ["Default"])
+        expect(fresh.map { !current.values.contains($0) && $0 != "Profile 2" } == true && again == "Profile 7" && created != "Profile 2",
+               "an imported Arc profile and a new one never take a profile directory in use (\(fresh ?? "-"), \(again ?? "-"), \(created))")
+        try? FileManager.default.removeItem(at: sidebar)
+
         guard ArcImporter.isAvailable else {
             Swift.print("[selftest] skip arc import (no Arc data)")
             return

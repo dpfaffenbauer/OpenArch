@@ -23,6 +23,18 @@ enum AppPaths {
         return url
     }
 
+    /// A directory for a new profile: "Profile N" that none of |used| has
+    /// and Chromium keeps no data under, so a new profile never starts out
+    /// with the logins of one that was there before.
+    static func unusedProfileDirectory(besides used: Set<String>) -> String {
+        var index = 2
+        while used.contains("Profile \(index)")
+            || FileManager.default.fileExists(atPath: chromiumData.appendingPathComponent("Profile \(index)").path) {
+            index += 1
+        }
+        return "Profile \(index)"
+    }
+
     /// Unpacked extensions in a Resources subfolder: "BuiltinExtensions" are
     /// part of OpenArch, "Extensions" only serve the self-test. Chromium
     /// writes into an unpacked extension's folder (_metadata for its rules),

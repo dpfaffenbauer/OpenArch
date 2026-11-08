@@ -325,7 +325,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func importFromArc(_ sender: Any?) {
         guard let browser = mainBrowser else { return }
         do {
-            let (data, summary) = try ArcImporter.load()
+            let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
+            let (data, summary) = try ArcImporter.load(currentProfiles: current)
             let alert = NSAlert()
             alert.messageText = "Aus Arc importieren"
             alert.informativeText = """

@@ -57,12 +57,7 @@ final class Library {
 
     @discardableResult
     func addProfile(name: String) -> Profile {
-        var index = profiles.count
-        var directory: String
-        repeat {
-            index += 1
-            directory = "Profile \(index)"
-        } while profiles.contains { $0.id == directory }
+        let directory = AppPaths.unusedProfileDirectory(besides: Set(profiles.map(\.id)))
         let profile = Profile(id: directory, name: name)
         profiles.append(profile)
         setNeedsSave()
