@@ -48,6 +48,7 @@ export default defineConfig({
             'browsing/windows',
             'browsing/library',
             'browsing/site-controls',
+            'browsing/protected-media',
             'browsing/links',
             'browsing/chrome',
           ],

@@ -9,7 +9,7 @@ import SwiftUI
 final class PeekController: NSObject, OACPaneDelegate {
     private unowned let browser: BrowserWindowController
     private var backdrop: PeekBackdropWindow?
-    private(set) var pane: OACPane?
+    private(set) var pane: (any OACPage)?
     private var source: Item?
     private var keyMonitor: Any?
     let model = PeekModel()
@@ -46,7 +46,8 @@ final class PeekController: NSObject, OACPaneDelegate {
         guard let window = browser.window else { return }
         let space = browser.state.space
         let profile = source.map { browser.library.profile(for: $0, in: space) } ?? browser.library.profile(id: space.profileID)
-        let pane = OACPane(profile: profile.chromium, url: url)
+        // A streaming service peeks in WebKit, like its tab would.
+        let pane = ProtectedMedia.makePage(url: url, profile: profile.chromium)
         pane.delegate = self
         pane.cornerRadius = 12
         pane.activatesOnShow = !AppPaths.isSelfTest
@@ -125,14 +126,14 @@ final class PeekController: NSObject, OACPaneDelegate {
 
     // MARK: OACPaneDelegate
 
-    func pane(_ pane: OACPane, titleDidChange title: String) { model.title = title }
-    func pane(_ pane: OACPane, addressDidChange url: String) { model.url = url }
+    func pane(_ pane: any OACPage, titleDidChange title: String) { model.title = title }
+    func pane(_ pane: any OACPage, addressDidChange url: String) { model.url = url }
 
-    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+    func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         browser.openInNewTab(url, select: !background)
     }
 
-    func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
+    func pane(_ pane: any OACPage, handleChromeCommand commandID: Int) -> Bool {
         switch OACChromeCommand(rawValue: commandID) {
         case .closeTab:
             close()
@@ -146,11 +147,24 @@ final class PeekController: NSObject, OACPaneDelegate {
         return true
     }
 
-    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+    func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
         browser.pane(pane, wantsToOpenExternalURL: url)
     }
 
-    func paneDidClose(_ pane: OACPane) {
+    /// A link in the card to a streaming service: the card shows it in WebKit.
+    func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
+        guard pane === self.pane, ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        let source = self.source
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { [weak self] in
+                guard let self, self.pane === pane else { return }
+                self.open(url, from: source)
+            }
+        }
+        return true
+    }
+
+    func paneDidClose(_ pane: any OACPage) {
         if pane === self.pane { close() }
     }
 }

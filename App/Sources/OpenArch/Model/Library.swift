@@ -358,6 +358,12 @@ struct Settings: Codable, Equatable {
     var httpsOnly = false
     /// Where DevTools open (Ansicht › DevTools anordnen).
     var devToolsDock = DevToolsDock.right
+    /// Streaming services (Spotify, Netflix …) open in WebKit, which plays
+    /// their DRM with Apple's FairPlay (see ProtectedMedia).
+    var protectedMediaWebKit = true
+    /// Chromium's Widevine for sites that accept it without Verified Media
+    /// Path. Off until the licence question with Google is settled.
+    var widevine = false
     /// Sites whose links to an app open it without asking: "host scheme".
     var allowedExternalApps: [String] = []
     /// The relay for new live shares (docs/sharing.md); empty: share.openarch.app.
@@ -413,6 +419,8 @@ struct Settings: Codable, Equatable {
         sleepAfterMinutes = try container.decodeIfPresent(Int.self, forKey: .sleepAfterMinutes) ?? defaults.sleepAfterMinutes
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
+        protectedMediaWebKit = try container.decodeIfPresent(Bool.self, forKey: .protectedMediaWebKit) ?? defaults.protectedMediaWebKit
+        widevine = try container.decodeIfPresent(Bool.self, forKey: .widevine) ?? defaults.widevine
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
         shareRelay = try container.decodeIfPresent(String.self, forKey: .shareRelay) ?? defaults.shareRelay
         agentChats = try container.decodeIfPresent(Bool.self, forKey: .agentChats) ?? defaults.agentChats
@@ -442,6 +450,7 @@ extension Settings {
     @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
         OACPane.devToolsDock = devToolsDock.dock
+        ProtectedMedia.isEnabled = protectedMediaWebKit
     }
 
     /// Where a new agent chat works: the chosen folder while it is there,

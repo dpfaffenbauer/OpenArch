@@ -222,6 +222,21 @@ run. Data lives in
   shows there too, from what Spotify tells every app; its buttons control
   Spotify after macOS asks once. Leaving a tab with a video playing keeps
   it going in picture-in-picture.
+- **Streaming services:** Spotify, Netflix, Disney+, Max, Prime Video,
+  Hulu, Paramount+, Peacock, Apple TV and Apple Music, Tidal, Deezer,
+  Crunchyroll, Joyn and Rakuten TV open with Safari's engine (a `WKWebView`
+  page in the same tab), which plays their DRM with Apple's FairPlay. A
+  link from a Chromium page to one of them moves the tab there before it
+  leaves (a form's POST stays); a page with Safari's engine keeps it for its
+  own navigations, so signing in through Google or Apple comes back to it.
+  Each profile has its own WebKit store, a private window one in memory.
+  Sidebar, split view, Peek, Little OpenArch, previews, the media player,
+  picture-in-picture, sleeping tabs, find, zoom, printing and downloads work
+  on these pages; Chrome extensions and Chrome's DevTools do not (⌥⌘I opens
+  Web Inspector). A message says so once per service; Settings › Allgemein ›
+  Geschützte Inhalte turns it off, and the Site Control Center switches a
+  site either way (`protected-media.json`). `--selftest --drm-test` checks it
+  with example.org standing in for a service.
 - **Hover sidebar:** with the sidebar collapsed, the window's left edge
   brings it back over the page.
 - **Updates:** OpenArch updates itself from the nightly release (checked
@@ -317,8 +332,15 @@ Lessons learned on the way:
 - **The full Arc import is new.** Moving logins, passwords and extensions has
   been tested on copies of Arc profiles, not yet on many real ones. Arc's own
   data is never changed.
-- **No Widevine.** DRM video such as Netflix does not play, and Google sync
-  for Chromium forks is not available.
+- **Widevine in Chromium is off.** Google's component updater installs the
+  module, but pages get it only with Settings › Allgemein › Geschützte
+  Inhalte (Widevine) on (after a restart), until the licence question with
+  Google is settled. Even then the big services refuse it without Verified
+  Media Path; they play with Safari's engine instead, where Chrome
+  extensions do not run and you sign in once more. Google sync for
+  Chromium forks is not available.
+- **Deleting a profile** does not exist yet; `WebKitStores.removeStore` is
+  there for it to remove the profile's WebKit data too.
 - **Not built yet:** Easels and Notes.
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.

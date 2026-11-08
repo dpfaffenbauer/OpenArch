@@ -11,6 +11,10 @@ Open it with <kbd>⌃⌘I</kbd> (**Ansicht › Website-Einstellungen …**) or w
 
 At the top are the site's address and whether the connection is secure: **Verbindung ist sicher** for `https://`, **Verbindung ist nicht sicher** for anything else. Chrome's and OpenArch's own pages say **Eine Seite von OpenArch** and have no permissions.
 
+### Safari's engine
+
+**Safaris Engine** shows whether the page runs with Safari's engine (WebKit), as streaming services do, or with Chromium. Switch it to send the site to the other engine; the page opens again there at once. On a page with Safari's engine, a line below says why and what it has not, and the permissions are left out: Safari's engine asks for them itself. See [Streaming services](/browsing/protected-media/).
+
 ### Permissions
 
 Each permission has a menu. **Standard** does what Chrome does when nothing is chosen, shown in brackets. With **Fragen**, Chrome asks you when the site wants it; **Erlauben** and **Blockieren** decide for good.

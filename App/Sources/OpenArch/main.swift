@@ -37,6 +37,7 @@ settings.rootCachePath = AppPaths.chromiumData.path
 // would ask for "OpenArch Safe Storage" each time.
 settings.useMockKeychain = true
 settings.extensionPaths = AppPaths.bundledExtensions("BuiltinExtensions")
+ProtectedContent.prepare(extensions: settings.extensionPaths)
 if AppPaths.isSelfTest {
     // The probe extension checks extension APIs. The self-test window sits
     // behind other windows, so Chromium must not treat it as hidden, and its

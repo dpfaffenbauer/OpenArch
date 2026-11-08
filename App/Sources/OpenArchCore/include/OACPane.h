@@ -1,5 +1,6 @@
 #import <AppKit/AppKit.h>
 
+#import "OACPage.h"
 #import "OACProfile.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -68,46 +69,62 @@ typedef NS_ENUM(NSInteger, OACChromeCommand) {
 @property(readonly) BOOL isComplete;
 /// Cancelled or interrupted: it will not complete.
 @property(readonly) BOOL isFailed;
+/// A download another engine runs (a WebKit page's), reported the same way.
+- (instancetype)initWithIdentifier:(uint32_t)identifier
+                          fileName:(NSString*)fileName
+                              path:(NSString*)path
+                   percentComplete:(NSInteger)percentComplete
+                        isComplete:(BOOL)isComplete
+                          isFailed:(BOOL)isFailed;
+/// Hands a download to +[OACPane downloadHandler], as Chrome's are.
++ (void)report:(OACDownload*)download;
 @end
 
 NS_SWIFT_UI_ACTOR
 @protocol OACPaneDelegate <NSObject>
 @optional
-- (void)pane:(OACPane*)pane titleDidChange:(NSString*)title;
-- (void)pane:(OACPane*)pane addressDidChange:(NSString*)url;
-- (void)pane:(OACPane*)pane faviconDidChange:(NSImage*)favicon;
-- (void)pane:(OACPane*)pane
+- (void)pane:(id<OACPage>)pane titleDidChange:(NSString*)title;
+- (void)pane:(id<OACPage>)pane addressDidChange:(NSString*)url;
+- (void)pane:(id<OACPage>)pane faviconDidChange:(NSImage*)favicon;
+- (void)pane:(id<OACPage>)pane
     loadingStateDidChange:(BOOL)isLoading
                 canGoBack:(BOOL)canGoBack
              canGoForward:(BOOL)canGoForward;
 /// How far the page has loaded, 0–1 (Chrome's own estimate).
-- (void)pane:(OACPane*)pane loadingProgressDidChange:(double)progress;
+- (void)pane:(id<OACPage>)pane loadingProgressDidChange:(double)progress;
 /// A link or script asked for a new tab. |background| is true for
 /// middle/cmd-clicks.
-- (void)pane:(OACPane*)pane
+- (void)pane:(id<OACPage>)pane
     wantsNewTabWithURL:(NSString*)url
             background:(BOOL)background;
 /// Return YES if OpenArch handled the command, NO to let Chrome run it.
-- (BOOL)pane:(OACPane*)pane handleChromeCommand:(NSInteger)commandID;
+- (BOOL)pane:(id<OACPage>)pane handleChromeCommand:(NSInteger)commandID;
 /// The pane's window became key (the user clicked or typed into it).
-- (void)paneDidBecomeActive:(OACPane*)pane;
-- (void)pane:(OACPane*)pane
+- (void)paneDidBecomeActive:(id<OACPage>)pane;
+- (void)pane:(id<OACPage>)pane
     consoleMessage:(NSString*)message
             source:(NSString*)source
               line:(NSInteger)line;
 /// The browser is gone (closed by the page, a crash or -close).
-- (void)paneDidClose:(OACPane*)pane;
+- (void)paneDidClose:(id<OACPage>)pane;
 /// A new document started (YES) or finished (NO) loading in the main frame.
-- (void)pane:(OACPane*)pane mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
+- (void)pane:(id<OACPage>)pane mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
 /// A link the user clicked is about to replace the page. Return YES to
 /// take it over (the navigation is cancelled), e.g. to show it in Peek.
-- (BOOL)pane:(OACPane*)pane shouldInterceptNavigationToURL:(NSString*)url;
+- (BOOL)pane:(id<OACPage>)pane shouldInterceptNavigationToURL:(NSString*)url;
 /// The page went to an address another app opens (bambustudioopen:,
 /// zoommtg:, mailto: ...). The navigation was cancelled.
-- (void)pane:(OACPane*)pane wantsToOpenExternalURL:(NSString*)url;
+- (void)pane:(id<OACPage>)pane wantsToOpenExternalURL:(NSString*)url;
 /// "Claude fragen" (askAboutSelectionTitle) was chosen in the context menu
 /// of text selected on the page.
-- (void)pane:(OACPane*)pane askAboutSelection:(NSString*)text;
+- (void)pane:(id<OACPage>)pane askAboutSelection:(NSString*)text;
+/// A main-frame navigation (a link, a redirect, a script, history) before
+/// its request goes out; |method| is its HTTP method. Return YES to cancel
+/// it here because OpenArch shows |url| in the other engine. Do not close
+/// the page before returning.
+- (BOOL)pane:(id<OACPage>)pane
+    shouldHandOffNavigationToURL:(NSString*)url
+                          method:(NSString*)method;
 @end
 
 /// One Chrome tab. It is hosted in its own borderless Chrome-style window
@@ -115,7 +132,7 @@ NS_SWIFT_UI_ACTOR
 /// Chrome treats it as a real tab: extensions (chrome.tabs, action popups,
 /// side panels), DevTools, find, downloads and permission prompts all work.
 NS_SWIFT_UI_ACTOR
-@interface OACPane : NSObject
+@interface OACPane : NSObject <OACPage>
 
 - (instancetype)initWithProfile:(OACProfile*)profile url:(NSString*)url;
 - (instancetype)init NS_UNAVAILABLE;

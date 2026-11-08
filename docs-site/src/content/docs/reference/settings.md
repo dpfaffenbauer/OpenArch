@@ -49,6 +49,13 @@ The settings of OpenArch for iPhone and iPad are on
 | --- | --- | --- |
 | **Nur HTTPS** | `http://` addresses load encrypted first; if that fails, OpenArch asks before opening the page unencrypted (Chromium's HTTPS-First mode). See [Data and privacy](/reference/data-and-privacy/). | Off |
 
+### Geschützte Inhalte
+
+| Setting | What it does | Default |
+| --- | --- | --- |
+| **DRM-Seiten mit Safaris Engine abspielen** | Spotify, Netflix and the other listed streaming services open with Safari's engine, which plays their DRM. Applies to pages you open from then on. See [Streaming services](/browsing/protected-media/). | On |
+| **Geschützte Inhalte (Widevine)** | Lets pages use Chromium's Widevine module, for streams that ask for no certification. Takes effect after OpenArch starts again. | Off |
+
 ### Sidebar
 
 | Setting | What it does | Default |

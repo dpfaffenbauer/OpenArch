@@ -88,7 +88,7 @@ final class Item: Identifiable {
     private(set) weak var parent: Item?
 
     // Live state while a pane exists.
-    var pane: OACPane?
+    var pane: (any OACPage)?
     var liveURL: String?
     var liveTitle: String?
     var favicon: NSImage?

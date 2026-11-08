@@ -10,7 +10,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     private static var open: [LittleOpenArchWindowController] = []
 
     private unowned let app: AppDelegate
-    let pane: OACPane
+    private(set) var pane: any OACPage
     private let profileID: String
     let model = LittleOpenArchModel()
     private var transferred = false
@@ -43,7 +43,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     }
 
     /// The pane a Little OpenArch window shows (self-test).
-    var shownPane: OACPane { pane }
+    var shownPane: any OACPage { pane }
 
     /// The Little OpenArch window the user is working in, if any.
     static var current: LittleOpenArchWindowController? {
@@ -54,7 +54,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     private init(url: String?, space: Space, app: AppDelegate) {
         self.app = app
         profileID = space.profileID
-        pane = OACPane(profile: app.library.profile(id: space.profileID).chromium, url: url ?? "about:blank")
+        pane = ProtectedMedia.makePage(url: url ?? "about:blank", profile: app.library.profile(id: space.profileID).chromium)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
@@ -129,8 +129,29 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         guard !text.isEmpty else { return }
         let url = CommandBarModel.url(fromInput: text) ?? app.library.settings.searchEngine.url(for: text)
         model.isEditing = false
-        pane.loadURL(url)
+        let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
+        if engine != pane.engine {
+            replacePage(with: url, engine: engine)
+        } else {
+            pane.loadURL(url)
+        }
         pane.focus()
+    }
+
+    /// Shows |url| in the other engine, in the same window (a streaming
+    /// service moves to WebKit).
+    private func replacePage(with url: String, engine: OACPageEngine) {
+        let old = pane
+        old.delegate = nil
+        old.hide()
+        old.close()
+        pane = ProtectedMedia.makePage(url: url, profile: old.profile, engine: engine)
+        pane.delegate = self
+        pane.cornerRadius = 8
+        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.toolbarVisible = model.toolbarVisible
+        model.url = url
+        layout()
     }
 
     /// Moves the page into the main window, in the current space (or one
@@ -166,19 +187,19 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     // MARK: OACPaneDelegate
 
-    func pane(_ pane: OACPane, titleDidChange title: String) { model.title = title }
+    func pane(_ pane: any OACPage, titleDidChange title: String) { model.title = title }
 
-    func pane(_ pane: OACPane, addressDidChange url: String) {
+    func pane(_ pane: any OACPage, addressDidChange url: String) {
         model.url = url
         app.history.recordVisit(url: url, title: nil)
     }
 
-    func pane(_ pane: OACPane, faviconDidChange favicon: NSImage) {
+    func pane(_ pane: any OACPage, faviconDidChange favicon: NSImage) {
         model.favicon = favicon
         FaviconStore.shared.store(favicon, forURL: model.url)
     }
 
-    func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
+    func pane(_ pane: any OACPage, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
         model.isLoading = isLoading
         model.canGoBack = canGoBack
         model.canGoForward = canGoForward
@@ -193,17 +214,17 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     /// Links that want a new tab go to the main window; ⌘-clicked ones to
     /// the space, in the background, like Ctrl-clicks.
-    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+    func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         if background, openInSpace(url, modifiers: .command) { return }
         app.mainBrowser?.openInNewTab(url, select: !background)
         if !background { app.mainBrowser?.showWindow(nil) }
     }
 
-    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+    func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
         ExternalApps.open(url, from: pane.url, in: window, library: app.library) { _ in NSSound.beep() }
     }
 
-    func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {
+    func pane(_ pane: any OACPage, shouldInterceptNavigationToURL url: String) -> Bool {
         openInSpace(url, modifiers: NSEvent.modifierFlags)
     }
 
@@ -222,7 +243,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         return true
     }
 
-    func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
+    func pane(_ pane: any OACPage, handleChromeCommand commandID: Int) -> Bool {
         switch OACChromeCommand(rawValue: commandID) {
         case .closeTab, .closeWindow:
             window?.close()
@@ -238,7 +259,19 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         return true
     }
 
-    func paneDidClose(_ pane: OACPane) {
+    /// A link here to a streaming service moves the window's page to WebKit.
+    func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
+        guard pane === self.pane, ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { [weak self] in
+                guard let self, self.pane === pane else { return }
+                self.replacePage(with: url, engine: .webKit)
+            }
+        }
+        return true
+    }
+
+    func paneDidClose(_ pane: any OACPage) {
         if !transferred { window?.close() }
     }
 }
