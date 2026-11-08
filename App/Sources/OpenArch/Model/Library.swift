@@ -180,6 +180,24 @@ final class Library {
         Sharing.shared.libraryDidSave()
     }
 
+    /// Keeps a copy of the saved library beside it, as "Library (vor
+    /// <reason> <time>).json", before something replaces it.
+    @discardableResult
+    func backUp(before reason: String) -> URL? {
+        save()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        let backup = fileURL.deletingLastPathComponent()
+            .appendingPathComponent("Library (vor \(reason) \(formatter.string(from: Date()))).json")
+        do {
+            try FileManager.default.copyItem(at: fileURL, to: backup)
+            return backup
+        } catch {
+            log("could not back up the library: \(error)")
+            return nil
+        }
+    }
+
     /// Loads the saved library, or sets up a first-run one.
     static func load() -> Library {
         let library = Library()

@@ -755,6 +755,12 @@ final class SelfTest {
     }
 
     private func arcImport() {
+        // What an import replaces stays beside Library.json.
+        let backup = library.backUp(before: "Arc-Import")
+        let kept = backup.flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+        expect(kept?.contains(library.spaces[0].name) == true, "the import keeps the sidebar it replaces (\(backup?.lastPathComponent ?? "-"))")
+        if let backup { try? FileManager.default.removeItem(at: backup) }
+
         guard ArcImporter.isAvailable else {
             Swift.print("[selftest] skip arc import (no Arc data)")
             return
