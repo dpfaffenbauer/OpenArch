@@ -1563,6 +1563,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .bookmarkThisTab:
             if let active = state.activeItem { togglePin(active) }
         case .savePage:
+            // ⌘S is Arc's sidebar key; Chrome's ⋮ menu "Save page as…" saves.
+            guard let event = NSApp.currentEvent, event.type == .keyDown, event.charactersIgnoringModifiers == "s",
+                  event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command else { return false }
             toggleSidebar()
         case .duplicateTab:
             if let active = state.activeItem { duplicate(active) }

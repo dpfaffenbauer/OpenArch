@@ -679,7 +679,12 @@ final class SelfTest {
         }
         expect(copyPasteboard.string(forType: .string) == url && browser.toast?.isVisible == true,
                "Chrome's Copy URL copies through OpenArch, with „Link kopiert“")
-
+        // "Save page as…" from Chrome's ⋮ menu (no ⌘S behind it) is left to
+        // Chrome, which saves the page, instead of hiding the sidebar.
+        if let pane = browser.activePane {
+            let taken = browser.pane(pane, handleChromeCommand: OACChromeCommand.savePage.rawValue)
+            expect(!taken && browser.state.sidebarVisible, "Chrome's „Save page as…“ saves the page, the sidebar stays")
+        }
     }
 
     /// ⌘Q quits through OpenArch's own shortcuts, so a page or Chrome cannot
