@@ -205,6 +205,8 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
     _rootCachePath = @"";
     _extensionPaths = @[];
     _extraSwitches = @[];
+    _keychainServiceName = @"";
+    _keychainAccountName = @"";
   }
   return self;
 }
@@ -236,6 +238,14 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
   settings.remote_debugging_port = (int)engineSettings.remoteDebuggingPort;
   g_remote_debugging_port = settings.remote_debugging_port;
   CefString(&settings.root_cache_path) = g_root_cache_path.UTF8String;
+  if (engineSettings.keychainServiceName.length > 0) {
+    CefString(&settings.keychain_service_name) =
+        engineSettings.keychainServiceName.UTF8String;
+  }
+  if (engineSettings.keychainAccountName.length > 0) {
+    CefString(&settings.keychain_account_name) =
+        engineSettings.keychainAccountName.UTF8String;
+  }
   CefString(&settings.cache_path) =
       [g_root_cache_path stringByAppendingPathComponent:@"Default"].UTF8String;
 

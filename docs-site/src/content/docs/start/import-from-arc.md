@@ -79,8 +79,8 @@ This is what happens:
    caches and Arc's open windows. The copy is an APFS clone: it is quick and
    takes no extra disk space until files change. Values Chromium encrypts
    (cookies, passwords, payment cards) are decrypted with Arc's key and
-   encrypted again with OpenArch's (see [Known limitations](/reference/limitations/)
-   for how OpenArch stores them).
+   encrypted again with OpenArch's own key, **OpenArch Safe Storage** in your
+   keychain (see [Data and privacy](/reference/data-and-privacy/#the-key-to-your-passwords-and-cookies)).
 5. The message **Import aus Arc** says how many cookies, passwords, history
    entries and extensions came over, and how many values could not be
    decrypted and were left out.

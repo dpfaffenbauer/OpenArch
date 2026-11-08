@@ -9,9 +9,9 @@ OpenArch is early, but usable as a daily browser. These are the gaps worth knowi
 
 OpenArch runs on Macs with Apple silicon and macOS 15 or later. There is no build for Intel Macs.
 
-## Passwords and cookies
+## Going back to an older version
 
-Chrome protects saved passwords and cookies with a key in your login keychain. OpenArch does not use the keychain yet, so they are not protected that way. See [Data and privacy](/reference/data-and-privacy/).
+Once OpenArch has moved your saved passwords and cookies to its key in the keychain, versions from before that key can't read them. See [Data and privacy](/reference/data-and-privacy/#the-key-to-your-passwords-and-cookies).
 
 ## Streaming with DRM
 

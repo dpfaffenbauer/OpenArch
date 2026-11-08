@@ -1,0 +1,14 @@
+OpenArch
+Copyright (c) 2026 Dominik Pfaffenbauer
+Licensed under the MIT License (see LICENSE).
+
+This product includes work adapted from the following projects:
+
+Airc (https://github.com/red545/airc)
+Copyright 2026 The Airc Authors
+Licensed under the Apache License, Version 2.0
+(https://www.apache.org/licenses/LICENSE-2.0).
+- App/Sources/OpenArch/Model/SafeStorage.swift: taking over the keychain
+  item "OpenArch Safe Storage" (a copy that is read back before the old item
+  is deleted, and put back after an interrupted take-over) follows Airc's
+  apps/browser/Sources/Airc/App/SafeStorageKey.swift.

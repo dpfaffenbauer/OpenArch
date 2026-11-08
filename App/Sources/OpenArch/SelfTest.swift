@@ -70,6 +70,19 @@ final class SelfTest {
             }
             return
         }
+        // One launch of --keychain-test (SelfTestKeychain.swift).
+        if KeychainSelfTest.phase > 0 {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(3) {
+                self.keychainPhase(KeychainSelfTest.phase) {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    KeychainSelfTest.report(phase: KeychainSelfTest.phase, failures: self.failures.count)
+                    Self.quit()
+                }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--marketing") {
             marketingScreens()
             return
@@ -1732,10 +1745,11 @@ final class SelfTest {
                "Split View menu lists the open sides (\(sides.map(\.title)))")
     }
 
-    /// Re-encryption as the full Arc import does it, with throwaway keys.
-    private func arcCrypto() {
+    /// Re-encryption as the full Arc import does it, from a throwaway key to
+    /// the one Chromium uses at this launch.
+    func arcCrypto() {
         let arcKey = ArcProfileImport.derivedKey(password: Data("arc-test-password".utf8))
-        let openArchKey = ArcProfileImport.derivedKey(password: Data("mock_password".utf8))
+        let openArchKey = SafeStorage.key
         let plain = Data("session=geheim".utf8)
         guard let encrypted = ArcProfileImport.aes(CCOperation(kCCEncrypt), plain, key: arcKey) else {
             return expect(false, "test value encrypts")
@@ -1762,7 +1776,8 @@ final class SelfTest {
         sqlite3_finalize(select)
         sqlite3_close(handle)
         let roundTrip = ArcProfileImport.aes(CCOperation(kCCDecrypt), stored.dropFirst(3), key: openArchKey)
-        expect(converted == 1 && failed == 0 && roundTrip == plain, "Arc values are re-encrypted with OpenArch's key")
+        expect(converted == 1 && failed == 0 && roundTrip == plain,
+               "Arc values are re-encrypted with OpenArch's key (\(SafeStorage.usesLoginKeychain ? "login keychain" : "mock keychain"))")
     }
 
     /// Opens a link in Little OpenArch, then moves it into the main window.
