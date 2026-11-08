@@ -506,7 +506,8 @@ private struct TrailingFlowLayout: Layout {
     }
 }
 
-/// A tool the agent used: what it did, and on a click what came back.
+/// A tool the agent used: what it did, and on a click the whole command
+/// and what came back.
 private struct AgentToolRow: View {
     let message: AgentMessage
     let isRunning: Bool
@@ -514,8 +515,10 @@ private struct AgentToolRow: View {
 
     var body: some View {
         let output = message.output ?? ""
+        let detail = message.detail ?? ""
+        let opens = !output.isEmpty || !detail.isEmpty
         VStack(alignment: .leading, spacing: 8) {
-            Button { if !output.isEmpty { expanded.toggle() } } label: {
+            Button { if opens { expanded.toggle() } } label: {
                 HStack(spacing: 8) {
                     Image(systemName: AgentTool.symbol(message.tool)).frame(width: 16).foregroundStyle(.secondary)
                     Text(AgentTool.title(message.tool)).fontWeight(.medium)
@@ -526,7 +529,7 @@ private struct AgentToolRow: View {
                     } else if message.failed {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(Color.red.opacity(0.8))
                     }
-                    if !output.isEmpty {
+                    if opens {
                         Image(systemName: expanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 9, weight: .bold)).foregroundStyle(.secondary)
                     }
@@ -535,21 +538,37 @@ private struct AgentToolRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            if expanded, !output.isEmpty {
-                ScrollView {
-                    Text(output)
-                        .font(.system(size: 11.5, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxHeight: 240)
-                .padding(8)
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.05)))
+            .help(opens ? (expanded ? "Zuklappen" : "Befehl und Ausgabe zeigen") : "")
+            if expanded {
+                if !detail.isEmpty { AgentToolText(text: detail) }
+                if !output.isEmpty { AgentToolText(text: output) }
             }
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.primary.opacity(0.1)))
+    }
+}
+
+/// A command or its output in a tool row, selectable, scrolling past 240
+/// points. The scroll view sits in the chat's own, which offers it no
+/// height, so it takes the text's.
+private struct AgentToolText: View {
+    let text: String
+    @State private var height: CGFloat = 0
+
+    var body: some View {
+        ScrollView {
+            Text(text)
+                .font(.system(size: 11.5, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height = $0 }
+        }
+        .frame(height: min(max(height, 15), 240))
+        .padding(8)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.05)))
     }
 }
 

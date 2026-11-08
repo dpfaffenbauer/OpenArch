@@ -46,6 +46,10 @@ These are the only things OpenArch itself sends. Each row says what goes where, 
 - **What plays and what is shared.** The media player and the screen sharing card learn it from the pages in your tabs.
 - **Shared links' keys.** A shared link's key is in its `#fragment`, which browsers never send to a server. Neither share.openarch.app nor openarch.app sees your bookmarks.
 
+## The page chat's browser tools
+
+A [page chat's browser tools](/ai/page-chat/#acting-in-the-browser) listen on `127.0.0.1`, at a port the system picks. Each chat's address carries a secret of its own, which only its Claude Code runs get, and a request without it is refused. Nothing outside your Mac can reach them.
+
 ## AI control opens a port
 
 [AI control](/ai/ai-control/) opens Chrome's DevTools protocol on `127.0.0.1:9222`. Only programs on your Mac can reach it, but any of them can, and with it they can drive your tabs, signed in as you. An antenna in the sidebar shows while it is open. Turn it off in **Settings › KI** when you do not need it.

@@ -80,7 +80,10 @@ struct AgentMessage: Codable, Identifiable, Equatable {
     /// Tools: the tool's name. Refused tools: the rule that allows it.
     var tool: String?
     var toolUseID: String?
-    /// Tools: what came back, shortened.
+    /// Tools: the whole command or input, when the one-line text leaves
+    /// something out (a long or multi-line command).
+    var detail: String?
+    /// Tools: what came back, shortened; empty when the run ended first.
     var output: String?
     var failed = false
     /// Text still arriving.
@@ -198,6 +201,7 @@ final class AgentSession {
         let run = self.run
         Task {
             let environment = await AgentEnvironment.resolved()
+            if isPageChat { await BrowserTools.shared.start() }
             guard run == self.run else { return }
             self.launch(prompt, environment: environment, run: run)
         }
@@ -286,16 +290,27 @@ final class AgentSession {
         if let session = config.sessionID {
             arguments += ["--resume", session]
         }
-        // With AI control on, the agent can work in this browser's tabs.
+        var allowed = config.allowedTools
         let port = OACEngine.remoteDebuggingPort
-        if port > 0 {
+        var browser = false
+        if isPageChat {
+            // Page chats get OpenArch's own tools: reading at once, the rest
+            // once the chat allows them.
+            if let item, let tools = BrowserTools.shared.mcpConfig(for: item) {
+                arguments += ["--mcp-config", tools]
+                allowed += BrowserTools.readingTools.filter { !allowed.contains($0) }
+                browser = true
+            }
+        } else if port > 0 {
+            // With AI control on, the agent can work in this browser's tabs.
             arguments += ["--mcp-config", AIControl.mcpConfig(port: port)]
+            browser = true
         }
-        if !config.allowedTools.isEmpty {
-            arguments += ["--allowedTools", config.allowedTools.joined(separator: ",")]
+        if !allowed.isEmpty {
+            arguments += ["--allowedTools", allowed.joined(separator: ",")]
         }
-        arguments += ["--append-system-prompt", isPageChat ? PageChat.systemPrompt(browser: port > 0)
-                                                           : Self.systemPrompt(folder: config.folder, browser: port > 0)]
+        arguments += ["--append-system-prompt", isPageChat ? PageChat.systemPrompt(browser: browser)
+                                                           : Self.systemPrompt(folder: config.folder, browser: browser)]
         return arguments
     }
 
@@ -394,8 +409,10 @@ final class AgentSession {
         case "tool_use":
             let name = block["name"] as? String ?? ""
             let input = block["input"] as? [String: Any] ?? [:]
-            messages.append(AgentMessage(role: .tool, text: AgentTool.summary(of: input), tool: name,
-                                         toolUseID: block["id"] as? String))
+            var message = AgentMessage(role: .tool, text: AgentTool.summary(of: input), tool: name,
+                                       toolUseID: block["id"] as? String)
+            message.detail = AgentTool.detail(of: input, summary: message.text)
+            messages.append(message)
         default:
             break
         }
@@ -456,6 +473,11 @@ final class AgentSession {
     private func finish() {
         for index in messages.indices where messages[index].streaming {
             messages[index].streaming = false
+        }
+        // Tools the run left without an answer (it was stopped) are over too,
+        // and turn no more once the next run starts.
+        for index in messages.indices where messages[index].role == .tool && messages[index].output == nil {
+            messages[index].output = ""
         }
         isRunning = false
         saveTranscript()
@@ -569,9 +591,25 @@ struct AgentConnector: Identifiable, Sendable {
 /// refused one allows.
 enum AgentTool {
     static let browserServer = "mcp__openarch"
+    /// OpenArch's own tools for page chats (BrowserTools).
+    static let tabsServer = "mcp__" + BrowserTools.server
 
     static func title(_ tool: String?) -> String {
         guard let tool else { return "Werkzeug" }
+        if tool.hasPrefix(tabsServer + "__") {
+            switch tool.dropFirst(tabsServer.count + 2) {
+            case "list_tabs": return "Tabs"
+            case "read_page": return "Liest die Seite"
+            case "screenshot": return "Bildschirmfoto"
+            case "scroll": return "Scrollt"
+            case "open_tab": return "Neuer Tab"
+            case "navigate": return "Öffnet"
+            case "click": return "Klickt"
+            case "type": return "Tippt"
+            case "go_back": return "Zurück"
+            default: return "Browser"
+            }
+        }
         if tool.hasPrefix(browserServer + "__") {
             return "Browser: " + tool.dropFirst(browserServer.count + 2).replacingOccurrences(of: "_", with: " ")
         }
@@ -607,6 +645,14 @@ enum AgentTool {
 
     /// The gist of a tool's input: its command, file, pattern or address.
     static func summary(of input: [String: Any]) -> String {
+        // OpenArch's browser tools: an element of the page, and what is typed.
+        if let direction = input["direction"] as? String, input["element"] == nil {
+            return ["down": "nach unten", "up": "nach oben", "top": "zum Anfang", "bottom": "zum Ende"][direction] ?? direction
+        }
+        if let element = input["element"] as? Int {
+            if let text = input["text"] as? String { return "„\(text.prefix(80))“ in Element \(element)" }
+            return "Element \(element)"
+        }
         for key in ["command", "file_path", "notebook_path", "path", "pattern", "url", "query", "description"] {
             if let value = input[key] as? String, !value.isEmpty {
                 let line = value.split(whereSeparator: \.isNewline).first.map(String.init) ?? value
@@ -614,6 +660,17 @@ enum AgentTool {
             }
         }
         return ""
+    }
+
+    /// The whole input behind |summary|, when the summary leaves something
+    /// out: a command over several lines or longer than the row, a long text.
+    static func detail(of input: [String: Any], summary: String) -> String? {
+        for key in ["command", "text", "content", "prompt", "query", "url", "file_path", "pattern"] {
+            guard let value = input[key] as? String, !value.isEmpty else { continue }
+            let whole = value.count > 8000 ? String(value.prefix(8000)) + "\n…" : value
+            return whole == summary ? nil : whole
+        }
+        return nil
     }
 
     /// What allowing a refused tool allows: the browser (a whole MCP
@@ -630,7 +687,7 @@ enum AgentTool {
     }
 
     static func ruleTitle(_ rule: String) -> String {
-        if rule == browserServer { return "Browser-Steuerung" }
+        if rule == browserServer || rule == tabsServer { return "Browser-Steuerung" }
         if rule.hasPrefix("Bash("), rule.hasSuffix(":*)") {
             return "„\(rule.dropFirst(5).dropLast(3))“-Befehle"
         }

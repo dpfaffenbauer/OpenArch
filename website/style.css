@@ -681,7 +681,7 @@ kbd {
 
 .agents-card .copy {
   display: flex;
-  flex: 1 1 320px;
+  flex: 3 1 360px;
   flex-direction: column;
   gap: 14px;
 }
@@ -708,7 +708,7 @@ kbd {
 }
 
 .terminal {
-  flex: 1 1 480px;
+  flex: 2 1 360px;
   min-width: 0;
   border-radius: 14px;
   background: #0b0e0c;

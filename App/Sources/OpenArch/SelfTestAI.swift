@@ -10,6 +10,7 @@ extension SelfTest {
         AgentEnvironment.stub = AgentEnvironment.Resolved(claude: stub.executable.path, variables: ProcessInfo.processInfo.environment)
         let steps: [(String, (@escaping () -> Void) -> Void)] = [
             ("page chat", { self.pageChatTest(stub, then: $0) }),
+            ("browser tools", { self.browserToolsTest(stub, then: $0) }),
             ("skills", { self.skillsTest(stub, then: $0) }),
             ("morning brief", { self.morningBriefTest(stub, then: $0) }),
             ("tidy tabs", { self.tidyTest(stub, then: $0) }),

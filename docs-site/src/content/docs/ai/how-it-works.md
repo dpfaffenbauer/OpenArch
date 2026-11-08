@@ -43,7 +43,7 @@ What else `claude` is started with depends on the feature. The folders it runs i
 
 | Feature | Runs in | Started with |
 | --- | --- | --- |
-| Chat with the page, skills | `PageChats` | `--permission-mode default`, `--resume`, `--append-system-prompt` (it is a chat beside a page) and, with [AI control](/ai/ai-control/) on, `--mcp-config` |
+| Chat with the page, skills | `PageChats` | `--permission-mode default`, `--resume`, `--append-system-prompt` (it is a chat beside a page), `--mcp-config` with OpenArch's own browser tools, and `--allowedTools` with their reading tools |
 | Agent chats | a folder you choose | the chat's permission mode, the tools you allowed (`--allowedTools`), `--resume`, `--append-system-prompt` and, with AI control on, `--mcp-config` |
 | Morning Brief | `MorningBrief` | `--permission-mode default` and only reading tools (`--allowedTools`) |
 | Tidy tabs | `TabTidy` | `--permission-mode default` |
@@ -58,7 +58,7 @@ Claude gets only what the feature puts into the message, and nothing from your b
 
 | Feature | What goes to Claude |
 | --- | --- |
-| Chat with the page | The page's address, title and readable text (up to 60,000 characters), text you selected on it (up to 20,000), tabs you named with @ (up to 30,000 characters each), and what you wrote. The page goes along again only once the tab shows a different one. |
+| Chat with the page | The page's address, title and readable text (up to 60,000 characters), text you selected on it (up to 20,000), tabs you named with @ (up to 30,000 characters each), and what you wrote. The page goes along again only once the tab shows a different one. With its browser tools, Claude can also read other tabs of the space and take pictures of them. |
 | Skills | The same as the page chat, and which skill to run. Claude Code reads the skill itself. |
 | Morning Brief | The brief's prompt and today's date. Claude fetches the rest itself, through your connectors. |
 | Tidy tabs | The titles and addresses of the space's today tabs. No page content. |
@@ -77,7 +77,7 @@ OpenArch reads a page's text from the open tab: it asks the page for the readabl
 The **Morning Brief** gets a narrower set. Before it writes, OpenArch starts `claude` once only to learn which tools it has, and stops it as soon as Claude Code lists them, before any question reaches the model. Connectors from claude.ai report their tools a moment later, so OpenArch asks up to three times. Then it allows only the connector tools whose names say they read, such as `get`, `list`, `search`, `read` or `find`. Anything whose name says it creates, sends, changes or deletes is left out. A mail that tells Claude to forward something therefore finds no tool to do it with.
 
 :::caution
-With [AI control](/ai/ai-control/) on, chats also get OpenArch's browser tools, which act in your real tabs, signed in as you. They are tools like any other: in **Nachfragen** mode, Claude has to be allowed to use them first.
+Page chats always get [OpenArch's own browser tools](/ai/page-chat/#acting-in-the-browser), and agent chats get Google's DevTools tools while [AI control](/ai/ai-control/) is on. Both act in your real tabs, signed in as you. Reading a tab is allowed in page chats; everything else is a tool like any other: in **Nachfragen** mode, Claude has to be allowed to use it first, once per chat.
 :::
 
 ## Where conversations are kept
