@@ -31,6 +31,7 @@
                      canGoForward:(BOOL)canGoForward;
 - (void)oac_loadingProgressDidChange:(double)progress;
 - (void)oac_wantsNewTabWithURL:(NSString*)url background:(BOOL)background;
+- (BOOL)oac_wantsPeekWithURL:(NSString*)url;
 - (BOOL)oac_handleChromeCommand:(int)commandID;
 - (void)oac_didActivate;
 - (void)oac_consoleMessage:(NSString*)message
@@ -278,6 +279,11 @@ class PaneClient : public CefClient,
       case CEF_WOD_NEW_WINDOW:
       case CEF_WOD_SINGLETON_TAB:
       case CEF_WOD_SWITCH_TO_TAB:
+        // ⇧-click on a link (a new window, for Chrome) opens Peek.
+        if (target_disposition == CEF_WOD_NEW_WINDOW && user_gesture &&
+            [pane oac_wantsPeekWithURL:OACToNSString(target_url)]) {
+          return true;
+        }
         // Tabs belong in OpenArch's sidebar, not in Chrome windows.
         [pane oac_wantsNewTabWithURL:OACToNSString(target_url)
                           background:target_disposition ==
@@ -472,6 +478,11 @@ class PaneClient : public CefClient,
       case CEF_WOD_NEW_FOREGROUND_TAB:
       case CEF_WOD_NEW_BACKGROUND_TAB:
       case CEF_WOD_NEW_WINDOW:
+        // ⇧-click on a link (a new window, for Chrome) opens Peek.
+        if (target_disposition == CEF_WOD_NEW_WINDOW && user_gesture &&
+            [pane oac_wantsPeekWithURL:OACToNSString(target_url)]) {
+          return true;
+        }
         [pane oac_wantsNewTabWithURL:OACToNSString(target_url)
                           background:target_disposition ==
                                      CEF_WOD_NEW_BACKGROUND_TAB];
@@ -1593,6 +1604,13 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
                      (pane:wantsNewTabWithURL:background:)]) {
     [self.delegate pane:self wantsNewTabWithURL:url background:background];
   }
+}
+
+- (BOOL)oac_wantsPeekWithURL:(NSString*)url {
+  if ([self.delegate respondsToSelector:@selector(pane:wantsPeekWithURL:)]) {
+    return [self.delegate pane:self wantsPeekWithURL:url];
+  }
+  return NO;
 }
 
 - (BOOL)oac_handleChromeCommand:(int)commandID {

@@ -51,6 +51,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private let sidebarEdge = SidebarEdgeView()
     private(set) lazy var floatingSidebar = FloatingSidebar(browser: self)
     private(set) lazy var peek = PeekController(browser: self)
+    private(set) lazy var manageSpaces = ManageSpacesController(browser: self)
     private(set) lazy var commandBar = CommandBarController(browser: self)
     private(set) lazy var tabSwitcher = TabSwitcher(browser: self)
     private(set) lazy var tabPreview = TabPreview(browser: self)
@@ -341,6 +342,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutLoadingLine(frames: frames)
         floatingSidebar.layout()
         peek.layout()
+        manageSpaces.layout()
     }
 
     func paneFrames(in rect: NSRect) -> [NSRect] {
@@ -720,8 +722,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// A click in the sidebar. With ⌘ the tab, or a folder's tabs, load in
     /// the background, so their pages and titles are there when you come
     /// to them; without, it shows the tab (or opens and closes the folder).
-    func click(_ item: Item) {
-        if NSEvent.modifierFlags.contains(.command) {
+    /// ⇧ and ⌘⇧ (and ⌘ while rows are selected) select rows instead.
+    func click(_ item: Item, modifiers: NSEvent.ModifierFlags = NSEvent.modifierFlags) {
+        if selectionClick(item, modifiers: modifiers) { return }
+        clearSelection()
+        state.selectionAnchorID = (item.split ?? item).id
+        if modifiers.contains(.command) {
             loadInBackground(item)
         } else {
             select(item)
@@ -813,6 +819,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func switchSpace(to space: Space, restoring: Bool = true) {
         guard space !== state.space, !isStandalone else { return }
+        clearSelection()
         state.space = space
         library.selectedSpaceID = space.id
         library.setNeedsSave()
@@ -1466,8 +1473,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         Self.runningCommand = nil
     }
 
-    /// The page in front: Peek's card while it is open, else the tab.
+    /// The page in front: Peek's card while it is open, else the tab. With
+    /// rows selected in the sidebar, all their addresses.
     func copyURL() {
+        if selectedItems.count > 1, !peek.isOpen {
+            return copySelectedURLs()
+        }
         guard let url = peek.isOpen ? peek.model.url : state.activeItem?.currentURL, !url.isEmpty else { return }
         OpenArch.copy(url)
         showToast("Link kopiert")
@@ -1596,6 +1607,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Pinned tabs and favorites keep their page: links to other sites
     /// open in Peek.
+    func pane(_ pane: OACPane, wantsPeekWithURL url: String) -> Bool {
+        guard library.settings.peek, url.hasPrefix("http"), let source = item(for: pane) else { return false }
+        peek.open(url, from: source)
+        return true
+    }
+
     private func shouldPeek(_ url: String, from source: Item) -> Bool {
         library.settings.peek && (source.role == .pinned || source.role == .favorites)
             && url.hasPrefix("http") && !PeekController.sameSite(url, source.savedURL)

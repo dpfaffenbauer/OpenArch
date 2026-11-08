@@ -97,6 +97,12 @@ final class Library {
         setNeedsSave()
     }
 
+    /// Sorting by dragging in „Spaces verwalten“.
+    func moveSpaces(fromOffsets source: IndexSet, toOffset destination: Int) {
+        spaces.move(fromOffsets: source, toOffset: destination)
+        setNeedsSave()
+    }
+
     /// Puts |space| where |target| is (dragging space icons).
     func moveSpace(_ space: Space, to target: Space) {
         guard let from = spaces.firstIndex(where: { $0 === space }),
@@ -346,7 +352,8 @@ struct Settings: Codable, Equatable {
     var linkRules: [LinkRule] = []
     /// A playing video moves to picture-in-picture when you switch tabs.
     var autoPictureInPicture = true
-    /// Links from pinned tabs and favorites to other sites open in Peek.
+    /// Links from pinned tabs and favorites to other sites, and ⇧-clicks on
+    /// any link, open in Peek.
     var peek = true
     /// Where the command bar sends a question.
     var askAI = AIChat.claude

@@ -47,6 +47,18 @@ Each space remembers the tab you last had in front and shows it again when you c
 
 Drag an icon in the space bar to where you want it; the others make room as it moves. Its menu has **Nach links** and **Nach rechts** too. The order is the order of <kbd>⌃1</kbd> … <kbd>⌃9</kbd>.
 
+## Manage all spaces
+
+**Spaces verwalten …** opens a card over the page with a row per space: its icon, its name, its profile and how many tabs it has pinned and open. Find it in the **…** menu beside a space's name, in a space icon's menu, and in the [library](/browsing/library/) under **Spaces**.
+
+- Drag a row up or down to sort the spaces.
+- Click a name to rename it; <kbd>↩</kbd> keeps the new name, <kbd>Esc</kbd> the old one.
+- Click an icon for the space's editor: symbol, color and profile.
+- The bin deletes the space, after asking (see below).
+- **Neuer Space** at the bottom makes one.
+
+**Fertig**, <kbd>Esc</kbd> or a click beside the card closes it.
+
 ## Move tabs between spaces
 
 Drag a tab, folder or split view onto a space's icon in the space bar, or right-click it and choose **In Space verschieben**. A pinned tab or folder lands in the other space's pinned tabs, a today tab at the top of its today tabs. A link dropped on a space's icon opens there as a new tab.
@@ -55,7 +67,7 @@ If the other space uses a different profile, the moved tabs load again in that p
 
 ## Delete a space
 
-Choose **Space löschen …** from the **…** menu beside its name or from its icon's menu. OpenArch asks first. The space's pinned tabs, folders and today tabs go with it; the data of its profile (logins, cookies) stays. The last space cannot be deleted.
+Choose **Space löschen …** from the **…** menu beside its name or from its icon's menu, or click the bin in **Spaces verwalten …**. OpenArch asks first, and says how many tabs are pinned (in how many folders) and open. Those tabs go to the [archive](/sidebar/tabs/#the-archive), where you can open them again; <kbd>⇧⌘T</kbd> brings back the open ones first. The folders themselves are gone, and agent chats in the space are deleted. The data of its profile (logins, cookies) stays. The last space cannot be deleted.
 
 ## Profiles
 
@@ -67,6 +79,12 @@ A profile is one of Chromium's profiles: it keeps logins, cookies, history, save
 - Chromium's history (**Verlauf › Verlauf anzeigen**, <kbd>⌘Y</kbd>) is per profile. The list of visited pages the command bar searches is OpenArch's own and covers all profiles.
 
 The first profile is called **Persönlich**. A space's profile is set in its editor, under **Profil**. When you change it, the space's open tabs load again in the new profile.
+
+### Which profile a space uses
+
+Rest the pointer on a space's name above its pinned tabs. A card shows the profile's name and color, the Google account signed in to that profile (picture, name and email), and which other spaces use the same profile. To find the account, OpenArch asks Google for the list of accounts signed in to that profile's cookies, the same list Chrome asks for. It asks only when you rest the pointer on the name, at most every five minutes per profile, and keeps the answer in memory only. Without a connection the card says the account is unknown.
+
+Once there is more than one profile, each space's icon in the space bar has a thin ring in its profile's color, and resting the pointer on the icon names the profile. A profile's color follows from its place in **Settings › Profile**.
 
 ### Make a profile
 
