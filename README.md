@@ -200,6 +200,16 @@ run. Data lives in
   video call), a red card at the bottom of the sidebar says what is shared;
   a click goes to the shared tab, ■ ends the sharing. The sharing tab and
   the shared one carry a red mark in the sidebar.
+- **Calls in picture-in-picture:** leaving a tab in a call (its page uses
+  the camera or microphone) by switching tabs or spaces, minimizing the
+  window or the window going out of sight, keeps the call in a floating
+  window. Google Meet opens its own (its tiles and buttons, via the page's
+  Document Picture-in-Picture); other calls get OpenArch's, with the call's
+  videos and buttons for microphone, camera, hanging up and going back to
+  the tab. Coming back closes it. It opens at the bottom right, remembers
+  where you drag it, and stays above other apps on every desktop. Off
+  under Settings › Allgemein › Tabs, or per site in the Site Control
+  Center; muted videos and sound alone never float.
 - **Site Control Center** (⌃⌘I, or the sliders at the top of the sidebar):
   camera, microphone, location, notifications, pop-ups, sound, downloads,
   clipboard and JavaScript per site, the page's zoom, its boost, and
@@ -243,8 +253,10 @@ run. Data lives in
 - **Housekeeping:** today tabs are archived after 12 hours (configurable),
   and ⌘⇧T reopens closed tabs. Tabs you have not looked at for two hours
   (configurable) go to sleep: their page closes and loads again when you
-  come back. Tabs playing something, or whose page would ask before
-  leaving, stay awake.
+  come back. Tabs playing something, in a call, or whose page would ask
+  before leaving stay awake, and so do pinned tabs and favorites of chat
+  and mail sites (Slack, Gmail, Outlook, WhatsApp, Teams …; more under
+  Settings › Allgemein › Tabs).
 - **HTTPS only** (Settings › Allgemein): Chromium's HTTPS-First mode,
   which loads http:// addresses over HTTPS and warns before falling back.
 - **Import from Arc:** spaces, favorites, pinned folders, today tabs and split
@@ -320,6 +332,11 @@ Lessons learned on the way:
 - **No Widevine.** DRM video such as Netflix does not play, and Google sync
   for Chromium forks is not available.
 - **Not built yet:** Easels and Notes.
+- **Calls in picture-in-picture** are checked with local test pages and
+  Chromium's fake camera, not yet with real Meet, Zoom, Teams or Slack
+  calls. Hanging up from OpenArch's window clicks the site's leave button
+  where it finds one. Whether the window shows over another app's full
+  screen has not been checked on screen.
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
 

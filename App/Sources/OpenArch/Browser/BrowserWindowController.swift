@@ -56,6 +56,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) lazy var tabPreview = TabPreview(browser: self)
     private(set) var sidebarSwipe: SidebarSwipe?
     private var archiveTimer: Timer?
+    private var occlusionCheck: DispatchWorkItem?
+    /// Whether the window was on screen at the last occlusion change.
+    private var isOnScreen = true
 
     static let contentInset: CGFloat = 8
     /// A titled window's corners, which the glass has to follow.
@@ -513,11 +516,33 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func windowWillMiniaturize(_ notification: Notification) {
+        windowVisibilityChanged(onScreen: false)
         hidePanesForTransition()
     }
 
     func windowDidDeminiaturize(_ notification: Notification) {
         relayoutSoon()
+        windowVisibilityChanged(onScreen: true)
+    }
+
+    /// Covered by another window, on another desktop or hidden: a call or
+    /// video in the window floats once that lasts a moment (a window passing
+    /// over it does not count). The self-test's window always sits behind
+    /// others, so there the test says when.
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard !AppPaths.isSelfTest, let window, !window.isMiniaturized else { return }
+        let onScreen = window.occlusionState.contains(.visible)
+        occlusionCheck?.cancel()
+        let check = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let window = self.window, window.occlusionState.contains(.visible) == onScreen,
+                      onScreen != self.isOnScreen else { return }
+                self.isOnScreen = onScreen
+                self.windowVisibilityChanged(onScreen: onScreen)
+            }
+        }
+        occlusionCheck = check
+        DispatchQueue.main.asyncAfter(deadline: .now() + (onScreen ? 0.05 : 0.6), execute: check)
     }
 
     private func hidePanesForTransition() {
@@ -690,15 +715,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let tabs = item.kind == .agent ? [] : (item.split?.children ?? [item])
         for old in visibleTabs where !tabs.contains(where: { $0 === old }) {
             TabSnapshots.capture(old)
-            pictureInPictureIfPlaying(old)
+            pictureInPictureOnLeaving(old)
             old.pane?.hide()
         }
         for tab in tabs {
             claim(tab)
         }
-        for tab in tabs where tab.media?.pip == true {
-            mediaCommand(tab, "exitpip")
-        }
+        tabs.forEach(pictureInPictureOnReturning)
         visibleTabs = tabs
         for tab in tabs {
             ensurePane(for: tab)
@@ -807,6 +830,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.media = nil
         tab.screenShare = nil
         tab.captureHandle = nil
+        tab.mediaAccess = MediaAccess()
+        tab.call = nil
         tab.isAsleep = false
         visibleTabs.removeAll { $0 === tab }
     }
@@ -821,6 +846,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
            library.space(containing: item) === space || item.role == .favorites {
             select(item)
         } else {
+            visibleTabs.forEach(pictureInPictureOnLeaving)
             showNothing()
         }
     }
@@ -1054,7 +1080,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Sleeping tabs: a tab nobody has looked at for a while gives its memory
     /// back. Its page closes; the tab keeps its place, address and title and
     /// loads again when shown. Tabs that play something, or whose page would
-    /// ask before leaving (an unsent form, unsaved changes), stay awake.
+    /// ask before leaving (an unsent form, unsaved changes), stay awake, and
+    /// so do calls and pinned chat and mail sites (keepsAwake).
     func sleepInactiveTabs(olderThan minutes: Int? = nil) {
         let minutes = minutes ?? library.settings.sleepAfterMinutes
         guard minutes > 0 else { return }
@@ -1062,7 +1089,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         // Loaded in the background a moment ago counts as recent too.
         for tab in allTabs where max(tab.lastActiveAt, tab.loadedAt ?? .distantPast) < cutoff {
             guard let pane = tab.pane, pane.delegate === self, !pane.isVisible, !tab.isAudible,
-                  tab.media?.playing != true, tab.media?.pip != true,
+                  tab.media?.playing != true, tab.media?.pip != true, !keepsAwake(tab),
                   !visibleTabs.contains(where: { $0 === tab }) else { continue }
             Self.asksBeforeLeaving(pane) { [weak self, weak tab] asks in
                 guard let self, let tab, !asks, tab.pane === pane, !pane.isVisible,
@@ -1696,13 +1723,20 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func pane(_ pane: OACPane, mainFrameLoadStarted started: Bool, url: String) {
         // A new document shares nothing (yet); it names itself anew.
-        if started, let item = item(for: pane) { item.screenShare = nil }
+        if started, let item = item(for: pane) {
+            item.screenShare = nil
+            item.call = nil
+        }
         // Boosts go in as early as the page allows and again once it is
         // complete (the style sheet is replaced, the script runs once).
         if let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
            !boost.styleSheet.isEmpty || !boost.javaScript.isEmpty {
             pane.executeJavaScript(BoostStore.script(for: boost))
         }
+    }
+
+    func pane(_ pane: OACPane, mediaAccessDidChangeVideo video: Bool, audio: Bool) {
+        item(for: pane)?.mediaAccess = MediaAccess(video: video, audio: audio)
     }
 
     /// A changed boost reaches the open tabs of its site at once.
@@ -1737,10 +1771,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             item.captureHandle = String(message.dropFirst(handlePrefix.count))
             return
         }
+        let callPrefix = "__openarch_call__"
+        if message.hasPrefix(callPrefix), let item = item(for: pane) {
+            let rest = message.dropFirst(callPrefix.count)
+            if rest.hasPrefix(" ") {
+                let call = try? JSONDecoder().decode(CallState.self, from: Data(rest.dropFirst().utf8))
+                let opened = call?.pip.isEmpty == false && item.call?.pip.isEmpty != false
+                item.call = call
+                if opened { PictureInPictureWindows.shared.expect() }
+            } else if rest == "-back" {
+                returnToCall(item)
+            }
+            SelfTest.current?.consoleMessage(message, from: item)
+            return
+        }
         let mediaPrefix = "__openarch_media__ "
         if message.hasPrefix(mediaPrefix), let item = item(for: pane) {
             let media = try? JSONDecoder().decode(MediaState.self, from: Data(message.dropFirst(mediaPrefix.count).utf8))
             if media?.playing == true, item.media?.playing != true { item.mediaDismissed = false }
+            if media?.pip == true, item.media?.pip != true { PictureInPictureWindows.shared.expect() }
             item.media = media
             return
         }
@@ -1832,14 +1881,6 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func seekMedia(_ item: Item, to seconds: Double) {
         guard seconds.isFinite else { return }
         mediaCommand(item, "seek:" + String(format: "%.2f", max(0, seconds)))
-    }
-
-    /// Like Arc: leaving a tab with a video playing (with sound) keeps the
-    /// video going in picture-in-picture.
-    private func pictureInPictureIfPlaying(_ item: Item) {
-        guard library.settings.autoPictureInPicture, let media = item.media,
-              media.playing, media.video, media.audible, !media.pip else { return }
-        mediaCommand(item, "pip")
     }
 
     /// The speaker on a tab: mutes or unmutes it.

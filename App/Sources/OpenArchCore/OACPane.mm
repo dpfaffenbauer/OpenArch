@@ -37,6 +37,7 @@
                     source:(NSString*)source
                       line:(NSInteger)line;
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
+- (void)oac_mediaAccessDidChangeVideo:(BOOL)video audio:(BOOL)audio;
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
 - (void)oac_willToggleFullScreen;
 - (void)oac_wantsExternalURL:(NSString*)url;
@@ -364,6 +365,15 @@ class PaneClient : public CefClient,
     }
     [pane oac_consoleMessage:text source:OACToNSString(source) line:line];
     return false;
+  }
+
+  // Chrome's recording indicator: the page (or a frame in it) uses the
+  // camera or the microphone.
+  void OnMediaAccessChange(CefRefPtr<CefBrowser> browser,
+                           bool has_video_access,
+                           bool has_audio_access) override {
+    [Own(browser) oac_mediaAccessDidChangeVideo:has_video_access
+                                          audio:has_audio_access];
   }
 
   // CefLoadHandler
@@ -1619,6 +1629,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   if ([self.delegate respondsToSelector:@selector
                      (pane:consoleMessage:source:line:)]) {
     [self.delegate pane:self consoleMessage:message source:source line:line];
+  }
+}
+
+- (void)oac_mediaAccessDidChangeVideo:(BOOL)video audio:(BOOL)audio {
+  if ([self.delegate respondsToSelector:@selector(pane:mediaAccessDidChangeVideo:audio:)]) {
+    [self.delegate pane:self mediaAccessDidChangeVideo:video audio:audio];
   }
 }
 

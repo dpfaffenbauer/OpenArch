@@ -24,6 +24,9 @@ struct SiteControls: View {
                     ForEach(SitePermission.all) { permission in
                         PermissionRow(permission: permission, value: binding(permission, origin: origin, profile: profile))
                     }
+                    if let host = KeepAwakeSites.host(of: item.currentURL) {
+                        pictureInPictureRow(host)
+                    }
                 }
             }
             Divider()
@@ -54,6 +57,31 @@ struct SiteControls: View {
                 }
             }
         }
+    }
+
+    /// Whether the site's videos and calls float by themselves when you
+    /// leave the tab (Settings › Allgemein › Tabs › Ohne Bild-in-Bild).
+    private func pictureInPictureRow(_ host: String) -> some View {
+        let library = browser.library
+        return HStack(spacing: 8) {
+            Image(systemName: "pip").frame(width: 20).foregroundStyle(.secondary)
+            Text("Bild-in-Bild beim Verlassen").font(.system(size: 13))
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { !KeepAwakeSites.listed(item.currentURL, in: library.settings.pictureInPictureExceptions) },
+                set: { on in
+                    var sites = library.settings.pictureInPictureExceptions
+                    if on {
+                        sites.removeAll { KeepAwakeSites.listed(item.currentURL, in: [$0]) }
+                    } else {
+                        sites.append(host)
+                    }
+                    library.settings.pictureInPictureExceptions = sites
+                    library.setNeedsSave()
+                }))
+                .labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
+        .frame(height: 26)
     }
 
     private var zoomRow: some View {
