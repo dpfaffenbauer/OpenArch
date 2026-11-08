@@ -199,6 +199,7 @@ extension BrowserWindowController {
         let activeWasToday = tabs.contains { $0 === state.activeItem }
         for tab in tabs {
             if !isPrivate { library.archive(tab, from: homeSpace) }
+            discardPageChat(tab)
             unload(tab)
         }
         for item in state.space.today.items where item.kind != .agent {

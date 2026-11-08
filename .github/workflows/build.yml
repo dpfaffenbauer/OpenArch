@@ -107,6 +107,18 @@ jobs:
           grep "\[selftest\]" selftest.log || true
           grep -q "DONE failures=0" selftest.log
 
+      # The AI features (chat with the page, skills, morning brief, tidying
+      # tabs) with a stand-in for claude, as a run of their own.
+      - name: Self-test (AI)
+        continue-on-error: true
+        run: |
+          App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test > selftest-ai.log 2>&1 &
+          pid=$!
+          for i in $(seq 1 90); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+          kill $pid 2>/dev/null || true
+          grep "\[selftest\]" selftest-ai.log || true
+          grep -q "DONE failures=0" selftest-ai.log
+
       # Notarized with the App Store Connect API key from the secrets, and the
       # ticket stapled to the app, so Gatekeeper lets it open on first launch.
       - name: Package

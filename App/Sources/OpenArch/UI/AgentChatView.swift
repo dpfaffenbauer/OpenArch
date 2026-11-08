@@ -38,6 +38,11 @@ struct AgentChatView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onAppear { inputFocused = true }
         .onChange(of: session.focusRequest) { inputFocused = true }
+        .environment(\.openURL, OpenURLAction { url in
+            guard url.scheme?.hasPrefix("http") == true else { return .systemAction }
+            browser.openInNewTab(url.absoluteString)
+            return .handled
+        })
     }
 
     private var chat: some View {
@@ -388,22 +393,28 @@ private struct AgentEmptyState: View {
     }
 }
 
-private struct AgentMessageRow: View {
+struct AgentMessageRow: View {
     let session: AgentSession
     let message: AgentMessage
 
     var body: some View {
         switch message.role {
         case .user:
-            HStack {
-                Spacer(minLength: 80)
-                Text(message.text)
-                    .font(.system(size: 14))
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 8)
-                    .background(RoundedRectangle(cornerRadius: 15).fill(Color.accentColor.opacity(0.16)))
+            VStack(alignment: .trailing, spacing: 5) {
+                HStack {
+                    Spacer(minLength: 60)
+                    Text(message.text)
+                        .font(.system(size: 14))
+                        .textSelection(.enabled)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 15).fill(Color.accentColor.opacity(0.16)))
+                }
+                if let attachments = message.attachments, !attachments.isEmpty {
+                    AttachmentChips(attachments: attachments)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         case .assistant:
             MarkdownText(text: message.text)
         case .tool:
@@ -423,6 +434,75 @@ private struct AgentMessageRow: View {
         case .note:
             Text(message.text).font(.system(size: 12)).foregroundStyle(.secondary)
         }
+    }
+}
+
+/// What a page chat sent along with a message: small chips under it,
+/// in as many rows as they need.
+private struct AttachmentChips: View {
+    let attachments: [AgentAttachment]
+
+    var body: some View {
+        TrailingFlowLayout(spacing: 5) {
+            ForEach(attachments, id: \.self) { attachment in
+                Label(attachment.title, systemImage: attachment.symbol)
+                    .font(.system(size: 11))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.primary.opacity(0.06)))
+                    .help(attachment.url ?? attachment.title)
+            }
+        }
+    }
+}
+
+/// Rows of views aligned right, wrapping when a row is full.
+private struct TrailingFlowLayout: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = rows(of: subviews, width: proposal.width ?? .infinity)
+        let height = rows.map(\.height).reduce(0, +) + spacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(width: proposal.width ?? rows.map(\.width).max() ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in rows(of: subviews, width: bounds.width) {
+            var x = bounds.maxX - row.width
+            for (index, size) in row.items {
+                subviews[index].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private struct Row {
+        var items: [(Int, CGSize)] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func rows(of subviews: Subviews, width: CGFloat) -> [Row] {
+        var rows: [Row] = []
+        var row = Row()
+        for index in subviews.indices {
+            var size = subviews[index].sizeThatFits(.unspecified)
+            size.width = min(size.width, width)
+            if !row.items.isEmpty, row.width + spacing + size.width > width {
+                rows.append(row)
+                row = Row()
+            }
+            row.width += (row.items.isEmpty ? 0 : spacing) + size.width
+            row.height = max(row.height, size.height)
+            row.items.append((index, size))
+        }
+        if !row.items.isEmpty { rows.append(row) }
+        return rows
     }
 }
 
@@ -584,7 +664,25 @@ struct MarkdownText: View {
 
     static func attributed(_ text: String) -> AttributedString {
         let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        return (try? AttributedString(markdown: readable(text), options: options)) ?? AttributedString(text)
+        var string = (try? AttributedString(markdown: readable(text), options: options)) ?? AttributedString(text)
+        linkAddresses(in: &string)
+        return string
+    }
+
+    /// Addresses written out without Markdown's [text](url) become links too.
+    private static func linkAddresses(in string: inout AttributedString) {
+        let plain = String(string.characters)
+        guard plain.contains("://") || plain.contains("www."),
+              let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else { return }
+        for match in detector.matches(in: plain, range: NSRange(plain.startIndex..., in: plain)) {
+            guard let url = match.url, url.scheme?.hasPrefix("http") == true,
+                  let range = Range(match.range, in: plain) else { continue }
+            let start = string.characters.index(string.startIndex, offsetBy: plain.distance(from: plain.startIndex, to: range.lowerBound))
+            let end = string.characters.index(start, offsetBy: plain.distance(from: range.lowerBound, to: range.upperBound))
+            if string[start..<end].runs.allSatisfy({ $0.link == nil }) {
+                string[start..<end].link = url
+            }
+        }
     }
 
     /// Splits off ``` code blocks.

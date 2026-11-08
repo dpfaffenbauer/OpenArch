@@ -100,6 +100,18 @@ final class SelfTest {
             quitWithStuckBrowser()
             return
         }
+        // --ai-test: only the AI features (SelfTestAI.swift), in a few seconds.
+        if CommandLine.arguments.contains("--ai-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.aiFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         // --share-owner <relay> <folder>: a live share for another device to
         // follow, changed when <folder>/update appears, ended on <folder>/end.
         if let index = CommandLine.arguments.firstIndex(of: "--share-owner"), index + 2 < CommandLine.arguments.count {
@@ -782,7 +794,7 @@ final class SelfTest {
     }
 
     /// Panes must sit exactly over the content area after the window changes.
-    private func checkPaneFrames(_ label: String) {
+    func checkPaneFrames(_ label: String) {
         let frames = browser.expectedPaneFrames
         let wrong = frames.filter { item, expected in
             guard let actual = item.pane?.window?.frame else { return true }

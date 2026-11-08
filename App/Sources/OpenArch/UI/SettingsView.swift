@@ -569,6 +569,49 @@ private struct AgentChatsSection: View {
     }
 }
 
+/// The morning brief: a page about the day ahead, once a day.
+private struct MorningBriefSection: View {
+    let app: AppDelegate
+    @Bindable var library: Library
+
+    var body: some View {
+        Section(title: "Morning Brief",
+                footer: "Claude Code schaut mit deinen Connectors (MCP-Servern) in Kalender, Mails, Chats und Aufgaben und schreibt daraus eine Seite. Sie öffnet als Tab „Morning Brief“ oben unter dem Strich, mit einem Punkt, bis du sie gelesen hast. Claude darf dabei nur lesen. Läuft mit dem Login von claude im Terminal, ohne API-Schlüssel.") {
+            Row(symbol: "sun.horizon", color: .orange, title: "Morning Brief",
+                detail: "Jeden Tag zur gewählten Zeit, oder beim ersten Start von OpenArch danach.") {
+                Toggle("", isOn: $library.settings.morningBrief).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "clock", color: .blue, title: "Uhrzeit") {
+                DatePicker("", selection: time, displayedComponents: .hourAndMinute)
+                    .labelsHidden().fixedSize()
+                    .disabled(!library.settings.morningBrief)
+            }
+            Row(symbol: "doc.text", color: .gray, title: "Anweisung",
+                detail: "Was Claude für den Brief tun soll, als Datei zum Anpassen.", showsDivider: false) {
+                HStack {
+                    Button("Bearbeiten …") { MorningBrief.editPrompt() }
+                    Button("Jetzt erstellen") {
+                        guard let browser = app.mainBrowser else { return }
+                        MorningBrief.shared.run(in: browser, manual: true)
+                        browser.showWindow(nil)
+                    }
+                }
+            }
+        }
+        .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+
+    /// The time of day, as minutes after midnight.
+    private var time: Binding<Date> {
+        Binding(
+            get: { Calendar.current.startOfDay(for: Date()).addingTimeInterval(Double(library.settings.morningBriefMinutes) * 60) },
+            set: { date in
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+                library.settings.morningBriefMinutes = (parts.hour ?? 7) * 60 + (parts.minute ?? 30)
+            })
+    }
+}
+
 private struct AIPage: View {
     let app: AppDelegate
     @State private var enabled = AIControl.isEnabled
@@ -579,6 +622,7 @@ private struct AIPage: View {
         let running = OACEngine.remoteDebuggingPort
         AskAISection(library: app.library)
         AgentChatsSection(library: app.library)
+        MorningBriefSection(app: app, library: app.library)
         Section(title: "KI-Steuerung",
                 footer: "OpenArch öffnet dafür Chromes DevTools-Protokoll auf 127.0.0.1. Solange das an ist, kann jedes Programm auf diesem Mac den Browser steuern, auch eingeloggte Tabs. Schalte es nur ein, wenn du es brauchst.") {
             Row(symbol: "sparkles", color: .orange, title: "KI-Steuerung erlauben",

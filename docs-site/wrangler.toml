@@ -1,0 +1,12 @@
+# docs.openarch.app: the built site (dist/) as a Cloudflare Worker that only
+# serves files. Deployed from main by .github/workflows/docs.yml.
+name = "openarch-docs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+# Cloudflare makes the DNS record and the certificate, as for share.openarch.app.
+routes = [{ pattern = "docs.openarch.app", custom_domain = true }]
+
+[assets]
+directory = "./dist"
+not_found_handling = "404-page"

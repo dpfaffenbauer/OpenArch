@@ -374,6 +374,11 @@ struct Settings: Codable, Equatable {
     /// Keyboard shortcuts the user set for menu commands, by command
     /// (MainMenu.commandID); an empty string takes the shortcut away.
     var shortcuts: [String: String] = [:]
+    /// The morning brief: once a day Claude Code writes a page about the
+    /// day ahead (see MorningBrief).
+    var morningBrief = false
+    /// When, in minutes after midnight (7:30).
+    var morningBriefMinutes = 450
 
     init() {}
 
@@ -407,6 +412,8 @@ struct Settings: Codable, Equatable {
         tabPreviews = try container.decodeIfPresent(Bool.self, forKey: .tabPreviews) ?? defaults.tabPreviews
         meetingBar = try container.decodeIfPresent(Bool.self, forKey: .meetingBar) ?? defaults.meetingBar
         shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts
+        morningBrief = try container.decodeIfPresent(Bool.self, forKey: .morningBrief) ?? defaults.morningBrief
+        morningBriefMinutes = try container.decodeIfPresent(Int.self, forKey: .morningBriefMinutes) ?? defaults.morningBriefMinutes
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

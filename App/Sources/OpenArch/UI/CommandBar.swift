@@ -356,6 +356,9 @@ final class CommandBarModel {
         for command in matchingCommands(text).prefix(3) {
             results.append(command)
         }
+        // Your Claude Code skills and commands, run on the page; first when typed with "/".
+        let skills = ClaudeSkills.commandResults(text, browser: browser)
+        results.insert(contentsOf: skills, at: text.hasPrefix("/") ? 0 : results.count)
 
         for entry in browser.history.search(text, limit: 8) where !seenURLs.contains(entry.url) {
             seenURLs.insert(entry.url)
@@ -557,6 +560,11 @@ final class CommandBarModel {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
             let agents: Command = ("Agents", "sparkles", "⌃0", { browser.toggleAgents() })
             commands += [agent, agents]
+        }
+        if !browser.isStandalone {
+            let brief: Command = ("Morning Brief jetzt erstellen", "sun.horizon", nil, { MorningBrief.shared.run(in: browser, manual: true) })
+            let tidy: Command = ("Tabs mit KI aufräumen", "wand.and.stars", nil, { browser.tidyTabsWithAI() })
+            commands += [brief, tidy]
         }
         if let active, active.kind == .tab {
             var tabCommands: [Command] = [

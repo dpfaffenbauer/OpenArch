@@ -1110,6 +1110,8 @@ private struct TabRow: View {
                 }
             } else if item.isLoading {
                 ProgressView().controlSize(.mini).opacity(0.6)
+            } else if item.isUnread {
+                Circle().fill(theme.foreground).frame(width: 7, height: 7).padding(.trailing, 6)
             } else if let checks = item.checks {
                 ChecksMark(checks: checks)
             }

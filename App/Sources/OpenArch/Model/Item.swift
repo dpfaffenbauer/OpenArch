@@ -123,6 +123,10 @@ final class Item: Identifiable {
     var agent: AgentConfig?
     /// Agent chats: the chat itself, from the first time it is shown.
     var agentSession: AgentSession?
+    /// Tabs: the chat beside the page (⌘E), until the tab closes.
+    var pageChat: PageChat?
+    /// Tabs: new and not looked at yet (the morning brief); a dot in the sidebar.
+    var isUnread = false
 
     init(id: UUID = UUID(), kind: Kind, title: String = "", url: String = "", customTitle: String? = nil,
          children: [Item] = [], lastActiveAt: Date = Date()) {
@@ -269,6 +273,7 @@ final class Item: Identifiable {
         icon = data.icon
         live = data.live
         agent = data.agent
+        isUnread = data.unread ?? false
     }
 
     var data: ItemData {
@@ -293,7 +298,8 @@ final class Item: Identifiable {
                  lastActiveAt: lastActiveAt,
                  icon: icon,
                  live: kind == .folder ? live : nil,
-                 agent: kind == .agent ? agent : nil)
+                 agent: kind == .agent ? agent : nil,
+                 unread: kind == .tab && isUnread ? true : nil)
     }
 }
 
@@ -339,6 +345,7 @@ struct ItemData: Codable {
     var icon: String?
     var live: LiveSource?
     var agent: AgentConfig?
+    var unread: Bool?
 }
 
 /// What a page shares through getDisplayMedia: "browser" (a tab),

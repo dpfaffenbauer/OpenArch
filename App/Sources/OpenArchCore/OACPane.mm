@@ -40,6 +40,7 @@
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
 - (void)oac_willToggleFullScreen;
 - (void)oac_wantsExternalURL:(NSString*)url;
+- (void)oac_askAboutSelection:(NSString*)text;
 - (void)oac_devToolsResult:(int)messageID success:(BOOL)success data:(NSData*)data;
 @end
 
@@ -60,6 +61,10 @@ namespace {
 void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_about_page_handler)(void) = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+NSString* g_ask_selection_title = nil;
+
+// The context menu item for selected text (+askAboutSelectionTitle).
+constexpr int kAskAboutSelectionCommand = MENU_ID_USER_FIRST + 1;
 
 // Names of downloads, as Chrome suggested them when they started: later
 // updates carry none, and the path is "Unconfirmed 123.crdownload" until
@@ -226,7 +231,8 @@ class PaneClient : public CefClient,
                    public CefFocusHandler,
                    public CefRequestHandler,
                    public CefDownloadHandler,
-                   public CefJSDialogHandler {
+                   public CefJSDialogHandler,
+                   public CefContextMenuHandler {
  public:
   explicit PaneClient(OACPane* pane) : pane_(pane) {}
 
@@ -241,6 +247,7 @@ class PaneClient : public CefClient,
   CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
   CefRefPtr<CefDownloadHandler> GetDownloadHandler() override { return this; }
   CefRefPtr<CefJSDialogHandler> GetJSDialogHandler() override { return this; }
+  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
 
   // CefLifeSpanHandler
 
@@ -561,6 +568,37 @@ class PaneClient : public CefClient,
     return true;
   }
 
+  // CefContextMenuHandler
+
+  // Selected text: OpenArch's own item first, above Chrome's.
+  void OnBeforeContextMenu(CefRefPtr<CefBrowser> browser,
+                           CefRefPtr<CefFrame> frame,
+                           CefRefPtr<CefContextMenuParams> params,
+                           CefRefPtr<CefMenuModel> model) override {
+    OACPane* pane = Own(browser);
+    if (!pane || !pane.offersAskAboutSelection || !g_ask_selection_title.length ||
+        ![pane.delegate respondsToSelector:@selector(pane:askAboutSelection:)] ||
+        !(params->GetTypeFlags() & CM_TYPEFLAG_SELECTION) ||
+        params->GetSelectionText().empty()) {
+      return;
+    }
+    model->InsertSeparatorAt(0);
+    model->InsertItemAt(0, kAskAboutSelectionCommand,
+                        CefString(g_ask_selection_title.UTF8String));
+  }
+
+  bool OnContextMenuCommand(CefRefPtr<CefBrowser> browser,
+                            CefRefPtr<CefFrame> frame,
+                            CefRefPtr<CefContextMenuParams> params,
+                            int command_id,
+                            EventFlags event_flags) override {
+    if (command_id != kAskAboutSelectionCommand) {
+      return false;
+    }
+    [Own(browser) oac_askAboutSelection:OACToNSString(params->GetSelectionText())];
+    return true;
+  }
+
  private:
   // Normal tabs only: not popups (chrome.windows.create type "popup",
   // OAuth windows) and not incognito windows, which have no cache path.
@@ -871,6 +909,14 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   g_about_page_handler = [handler copy];
 }
 
++ (NSString*)askAboutSelectionTitle {
+  return g_ask_selection_title;
+}
+
++ (void)setAskAboutSelectionTitle:(NSString*)title {
+  g_ask_selection_title = [title copy];
+}
+
 + (BOOL)isAboutPageURL:(NSString*)url {
   NSURL* parsed = [NSURL URLWithString:url];
   return [parsed.scheme.lowercaseString isEqualToString:@"chrome"] &&
@@ -903,6 +949,7 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     _toolbarVisible = YES;
     _activatesOnShow = YES;
     _cornerRadius = 0;
+    _offersAskAboutSelection = YES;
   }
   return self;
 }
@@ -1584,6 +1631,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
 - (void)oac_wantsExternalURL:(NSString*)url {
   if ([self.delegate respondsToSelector:@selector(pane:wantsToOpenExternalURL:)]) {
     [self.delegate pane:self wantsToOpenExternalURL:url];
+  }
+}
+
+- (void)oac_askAboutSelection:(NSString*)text {
+  if ([self.delegate respondsToSelector:@selector(pane:askAboutSelection:)]) {
+    [self.delegate pane:self askAboutSelection:text];
   }
 }
 
