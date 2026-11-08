@@ -168,7 +168,7 @@ final class SelfTest {
             (36.48, "tab switcher previews", { self.tabSwitcherPreviews() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
-            (36.7, "browser import", { self.browserImport {} }),
+            (90, "browser import", { self.browserImport {} }),
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
             (37.1, "loading bar", { self.loadingBar() }),
