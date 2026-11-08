@@ -251,7 +251,19 @@ run. Data lives in
   views (from Arc's `StorableSidebar.json`). "Alles übernehmen" also brings
   logins and cookies, saved passwords, history, website data and the
   installed extensions with their settings. Arc's profile is cloned, and
-  encrypted values are re-encrypted with OpenArch's key.
+  encrypted values are re-encrypted with OpenArch's key. "Arc-Daten
+  sichern" zips Arc's JSON files and `Local State` into ~/Documents.
+- **Import from other browsers** (Ablage › Aus anderem Browser importieren …,
+  Settings › Import): Chrome and its channels, Brave, Edge, Vivaldi, Opera,
+  Chromium, Dia, Helium, Comet (profiles from `Local State`), Firefox and Zen
+  (`profiles.ini`) and Safari (with Full Disk Access). Each profile becomes
+  an OpenArch profile and a space with its name: the bookmarks bar as pinned
+  tabs and folders, other bookmarks as a folder of their own, history into
+  the command bar. For Chromium browsers also cookies and passwords, at the
+  next launch, re-encrypted with OpenArch's key after the browser's
+  "Safe Storage" key is read from the keychain. Bookmarks HTML files and
+  password CSV files (Chrome, Firefox, Safari, 1Password, Bitwarden) too.
+  Importing again adds nothing twice.
 - **Default browser:** OpenArch can be set as the default browser and opens
   links from other apps.
 - **Sharing without an account:** a pinned folder (right-click › Teilen …) or a space
@@ -317,6 +329,9 @@ Lessons learned on the way:
 - **The full Arc import is new.** Moving logins, passwords and extensions has
   been tested on copies of Arc profiles, not yet on many real ones. Arc's own
   data is never changed.
+- **Logins from other browsers are new.** Moving cookies and passwords from
+  Chromium browsers has been tested on made-up profiles only. Firefox's and
+  Safari's passwords come only from an exported CSV file.
 - **No Widevine.** DRM video such as Netflix does not play, and Google sync
   for Chromium forks is not available.
 - **Not built yet:** Easels and Notes.

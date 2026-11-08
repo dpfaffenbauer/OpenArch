@@ -30,6 +30,10 @@ if AppPaths.isSelfTest, arguments.contains("--arc-profile-test") {
 
 // A full import from Arc replaces the profile before Chromium opens it.
 ArcProfileImport.runIfPending(chromiumData: AppPaths.chromiumData) { History().importChromiumHistory(from: $0) }
+// Logins and passwords from other browsers or a CSV file, the same way.
+if !AppPaths.isSelfTest {
+    CredentialImport.runIfPending(chromiumData: AppPaths.chromiumData)
+}
 
 let settings = OACEngineSettings()
 settings.rootCachePath = AppPaths.chromiumData.path

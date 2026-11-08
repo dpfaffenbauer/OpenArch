@@ -60,13 +60,13 @@ enum ArcProfileImport {
     }
 
     enum ImportError: LocalizedError {
-        case noKeychainAccess(OSStatus)
+        case noKeychainAccess(String, OSStatus)
         case copyFailed(String)
 
         var errorDescription: String? {
             switch self {
-            case .noKeychainAccess(let status):
-                "Der Schlüssel „Arc Safe Storage“ konnte nicht aus dem Schlüsselbund gelesen werden (\(status)). Ohne ihn lassen sich Logins und Passwörter nicht übernehmen."
+            case .noKeychainAccess(let service, let status):
+                "Der Schlüssel „\(service)“ konnte nicht aus dem Schlüsselbund gelesen werden (\(status)). Ohne ihn lassen sich Logins und Passwörter nicht übernehmen."
             case .copyFailed(let detail):
                 "Das Arc-Profil konnte nicht kopiert werden: \(detail)"
             }
@@ -158,7 +158,7 @@ enum ArcProfileImport {
 
     /// The keychain password Chromium uses for |service|; macOS asks the
     /// user once whether OpenArch may read it.
-    private static func keychainKey(service: String) throws -> Data {
+    static func keychainKey(service: String) throws -> Data {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -168,7 +168,7 @@ enum ArcProfileImport {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         guard status == errSecSuccess, let password = result as? Data else {
-            throw ImportError.noKeychainAccess(status)
+            throw ImportError.noKeychainAccess(service, status)
         }
         return derivedKey(password: password)
     }

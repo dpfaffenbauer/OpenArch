@@ -89,6 +89,7 @@ The space's name has a menu too: rest the pointer on it and click **…**. It ed
 - **GitHub-Live-Ordner**: a folder that fills itself from GitHub. See [GitHub live folders](/sidebar/live-folders/).
 - **Geteilten Link öffnen …**: add a folder or space someone shared. See [Sharing](/sharing/share/).
 - **Aus Arc importieren …**. See [Move over from Arc](/start/import-from-arc/).
+- **Aus anderem Browser importieren …**. See [Move over from another browser](/start/import/).
 
 ## Hide and resize the sidebar
 

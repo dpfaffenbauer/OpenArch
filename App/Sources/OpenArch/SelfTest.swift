@@ -70,6 +70,18 @@ final class SelfTest {
             }
             return
         }
+        // --import-test: only the import from other browsers (SelfTestImport.swift).
+        if CommandLine.arguments.contains("--import-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(3) {
+                self.browserImport {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--marketing") {
             marketingScreens()
             return
@@ -156,6 +168,7 @@ final class SelfTest {
             (36.48, "tab switcher previews", { self.tabSwitcherPreviews() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
+            (36.7, "browser import", { self.browserImport {} }),
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
             (37.1, "loading bar", { self.loadingBar() }),

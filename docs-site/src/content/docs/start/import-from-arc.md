@@ -103,6 +103,12 @@ The full import is new. Moving logins, passwords and extensions has been
 tested on copies of Arc profiles, not yet on many real ones.
 :::
 
+## Back up Arc's data
+
+Arc ends on 22 December 2026. **Settings › Import › Arc-Daten sichern ›
+Sichern** puts Arc's JSON files and its `Local State` into a zip file in
+your Documents folder. See [Move over from another browser](/start/import/#back-up-arcs-data).
+
 ## Only the extensions
 
 If you would rather install Arc's extensions again than copy them, use

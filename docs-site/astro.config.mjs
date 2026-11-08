@@ -26,7 +26,7 @@ export default defineConfig({
       sidebar: [
         {
           label: 'Start here',
-          items: ['start/install', 'start/tour', 'start/import-from-arc'],
+          items: ['start/install', 'start/tour', 'start/import-from-arc', 'start/import'],
         },
         {
           label: 'Sidebar',

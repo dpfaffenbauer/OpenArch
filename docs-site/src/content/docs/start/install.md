@@ -14,7 +14,7 @@ OpenArch runs on Macs with Apple silicon and macOS 15 or later. It is free and o
 The download is the newest build of OpenArch: GitHub builds every change, and the newest one is published as the [nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly).
 
 :::tip[Coming from Arc?]
-OpenArch can take over your spaces, favorites, pinned folders and today tabs, and with them your logins, passwords, history and extensions. See [Move over from Arc](/start/import-from-arc/).
+OpenArch can take over your spaces, favorites, pinned folders and today tabs, and with them your logins, passwords, history and extensions. See [Move over from Arc](/start/import-from-arc/). From Chrome, Edge, Brave, Firefox, Safari and others, see [Move over from another browser](/start/import/).
 :::
 
 ## Make it your default browser

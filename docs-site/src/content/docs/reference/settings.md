@@ -174,12 +174,16 @@ back. See [Keyboard shortcuts](/reference/shortcuts/#change-a-shortcut).
 
 ## Import
 
-See [Move over from Arc](/start/import-from-arc/).
+See [Move over from Arc](/start/import-from-arc/) and [Move over from another browser](/start/import/).
 
 | Setting | What it does |
 | --- | --- |
 | **Sidebar und alles andere** | **Importieren …** takes spaces, favorites, folders and tabs from Arc, and if you choose, logins and cookies, passwords, history, website data and extensions. Greyed out when there is no Arc on this Mac. |
 | **Extensions aus Arc** | **Ordner anlegen** puts a folder with a Chrome Web Store link for each of Arc's extensions into the sidebar, to install them again. |
+| **Arc-Daten sichern** | **Sichern** zips Arc's JSON files and its `Local State` into your Documents folder. |
+| **Aus anderen Browsern** | The browsers found on this Mac with their profiles. Tick profiles and what to take (**Lesezeichen**, **Verlauf**, **Logins und Passwörter**), then **Importieren**. |
+| **Lesezeichen-Datei (HTML)** | **Datei wählen …** imports an exported bookmarks file into a space of its own. |
+| **Passwörter (CSV)** | Choose a profile, then **Datei wählen …** to add the passwords from an exported CSV file at the next launch. |
 
 ## Info
 

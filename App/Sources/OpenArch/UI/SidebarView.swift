@@ -1423,6 +1423,7 @@ private struct SpaceBar: View {
                     if let app = NSApp.delegate as? AppDelegate { ShareWindows.askForLink(app: app) }
                 }
                 Button("Aus Arc importieren …") { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }
+                Button("Aus anderem Browser importieren …") { (NSApp.delegate as? AppDelegate)?.importFromOtherBrowser(nil) }
             } label: {
                 Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
             }
