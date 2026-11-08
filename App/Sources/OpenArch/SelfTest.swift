@@ -2159,8 +2159,19 @@ final class SelfTest {
             // The closed app keeps the chosen icon through the Dock's plug-in,
             // and the bundle stays as signed (the setting is the user's,
             // shared with OpenArch, and only read here).
+            // „Jeden Tag“ leaves every design, numbered by day the way the
+            // plug-in counts (NSCalendar's day in the era), so the closed
+            // app's icon changes too.
+            AppIcons.saveForDock(.daily)
+            let dailyFiles = ((try? FileManager.default.contentsOfDirectory(atPath: AppIcons.dailyDockIcons.path)) ?? [])
+                .filter { $0.hasSuffix(".png") }
+            let day = (Calendar.current as NSCalendar).ordinality(of: .day, in: .era, for: Date())
+            expect(dailyFiles.count == AppIcons.dailyDesigns.count
+                   && AppIcons.dailyDesigns[day % max(1, dailyFiles.count)] == AppIcons.design(for: Date())
+                   && !FileManager.default.fileExists(atPath: AppIcons.dockIconFile.path),
+                   "„Jeden Tag“ leaves the Dock every design, to show the day's own while OpenArch is closed (\(dailyFiles.count))")
             AppIcons.saveForDock()
-            let saved = FileManager.default.fileExists(atPath: AppIcons.dockIconFile.path)
+            let saved = FileManager.default.fileExists(atPath: (AppIcons.style == .daily ? AppIcons.dailyDockIcons : AppIcons.dockIconFile).path)
             let bundle = Bundle.main.bundlePath
             let untouched = !FileManager.default.fileExists(atPath: bundle + "/Icon\r")
                 && getxattr(bundle, "com.apple.FinderInfo", nil, 0, 0, 0) < 0
