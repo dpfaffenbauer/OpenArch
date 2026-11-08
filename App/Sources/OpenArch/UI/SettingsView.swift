@@ -190,7 +190,20 @@ private struct GeneralPage: View {
 
     var body: some View {
         Section(title: "Browser") {
-            DefaultBrowserRow(app: app, showsDivider: false)
+            DefaultBrowserRow(app: app, showsDivider: true)
+            Row(symbol: "circle.lefthalf.filled", color: .gray, title: "Erscheinungsbild",
+                detail: "Hell oder dunkel für Seiten, Chats und Einstellungen. Die Sidebar trägt die Farbe ihres Space.") {
+                Picker("", selection: $library.settings.appearance) {
+                    ForEach(AppAppearance.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+                .onChange(of: library.settings.appearance) { library.settings.appearance.apply() }
+            }
+            Row(symbol: "sparkles", color: .purple, title: "Einführung",
+                detail: "Die Schritte vom ersten Start noch einmal: Import aus Arc, Konten, Farben, Standardbrowser.",
+                showsDivider: false) {
+                Button("Erneut zeigen") { app.showOnboarding(nil) }
+            }
         }
         Section(title: "Suchen") {
             Row(symbol: "magnifyingglass", color: .blue, title: "Suchmaschine",

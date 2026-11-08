@@ -18,6 +18,9 @@ enum ArcProfileImport {
         .appendingPathComponent("Library/Application Support/Arc/User Data/Default")
     static let arcBundleID = "company.thebrowser.Browser"
     private static let pendingKey = "pendingArcProfileImport"
+    /// The profile directory the scheduled import goes into ("Default"
+    /// unless the onboarding gave Arc's profile a directory of its own).
+    private static let targetKey = "pendingArcProfileImportTarget"
     private static let resultKey = "arcProfileImportResult"
 
     static var isAvailable: Bool {
@@ -36,8 +39,9 @@ enum ArcProfileImport {
 
     /// Asks for the import at the next launch and restarts OpenArch.
     @MainActor
-    static func scheduleAndRelaunch() {
+    static func scheduleAndRelaunch(into directory: String = "Default") {
         UserDefaults.standard.set(true, forKey: pendingKey)
+        UserDefaults.standard.set(directory, forKey: targetKey)
         UserDefaults.standard.synchronize()
         let pid = ProcessInfo.processInfo.processIdentifier
         let relaunch = Process()
@@ -57,6 +61,14 @@ enum ArcProfileImport {
         var historyEntries = 0
         var extensions = 0
         var undecryptable = 0
+
+        var text: String {
+            """
+            \(cookies) Cookies (Logins), \(passwords) Passwörter, \
+            \(historyEntries) Verlaufseinträge und \(extensions) Extensions mit ihren Einstellungen.\
+            \(undecryptable > 0 ? " \(undecryptable) Werte ließen sich nicht entschlüsseln und wurden ausgelassen." : "")
+            """
+        }
     }
 
     enum ImportError: LocalizedError {
@@ -86,22 +98,24 @@ enum ArcProfileImport {
     static func runIfPending(chromiumData: URL, history: (URL) -> Int) {
         guard isPending else { return }
         UserDefaults.standard.set(false, forKey: pendingKey)
+        let directory = UserDefaults.standard.string(forKey: targetKey) ?? "Default"
+        UserDefaults.standard.removeObject(forKey: targetKey)
         let message: String
         do {
-            let summary = try run(into: chromiumData.appendingPathComponent("Default"), history: history)
-            message = """
-                Aus Arc übernommen: \(summary.cookies) Cookies (Logins), \(summary.passwords) Passwörter, \
-                \(summary.historyEntries) Verlaufseinträge und \(summary.extensions) Extensions mit ihren Einstellungen.\
-                \(summary.undecryptable > 0 ? " \(summary.undecryptable) Werte ließen sich nicht entschlüsseln und wurden ausgelassen." : "")
-                """
+            let summary = try run(into: chromiumData.appendingPathComponent(directory), history: history)
+            message = "Aus Arc übernommen: \(summary.text)"
         } catch {
             message = "Der vollständige Import ist fehlgeschlagen. \(error.localizedDescription)"
         }
         UserDefaults.standard.set(message, forKey: resultKey)
     }
 
-    static func run(into target: URL, history: (URL) -> Int) throws -> Summary {
-        let arcKey = try keychainKey(service: "Arc Safe Storage")
+    /// |source| and |key|: Arc's profile and its key (the self-test brings
+    /// its own). |progress| hears what is being done, 0–1.
+    static func run(into target: URL, from source: URL = arcProfile, key: Data? = nil,
+                    progress: (@Sendable (Double, String) -> Void)? = nil, history: (URL) -> Int) throws -> Summary {
+        progress?(0.05, "Schlüssel von Arc")
+        let arcKey = try key ?? keychainKey(service: "Arc Safe Storage")
         let openArchKey = derivedKey(password: Data("mock_password".utf8))
         let fm = FileManager.default
 
@@ -113,7 +127,8 @@ enum ArcProfileImport {
                 .appendingPathComponent("Default (vor Arc-Import \(formatter.string(from: Date())))")
             try? fm.moveItem(at: target, to: backup)
         }
-        try cloneProfile(into: target)
+        progress?(0.15, "Profil kopieren")
+        try cloneProfile(into: target, from: source)
 
         var summary = Summary()
         let reencrypt: [(file: String, table: String, column: String, count: WritableKeyPath<Summary, Int>)] = [
@@ -122,7 +137,9 @@ enum ArcProfileImport {
             ("Login Data For Account", "logins", "password_value", \.passwords),
             ("Web Data", "credit_cards", "card_number_encrypted", \.cards),
         ]
-        for entry in reencrypt {
+        for (index, entry) in reencrypt.enumerated() {
+            progress?(0.3 + 0.5 * Double(index) / Double(reencrypt.count),
+                      entry.table == "cookies" ? "Logins" : entry.table == "logins" ? "Passwörter" : "Formulardaten")
             let url = target.appendingPathComponent(entry.file)
             guard fm.fileExists(atPath: url.path) else { continue }
             let (converted, failed) = reencryptColumn(database: url, table: entry.table, column: entry.column,
@@ -130,6 +147,7 @@ enum ArcProfileImport {
             summary[keyPath: entry.count] += converted
             summary.undecryptable += failed
         }
+        progress?(0.85, "Verlauf")
         summary.historyEntries = history(target.appendingPathComponent("History"))
         summary.extensions = ((try? fm.contentsOfDirectory(atPath: target.appendingPathComponent("Extensions").path)) ?? [])
             .filter { $0.count == 32 }.count
@@ -138,12 +156,12 @@ enum ArcProfileImport {
 
     /// Copies Arc's profile without caches and session files. APFS clones:
     /// instant, and no extra space until files change.
-    static func cloneProfile(into target: URL) throws {
+    static func cloneProfile(into target: URL, from profile: URL = arcProfile) throws {
         let fm = FileManager.default
         try fm.createDirectory(at: target, withIntermediateDirectories: true)
-        let entries = (try? fm.contentsOfDirectory(atPath: arcProfile.path)) ?? []
+        let entries = (try? fm.contentsOfDirectory(atPath: profile.path)) ?? []
         for name in entries where !skipped.contains(name) && !name.hasPrefix(".") {
-            let source = arcProfile.appendingPathComponent(name).path
+            let source = profile.appendingPathComponent(name).path
             let destination = target.appendingPathComponent(name).path
             // Clone file by file (copy-on-write); copies only where APFS
             // cannot clone.

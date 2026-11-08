@@ -31,8 +31,11 @@ enum ArcImporter {
 
     /// |currentProfiles|: OpenArch's profiles now, directory by name. An Arc
     /// profile imported before keeps its directory, and its logins; any
-    /// other gets one no profile has used.
-    static func load(from url: URL = sidebarURL, currentProfiles: [String: String] = [:]) throws -> (LibraryData, Summary) {
+    /// other gets one no profile has used. Arc's own profile goes into
+    /// |defaultDirectory| ("Default", or a fresh one the onboarding fills
+    /// with Arc's logins while Chromium runs).
+    static func load(from url: URL = sidebarURL, currentProfiles: [String: String] = [:],
+                     defaultDirectory: String = "Default") throws -> (LibraryData, Summary) {
         guard let raw = try? Data(contentsOf: url),
               let root = try? JSONSerialization.jsonObject(with: raw) as? [String: Any]
         else { throw ImportError.unreadable }
@@ -58,9 +61,9 @@ enum ArcImporter {
             let key = profileKey(arcProfile)
             if let existing = profileIDsByArcKey[key] { return existing }
             let name = key == "default" ? "Persönlich" : "Arc – \(key)"
-            let taken = Set(profiles.map(\.id))
+            let taken = Set(profiles.map(\.id)).union([defaultDirectory])
             let id = if key == "default" {
-                "Default"
+                defaultDirectory
             } else if let kept = currentProfiles[name], kept != "Default", !taken.contains(kept) {
                 kept
             } else {

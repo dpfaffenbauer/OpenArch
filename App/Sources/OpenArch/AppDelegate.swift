@@ -99,7 +99,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             OACPane.downloadHandler = { [weak self] download in
                 MainActor.assumeIsolated { Downloads.shared.update(download, in: self?.mainBrowser) }
             }
-            browser.showWindow(nil)
+            // The first launch starts with the onboarding; the browser window
+            // comes in behind it. --skip-onboarding leaves it out.
+            let onboarding = !selfTest && library.settings.onboardingPending
+                && !CommandLine.arguments.contains("--skip-onboarding")
+            if !onboarding { browser.showWindow(nil) }
             if selfTest {
                 test = SelfTest(browser: browser)
                 test?.start()
@@ -107,12 +111,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 browser.restoreSession()
                 for url in pendingURLs { openExternal(url) }
                 pendingURLs = []
-                offerArcImportOnFirstRun()
+                if onboarding {
+                    startOnboarding(mode: .firstRun)
+                } else {
+                    offerArcImportOnFirstRun()
+                    // After the Arc import question, not on top of it.
+                    after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
+                }
                 importArcFaviconsOnce()
                 Updater.shared.start()
                 AppIcons.applyAtLaunch(spaceHex: browser.state.space.colorHex)
-                // After the Arc import question, not on top of it.
-                after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
                 if let result = ArcProfileImport.takeResult() {
                     let alert = NSAlert()
                     alert.messageText = "Import aus Arc"
@@ -156,6 +164,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if let onboarding {
+            onboarding.window.makeKeyAndOrderFront(nil)
+            return true
+        }
         mainBrowser?.showWindow(nil)
         return true
     }
@@ -291,6 +303,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ArcFavicons.importIcons(for: ArcFavicons.urls(in: library))
     }
 
+    // MARK: Onboarding
+
+    private(set) var onboarding: OnboardingController?
+
+    /// The onboarding: by itself at the first launch, again from Settings ›
+    /// Allgemein.
+    @objc func showOnboarding(_ sender: Any?) {
+        startOnboarding(mode: .rerun)
+    }
+
+    @discardableResult
+    func startOnboarding(mode: OnboardingController.Mode, arc: OnboardingArcSource = OnboardingArcSource(),
+                         focus: Bool = true) -> OnboardingController {
+        if let onboarding {
+            onboarding.window.makeKeyAndOrderFront(nil)
+            return onboarding
+        }
+        settingsWindow?.orderOut(nil)
+        let controller = OnboardingController(app: self, mode: mode, arc: arc, focus: focus && !selfTest)
+        onboarding = controller
+        controller.present()
+        return controller
+    }
+
+    func onboardingDidEnd(_ controller: OnboardingController) {
+        if onboarding === controller { onboarding = nil }
+    }
+
     private func offerArcImportOnFirstRun() {
         let key = "didOfferArcImport"
         guard !UserDefaults.standard.bool(forKey: key), ArcImporter.isAvailable else { return }
@@ -340,7 +380,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let browser = mainBrowser else { return }
         do {
             let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
-            let (data, summary) = try ArcImporter.load(currentProfiles: current)
+            let arcProfile = library.settings.arcDefaultProfile ?? "Default"
+            let (data, summary) = try ArcImporter.load(currentProfiles: current, defaultDirectory: arcProfile)
             let alert = NSAlert()
             alert.messageText = "Aus Arc importieren"
             alert.informativeText = """
@@ -371,7 +412,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser.libraryWasReplaced()
             if choice == .alertFirstButtonReturn {
                 library.save()
-                ArcProfileImport.scheduleAndRelaunch()
+                ArcProfileImport.scheduleAndRelaunch(into: arcProfile)
             }
         } catch {
             NSAlert(error: error).runModal()
@@ -379,7 +420,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Arc has to be closed so its databases are complete on disk.
-    private func quitArcIfNeeded() -> Bool {
+    func quitArcIfNeeded() -> Bool {
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: ArcProfileImport.arcBundleID)
         guard !running.isEmpty else { return true }
         let alert = NSAlert()

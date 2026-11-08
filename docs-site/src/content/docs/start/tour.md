@@ -5,6 +5,8 @@ description: "Ten minutes through OpenArch's window: the sidebar, spaces, the co
 
 OpenArch has no tab strip and no toolbar. The sidebar on the left holds your tabs, and the page takes the rest of the window. This tour walks through it from top to bottom. Each step links to the page with the details.
 
+It starts where [the first launch](/start/install/#the-first-launch) leaves you: in the browser window, with your spaces from Arc or one empty space. The first launch's steps are always there again under **Settings › Allgemein › Einführung › Erneut zeigen**.
+
 ## 1. Open something with the command bar
 
 Press <kbd>⌘T</kbd>. The command bar opens over the page. Type an address, a search, or part of the name of a tab you have open. It completes addresses as you type, finds open tabs, pinned tabs, history and archived tabs, and lists OpenArch's commands. Press <kbd>↩</kbd> to open the first row.
