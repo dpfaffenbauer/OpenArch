@@ -318,6 +318,22 @@ Lessons learned on the way:
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
 
+## Hosting
+
+openarch.app, docs.openarch.app and share.openarch.app are Cloudflare
+Workers. Cloudflare's GitHub connection (Workers Builds) deploys each from
+`main`, so no Cloudflare token lives in this repository:
+
+| Worker | Root directory | Build command | Deploy command |
+| --- | --- | --- | --- |
+| `openarch-website` | `website` | – | `npx wrangler deploy` |
+| `openarch-docs` | `docs-site` | `npm ci && npm run build` | `npx wrangler deploy` |
+| `openarch-share-relay` | `relay` | – | `npx wrangler deploy` |
+
+Each folder's `wrangler.toml` names the Worker and its custom domain;
+Cloudflare makes the DNS records and certificates. The docs need Node 24
+(`docs-site/.nvmrc`; or the build variable `NODE_VERSION=24`).
+
 ## Layout
 
 - `App/`: the browser
@@ -325,9 +341,9 @@ Lessons learned on the way:
 - `Shared/`: the Swift package both use for sharing (format, crypto, relay client, tests)
 - `relay/`: the relay for live shares, a Cloudflare Worker ([README](relay/README.md))
 - `docs/sharing.md`: the sharing format, its threat model and the relay API
-- `docs-site/`: the documentation at docs.openarch.app, published by
-  `.github/workflows/docs.yml` ([how the pages are written](docs-site/WRITING.md))
-- `website/`: the website, published by `.github/workflows/pages.yml`;
+- `docs-site/`: the documentation at docs.openarch.app
+  ([how the pages are written](docs-site/WRITING.md))
+- `website/`: the website at openarch.app;
   `website/s/` shows shared links to people without OpenArch
 - `scripts/fetch-cef.sh`: downloads the pinned CEF binary distribution into `Vendor/cef`
 - `scripts/update-cef.sh`: moves the pin to the newest stable CEF build

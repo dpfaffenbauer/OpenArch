@@ -47,4 +47,4 @@ npm install
 npm run dev      # http://localhost:4321
 ```
 
-Changes to `main` are published to docs.openarch.app by `.github/workflows/docs.yml`.
+`.github/workflows/docs.yml` builds them for every pull request. Cloudflare publishes `main` to docs.openarch.app.

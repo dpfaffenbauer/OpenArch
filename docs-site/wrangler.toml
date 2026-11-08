@@ -1,5 +1,7 @@
 # docs.openarch.app: the built site (dist/) as a Cloudflare Worker that only
-# serves files. Deployed from main by .github/workflows/docs.yml.
+# serves files. Cloudflare's GitHub connection (Workers Builds, root directory
+# `docs-site`, build command `npm ci && npm run build`, deploy command
+# `npx wrangler deploy`) deploys it from main, as it does the relay.
 name = "openarch-docs"
 compatibility_date = "2026-10-01"
 workers_dev = false

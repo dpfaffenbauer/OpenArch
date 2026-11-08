@@ -1,0 +1,22 @@
+# openarch.app as a Cloudflare Worker: the files in this folder, served as
+# they are. Cloudflare's GitHub connection (Workers Builds, root directory
+# `website`, deploy command `npx wrangler deploy`) deploys it from main, as
+# it does the relay.
+name = "openarch-website"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = false
+
+# Cloudflare makes the DNS records and certificates. The records GitHub
+# Pages needed (A records to 185.199.108–111.153, www → dpfaffenbauer.github.io)
+# have to go first.
+routes = [
+  { pattern = "openarch.app", custom_domain = true },
+  { pattern = "www.openarch.app", custom_domain = true },
+]
+
+[assets]
+directory = "."
+binding = "ASSETS"
+# worker.js sees every request, so www.openarch.app can redirect.
+run_worker_first = true

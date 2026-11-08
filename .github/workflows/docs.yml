@@ -1,8 +1,8 @@
 name: Docs
 
-# The documentation (docs-site/): built on every change, so a broken page or
-# link shows in the pull request, and published from main to
-# docs.openarch.app when the repository has Cloudflare credentials.
+# The documentation (docs-site/): built on every change, so a broken page
+# shows in the pull request. Cloudflare's GitHub connection (Workers Builds)
+# publishes main to docs.openarch.app, as it does the relay and the website.
 
 on:
   push:
@@ -37,15 +37,3 @@ jobs:
         run: |
           npm ci
           npm run build
-      # Without the secrets the site is not published; the build still runs.
-      - name: Deploy to Cloudflare
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
-            echo "::notice::No CLOUDFLARE_API_TOKEN: the docs are not published."
-            exit 0
-          fi
-          npx --yes wrangler@3 deploy
