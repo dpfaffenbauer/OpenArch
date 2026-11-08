@@ -80,7 +80,7 @@ run. Data lives in
   half of the page: left or right puts it beside, top or bottom above or
   below. Links dragged from a page, Safari, Mail or Finder onto the
   sidebar become tabs.
-- **Library** (⌥⌘B): media (images in Downloads and screenshots on the
+- **Library** (⌥⌘B): media (all images and videos in Downloads and on the
   Desktop), downloads, spaces and archived tabs, searchable. A download
   flies into the library button, a ring around it shows the progress, and
   it bounces when the file is there. Running downloads are listed in the
@@ -91,7 +91,8 @@ run. Data lives in
   on the button opens the library, chooses which kinds of files the
   downloads show, or turns them off so the click opens the library again.
 - **Links to apps** (bambustudioopen:, zoommtg:, mailto: …) open the app on
-  the Mac after asking, as in Chrome; „immer öffnen“ remembers it per site.
+  the Mac after asking, as in Chrome; „Links von <host> immer in „<App>“
+  öffnen“ remembers it per site.
 - **Arc's look:** your space's color with white text, Arc's row sizes, and
   favicons taken from Arc's own icon cache. Or glass (Settings › Allgemein ›
   Sidebar): the desktop shows through the window, on macOS 26 as one sheet
@@ -220,7 +221,8 @@ run. Data lives in
   brings it back over the page.
 - **Updates:** OpenArch updates itself from the nightly release (checked
   at launch and every six hours; only builds signed with OpenArch's Developer ID, from its own GitHub releases).
-- **Settings** in Arc's style: General, Profiles, Links, AI, Import, Info.
+- **Settings** in Arc's style: Allgemein, Profile, Links, Teilen, KI, Import,
+  Info.
 - **Über OpenArch:** a flight through OpenArch's arches; click the logo for
   warp speed.
 - **App icon:** twelve takes on the arch (Tunnel is the standard one), one
@@ -247,7 +249,7 @@ run. Data lives in
   encrypted values are re-encrypted with OpenArch's key.
 - **Default browser:** OpenArch can be set as the default browser and opens
   links from other apps.
-- **Sharing without an account:** a pinned folder (… › Teilen …) or a space
+- **Sharing without an account:** a pinned folder (right-click › Teilen …) or a space
   (Space teilen …) becomes a link and a QR code. *Aktuell halten* keeps it
   live: the bookmarks lie encrypted and signed on a small relay, and
   everyone who added the link gets your changes every five minutes; only
@@ -303,9 +305,10 @@ Lessons learned on the way:
 
 ## Known limitations
 
-- **Unsigned builds.** Builds are signed ad hoc and use Chromium's mock
-  keychain, so saved cookies and passwords are not protected by the login
-  keychain. A real signing identity fixes both.
+- **Mock keychain.** Every build, the Developer ID builds included, uses
+  Chromium's mock keychain (`App/Sources/OpenArch/main.swift`), so saved
+  cookies and passwords are not protected by the login keychain. Local
+  builds are signed ad hoc.
 - **The full Arc import is new.** Moving logins, passwords and extensions has
   been tested on copies of Arc profiles, not yet on many real ones. Arc's own
   data is never changed.

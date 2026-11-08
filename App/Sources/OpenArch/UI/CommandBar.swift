@@ -507,6 +507,8 @@ final class CommandBarModel {
         case .newSplit(let base):
             let item = browser.openInNewTab(url, after: base, select: false)
             browser.split(item, with: base)
+            // The split had no room left: the page is shown on its own.
+            if item.split == nil { browser.select(item) }
         }
     }
 
@@ -523,10 +525,11 @@ final class CommandBarModel {
     private func matchingCommands(_ text: String) -> [CommandResult] {
         let browser = self.browser
         let active = browser.state.activeItem
-        typealias Command = (String, String, String?, @MainActor () -> Void)
+        // The third value is the menu command whose shortcut the badge shows.
+        typealias Command = (String, String, Selector?, @MainActor () -> Void)
         var commands: [Command] = [
             ("Neuer Space", "plus.square.on.square", nil, { browser.addSpace() }),
-            ("Little OpenArch", "macwindow.on.rectangle", "⌥⌘N", {
+            ("Little OpenArch", "macwindow.on.rectangle", #selector(AppDelegate.newLittleOpenArch(_:)), {
                 if let app = NSApp.delegate as? AppDelegate { LittleOpenArchWindowController.show(url: nil, app: app) }
             }),
             ("Space bearbeiten", "paintpalette", nil, { browser.state.editingSpaceID = browser.state.space.id }),
@@ -536,18 +539,18 @@ final class CommandBarModel {
                 }
             }),
             ("Neuer Ordner", "folder.badge.plus", nil, { browser.newFolder() }),
-            ("Split View", "rectangle.split.2x1", "⌃⇧=", { browser.splitWithNewTab() }),
-            ("Sidebar ein-/ausblenden", "sidebar.left", "⌘S", { browser.toggleSidebar() }),
-            ("Chrome-Toolbar ein-/ausblenden", "menubar.rectangle", "⌘⇧L", { browser.toggleChromeToolbar() }),
-            ("Geschlossenen Tab wiederherstellen", "arrow.uturn.backward", "⌘⇧T", { browser.reopenClosedTab() }),
-            ("Heute aufräumen", "archivebox", nil, { browser.clearToday() }),
+            ("Split View", "rectangle.split.2x1", #selector(AppDelegate.splitView(_:)), { browser.splitWithNewTab() }),
+            ("Sidebar ein-/ausblenden", "sidebar.left", #selector(AppDelegate.toggleSidebar(_:)), { browser.toggleSidebar() }),
+            ("Chrome-Toolbar ein-/ausblenden", "menubar.rectangle", #selector(AppDelegate.toggleToolbar(_:)), { browser.toggleChromeToolbar() }),
+            ("Geschlossenen Tab wiederherstellen", "arrow.uturn.backward", #selector(AppDelegate.reopenTab(_:)), { browser.reopenClosedTab() }),
+            ("Heute aufräumen", "archivebox", #selector(AppDelegate.clearToday(_:)), { browser.clearToday() }),
             ("Extensions verwalten", "puzzlepiece.extension", nil, { browser.openChromePage("chrome://extensions") }),
             ("Chrome Web Store", "bag", nil, { browser.openChromePage("https://chromewebstore.google.com") }),
-            ("Verlauf", "clock", "⌘Y", { browser.openChromePage("chrome://history") }),
-            ("Downloads", "arrow.down.circle", "⌥⌘L", { browser.openChromePage("chrome://downloads") }),
+            ("Verlauf", "clock", #selector(AppDelegate.showHistory(_:)), { browser.openChromePage("chrome://history") }),
+            ("Downloads", "arrow.down.circle", #selector(AppDelegate.showDownloads(_:)), { browser.openChromePage("chrome://downloads") }),
             ("Passwörter", "key", nil, { browser.openChromePage("chrome://password-manager") }),
             ("Browser-Einstellungen", "gearshape.2", nil, { browser.openChromePage("chrome://settings") }),
-            ("OpenArch-Einstellungen", "gearshape", "⌘,", { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
+            ("OpenArch-Einstellungen", "gearshape", #selector(AppDelegate.showSettings(_:)), { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
             ("Aus Arc importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }),
         ]
         if !ClosedWindows.shared.isEmpty {
@@ -558,7 +561,7 @@ final class CommandBarModel {
         }
         if browser.library.settings.agentChats, !browser.isStandalone {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
-            let agents: Command = ("Agents", "sparkles", "⌃0", { browser.toggleAgents() })
+            let agents: Command = ("Agents", "sparkles", #selector(AppDelegate.toggleAgents(_:)), { browser.toggleAgents() })
             commands += [agent, agents]
         }
         if !browser.isStandalone {
@@ -568,23 +571,23 @@ final class CommandBarModel {
         }
         if let active, active.kind == .tab {
             var tabCommands: [Command] = [
-                ("URL kopieren", "link", "⌘⇧C", { browser.copyURL() }),
-                ("Entwicklertools", "hammer", "⌥⌘I", { active.pane?.showDevTools() }),
-                ("Neu laden", "arrow.clockwise", "⌘R", { active.pane?.reload() }),
+                ("URL kopieren", "link", #selector(AppDelegate.copyURL(_:)), { browser.copyURL() }),
+                ("Entwicklertools", "hammer", #selector(AppDelegate.devTools(_:)), { active.pane?.showDevTools() }),
+                ("Neu laden", "arrow.clockwise", #selector(AppDelegate.reload(_:)), { active.pane?.reload() }),
                 ("Tab duplizieren", "plus.square.on.square", nil, { browser.duplicate(active) }),
-                ("Boost bearbeiten", "paintbrush", "⌃⌘B", { browser.editBoost() }),
+                ("Boost bearbeiten", "paintbrush", #selector(AppDelegate.editBoost(_:)), { browser.editBoost() }),
             ]
             // Private and separate windows keep no pinned tabs or favorites.
             if !browser.isStandalone {
                 let bookmarkCommands: [Command] = [
-                    (active.role == .today ? "Tab anheften" : "Tab lösen", "pin", "⌘D", { browser.togglePin(active) }),
+                    (active.role == .today ? "Tab anheften" : "Tab lösen", "pin", #selector(AppDelegate.togglePin(_:)), { browser.togglePin(active) }),
                     ("Zu Favoriten hinzufügen", "star", nil, { browser.addToFavorites(active) }),
                 ]
                 tabCommands.insert(contentsOf: bookmarkCommands, at: 1)
             }
             commands += tabCommands
             if active.split != nil {
-                let unsplit: Command = ("Split View aufheben", "rectangle", "⌃⇧-", { browser.unsplit() })
+                let unsplit: Command = ("Split View aufheben", "rectangle", #selector(AppDelegate.unsplitView(_:)), { browser.unsplit() })
                 commands.append(unsplit)
             }
         }
@@ -599,9 +602,33 @@ final class CommandBarModel {
                 return lower.hasPrefix(needle) || lower.split(separator: " ").contains { $0.hasPrefix(needle) }
                     || (needle.count >= 3 && lower.contains(needle))
             }
-            .map { title, symbol, shortcut, action in
-                CommandResult(id: "command:\(title)", icon: .symbol(symbol), title: title, badge: shortcut, action: action)
+            .map { title, symbol, menuAction, action in
+                CommandResult(id: "command:\(title)", icon: .symbol(symbol), title: title,
+                              badge: menuAction.flatMap(Self.shortcut(for:)), action: action)
             }
+    }
+
+    /// The shortcut of the menu command |action| as the menu shows it
+    /// (⇧⌘D), so a badge never names another key than the menu.
+    static func shortcut(for action: Selector) -> String? {
+        func find(in menu: NSMenu) -> NSMenuItem? {
+            for item in menu.items {
+                if let found = item.submenu.flatMap(find(in:)) { return found }
+                // Hidden items are second shortcuts for a command (⌥⌘B).
+                if item.action == action, !item.isHidden, !item.keyEquivalent.isEmpty { return item }
+            }
+            return nil
+        }
+        guard let menu = NSApp.mainMenu, let item = find(in: menu) else { return nil }
+        var key = item.keyEquivalent
+        var modifiers = item.keyEquivalentModifierMask
+        if key != key.lowercased() {
+            modifiers.insert(.shift)
+            key = key.lowercased()
+        }
+        let symbols: [(NSEvent.ModifierFlags, String)] = [(.control, "⌃"), (.option, "⌥"), (.shift, "⇧"), (.command, "⌘")]
+        let keys = ["\u{F700}": "↑", "\u{F701}": "↓", "\u{F702}": "←", "\u{F703}": "→", "\t": "⇥", "\r": "↩"]
+        return symbols.filter { modifiers.contains($0.0) }.map(\.1).joined() + (keys[key] ?? key.uppercased())
     }
 
     // MARK: Suggestions
@@ -628,12 +655,16 @@ final class CommandBarModel {
         }
     }
 
-    private static func suggestionURL(for text: String, engine: Settings.SearchEngine) -> URL? {
+    /// The engine's own suggestions (from its OpenSearch description), so
+    /// what is typed goes to no other company than the one searched.
+    static func suggestionURL(for text: String, engine: Settings.SearchEngine) -> URL? {
         let q = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?#"))) ?? text
-        switch engine {
-        case .duckDuckGo: return URL(string: "https://duckduckgo.com/ac/?type=list&q=\(q)")
-        case .bing: return URL(string: "https://api.bing.com/osjson.aspx?query=\(q)")
-        default: return URL(string: "https://suggestqueries.google.com/complete/search?client=firefox&q=\(q)")
+        return switch engine {
+        case .google: URL(string: "https://suggestqueries.google.com/complete/search?client=firefox&q=\(q)")
+        case .duckDuckGo: URL(string: "https://duckduckgo.com/ac/?type=list&q=\(q)")
+        case .ecosia: URL(string: "https://ac.ecosia.org/autocomplete?type=list&q=\(q)")
+        case .bing: URL(string: "https://api.bing.com/osjson.aspx?query=\(q)")
+        case .kagi: URL(string: "https://kagisuggest.com/api/autosuggest?q=\(q)")
         }
     }
 

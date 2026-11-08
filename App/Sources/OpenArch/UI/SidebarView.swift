@@ -850,7 +850,7 @@ private struct FavoriteTile: View {
             Button("Zur gespeicherten URL") { browser.goToSavedURL(item) }.disabled(!item.hasNavigatedAway)
             Button("Aktuelle URL speichern") { browser.resetSavedURL(item) }.disabled(item.liveURL == nil)
             Divider()
-            Button("In Split View öffnen") { browser.split(item) }.disabled(browser.state.activeItem == nil || browser.state.activeItem === item)
+            Button("In Split View öffnen") { browser.dropForSplit(item) }.disabled(browser.state.activeItem == nil || browser.state.activeItem === item)
             Button("URL kopieren") { copy(item.currentURL) }
             Divider()
             Button("Aus Favoriten entfernen") { browser.removeFromFavorites(item) }
@@ -1270,7 +1270,7 @@ private struct TabContextMenu: View {
                 browser.setSplitStacked(split, !split.splitStacked)
             }
         } else {
-            Button("Split View mit aktuellem Tab") { browser.split(item) }
+            Button("Split View mit aktuellem Tab") { browser.dropForSplit(item) }
                 .disabled(browser.state.activeItem == nil || browser.state.activeItem === item)
         }
         if browser.isSeparate {
@@ -1332,7 +1332,7 @@ private struct TodaySection: View {
             .padding(.horizontal, 8)
             .onHover { hoveringHeader = $0 }
             .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
-                browser.handleDrop(providers, target: .end(space.today))
+                browser.handleDrop(providers, target: space.today.items.first.map { .before($0) } ?? .end(space.today))
             }
 
             NewTabRow(browser: browser, theme: theme)

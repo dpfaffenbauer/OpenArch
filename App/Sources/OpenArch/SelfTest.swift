@@ -509,6 +509,16 @@ final class SelfTest {
             let searches = self.browser.commandBar.model.results.filter { $0.subtitle?.hasSuffix("-Suche") == true }
             self.expect(searches.count > 1, "search suggestions arrive (\(searches.count - 1))")
             self.expect(FaviconStore.shared.image(forURL: "https://www.iana.org/") != nil, "favicons load for pages that are not open")
+            // A command's badge is its menu shortcut: the toolbar is ⇧⌘D, not
+            // the library's ⇧⌘L.
+            let badges = ["Chrome-Toolbar ein-/ausblenden", "Heute aufräumen"].map { title in
+                self.browser.commandBar.model.query = title
+                return self.browser.commandBar.model.results.first { $0.id == "command:\(title)" }?.badge ?? "-"
+            }
+            self.expect(badges == ["⇧⌘D", "⇧⌘K"], "command badges show the menu's shortcuts (\(badges))")
+            let hosts = Settings.SearchEngine.allCases.map { CommandBarModel.suggestionURL(for: "x", engine: $0)?.host() ?? "-" }
+            self.expect(hosts == ["suggestqueries.google.com", "duckduckgo.com", "ac.ecosia.org", "api.bing.com", "kagisuggest.com"],
+                        "each search engine suggests from its own server (\(hosts))")
             self.browser.commandBar.hide()
         }
     }
@@ -697,7 +707,12 @@ final class SelfTest {
         }
         expect(copyPasteboard.string(forType: .string) == url && browser.toast?.isVisible == true,
                "Chrome's Copy URL copies through OpenArch, with „Link kopiert“")
-
+        // "Save page as…" from Chrome's ⋮ menu (no ⌘S behind it) is left to
+        // Chrome, which saves the page, instead of hiding the sidebar.
+        if let pane = browser.activePane {
+            let taken = browser.pane(pane, handleChromeCommand: OACChromeCommand.savePage.rawValue)
+            expect(!taken && browser.state.sidebarVisible, "Chrome's „Save page as…“ saves the page, the sidebar stays")
+        }
     }
 
     /// ⌘Q quits through OpenArch's own shortcuts, so a page or Chrome cannot
@@ -765,9 +780,59 @@ final class SelfTest {
         if let nested = space.pinned.allItems.first(where: { $0.displayTitle == "Projekt A" }) {
             expect(nested.parentFolder?.displayTitle == "Kunden", "nested folders survive")
         }
+        // Dragging within the pinned tabs keeps the address a pinned tab
+        // returns to; a today tab dragged in is pinned at its current page.
+        if let pinned = space.pinned.items.first(where: { $0.kind == .tab }) {
+            let saved = pinned.savedURL, live = pinned.liveURL
+            pinned.liveURL = "https://example.com/navigated-away"
+            browser.move(pinned, to: .end(space.pinned))
+            let kept = pinned.savedURL == saved
+            pinned.liveURL = live
+            let dragged = browser.openInNewTab("https://example.com/drag-to-pin", select: false)
+            dragged.liveURL = "https://example.com/drag-to-pin/now"
+            browser.move(dragged, to: .end(space.pinned))
+            expect(kept && dragged.role == .pinned && dragged.savedURL == "https://example.com/drag-to-pin/now",
+                   "a pinned tab dragged among the pinned keeps its pinned address, a today tab is pinned where it is")
+            dragged.detach()
+        }
+        // The free space under the today tabs puts a drop last, the line
+        // above them first.
+        let last = browser.openInNewTab("https://example.com/drop-last", select: false)
+        browser.move(last, to: .end(space.today))
+        expect(space.today.items.last === last && space.today.items.count > 1, "a tab dropped under the today tabs goes last")
+        last.detach()
     }
 
     private func arcImport() {
+        // What an import replaces stays beside Library.json.
+        let backup = library.backUp(before: "Arc-Import")
+        let kept = backup.flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+        expect(kept?.contains(library.spaces[0].name) == true, "the import keeps the sidebar it replaces (\(backup?.lastPathComponent ?? "-"))")
+        if let backup { try? FileManager.default.removeItem(at: backup) }
+
+        // A space on another Arc profile gets a directory no profile has used
+        // (Profile 2 holds "Privat"'s logins), unless that Arc profile came
+        // over before and has one already.
+        let sidebar = AppPaths.support.appendingPathComponent("arc-sidebar-test.json")
+        let json = #"""
+            {"sidebar": {"containers": [{"global": {}}, {
+              "items": ["p", {"id": "p", "data": {}, "childrenIds": []}, "u", {"id": "u", "data": {}, "childrenIds": ["t"]},
+                        "t", {"id": "t", "data": {"tab": {"savedURL": "https://example.com/", "savedTitle": "Example"}}}],
+              "spaces": ["s", {"id": "5A1D2F3E-0000-4000-8000-000000000001", "title": "Work", "containerIDs": ["pinned", "p", "unpinned", "u"],
+                               "profile": {"custom": {"_0": {"directoryBasename": "Profile 1"}}}}],
+              "topAppsContainerIDs": []}]}}
+            """#
+        try? Data(json.utf8).write(to: sidebar)
+        try? FileManager.default.createDirectory(at: AppPaths.chromiumData.appendingPathComponent("Profile 2"),
+                                                 withIntermediateDirectories: true)
+        let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
+        let fresh = (try? ArcImporter.load(from: sidebar, currentProfiles: current))?.0.spaces.first?.profileID
+        let again = (try? ArcImporter.load(from: sidebar, currentProfiles: ["Arc – Profile 1": "Profile 7"]))?.0.spaces.first?.profileID
+        let created = AppPaths.unusedProfileDirectory(besides: ["Default"])
+        expect(fresh.map { !current.values.contains($0) && $0 != "Profile 2" } == true && again == "Profile 7" && created != "Profile 2",
+               "an imported Arc profile and a new one never take a profile directory in use (\(fresh ?? "-"), \(again ?? "-"), \(created))")
+        try? FileManager.default.removeItem(at: sidebar)
+
         guard ArcImporter.isAvailable else {
             Swift.print("[selftest] skip arc import (no Arc data)")
             return
@@ -862,6 +927,37 @@ final class SelfTest {
         expect(DropZone.at(y: 18, folder: false, tab: true) == .split && DropZone.at(y: 4, folder: false, tab: true) == .before
                && DropZone.at(y: 32, folder: false, tab: true) == .after && DropZone.at(y: 16, folder: true, tab: false) == .into,
                "the middle of a tab row splits, its edges reorder")
+        // The menus split like a drag: a favorite or a pinned tab stays where
+        // it is, and a copy of it joins the split under the line.
+        let favorites = library.profile(id: space.profileID).favorites
+        if let favorite = favorites.items.first, let pinned = space.pinned.allTabs.first {
+            let besideFavorite = browser.openInNewTab("https://example.org/menu-split")
+            browser.dropForSplit(favorite)
+            let besidePinned = browser.openInNewTab("https://example.org/menu-split-pinned")
+            browser.dropForSplit(pinned)
+            expect(favorite.role == .favorites && pinned.role == .pinned
+                   && besideFavorite.split?.children.contains { $0 !== besideFavorite && $0.currentURL == favorite.currentURL } == true
+                   && besidePinned.split?.children.contains { $0 !== besidePinned && $0.currentURL == pinned.currentURL } == true,
+                   "„In Split View öffnen“ splits a copy of a favorite or pinned tab and leaves it in place")
+            // Beside a favorite (Peek's „Neben dem Tab öffnen“, ⌃⇧=).
+            browser.select(favorite)
+            let beside = browser.openInNewTab("https://example.com/beside-favorite", after: favorite, select: false)
+            browser.split(beside, with: favorite)
+            expect(favorite.role == .favorites && favorites.items.allSatisfy { $0.kind == .tab }
+                   && beside.role == .today && beside.split?.children.count == 2,
+                   "a tab opened beside a favorite splits with a copy under the line, not in the favorites")
+        }
+
+        // ⌃⇧= with four sides open: no fifth, and no command bar for one.
+        let four = browser.openInNewTab("https://example.org/four-1")
+        for index in 2...4 {
+            browser.split(browser.openInNewTab("https://example.org/four-\(index)", select: false), with: four)
+        }
+        browser.splitWithNewTab()
+        expect(four.split?.children.count == 4 && !browser.commandBar.isVisible,
+               "⌃⇧= with four sides open offers no fifth one")
+        browser.commandBar.hide()
+
         let left = browser.openInNewTab("https://example.org/sidebar-left", select: false)
         let right = browser.openInNewTab("https://example.com/sidebar-right", select: false)
         browser.handleDrop([tabDragProvider(right)], target: .split(left))
@@ -2088,8 +2184,19 @@ final class SelfTest {
             // The closed app keeps the chosen icon through the Dock's plug-in,
             // and the bundle stays as signed (the setting is the user's,
             // shared with OpenArch, and only read here).
+            // „Jeden Tag“ leaves every design, numbered by day the way the
+            // plug-in counts (NSCalendar's day in the era), so the closed
+            // app's icon changes too.
+            AppIcons.saveForDock(.daily)
+            let dailyFiles = ((try? FileManager.default.contentsOfDirectory(atPath: AppIcons.dailyDockIcons.path)) ?? [])
+                .filter { $0.hasSuffix(".png") }
+            let day = (Calendar.current as NSCalendar).ordinality(of: .day, in: .era, for: Date())
+            expect(dailyFiles.count == AppIcons.dailyDesigns.count
+                   && AppIcons.dailyDesigns[day % max(1, dailyFiles.count)] == AppIcons.design(for: Date())
+                   && !FileManager.default.fileExists(atPath: AppIcons.dockIconFile.path),
+                   "„Jeden Tag“ leaves the Dock every design, to show the day's own while OpenArch is closed (\(dailyFiles.count))")
             AppIcons.saveForDock()
-            let saved = FileManager.default.fileExists(atPath: AppIcons.dockIconFile.path)
+            let saved = FileManager.default.fileExists(atPath: (AppIcons.style == .daily ? AppIcons.dailyDockIcons : AppIcons.dockIconFile).path)
             let bundle = Bundle.main.bundlePath
             let untouched = !FileManager.default.fileExists(atPath: bundle + "/Icon\r")
                 && getxattr(bundle, "com.apple.FinderInfo", nil, 0, 0, 0) < 0
@@ -2159,6 +2266,20 @@ final class SelfTest {
             self.expect(!self.browser.peek.isOpen && active?.role == .today && active?.currentURL.contains("iana.org") == true,
                         "Peek becomes a tab with the same page")
             if let active { self.browser.close(active) }
+
+            // ⌘W, as a real key press: Peek's window belongs to the browser
+            // window, and the key closed the pinned tab under the card.
+            self.browser.select(pinned)
+            self.browser.peek.open("https://www.iana.org/", from: pinned)
+            if let app = NSApp.delegate as? AppDelegate,
+               let key = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command,
+                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                          windowNumber: self.browser.window?.windowNumber ?? 0, context: nil,
+                                          characters: "w", charactersIgnoringModifiers: "w", isARepeat: false, keyCode: 13) {
+                _ = ShortcutMonitor.handle(key, target: app)
+            }
+            self.expect(!self.browser.peek.isOpen && pinned.pane != nil && self.browser.state.activeItem === pinned,
+                        "⌘W closes Peek, and the pinned tab under it stays open")
         }
     }
 

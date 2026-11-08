@@ -175,19 +175,46 @@ enum AppIcons {
         AppPaths.support.appendingPathComponent("DockIcon.png")
     }
 
+    /// For „Jeden Tag“: every design as <n>.png, numbered as design(for:)
+    /// counts the days, so the plug-in shows the day's own while OpenArch
+    /// is closed, a new one each day.
+    static var dailyDockIcons: URL {
+        AppPaths.support.appendingPathComponent("DockIcons", isDirectory: true)
+    }
+
     /// The icon the Dock shows last stays there after OpenArch quits: the
     /// Dock's plug-in draws it. The app bundle itself is never changed, so
     /// its signature stays intact.
-    static func saveForDock() {
-        let file = dockIconFile
-        if style == .standard {
-            try? FileManager.default.removeItem(at: file)
-        } else if let tiff = image(for: style, size: 512).tiffRepresentation,
-                  let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
-            try? png.write(to: file, options: .atomic)
+    static func saveForDock(_ style: AppIconStyle = style) {
+        let files = FileManager.default
+        if style == .daily {
+            try? files.removeItem(at: dockIconFile)
+            saveDailyDockIcons()
+        } else {
+            try? files.removeItem(at: dailyDockIcons)
+            if style == .standard {
+                try? files.removeItem(at: dockIconFile)
+            } else {
+                writePNG(of: style, pixels: 512, to: dockIconFile)
+            }
         }
         DistributedNotificationCenter.default().postNotificationName(
             NSNotification.Name("dev.openarch.dockIconChanged"), object: nil, deliverImmediately: true)
+    }
+
+    /// Drawn once per build and set of designs, not at every quit.
+    private static func saveDailyDockIcons() {
+        let folder = dailyDockIcons
+        let stampFile = folder.appendingPathComponent("designs")
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
+        let stamp = build + " " + dailyDesigns.map(\.rawValue).joined(separator: ",")
+        guard (try? String(contentsOf: stampFile, encoding: .utf8)) != stamp else { return }
+        try? FileManager.default.removeItem(at: folder)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        for (index, design) in dailyDesigns.enumerated() {
+            writePNG(of: design, pixels: 512, to: folder.appendingPathComponent("\(index).png"))
+        }
+        try? stamp.write(to: stampFile, atomically: true, encoding: .utf8)
     }
 
     /// Earlier versions put the chosen icon on the app in Finder. That adds
@@ -205,11 +232,14 @@ enum AppIcons {
         log("removed the custom icon from the app bundle, which broke its signature")
     }
 
-    /// Today's design for "Jeden Tag".
+    /// The designs "Jeden Tag" goes through, one a day.
+    static let dailyDesigns = AppIconStyle.allCases.filter { $0.design != nil }
+
+    /// Today's design for "Jeden Tag". The Dock's plug-in counts the same
+    /// way (OpenArchDockTile.m).
     static func design(for day: Date) -> AppIconStyle {
-        let designs = AppIconStyle.allCases.filter { $0.design != nil }
         let index = Calendar.current.ordinality(of: .day, in: .era, for: day) ?? 0
-        return designs[index % designs.count]
+        return dailyDesigns[index % dailyDesigns.count]
     }
 
     static func image(for style: AppIconStyle, size: CGFloat = 512) -> NSImage {
@@ -298,7 +328,8 @@ enum AppIcons {
         NSGraphicsContext.current = context
         image(for: style, size: CGFloat(pixels)).draw(in: NSRect(x: 0, y: 0, width: pixels, height: pixels))
         NSGraphicsContext.restoreGraphicsState()
-        try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+        // Whole or not at all: the Dock's plug-in may read it at any time.
+        try? bitmap.representation(using: .png, properties: [:])?.write(to: url, options: .atomic)
     }
 
     /// Apple's icon shape: a superellipse rather than a rounded rectangle.

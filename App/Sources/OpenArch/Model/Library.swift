@@ -57,12 +57,7 @@ final class Library {
 
     @discardableResult
     func addProfile(name: String) -> Profile {
-        var index = profiles.count
-        var directory: String
-        repeat {
-            index += 1
-            directory = "Profile \(index)"
-        } while profiles.contains { $0.id == directory }
+        let directory = AppPaths.unusedProfileDirectory(besides: Set(profiles.map(\.id)))
         let profile = Profile(id: directory, name: name)
         profiles.append(profile)
         setNeedsSave()
@@ -178,6 +173,24 @@ final class Library {
             log("could not save library: \(error)")
         }
         Sharing.shared.libraryDidSave()
+    }
+
+    /// Keeps a copy of the saved library beside it, as "Library (vor
+    /// <reason> <time>).json", before something replaces it.
+    @discardableResult
+    func backUp(before reason: String) -> URL? {
+        save()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        let backup = fileURL.deletingLastPathComponent()
+            .appendingPathComponent("Library (vor \(reason) \(formatter.string(from: Date()))).json")
+        do {
+            try FileManager.default.copyItem(at: fileURL, to: backup)
+            return backup
+        } catch {
+            log("could not back up the library: \(error)")
+            return nil
+        }
     }
 
     /// Loads the saved library, or sets up a first-run one.

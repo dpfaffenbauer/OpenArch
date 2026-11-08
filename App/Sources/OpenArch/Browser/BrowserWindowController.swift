@@ -987,8 +987,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// ⌘W closes the tab, or the window once no tab is left to close.
+    /// With Peek open it closes Peek: the card is what is in front, and its
+    /// window belongs to this one, so the key never reaches Peek itself.
     func closeActiveTab() {
-        if let active = state.activeItem {
+        if peek.isOpen {
+            peek.close()
+        } else if let active = state.activeItem {
             close(active)
         } else {
             window?.performClose(nil)
@@ -1229,7 +1233,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// arranges the split one above the other (or side by side), nil keeps
     /// how an existing split is arranged.
     func split(_ other: Item, with base: Item? = nil, leading: Bool = false, stacked: Bool? = nil) {
-        guard let base = base ?? state.activeItem, base !== other, base.kind == .tab, other.kind == .tab else { return }
+        guard var base = base ?? state.activeItem, base !== other, base.kind == .tab, other.kind == .tab else { return }
+        if base.role == .favorites {
+            // Favorites hold no split views: the favorite stays, and a copy
+            // of it goes beside |other| under the line, as when dragging one.
+            let copy = Item.tab(url: base.currentURL, title: base.displayTitle)
+            state.space.today.insert(copy, at: 0)
+            base = copy
+        }
         if let split = base.split {
             guard split.children.count < 4 || other.split === split else { return }
             if let container = split.container {
@@ -1379,6 +1390,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             commandBar.show(mode: .newTab)
             return
         }
+        // Four sides are all a split view takes; the menu item is greyed
+        // out then, but its shortcut still comes here.
+        guard (active.split?.children.count ?? 1) < 4 else {
+            if !AppPaths.isSelfTest { NSSound.beep() }
+            return
+        }
         commandBar.show(mode: .newSplit(active))
     }
 
@@ -1396,6 +1413,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Moves |item| relative to |target| (drag and drop in the sidebar).
     func move(_ item: Item, to target: DropTarget) {
+        // A pinned tab or favorite keeps the address it returns to; one
+        // dragged in from under the line is pinned at its current page.
+        let wasBookmark = item.role == .pinned || item.role == .favorites
         switch target {
         case .before(let other):
             guard other !== item, !other.isDescendant(of: item), let container = other.container else { return }
@@ -1410,12 +1430,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             container.insert(item, into: folder)
         case .end(let container):
             if container.role == .favorites, item.kind != .tab { return }
-            container.insert(item, at: container.role == .today ? 0 : nil)
+            container.insert(item)
         case .split(let other):
             dropForSplit(item, onto: other)
             return
         }
-        if item.role == .pinned || item.role == .favorites, item.kind == .tab {
+        if !wasBookmark, item.role == .pinned || item.role == .favorites, item.kind == .tab {
             item.savedURL = item.currentURL
         }
         library.setNeedsSave()
@@ -1627,6 +1647,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .bookmarkThisTab:
             if let active = state.activeItem { togglePin(active) }
         case .savePage:
+            // ⌘S is Arc's sidebar key; Chrome's ⋮ menu "Save page as…" saves.
+            guard let event = NSApp.currentEvent, event.type == .keyDown, event.charactersIgnoringModifiers == "s",
+                  event.modifierFlags.intersection([.command, .shift, .option, .control]) == .command else { return false }
             toggleSidebar()
         case .duplicateTab:
             if let active = state.activeItem { duplicate(active) }

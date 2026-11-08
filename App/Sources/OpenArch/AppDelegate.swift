@@ -339,17 +339,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func importFromArc(_ sender: Any?) {
         guard let browser = mainBrowser else { return }
         do {
-            let (data, summary) = try ArcImporter.load()
+            let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
+            let (data, summary) = try ArcImporter.load(currentProfiles: current)
             let alert = NSAlert()
             alert.messageText = "Aus Arc importieren"
             alert.informativeText = """
                 Sidebar: \(summary.spaces) Space(s), \(summary.favorites) Favoriten, \(summary.pinned) angeheftete Tabs \
-                in \(summary.folders) Ordnern und \(summary.today) offene Tabs.
+                in \(summary.folders) Ordnern und \(summary.today) offene Tabs. Die bisherige Sidebar bleibt als \
+                Sicherung erhalten.
 
                 „Alles übernehmen“ holt zusätzlich Logins und Cookies, gespeicherte Passwörter, Verlauf, Website-Daten \
                 und die installierten Extensions samt Einstellungen. Dafür startet OpenArch neu, Arc muss beendet sein, \
-                und macOS fragt einmal nach dem Zugriff auf „Arc Safe Storage“. Bisherige OpenArch-Daten bleiben als \
-                Sicherung erhalten.
+                und macOS fragt einmal nach dem Zugriff auf „Arc Safe Storage“. Bisherige Logins und Website-Daten \
+                bleiben ebenfalls als Sicherung erhalten.
                 """
             alert.addButton(withTitle: "Alles übernehmen")
             alert.addButton(withTitle: "Nur Sidebar")
@@ -362,6 +364,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // The library is replaced; further windows would show spaces
             // that no longer exist.
             for other in browsers where other !== browser { other.window?.performClose(nil) }
+            library.backUp(before: "Arc-Import")
             browser.prepareForLibraryReplacement()
             library.replace(with: data)
             ArcFavicons.importIcons(for: ArcFavicons.urls(in: library))
