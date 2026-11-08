@@ -484,6 +484,13 @@ final class SelfTest {
             let searches = self.browser.commandBar.model.results.filter { $0.subtitle?.hasSuffix("-Suche") == true }
             self.expect(searches.count > 1, "search suggestions arrive (\(searches.count - 1))")
             self.expect(FaviconStore.shared.image(forURL: "https://www.iana.org/") != nil, "favicons load for pages that are not open")
+            // A command's badge is its menu shortcut: the toolbar is ⇧⌘D, not
+            // the library's ⇧⌘L.
+            let badges = ["Chrome-Toolbar ein-/ausblenden", "Heute aufräumen"].map { title in
+                self.browser.commandBar.model.query = title
+                return self.browser.commandBar.model.results.first { $0.id == "command:\(title)" }?.badge ?? "-"
+            }
+            self.expect(badges == ["⇧⌘D", "⇧⌘K"], "command badges show the menu's shortcuts (\(badges))")
             self.browser.commandBar.hide()
         }
     }
