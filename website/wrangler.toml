@@ -2,7 +2,7 @@
 # they are. Cloudflare's GitHub connection (Workers Builds, root directory
 # `website`, deploy command `npx wrangler deploy`) deploys it from main, as
 # it does the relay.
-name = "openarch-website"
+name = "openarch"
 main = "worker.js"
 compatibility_date = "2026-10-01"
 workers_dev = false

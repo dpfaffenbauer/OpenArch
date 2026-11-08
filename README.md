@@ -326,7 +326,7 @@ Workers. Cloudflare's GitHub connection (Workers Builds) deploys each from
 
 | Worker | Root directory | Build command | Deploy command |
 | --- | --- | --- | --- |
-| `openarch-website` | `website` | – | `npx wrangler deploy` |
+| `openarch` | `website` | – | `npx wrangler deploy` |
 | `openarch-docs` | `docs-site` | `npm ci && npm run build` | `npx wrangler deploy` |
 | `openarch-share-relay` | `relay` | – | `npx wrangler deploy` |
 
