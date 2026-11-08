@@ -491,6 +491,9 @@ final class SelfTest {
                 return self.browser.commandBar.model.results.first { $0.id == "command:\(title)" }?.badge ?? "-"
             }
             self.expect(badges == ["⇧⌘D", "⇧⌘K"], "command badges show the menu's shortcuts (\(badges))")
+            let hosts = Settings.SearchEngine.allCases.map { CommandBarModel.suggestionURL(for: "x", engine: $0)?.host() ?? "-" }
+            self.expect(hosts == ["suggestqueries.google.com", "duckduckgo.com", "ac.ecosia.org", "api.bing.com", "kagisuggest.com"],
+                        "each search engine suggests from its own server (\(hosts))")
             self.browser.commandBar.hide()
         }
     }

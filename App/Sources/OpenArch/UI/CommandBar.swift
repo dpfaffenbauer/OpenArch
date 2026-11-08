@@ -627,12 +627,16 @@ final class CommandBarModel {
         }
     }
 
-    private static func suggestionURL(for text: String, engine: Settings.SearchEngine) -> URL? {
+    /// The engine's own suggestions (from its OpenSearch description), so
+    /// what is typed goes to no other company than the one searched.
+    static func suggestionURL(for text: String, engine: Settings.SearchEngine) -> URL? {
         let q = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?#"))) ?? text
-        switch engine {
-        case .duckDuckGo: return URL(string: "https://duckduckgo.com/ac/?type=list&q=\(q)")
-        case .bing: return URL(string: "https://api.bing.com/osjson.aspx?query=\(q)")
-        default: return URL(string: "https://suggestqueries.google.com/complete/search?client=firefox&q=\(q)")
+        return switch engine {
+        case .google: URL(string: "https://suggestqueries.google.com/complete/search?client=firefox&q=\(q)")
+        case .duckDuckGo: URL(string: "https://duckduckgo.com/ac/?type=list&q=\(q)")
+        case .ecosia: URL(string: "https://ac.ecosia.org/autocomplete?type=list&q=\(q)")
+        case .bing: URL(string: "https://api.bing.com/osjson.aspx?query=\(q)")
+        case .kagi: URL(string: "https://kagisuggest.com/api/autosuggest?q=\(q)")
         }
     }
 
