@@ -32,7 +32,7 @@
         <a href="#import">Import</a>
         <a href="#features">Features</a>
         <a href="#shortcuts">Shortcuts</a>
-        <a href="#agents">Agents</a>
+        <a href="#agents">Claude</a>
         <a href="https://docs.openarch.app/">Docs</a>
         <a href="https://github.com/dpfaffenbauer/OpenArch">GitHub</a>
       </nav>
@@ -126,10 +126,16 @@
         <div><dt>Link rules</dt><dd>Links from Mail or Slack go straight to the right space.</dd></div>
         <div><dt>Now playing</dt><dd>What plays in another tab, or in Spotify, sits in the sidebar with its cover. Rest on it to scrub, skip or pause.</dd></div>
         <div><dt>Hover sidebar</dt><dd>Hide it, touch the left edge, and it floats back.</dd></div>
-        <div><dt>Glass</dt><dd>Let the desktop shine through. On macOS 26 the whole window is one sheet of Liquid Glass in your space’s color.</dd></div>
-        <div><dt>GitHub live folders</dt><dd>Pinned folders that fill themselves with your pull requests, reviews or issues.</dd></div>
+        <div><dt>Glass and grain</dt><dd>Let the desktop shine through. On macOS 26 the whole window is one sheet of Liquid Glass in your space’s color. Or put Arc’s grain on it.</dd></div>
+        <div><dt>Tab previews</dt><dd>Rest the pointer on a tab and see its page, without leaving the one you are on.</dd></div>
+        <div><dt>Meetings</dt><dd>Your next meeting at the bottom of the sidebar, a nudge before it starts, and a button that joins the call.</dd></div>
+        <div><dt>Screen sharing</dt><dd>While a call shares a tab or your screen, the sidebar says what, and ends it with one click.</dd></div>
+        <div><dt>new doc</dt><dd>Type new doc, new sheet or new ticket in the command bar and start on a fresh one.</dd></div>
+        <div><dt>GitHub live folders</dt><dd>Pinned folders that fill themselves with your pull requests, reviews or issues, with their checks.</dd></div>
         <div><dt>Sleeping tabs</dt><dd>Tabs you have not looked at in a while free their memory and wake up when you come back.</dd></div>
         <div><dt>Private windows</dt><dd>Their own profile in memory, no history, gone when you close them.</dd></div>
+        <div><dt>Your own shortcuts</dt><dd>Any menu command, the keys you like, in Settings › Tastatur.</dd></div>
+        <div><dt>Closed windows come back</dt><dd>⌘⇧T reopens the window you just closed, where it was, tabs and all.</dd></div>
         <div><dt>Real Chrome tabs</dt><dd>Every extension from the Chrome Web Store, DevTools included.</dd></div>
         <div><dt>Updates by themselves</dt><dd>Each new Chromium build, checked and installed when you quit.</dd></div>
       </dl>
@@ -139,6 +145,7 @@
       <h2 id="shortcuts-title">Your hands already know it.</h2>
       <ul class="keys">
         <li><kbd>⌘T</kbd>Command bar</li>
+        <li><kbd>⌘E</kbd>Chat with the page</li>
         <li><kbd>⌘S</kbd>Sidebar</li>
         <li><kbd>⌘D</kbd>Pin tab</li>
         <li><kbd>⌃1–9</kbd>Spaces</li>
@@ -154,10 +161,11 @@
     <section class="wrap agents" id="agents" aria-labelledby="agents-title">
       <div class="agents-card dark">
         <div class="copy">
-          <h2 id="agents-title">Agents next to your tabs.</h2>
-          <p>Chat with Claude Code in the sidebar, right where your tabs are, on your own login and without an API key. It keeps working while you browse, and with AI control on it drives your real tabs too.</p>
-          <p>The ✨ in the space bar (<kbd>⌃0</kbd>) is a space for all of them: every agent chat and every Claude Code session on your Mac, by status or by project. You see at a glance what is working and what waits for you.</p>
-          <p>Rather stay in your terminal? Let Claude Code, Playwright or Puppeteer drive OpenArch with your logins. Off by default; turn it on under Settings › KI.</p>
+          <h2 id="agents-title">Claude next to your tabs.</h2>
+          <p>Press <kbd>⌘E</kbd> and a chat opens beside the page. Ask about what you are reading, add other tabs with @, or hand it the work: it reads the page, looks at it, scrolls, clicks and types in your real tabs, signed in as you. Before it acts the first time, it asks.</p>
+          <p>Your Claude Code skills run on the page from the command bar. A Morning Brief of your calendar, mail and tasks opens as a tab each morning. And a crowded space sorts itself into folders, once you have seen the plan.</p>
+          <p>Agent chats sit in the sidebar like tabs and keep working while you browse. The ✨ in the space bar (<kbd>⌃0</kbd>) shows every agent chat and every Claude Code session on your Mac, by status or by project.</p>
+          <p>All of it runs Claude Code on your Mac, on your own login, without an API key. Rather stay in your terminal? Let Claude Code, Playwright or Puppeteer drive OpenArch with your logins. Off by default; turn it on under Settings › KI.</p>
           <p>What runs on your Mac, what Claude gets and what it may do: <a href="https://docs.openarch.app/ai/how-it-works/">How OpenArch talks to Claude</a>.</p>
         </div>
         <div class="terminal">
