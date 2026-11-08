@@ -1,6 +1,6 @@
 # Submitting OpenArch for iPhone and iPad
 
-Bundle ID `at.pfaffenbauer.openarch`, team `5QAM4Z73EV`, version `0.1.0`, German only.
+Bundle ID `at.pfaffenbauer.openarch`, team `5QAM4Z73EV`, version `1.0`, German only.
 
 ## In the repo
 
@@ -20,7 +20,8 @@ fastlane deliver --app_identifier at.pfaffenbauer.openarch --skip_binary_upload 
 
 | Slot | Files | Required |
 |---|---|---|
-| iPhone, 6.9" | `build/app-store/screenshots/iphone/` (1320x2868) | yes |
+| iPhone, 6.3" (iPhone 18 Pro) | `build/app-store/screenshots/iphone-6.3/` (1206x2622) | yes |
+| iPhone, 6.9" | `build/app-store/screenshots/iphone/` (1320x2868) | no |
 | iPad, 13" | `build/app-store/screenshots/ipad/` (2064x2752) | yes |
 | iPhone Duo, outer | `build/app-store/screenshots/duo-aussen/` (1398x2034) | from April 2027 |
 | iPhone Duo, inner | `build/app-store/screenshots/duo-innen/` (2853x2007) | from April 2027 |
@@ -29,7 +30,17 @@ fastlane deliver --app_identifier at.pfaffenbauer.openarch --skip_binary_upload 
 
 Poster frame for the previews: the logo at the end, about 23 s.
 
-Apple's page lists the medium iPhone (6.1") as the required slot and says larger screenshots scale down. Should App Store Connect still ask for it, take the same scenes on an iPhone 18 Pro.
+App Store Connect asks for the medium iPhone ("iPhone with Dynamic Island", 6.1" or 6.3") and does not take the 6.9" size there, so the iPhone shots come from an iPhone 18 Pro. On a fresh simulator, the first keyboard brings up an English tip about slide typing; turn it off before taking the shots:
+
+```bash
+xcrun simctl spawn <udid> defaults write com.apple.Preferences DidShowContinuousPathIntroduction -bool true
+```
+
+To upload the iPhone 6.3" and iPad shots in place of the ones in App Store Connect (an API key with at least the App Manager role, its `.p8` in `~/.appstoreconnect/private_keys/`):
+
+```bash
+ASC_KEY_ID=<key id> ASC_ISSUER_ID=<issuer id> scripts/upload-screenshots.sh
+```
 
 ## Before submitting
 
