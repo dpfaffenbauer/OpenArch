@@ -692,6 +692,14 @@ kbd {
   line-height: 1.55;
 }
 
+.agents-card .copy a {
+  color: #7fcf89;
+}
+
+.agents-card .copy a:hover {
+  color: #a8e0af;
+}
+
 .agents-card .copy kbd {
   padding: 2px 6px;
   background: var(--dark-line);
