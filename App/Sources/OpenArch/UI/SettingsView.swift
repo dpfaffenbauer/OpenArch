@@ -33,6 +33,7 @@ struct SettingsView: View {
                     case .links: LinksPage(app: app, library: app.library)
                     case .sharing: SharingPage(app: app, library: app.library)
                     case .ai: AIPage(app: app)
+                    case .keyboard: ShortcutsPage(app: app, library: app.library)
                     case .importing: ImportPage(app: app)
                     case .about: AboutPage(app: app)
                     }
@@ -48,7 +49,7 @@ struct SettingsView: View {
 }
 
 enum SettingsPage: String, CaseIterable, Identifiable {
-    case general, profiles, links, sharing, ai, importing, about
+    case general, profiles, links, sharing, ai, keyboard, importing, about
     var id: String { rawValue }
 
     var title: String {
@@ -58,6 +59,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .links: "Links"
         case .sharing: "Teilen"
         case .ai: "KI"
+        case .keyboard: "Tastatur"
         case .importing: "Import"
         case .about: "Info"
         }
@@ -70,6 +72,7 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .links: "link"
         case .sharing: "person.2.wave.2"
         case .ai: "sparkles"
+        case .keyboard: "keyboard"
         case .importing: "square.and.arrow.down"
         case .about: "info.circle"
         }
@@ -88,7 +91,7 @@ private struct SettingsTab: View {
                 Image(systemName: page.symbol).font(.system(size: 17, weight: .medium)).frame(height: 20)
                 Text(page.title).font(.system(size: 11, weight: .medium))
             }
-            .frame(width: 78, height: 50)
+            .frame(width: 72, height: 50)
             .background(RoundedRectangle(cornerRadius: 9).fill(
                 isSelected ? Color.accentColor.opacity(0.16) : (hovering ? Color.primary.opacity(0.06) : .clear)))
             .foregroundStyle(isSelected ? Color.accentColor : .primary.opacity(0.75))
@@ -244,6 +247,7 @@ private struct GeneralPage: View {
                 Toggle("", isOn: $library.settings.showSidebarAddress).labelsHidden().toggleStyle(.switch)
             }
         }
+        MeetingSection(library: library)
         Section(title: "Sicherheit") {
             Row(symbol: "lock", color: .green, title: "Nur HTTPS",
                 detail: "Adressen mit http:// werden zuerst verschlüsselt geladen. Geht das nicht, fragt OpenArch, bevor die Seite unverschlüsselt öffnet.", showsDivider: false) {
@@ -262,17 +266,55 @@ private struct GeneralPage: View {
                 Toggle("", isOn: $library.settings.glass).labelsHidden().toggleStyle(.switch)
             }
             Row(symbol: "drop.halffull", color: .cyan, title: "Tönung",
-                detail: "Wie viel von der Farbe des Space im Glas liegt: wenig lässt mehr vom Schreibtisch durch, viel hält die Schrift gut lesbar.",
-                showsDivider: false) {
+                detail: "Wie viel von der Farbe des Space im Glas liegt: wenig lässt mehr vom Schreibtisch durch, viel hält die Schrift gut lesbar.") {
                 Slider(value: $library.settings.glassTint, in: 0...0.9).frame(width: 160)
                     .disabled(!library.settings.glass)
+            }
+            Row(symbol: "circle.dotted", color: .brown, title: "Körnung",
+                detail: "Feines Korn auf der Farbe des Space, wie in Arc. Ganz links ist es aus.") {
+                Slider(value: $library.settings.grain, in: 0...1).frame(width: 160)
+            }
+            Row(symbol: "rectangle.on.rectangle.angled", color: .blue, title: "Vorschau beim Überfahren",
+                detail: "Ruht der Zeiger auf einem Tab in der Sidebar, zeigt OpenArch ein Bild der Seite daneben.",
+                showsDivider: false) {
+                Toggle("", isOn: $library.settings.tabPreviews).labelsHidden().toggleStyle(.switch)
             }
         }
         .onChange(of: library.settings.glass) { app.browsers.forEach { $0.applyTheme() } }
         .onChange(of: library.settings.glassTint) { app.browsers.forEach { $0.applyTheme() } }
+        .onChange(of: library.settings.grain) { app.browsers.forEach { $0.applyTheme() } }
         AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
+/// The next meeting from the Mac's calendar in the sidebar.
+private struct MeetingSection: View {
+    @Bindable var library: Library
+
+    var body: some View {
+        Section(title: "Kalender") {
+            Row(symbol: "calendar", color: .red, title: "Nächstes Meeting in der Sidebar",
+                detail: detail, showsDivider: false) {
+                HStack {
+                    if library.settings.meetingBar, Meetings.shared.access == .denied {
+                        Button("Zugriff erlauben …") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars")!)
+                        }
+                    }
+                    Toggle("", isOn: $library.settings.meetingBar).labelsHidden().toggleStyle(.switch)
+                }
+            }
+        }
+        .onChange(of: library.settings.meetingBar) { Meetings.shared.start(enabled: library.settings.meetingBar) }
+    }
+
+    private var detail: String {
+        if library.settings.meetingBar, Meetings.shared.access == .denied {
+            return "OpenArch darf den Kalender nicht lesen. Erlaube es unter Systemeinstellungen › Datenschutz & Sicherheit › Kalender."
+        }
+        return "Aus den Kalendern der Kalender-App: wann es losgeht und ein Knopf zum Beitreten. Der Call öffnet in einem eigenen Ordner, mit den Links, die du währenddessen öffnest. Beim Einschalten fragt macOS nach dem Zugriff."
     }
 }
 

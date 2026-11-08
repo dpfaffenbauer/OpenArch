@@ -364,6 +364,16 @@ struct Settings: Codable, Equatable {
     /// Kinds of files (DownloadKind) they leave out, as strings, so that a
     /// kind unknown to this version does not spoil the settings.
     var downloadStackHidden: [String] = []
+    /// Arc's grain on the space's color (0 = none, 1 = strong).
+    var grain = 0.0
+    /// A picture of the page when the pointer rests on a tab in the sidebar.
+    var tabPreviews = true
+    /// The next meeting from the Mac's calendar at the bottom of the sidebar,
+    /// with a button to join it.
+    var meetingBar = false
+    /// Keyboard shortcuts the user set for menu commands, by command
+    /// (MainMenu.commandID); an empty string takes the shortcut away.
+    var shortcuts: [String: String] = [:]
 
     init() {}
 
@@ -393,6 +403,10 @@ struct Settings: Codable, Equatable {
         glassTint = try container.decodeIfPresent(Double.self, forKey: .glassTint) ?? defaults.glassTint
         downloadStack = try container.decodeIfPresent(Bool.self, forKey: .downloadStack) ?? defaults.downloadStack
         downloadStackHidden = try container.decodeIfPresent([String].self, forKey: .downloadStackHidden) ?? defaults.downloadStackHidden
+        grain = try container.decodeIfPresent(Double.self, forKey: .grain) ?? defaults.grain
+        tabPreviews = try container.decodeIfPresent(Bool.self, forKey: .tabPreviews) ?? defaults.tabPreviews
+        meetingBar = try container.decodeIfPresent(Bool.self, forKey: .meetingBar) ?? defaults.meetingBar
+        shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }

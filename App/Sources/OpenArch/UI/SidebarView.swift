@@ -94,6 +94,13 @@ struct SidebarView: View {
                     browser.handleDrop(providers, target: .end(space.today))
                 }
             }
+            if browser.library.settings.meetingBar || Meetings.shared.testMeeting != nil,
+               !browser.isStandalone, let meeting = Meetings.shared.current {
+                MeetingCard(browser: browser, meeting: meeting, theme: theme)
+            }
+            if let share = browser.screenShare {
+                ScreenShareCard(browser: browser, sharer: share.sharer, shared: share.shared, theme: theme)
+            }
             if let player = browser.player {
                 MediaCard(browser: browser, source: player, theme: theme)
             }
@@ -464,6 +471,137 @@ private struct LiveBadge: View {
         }
         .padding(.horizontal, 4)
         .frame(height: 16)
+    }
+}
+
+/// A tab of this window shares the screen (a video call): what it shares,
+/// a click goes to the shared tab (or the call), and a button ends it.
+private struct ScreenShareCard: View {
+    let browser: BrowserWindowController
+    let sharer: Item
+    let shared: Item?
+    let theme: SpaceTheme
+    @State private var hovering = false
+
+    private var what: String {
+        if let shared { return "Du teilst „\(shared.displayTitle)“" }
+        switch sharer.screenShare?.surface {
+        case "browser": return "Du teilst einen Tab"
+        case "window": return "Du teilst ein Fenster"
+        default: return "Du teilst deinen Bildschirm"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button { browser.select(shared ?? sharer) } label: {
+                HStack(spacing: 9) {
+                    Image(systemName: "rectangle.inset.filled.and.person.filled")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 24, height: 24)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color.red))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(what).font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
+                        Text("an " + (URL(string: sharer.currentURL)?.host() ?? sharer.displayTitle))
+                            .font(.system(size: 11)).opacity(0.65).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(shared != nil ? "Zum geteilten Tab" : "Zum Tab, der teilt")
+            if shared != nil, browser.state.activeItem !== sharer {
+                IconButton(symbol: "video.fill", help: "Zum Tab, der teilt") { browser.select(sharer) }
+            }
+            IconButton(symbol: "stop.fill", help: "Teilen beenden") { browser.stopScreenShare(sharer) }
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 4)
+        .frame(height: 46)
+        .background(RoundedRectangle(cornerRadius: 10).fill(hovering ? theme.tileHover : theme.tile))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.red.opacity(0.6), lineWidth: 1.5))
+        .onHover { hovering = $0 }
+        .padding(.top, 6)
+    }
+}
+
+/// The next meeting from the Mac's calendar: when, and a button to join.
+private struct MeetingCard: View {
+    let browser: BrowserWindowController
+    let meeting: Meetings.Meeting
+    let theme: SpaceTheme
+    @State private var hovering = false
+
+    var body: some View {
+        let meetings = Meetings.shared
+        let startsSoon = meeting.start.timeIntervalSince(meetings.now) <= 120
+        HStack(spacing: 8) {
+            Image(systemName: "calendar")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 24, height: 24)
+                .background(RoundedRectangle(cornerRadius: 6).fill(startsSoon ? Color.accentColor : Color.gray))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(meeting.title).font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
+                Text(meetings.countdown(for: meeting)).font(.system(size: 11)).opacity(0.65).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            if meeting.joinURL != nil {
+                Button("Beitreten") { browser.joinMeeting(meeting) }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(Capsule().fill(startsSoon ? Color.accentColor : theme.tileHover))
+                    .foregroundStyle(startsSoon ? Color.white : theme.foreground)
+                    .help(meeting.joinURL ?? "")
+            }
+        }
+        .padding(.leading, 10)
+        .padding(.trailing, 8)
+        .frame(height: 46)
+        .background(RoundedRectangle(cornerRadius: 10).fill(hovering ? theme.tileHover : theme.tile))
+        .onHover { hovering = $0 }
+        .padding(.top, 6)
+    }
+}
+
+/// A pull request's checks in a live folder: passed, failed or running.
+private struct ChecksMark: View {
+    let checks: Checks
+
+    var body: some View {
+        Group {
+            switch checks.state {
+            case .success: Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            case .failure: Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
+            case .pending: Image(systemName: "circle.dotted.circle").foregroundStyle(.orange)
+            }
+        }
+        .font(.system(size: 11, weight: .semibold))
+        .help(checks.label.isEmpty ? "Checks" : checks.label)
+    }
+}
+
+/// In a tab's row: it shares the screen (red), or it is the tab being shared.
+private struct ScreenShareMark: View {
+    let browser: BrowserWindowController
+    let item: Item
+
+    var body: some View {
+        if item.screenShare != nil {
+            Image(systemName: "record.circle.fill")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.red)
+                .help("Teilt gerade")
+        } else if browser.isBeingShared(item) {
+            Image(systemName: "rectangle.inset.filled.and.person.filled")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.red)
+                .help("Wird gerade geteilt")
+        }
     }
 }
 
@@ -941,6 +1079,8 @@ private struct TabRow: View {
     let depth: Int
     @State private var hovering = false
     @State private var dropZone: DropZone?
+    /// For the preview beside the sidebar.
+    @State private var frame: CGRect = .zero
 
     var body: some View {
         let isActive = browser.state.activeItem === item
@@ -949,6 +1089,7 @@ private struct TabRow: View {
                 .opacity(item.isAsleep ? 0.5 : 1)
                 .help(item.isAsleep ? "Schläft: lädt neu, wenn du den Tab öffnest" : "")
             AudioButton(browser: browser, item: item)
+            ScreenShareMark(browser: browser, item: item)
             if item.hasNavigatedAway {
                 Text("/").font(.system(size: 14)).opacity(0.5).padding(.horizontal, -4)
             }
@@ -969,18 +1110,29 @@ private struct TabRow: View {
                 }
             } else if item.isLoading {
                 ProgressView().controlSize(.mini).opacity(0.6)
+            } else if let checks = item.checks {
+                ChecksMark(checks: checks)
             }
         }
         .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone)
-        .onTapGesture { browser.click(item) }
-        .onHover { hovering = $0 }
+        .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0 }
+        .onTapGesture {
+            browser.tabPreview.hide()
+            browser.click(item)
+        }
+        .onHover {
+            hovering = $0
+            browser.tabPreview.hover(item, row: frame, inside: $0)
+        }
         .onDrag {
+            browser.tabPreview.hide()
             browser.beginTabDrag(item)
             return tabDragProvider(item)
         }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
         .contextMenu { TabContextMenu(browser: browser, item: item) }
-        .help(item.currentURL)
+        // The preview shows the address; the tooltip would cover it.
+        .help(browser.library.settings.tabPreviews ? "" : item.currentURL)
     }
 }
 

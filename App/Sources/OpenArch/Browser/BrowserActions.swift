@@ -119,6 +119,15 @@ extension BrowserWindowController {
         library.setNeedsSave()
     }
 
+    /// A separate window that comes back gets its tabs again, top to bottom.
+    func adoptArchived(_ tabs: [ArchivedTab]) {
+        let items = tabs.map { Item.tab(url: $0.url, title: $0.title) }
+        for (index, item) in items.enumerated() {
+            state.space.today.insert(item, at: index)
+        }
+        if let first = items.first { select(first) }
+    }
+
     func restoreArchived(_ tab: ArchivedTab) {
         library.removeArchived(tab)
         restore(tab)

@@ -104,6 +104,10 @@ final class Item: Identifiable {
     var media: MediaState?
     /// The media card was closed; it comes back when the page plays again.
     var mediaDismissed = false
+    /// The page shares the screen, a window or a tab (a video call).
+    var screenShare: ScreenShare?
+    /// How a page sharing a tab names this one (built-in extension).
+    var captureHandle: String?
     /// Its page was closed to save memory; it loads again when shown.
     var isAsleep = false
     /// When its page was last made (shown, or loaded in the background).
@@ -113,6 +117,8 @@ final class Item: Identifiable {
     /// Live folders: what fills them, and how the last refresh went.
     var live: LiveSource?
     var liveStatus: LiveStatus?
+    /// A pull request in a live folder: its CI checks.
+    var checks: Checks?
     /// Agent chats: where Claude Code works and the session it continues.
     var agent: AgentConfig?
     /// Agent chats: the chat itself, from the first time it is shown.
@@ -333,6 +339,13 @@ struct ItemData: Codable {
     var icon: String?
     var live: LiveSource?
     var agent: AgentConfig?
+}
+
+/// What a page shares through getDisplayMedia: "browser" (a tab),
+/// "window" or "monitor", and the shared tab's capture handle.
+struct ScreenShare: Equatable, Decodable {
+    var surface = ""
+    var handle = ""
 }
 
 /// A page's audio or video, as its media element and Media Session report it.

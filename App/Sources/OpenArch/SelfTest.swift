@@ -13,8 +13,8 @@ import OpenArchShared
 final class SelfTest {
     static private(set) weak var current: SelfTest?
 
-    private let browser: BrowserWindowController
-    private var library: Library { browser.library }
+    let browser: BrowserWindowController
+    var library: Library { browser.library }
     private var failures: [String] = []
 
     init(browser: BrowserWindowController) {
@@ -54,6 +54,18 @@ final class SelfTest {
                 // is cancelled two seconds in.
                 if CommandLine.arguments.contains("--cancel-downloads") {
                     self.cancelFirstDownload()
+                }
+            }
+            return
+        }
+        // --dia-test: only the features from Dia (SelfTestDia.swift), in a few seconds.
+        if CommandLine.arguments.contains("--dia-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.diaFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
                 }
             }
             return
@@ -139,6 +151,7 @@ final class SelfTest {
             (43.6, "media", { self.mediaTest() }),
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
+            (61, "dia features", { self.diaFeatures {} }),
             (64.5, "windows", { self.windowsTest() }),
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
@@ -416,7 +429,7 @@ final class SelfTest {
 
     /// Checks |condition| until it holds or |timeout| passes, for results
     /// that wait on the main thread while other steps keep it busy.
-    private func eventually(_ condition: @escaping () -> Bool, timeout: Double = 3, then report: @escaping (Bool) -> Void) {
+    func eventually(_ condition: @escaping () -> Bool, timeout: Double = 3, then report: @escaping (Bool) -> Void) {
         let deadline = Date().addingTimeInterval(timeout)
         func check() {
             if condition() { return report(true) }
@@ -426,7 +439,7 @@ final class SelfTest {
         check()
     }
 
-    private func expect(_ condition: Bool, _ message: String) {
+    func expect(_ condition: Bool, _ message: String) {
         Swift.print("[selftest] \(condition ? "ok  " : "FAIL") \(message)")
         if !condition { failures.append(message) }
     }
