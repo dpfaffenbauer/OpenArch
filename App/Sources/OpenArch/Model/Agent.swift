@@ -601,6 +601,7 @@ enum AgentTool {
             case "list_tabs": return "Tabs"
             case "read_page": return "Liest die Seite"
             case "screenshot": return "Bildschirmfoto"
+            case "scroll": return "Scrollt"
             case "open_tab": return "Neuer Tab"
             case "navigate": return "Öffnet"
             case "click": return "Klickt"
@@ -645,6 +646,9 @@ enum AgentTool {
     /// The gist of a tool's input: its command, file, pattern or address.
     static func summary(of input: [String: Any]) -> String {
         // OpenArch's browser tools: an element of the page, and what is typed.
+        if let direction = input["direction"] as? String, input["element"] == nil {
+            return ["down": "nach unten", "up": "nach oben", "top": "zum Anfang", "bottom": "zum Ende"][direction] ?? direction
+        }
         if let element = input["element"] as? Int {
             if let text = input["text"] as? String { return "„\(text.prefix(80))“ in Element \(element)" }
             return "Element \(element)"

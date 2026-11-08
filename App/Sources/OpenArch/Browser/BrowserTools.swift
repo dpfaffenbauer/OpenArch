@@ -9,14 +9,14 @@ import OpenArchCore
 /// open addresses, click, type, go back. Unlike AI control, no DevTools
 /// port opens for other programs and nothing needs Node.
 ///
-/// Reading is allowed in every chat (`readingTools`). Everything else is
+/// Reading, looking and scrolling are allowed in every chat (`readingTools`). Everything else is
 /// refused until the chat allows "Browser-Steuerung" once.
 @MainActor
 final class BrowserTools {
     static let shared = BrowserTools()
     nonisolated static let server = "openarch_tabs"
     /// Tools that only read, allowed without asking.
-    nonisolated static let readingTools = ["list_tabs", "read_page", "screenshot"].map { "mcp__\(server)__\($0)" }
+    nonisolated static let readingTools = ["list_tabs", "read_page", "screenshot", "scroll"].map { "mcp__\(server)__\($0)" }
 
     private var listener: NWListener?
     private(set) var port: UInt16?
@@ -214,6 +214,10 @@ final class BrowserTools {
              ["tab": tabParameter], [], reads: true),
         tool("screenshot", "Takes a picture of the visible part of a tab, to see what the text does not say: layout, images, charts, what is highlighted. read_page gives the numbers for click and type.",
              ["tab": tabParameter], [], reads: true),
+        tool("scroll", "Scrolls a tab, to see more of it with screenshot: a screen down or up, to the top or bottom, or to an element from read_page. Says which part of the page shows afterwards.",
+             ["direction": ["type": "string", "enum": ["down", "up", "top", "bottom"], "description": "Where to scroll. Default: down."],
+              "element": ["type": "integer", "description": "Scrolls this element from read_page into view instead."],
+              "tab": tabParameter], [], reads: true),
         tool("open_tab", "Opens an address in a new tab next to the chat's page, in the background, and returns its id.",
              ["url": ["type": "string", "description": "The address to open."]], ["url"]),
         tool("navigate", "Opens an address in a tab.",
@@ -324,6 +328,28 @@ final class BrowserTools {
             _ = await loadedPane(of: tab, in: browser)
             let what = label.isEmpty ? "element \(element)" : "„\(label)“"
             return ("\(name == "click" ? "Clicked" : "Typed into") \(what). \(Self.describe(tab))", false)
+        case "scroll":
+            guard let pane = await loadedPane(of: tab, in: browser) else { return ("The tab's page did not load.", true) }
+            let direction = arguments["direction"] as? String ?? "down"
+            if let element = arguments["element"] as? Int {
+                guard let json = await Self.evaluate(Self.locateScript(element, click: false), in: pane),
+                      let found = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any],
+                      found["missing"] as? Bool != true else {
+                    return ("There is no element \(element) (any more). Read the page again with read_page.", true)
+                }
+            } else if direction == "top" || direction == "bottom" {
+                _ = await Self.evaluate("(() => { const s = document.scrollingElement || document.body; s.scrollTo({ top: \(direction == "top" ? "0" : "s.scrollHeight"), behavior: 'instant' }); return ''; })()", in: pane)
+            } else {
+                // A real wheel in the middle of the page, so a scrolling box
+                // under it scrolls too, as for a person.
+                let size = await Self.evaluate("JSON.stringify([innerWidth, innerHeight])", in: pane)
+                    .flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) as? [Double] } ?? [800, 600]
+                let width = size.first ?? 800, height = size.last ?? 600
+                _ = await Self.devTools("Input.dispatchMouseEvent", ["type": "mouseWheel", "x": width / 2, "y": height / 2,
+                                                                    "deltaX": 0, "deltaY": (direction == "up" ? -0.8 : 0.8) * height], in: pane)
+            }
+            try? await Task.sleep(for: .milliseconds(350))
+            return (await Self.evaluate(Self.positionScript, in: pane) ?? "Scrolled.", false)
         case "go_back":
             guard let pane = tab.pane else { return ("The tab has no page.", true) }
             pane.goBack()
@@ -488,7 +514,7 @@ final class BrowserTools {
 
     /// Brings element |number| into view and says where its middle is,
     /// for a real mouse click there. One without a box is clicked directly.
-    static func locateScript(_ number: Int) -> String {
+    static func locateScript(_ number: Int, click: Bool = true) -> String {
         """
         (() => {
           const el = document.querySelector('[data-openarch-ref="\(number)"]');
@@ -496,11 +522,21 @@ final class BrowserTools {
           el.scrollIntoView({ block: 'center', inline: 'center' });
           const r = el.getBoundingClientRect();
           const label = String(el.getAttribute('aria-label') || el.innerText || el.value || el.title || '').replace(/\\s+/g, ' ').trim().slice(0, 80);
-          if (r.width === 0 || r.height === 0) { el.click(); return JSON.stringify({ clicked: true, label }); }
+          if (\(click ? "true" : "false") && (r.width === 0 || r.height === 0)) { el.click(); return JSON.stringify({ clicked: true, label }); }
           return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2, label });
         })()
         """
     }
+
+    /// Which part of the page shows, for after scrolling.
+    static let positionScript = """
+        (() => {
+          const s = document.scrollingElement || document.body;
+          const top = Math.round(s.scrollTop), height = Math.round(s.scrollHeight), view = innerHeight;
+          const where = top <= 0 ? 'the top' : top + view >= height - 2 ? 'the bottom' : Math.round(100 * top / Math.max(1, height - view)) + ' %';
+          return 'Scrolled. The page shows ' + top + '–' + Math.min(height, top + view) + ' of ' + height + ' pixels (' + where + ').';
+        })()
+        """
 
     /// Focuses field |number| and selects what is in it, so typing
     /// replaces it; a menu (select) chooses the option named |text| here.

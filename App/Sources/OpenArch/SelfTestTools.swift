@@ -17,6 +17,7 @@ extension SelfTest {
             tab.pane?.executeJavaScript("""
                 document.body.insertAdjacentHTML('afterbegin', '<input id="openarch-q" placeholder="Suchbegriff">'
                   + '<button onclick="document.title = \\'clicked:\\' + document.getElementById(\\'openarch-q\\').value">Los</button>');
+                document.body.insertAdjacentHTML('beforeend', '<div style="height: 4000px"></div><button>Ganz unten</button>');
                 """)
             Task { @MainActor in
                 await self.checkToolServer(tab)
@@ -48,7 +49,7 @@ extension SelfTest {
         let names = ((listed.json?["result"] as? [String: Any])?["tools"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
         expect(hello.status == 200 && (hello.json?["result"] as? [String: Any])?["protocolVersion"] as? String == "2025-06-18"
                && notified.status == 202
-               && names == ["list_tabs", "read_page", "screenshot", "open_tab", "navigate", "click", "type", "go_back"],
+               && names == ["list_tabs", "read_page", "screenshot", "scroll", "open_tab", "navigate", "click", "type", "go_back"],
                "the tools answer MCP over HTTP: initialize, notifications, tools/list (\(names))")
 
         var id = 10
@@ -80,6 +81,14 @@ extension SelfTest {
                && (picture?.pixelsWide ?? 0) > 200 && (picture?.pixelsWide ?? 0) <= 1280
                && (content.last?["text"] as? String)?.contains("example.com") == true,
                "screenshot gives Claude a picture of the page, at most 1280 pixels wide (\(picture?.pixelsWide ?? 0)×\(picture?.pixelsHigh ?? 0))")
+
+        let down = await call("scroll", ["direction": "down"])
+        let top = await call("scroll", ["direction": "top"])
+        let bottom = Self.number(of: "button \"Ganz unten\"", in: page.text)
+        let toElement = await call("scroll", ["element": bottom ?? 0])
+        expect(!down.isError && Self.scrolledTop(down.text) > 0 && top.text.hasSuffix("(the top).")
+               && bottom != nil && Self.scrolledTop(toElement.text) > 3000,
+               "scroll moves through the page by wheel, to the top and to an element (\(down.text); \(toElement.text))")
 
         let typed = await call("type", ["element": field ?? 0, "text": "hallo"])
         let clicked = await call("click", ["element": button ?? 0])
@@ -138,6 +147,12 @@ extension SelfTest {
                 next()
             }
         }
+    }
+
+    /// The first pixel a scroll result says shows ("… shows 600–1550 of …").
+    private static func scrolledTop(_ text: String) -> Int {
+        guard let range = text.range(of: "shows ") else { return -1 }
+        return Int(text[range.upperBound...].prefix { $0.isNumber }) ?? -1
     }
 
     /// The number read_page gave the element described as |description|.
