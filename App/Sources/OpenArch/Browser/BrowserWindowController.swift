@@ -937,8 +937,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// ⌘W closes the tab, or the window once no tab is left to close.
+    /// With Peek open it closes Peek: the card is what is in front, and its
+    /// window belongs to this one, so the key never reaches Peek itself.
     func closeActiveTab() {
-        if let active = state.activeItem {
+        if peek.isOpen {
+            peek.close()
+        } else if let active = state.activeItem {
             close(active)
         } else {
             window?.performClose(nil)

@@ -2141,6 +2141,20 @@ final class SelfTest {
             self.expect(!self.browser.peek.isOpen && active?.role == .today && active?.currentURL.contains("iana.org") == true,
                         "Peek becomes a tab with the same page")
             if let active { self.browser.close(active) }
+
+            // ⌘W, as a real key press: Peek's window belongs to the browser
+            // window, and the key closed the pinned tab under the card.
+            self.browser.select(pinned)
+            self.browser.peek.open("https://www.iana.org/", from: pinned)
+            if let app = NSApp.delegate as? AppDelegate,
+               let key = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: .command,
+                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                          windowNumber: self.browser.window?.windowNumber ?? 0, context: nil,
+                                          characters: "w", charactersIgnoringModifiers: "w", isARepeat: false, keyCode: 13) {
+                _ = ShortcutMonitor.handle(key, target: app)
+            }
+            self.expect(!self.browser.peek.isOpen && pinned.pane != nil && self.browser.state.activeItem === pinned,
+                        "⌘W closes Peek, and the pinned tab under it stays open")
         }
     }
 
