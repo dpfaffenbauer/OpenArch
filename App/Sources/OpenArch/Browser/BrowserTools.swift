@@ -16,7 +16,7 @@ final class BrowserTools {
     static let shared = BrowserTools()
     nonisolated static let server = "openarch_tabs"
     /// Tools that only read, allowed without asking.
-    nonisolated static let readingTools = ["list_tabs", "read_page"].map { "mcp__\(server)__\($0)" }
+    nonisolated static let readingTools = ["list_tabs", "read_page", "screenshot"].map { "mcp__\(server)__\($0)" }
 
     private var listener: NWListener?
     private(set) var port: UInt16?
@@ -184,6 +184,10 @@ final class BrowserTools {
         case "tools/call":
             let name = params["name"] as? String ?? ""
             let arguments = params["arguments"] as? [String: Any] ?? [:]
+            if name == "screenshot" {
+                let (content, isError) = await screenshot(arguments, chatTab: tab)
+                return Self.result(id, ["content": content, "isError": isError])
+            }
             let (text, isError) = await call(name, arguments, chatTab: tab)
             return Self.result(id, ["content": [["type": "text", "text": text]], "isError": isError])
         default:
@@ -207,6 +211,8 @@ final class BrowserTools {
         tool("list_tabs", "Lists the tabs of the user's current space: id, title, address, and which is the page this chat is about.",
              [:], [], reads: true),
         tool("read_page", "Reads a tab: its address, title, text, and its links, buttons and fields, each with a number for click and type. Read again after the page changed; the numbers are only valid until then.",
+             ["tab": tabParameter], [], reads: true),
+        tool("screenshot", "Takes a picture of the visible part of a tab, to see what the text does not say: layout, images, charts, what is highlighted. read_page gives the numbers for click and type.",
              ["tab": tabParameter], [], reads: true),
         tool("open_tab", "Opens an address in a new tab next to the chat's page, in the background, and returns its id.",
              ["url": ["type": "string", "description": "The address to open."]], ["url"]),
@@ -327,6 +333,44 @@ final class BrowserTools {
         default:
             return ("No tool \(name).", true)
         }
+    }
+
+    /// A picture of the visible part of a tab, at most 1280 pixels wide.
+    private func screenshot(_ arguments: [String: Any], chatTab: Item) async -> ([[String: Any]], Bool) {
+        func text(_ message: String) -> ([[String: Any]], Bool) { ([["type": "text", "text": message]], true) }
+        guard let browser = Self.window(of: chatTab) else { return text("The chat's window is closed.") }
+        var tab = chatTab
+        if let id = arguments["tab"] as? String, !id.isEmpty {
+            let space = Self.space(of: chatTab, in: browser.library) ?? browser.state.space
+            guard let other = Self.tabs(of: space).first(where: { Self.shortID($0) == id.lowercased() }) else {
+                return text("No tab with the id \(id) in this space; list_tabs lists them.")
+            }
+            tab = other
+        }
+        guard let pane = await loadedPane(of: tab, in: browser) else { return text("The tab's page did not load.") }
+        let shot = await Self.devTools("Page.captureScreenshot", ["format": "jpeg", "quality": 80], in: pane, timeout: 8)
+        guard let data = shot?["data"] as? String, let image = Self.shrunk(data) else {
+            return text("The tab gave no picture. A tab that is not on screen may not draw; read_page reads it anyway.")
+        }
+        return ([["type": "image", "data": image, "mimeType": "image/jpeg"],
+                 ["type": "text", "text": "\(tab.displayTitle) — \(tab.currentURL)"]], false)
+    }
+
+    /// A JPEG (base64) at most |width| pixels wide, as base64 JPEG again.
+    static func shrunk(_ base64: String, width: CGFloat = 1280) -> String? {
+        guard let data = Data(base64Encoded: base64), let source = NSBitmapImageRep(data: data), source.pixelsWide > 0 else { return nil }
+        let scale = min(1, width / CGFloat(source.pixelsWide))
+        guard scale < 1 else { return base64 }
+        let size = NSSize(width: (CGFloat(source.pixelsWide) * scale).rounded(), height: (CGFloat(source.pixelsHigh) * scale).rounded())
+        guard let target = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width), pixelsHigh: Int(size.height),
+                                            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: target)
+        NSGraphicsContext.current?.imageInterpolation = .high
+        source.draw(in: NSRect(origin: .zero, size: size))
+        NSGraphicsContext.restoreGraphicsState()
+        return target.representation(using: .jpeg, properties: [.compressionFactor: 0.75])?.base64EncodedString()
     }
 
     /// |tab|'s page, loaded in the background first if it has none, and

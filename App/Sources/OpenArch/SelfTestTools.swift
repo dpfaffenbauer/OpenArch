@@ -48,7 +48,7 @@ extension SelfTest {
         let names = ((listed.json?["result"] as? [String: Any])?["tools"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
         expect(hello.status == 200 && (hello.json?["result"] as? [String: Any])?["protocolVersion"] as? String == "2025-06-18"
                && notified.status == 202
-               && names == ["list_tabs", "read_page", "open_tab", "navigate", "click", "type", "go_back"],
+               && names == ["list_tabs", "read_page", "screenshot", "open_tab", "navigate", "click", "type", "go_back"],
                "the tools answer MCP over HTTP: initialize, notifications, tools/list (\(names))")
 
         var id = 10
@@ -70,6 +70,16 @@ extension SelfTest {
         let button = Self.number(of: "button \"Los\"", in: page.text)
         expect(!page.isError && page.text.contains("Example Domain") && field != nil && button != nil,
                "read_page gives the page's text and numbers its fields and buttons (\(page.text.prefix(160)))")
+
+        id += 1
+        let shot = await Self.mcp(url, ["jsonrpc": "2.0", "id": id, "method": "tools/call",
+                                        "params": ["name": "screenshot", "arguments": [String: Any]()]])
+        let content = (shot.json?["result"] as? [String: Any])?["content"] as? [[String: Any]] ?? []
+        let picture = (content.first?["data"] as? String).flatMap { Data(base64Encoded: $0) }.flatMap(NSBitmapImageRep.init(data:))
+        expect(content.first?["type"] as? String == "image" && content.first?["mimeType"] as? String == "image/jpeg"
+               && (picture?.pixelsWide ?? 0) > 200 && (picture?.pixelsWide ?? 0) <= 1280
+               && (content.last?["text"] as? String)?.contains("example.com") == true,
+               "screenshot gives Claude a picture of the page, at most 1280 pixels wide (\(picture?.pixelsWide ?? 0)×\(picture?.pixelsHigh ?? 0))")
 
         let typed = await call("type", ["element": field ?? 0, "text": "hallo"])
         let clicked = await call("click", ["element": button ?? 0])

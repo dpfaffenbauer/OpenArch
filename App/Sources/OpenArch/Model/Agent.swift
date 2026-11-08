@@ -600,6 +600,7 @@ enum AgentTool {
             switch tool.dropFirst(tabsServer.count + 2) {
             case "list_tabs": return "Tabs"
             case "read_page": return "Liest die Seite"
+            case "screenshot": return "Bildschirmfoto"
             case "open_tab": return "Neuer Tab"
             case "navigate": return "Öffnet"
             case "click": return "Klickt"

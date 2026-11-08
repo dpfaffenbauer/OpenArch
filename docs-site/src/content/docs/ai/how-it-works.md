@@ -58,7 +58,7 @@ Claude gets only what the feature puts into the message, and nothing from your b
 
 | Feature | What goes to Claude |
 | --- | --- |
-| Chat with the page | The page's address, title and readable text (up to 60,000 characters), text you selected on it (up to 20,000), tabs you named with @ (up to 30,000 characters each), and what you wrote. The page goes along again only once the tab shows a different one. |
+| Chat with the page | The page's address, title and readable text (up to 60,000 characters), text you selected on it (up to 20,000), tabs you named with @ (up to 30,000 characters each), and what you wrote. The page goes along again only once the tab shows a different one. With its browser tools, Claude can also read other tabs of the space and take pictures of them. |
 | Skills | The same as the page chat, and which skill to run. Claude Code reads the skill itself. |
 | Morning Brief | The brief's prompt and today's date. Claude fetches the rest itself, through your connectors. |
 | Tidy tabs | The titles and addresses of the space's today tabs. No page content. |
