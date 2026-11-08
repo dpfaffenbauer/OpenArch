@@ -856,6 +856,13 @@ final class SelfTest {
                    && besideFavorite.split?.children.contains { $0 !== besideFavorite && $0.currentURL == favorite.currentURL } == true
                    && besidePinned.split?.children.contains { $0 !== besidePinned && $0.currentURL == pinned.currentURL } == true,
                    "„In Split View öffnen“ splits a copy of a favorite or pinned tab and leaves it in place")
+            // Beside a favorite (Peek's „Neben dem Tab öffnen“, ⌃⇧=).
+            browser.select(favorite)
+            let beside = browser.openInNewTab("https://example.com/beside-favorite", after: favorite, select: false)
+            browser.split(beside, with: favorite)
+            expect(favorite.role == .favorites && favorites.items.allSatisfy { $0.kind == .tab }
+                   && beside.role == .today && beside.split?.children.count == 2,
+                   "a tab opened beside a favorite splits with a copy under the line, not in the favorites")
         }
 
         let left = browser.openInNewTab("https://example.org/sidebar-left", select: false)

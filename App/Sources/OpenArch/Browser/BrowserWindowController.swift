@@ -1159,7 +1159,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// arranges the split one above the other (or side by side), nil keeps
     /// how an existing split is arranged.
     func split(_ other: Item, with base: Item? = nil, leading: Bool = false, stacked: Bool? = nil) {
-        guard let base = base ?? state.activeItem, base !== other, base.kind == .tab, other.kind == .tab else { return }
+        guard var base = base ?? state.activeItem, base !== other, base.kind == .tab, other.kind == .tab else { return }
+        if base.role == .favorites {
+            // Favorites hold no split views: the favorite stays, and a copy
+            // of it goes beside |other| under the line, as when dragging one.
+            let copy = Item.tab(url: base.currentURL, title: base.displayTitle)
+            state.space.today.insert(copy, at: 0)
+            base = copy
+        }
         if let split = base.split {
             guard split.children.count < 4 || other.split === split else { return }
             if let container = split.container {
