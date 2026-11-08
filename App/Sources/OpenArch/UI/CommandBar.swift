@@ -490,6 +490,8 @@ final class CommandBarModel {
         case .newSplit(let base):
             let item = browser.openInNewTab(url, after: base, select: false)
             browser.split(item, with: base)
+            // The split had no room left: the page is shown on its own.
+            if item.split == nil { browser.select(item) }
         }
     }
 

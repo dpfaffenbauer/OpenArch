@@ -1316,6 +1316,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             commandBar.show(mode: .newTab)
             return
         }
+        // Four sides are all a split view takes; the menu item is greyed
+        // out then, but its shortcut still comes here.
+        guard (active.split?.children.count ?? 1) < 4 else {
+            if !AppPaths.isSelfTest { NSSound.beep() }
+            return
+        }
         commandBar.show(mode: .newSplit(active))
     }
 

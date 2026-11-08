@@ -870,6 +870,16 @@ final class SelfTest {
                    "a tab opened beside a favorite splits with a copy under the line, not in the favorites")
         }
 
+        // ⌃⇧= with four sides open: no fifth, and no command bar for one.
+        let four = browser.openInNewTab("https://example.org/four-1")
+        for index in 2...4 {
+            browser.split(browser.openInNewTab("https://example.org/four-\(index)", select: false), with: four)
+        }
+        browser.splitWithNewTab()
+        expect(four.split?.children.count == 4 && !browser.commandBar.isVisible,
+               "⌃⇧= with four sides open offers no fifth one")
+        browser.commandBar.hide()
+
         let left = browser.openInNewTab("https://example.org/sidebar-left", select: false)
         let right = browser.openInNewTab("https://example.com/sidebar-right", select: false)
         browser.handleDrop([tabDragProvider(right)], target: .split(left))
