@@ -6,4 +6,5 @@ build/
 xcuserdata/
 .swiftpm/
 /relay/.wrangler/
+/website/.wrangler/
 /relay/node_modules/

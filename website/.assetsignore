@@ -1,0 +1,6 @@
+# Not part of the site: the Worker's own files.
+.assetsignore
+wrangler.toml
+worker.js
+.DS_Store
+.wrangler
