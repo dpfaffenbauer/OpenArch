@@ -80,7 +80,7 @@ final class ClaudeSessions {
     }
 
     private func refreshIfOn() {
-        if library?.settings.agentChats == true, !AppPaths.isSelfTest {
+        if library?.settings.agentChatsOn == true, !AppPaths.isSelfTest {
             refresh()
         }
     }

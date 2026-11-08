@@ -18,6 +18,7 @@ App/build.sh                      # fetches CEF, builds App/build/OpenArch.app
 open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, runs behind other windows
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test   # only the AI features, with a stand-in for claude
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --release-test   # update channels, feature switches, crash reports, backups
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
@@ -224,8 +225,29 @@ run. Data lives in
   it going in picture-in-picture.
 - **Hover sidebar:** with the sidebar collapsed, the window's left edge
   brings it back over the page.
-- **Updates:** OpenArch updates itself from the nightly release (checked
-  at launch and every six hours; only builds signed with OpenArch's Developer ID, from its own GitHub releases).
+- **Updates:** OpenArch updates itself on one of two channels, chosen in
+  Settings › Info: Stable (the newest `v*` release) or Nightly (the newest
+  build of `main`). Checked at launch and every six hours; only builds
+  signed with OpenArch's Developer ID, from its own GitHub releases, and
+  never one older than the build running, so going back from Nightly to
+  Stable waits until Stable catches up. Tag builds start on Stable, all
+  others on Nightly.
+- **Crash reports, only by hand:** OpenArch notes its own crashes, tabs'
+  renderers that end unexpectedly (CEF's `OnRenderProcessTerminated`) and
+  macOS's crash reports of its helpers (renderer, GPU, utility processes),
+  and asks at the next launch whether to send a report. The report shows
+  first and opens as a prefilled GitHub issue; it holds versions, the kind
+  of process, how it ended and the crashing thread's function names, never
+  addresses, titles, paths or page content. No usage tracking.
+- **Feature switches:** Peek, tab previews, agent chats and Boosts can be
+  switched off without an update,
+  for one Mac (`defaults write dev.openarch.browser disabledFeatures -array
+  peek`) or for everyone through `website/feature-switches.json` on
+  openarch.app (by build range and Chromium version; fetched only from that
+  address, and anything that goes wrong leaves every feature on).
+- **Daily backup:** `Library.json` (spaces, tabs, link rules), `Boosts.json`
+  and the settings go once a day into a folder you choose, iCloud Drive
+  included; the newest 14 stay. Export and import in Settings › Info.
 - **Settings** in Arc's style: Allgemein, Profile, Links, Teilen, KI, Import,
   Info.
 - **Über OpenArch:** a flight through OpenArch's arches; click the logo for
@@ -320,6 +342,11 @@ Lessons learned on the way:
 - **No Widevine.** DRM video such as Netflix does not play, and Google sync
   for Chromium forks is not available.
 - **Not built yet:** Easels and Notes.
+- **Crash reports see what macOS reports.** CEF tells the app only of a
+  renderer's end; a GPU or utility process crash shows when macOS writes a
+  crash report for it. The feature switch `drmWebKit` is defined for a
+  WebKit fallback for protected video, which is not in OpenArch yet; it
+  does nothing until then.
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
 

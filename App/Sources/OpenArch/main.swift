@@ -31,6 +31,12 @@ if AppPaths.isSelfTest, arguments.contains("--arc-profile-test") {
 // A full import from Arc replaces the profile before Chromium opens it.
 ArcProfileImport.runIfPending(chromiumData: AppPaths.chromiumData) { History().importChromiumHistory(from: $0) }
 
+// An imported backup (Settings › Info › Sicherung) replaces the library
+// before anything reads it.
+if !AppPaths.isSelfTest {
+    Backups.restorePendingIfAny()
+}
+
 let settings = OACEngineSettings()
 settings.rootCachePath = AppPaths.chromiumData.path
 // Ad-hoc signed builds change signature on every build; the real keychain

@@ -11,7 +11,7 @@ OpenArch runs on Macs with Apple silicon and macOS 15 or later. It is free and o
 2. Open the zip and drag **OpenArch** into your **Applications** folder.
 3. Open it. macOS asks once whether to open an app downloaded from the internet.
 
-The download is the newest build of OpenArch: GitHub builds every change, and the newest one is published as the [nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly).
+The download is the newest Stable version of OpenArch. GitHub also builds every change, and the newest of those is the [nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly): newer, with more that has not been tried for long.
 
 :::tip[Coming from Arc?]
 OpenArch can take over your spaces, favorites, pinned folders and today tabs, and with them your logins, passwords, history and extensions. See [Move over from Arc](/start/import-from-arc/).
@@ -32,14 +32,27 @@ OpenArch updates itself. It looks for a new build when it starts and every six h
 
 **Settings › Info › Updates** shows the version you have, and has **Jetzt prüfen** to look for an update at once. **Automatisch aktualisieren** turns the automatic checks off.
 
+### Stable or Nightly
+
+**Settings › Info › Updates › Update-Kanal** chooses where updates come from:
+
+- **Stable**: the published versions (v0.3.0 and so on), each with its release notes on GitHub. The Stable download starts on this channel.
+- **Nightly**: the newest build of every change. The nightly download starts on this channel.
+
+OpenArch never installs a version older than the one you have. If you go from Nightly back to Stable, you keep your Nightly build, and **Settings › Info** says so, until a Stable version is newer than it; that one then installs as usual. An update that was ready from the other channel is dropped when you switch.
+
 :::note[Only OpenArch's own builds]
 OpenArch only installs an update that comes from its own GitHub releases and is signed with OpenArch's Developer ID. A download that is incomplete or signed by anyone else is thrown away.
 :::
 
 ## Where your data is
 
-Everything OpenArch keeps lives in `~/Library/Application Support/OpenArch`: your sidebar and settings, Chromium's profiles with your logins and history, and the AI features' folders. **Settings › Info › Daten** opens it. More in [Data and privacy](/reference/data-and-privacy/).
+Everything OpenArch keeps lives in `~/Library/Application Support/OpenArch`: your sidebar and settings, Chromium's profiles with your logins and history, and the AI features' folders. **Settings › Info › Daten** opens it. Once a day OpenArch backs up your sidebar, boosts and settings; see [Data and privacy](/reference/data-and-privacy/#daily-backup).
+
+## When OpenArch crashes
+
+At the next launch, OpenArch asks whether to send a report, and shows it. **Bericht senden …** opens it as a new issue on GitHub, which you send from there; **Nicht senden** forgets it. Nothing is sent by itself. See [Data and privacy](/reference/data-and-privacy/#crash-reports).
 
 ## Uninstall
 
-Quit OpenArch and move it from **Applications** to the trash. To remove your data too, delete `~/Library/Application Support/OpenArch`.
+Quit OpenArch and move it from **Applications** to the trash. To remove your data too, delete `~/Library/Application Support/OpenArch`, and the backup folder if you chose one elsewhere.

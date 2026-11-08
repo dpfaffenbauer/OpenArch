@@ -24,7 +24,7 @@ App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest
 
 It starts OpenArch with a profile of its own, behind your other windows, walks through the features and prints one line per check. It ends with `DONE failures=0` when everything passed. Your own data is not touched.
 
-Parts of it run on their own: `--dia-test` (tab previews, meetings, screen sharing, shortcuts and more) and `--ai-test` (the AI features, with a stand-in for `claude`).
+Parts of it run on their own: `--dia-test` (tab previews, meetings, screen sharing, shortcuts and more) `--ai-test` (the AI features, with a stand-in for `claude`) and `--release-test` (update channels, feature switches, crash reports and backups, with a real renderer crash).
 
 ## iPhone and iPad
 

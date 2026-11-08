@@ -25,7 +25,7 @@ final class TabPreview {
     /// sidebar's SwiftUI coordinates.
     func hover(_ item: Item, row: CGRect, inside: Bool) {
         guard inside else { return leave(item) }
-        guard browser.library.settings.tabPreviews, browser.state.sidebarVisible, item.kind == .tab,
+        guard browser.library.settings.tabPreviews, FeatureSwitches.shared.isOn(.tabPreviews), browser.state.sidebarVisible, item.kind == .tab,
               item !== browser.state.activeItem, let anchor = browser.sidebarAnchor(forRow: row) else { return }
         pending?.cancel()
         self.item = item

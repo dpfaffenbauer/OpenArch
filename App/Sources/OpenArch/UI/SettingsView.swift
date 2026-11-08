@@ -757,6 +757,7 @@ private struct ImportPage: View {
 private struct AboutPage: View {
     let app: AppDelegate
     @Bindable var updater = Updater.shared
+    @State private var crashReports = CrashReports.shared.isEnabled
 
     var body: some View {
         HStack(spacing: 16) {
@@ -772,7 +773,16 @@ private struct AboutPage: View {
             Button("Über OpenArch …") { AboutWindowController.shared.show() }
         }
         Section(title: "Updates",
-                footer: "OpenArch lädt neue Nightly-Builds von GitHub, prüft ihre Prüfsumme und tauscht sich beim nächsten Beenden aus.") {
+                footer: "OpenArch lädt neue Versionen von GitHub, prüft Prüfsumme und Signatur und tauscht sich beim nächsten Beenden aus. Eine ältere Version als deine installiert es nie.") {
+            Row(symbol: "point.3.connected.trianglepath.dotted", color: .indigo, title: "Update-Kanal",
+                detail: updater.channel == .stable
+                    ? "Stable: die veröffentlichten Versionen. Kommst du von Nightly, wartet OpenArch, bis Stable aufholt."
+                    : "Nightly: jeder Build von main, mit allem Neuen und manchem Fehler.") {
+                Picker("", selection: $updater.channel) {
+                    ForEach(Updater.Channel.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().pickerStyle(.segmented).fixedSize()
+            }
             Row(symbol: "arrow.down.circle", color: .green, title: "Automatisch aktualisieren",
                 detail: "Sucht beim Start und alle sechs Stunden nach einer neuen Version.") {
                 Toggle("", isOn: $updater.isEnabled).labelsHidden().toggleStyle(.switch)
@@ -790,6 +800,23 @@ private struct AboutPage: View {
             Row(symbol: "folder", color: .blue, title: "Profile, Sidebar und Verlauf",
                 detail: AppPaths.support.path, showsDivider: false) {
                 Button("Im Finder zeigen") { NSWorkspace.shared.activateFileViewerSelecting([AppPaths.support]) }
+            }
+        }
+        BackupSection(app: app)
+        Section(title: "Absturzberichte",
+                footer: "Ein Bericht enthält Versionen, die Art des Prozesses und die Stelle im Code, nie Adressen, Titel oder Seiteninhalte. Er geht nur als GitHub-Issue raus, das du selbst abschickst.") {
+            Row(symbol: "ant", color: .red, title: "Nach einem Absturz fragen",
+                detail: "Merkt sich Abstürze von OpenArch und seinen Prozessen und fragt beim nächsten Start, ob du einen Bericht senden willst.",
+                showsDivider: !FeatureSwitches.shared.disabled.isEmpty) {
+                Toggle("", isOn: $crashReports).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: crashReports) { CrashReports.shared.isEnabled = crashReports }
+            }
+            let disabled = FeatureSwitches.shared.disabled
+            if !disabled.isEmpty {
+                Row(symbol: "switch.2", color: .orange, title: "Vorübergehend abgeschaltet",
+                    detail: disabled.sorted { $0.key.rawValue < $1.key.rawValue }
+                        .map { "\($0.key.title): \($0.value)" }.joined(separator: "\n"),
+                    showsDivider: false) { EmptyView() }
             }
         }
         Section(title: "Projekt") {
@@ -811,7 +838,7 @@ private struct AboutPage: View {
         case .checking: "Suche nach Updates …"
         case .upToDate: "OpenArch ist aktuell"
         case .downloading(let progress): "Lade Update … \(Int(progress * 100)) %"
-        case .ready(let build): "Nightly \(build) ist bereit"
+        case .ready(let build): "\(updater.readyVersion ?? "Nightly \(build)") ist bereit"
         case .failed: "Update nicht möglich"
         }
     }
@@ -820,7 +847,72 @@ private struct AboutPage: View {
         switch updater.phase {
         case .ready: "Wird beim Neustart oder beim nächsten Beenden installiert."
         case .failed(let message): message
+        case .upToDate where updater.aheadOfChannel != nil:
+            "Deine Version ist neuer als die neueste auf \(updater.channel.title) (Build \(updater.aheadOfChannel ?? 0)). Sie bleibt, bis \(updater.channel.title) aufholt."
         default: updater.lastCheck.map { "Zuletzt geprüft: \($0.formatted(date: .omitted, time: .shortened))" }
         }
+    }
+}
+
+/// Settings › Info › Sicherung: the daily backup, export and import.
+private struct BackupSection: View {
+    let app: AppDelegate
+    @State private var isEnabled = Backups.shared.isEnabled
+    @State private var folder = Backups.shared.folder
+    @State private var lastBackup = Backups.shared.lastBackup
+    @State private var error: String?
+
+    var body: some View {
+        Section(title: "Sicherung",
+                footer: "Jeden Tag ein Ordner mit Library.json (Spaces, Tabs, Link-Regeln), Boosts und Einstellungen; die letzten \(Backups.keep) bleiben. Logins, Passwörter und Verlauf sind nicht dabei.") {
+            Row(symbol: "clock.arrow.2.circlepath", color: .teal, title: "Tägliche Sicherung",
+                detail: error ?? lastBackup.map { "Zuletzt: \($0.formatted(date: .abbreviated, time: .shortened))" }
+                    ?? "Noch keine Sicherung.") {
+                HStack {
+                    Button("Jetzt sichern") {
+                        do {
+                            try Backups.shared.backUp(library: app.library)
+                            error = nil
+                        } catch {
+                            self.error = error.localizedDescription
+                        }
+                        lastBackup = Backups.shared.lastBackup
+                    }
+                    Toggle("", isOn: $isEnabled).labelsHidden().toggleStyle(.switch)
+                        .onChange(of: isEnabled) { Backups.shared.isEnabled = isEnabled }
+                }
+            }
+            Row(symbol: "folder.badge.gearshape", color: .blue, title: "Ordner",
+                detail: (folder.path as NSString).abbreviatingWithTildeInPath) {
+                HStack {
+                    Button("Zeigen") {
+                        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                        NSWorkspace.shared.open(folder)
+                    }
+                    Button("Wählen …") { chooseFolder() }
+                }
+            }
+            Row(symbol: "arrow.up.arrow.down.square", color: .gray, title: "Export und Import",
+                detail: "Eine Sicherung in einen Ordner deiner Wahl, oder eine zurückholen (OpenArch startet dafür neu).",
+                showsDivider: false) {
+                HStack {
+                    Button("Exportieren …") { Backups.shared.exportInteractively(library: app.library) }
+                    Button("Importieren …") { Backups.shared.importInteractively(library: app.library) }
+                }
+            }
+        }
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = folder
+        panel.prompt = "Wählen"
+        panel.message = "Wohin sollen die täglichen Sicherungen? Ein Ordner in iCloud Drive geht auch."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Backups.shared.folder = url
+        folder = Backups.shared.folder
     }
 }

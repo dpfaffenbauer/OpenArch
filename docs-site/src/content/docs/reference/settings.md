@@ -186,9 +186,15 @@ See [Move over from Arc](/start/import-from-arc/).
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Version | OpenArch's version and Chromium's. **Über OpenArch …** opens the About window. | |
+| **Update-Kanal** | **Stable** (the published versions) or **Nightly** (the newest build of every change). Never installs a version older than yours: back on Stable, OpenArch waits until Stable catches up. See [Install and update](/start/install/#stable-or-nightly). | The channel of the build you downloaded |
 | **Automatisch aktualisieren** | Looks for a new version at launch and every six hours, downloads it and installs it at the next quit. See [Install and update](/start/install/). | On |
 | Update status | Whether OpenArch is up to date, with **Jetzt prüfen** (check now); once an update is ready, **Neu starten** installs it. | |
 | **Profile, Sidebar und Verlauf** | Where OpenArch keeps its data, `~/Library/Application Support/OpenArch`. **Im Finder zeigen** opens it. See [Data and privacy](/reference/data-and-privacy/). | |
+| **Tägliche Sicherung** | Once a day, the sidebar, link rules, boosts and settings into the backup folder; the newest 14 stay. **Jetzt sichern** makes one now. See [Data and privacy](/reference/data-and-privacy/#daily-backup). | On |
+| **Ordner** | Where the backups go. **Wählen …** picks another folder, iCloud Drive included; **Zeigen** opens it. | `Backups/` in OpenArch's folder |
+| **Export und Import** | **Exportieren …** writes a backup into a folder you choose; **Importieren …** brings one back and restarts OpenArch. | |
+| **Nach einem Absturz fragen** | Notes crashes of OpenArch and its processes and asks at the next launch whether to send a report, as a GitHub issue you send yourself. See [Data and privacy](/reference/data-and-privacy/#crash-reports). | On |
+| **Vorübergehend abgeschaltet** | Shows only when a feature is switched off from openarch.app or on this Mac, with the reason. See [Data and privacy](/reference/data-and-privacy/#feature-switches). | |
 | **Quellcode auf GitHub** | **Öffnen** opens OpenArch's repository in a tab. | |
 
 ## Settings outside this window

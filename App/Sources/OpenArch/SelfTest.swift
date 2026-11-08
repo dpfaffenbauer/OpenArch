@@ -70,6 +70,19 @@ final class SelfTest {
             }
             return
         }
+        // --release-test: update channels, feature switches, crash reports
+        // and backups (SelfTestRelease.swift), with a real renderer crash.
+        if CommandLine.arguments.contains("--release-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.releaseQuality(crashRenderer: true) {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--marketing") {
             marketingScreens()
             return
@@ -168,6 +181,8 @@ final class SelfTest {
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
             (73, "sharing", { self.sharingTest() }),
+            // After the updater step: both use the update download folder.
+            (82, "release quality", { self.releaseQuality(crashRenderer: false) {} }),
             (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.aboutPage { self.externalAppLinks() } } } } } } }),
         ]
         for (time, name, step) in steps {
