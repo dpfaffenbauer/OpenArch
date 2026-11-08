@@ -9,6 +9,7 @@ links, without an account.
 Status: early, but usable as a daily browser for testing.
 [Download the latest release](https://github.com/dpfaffenbauer/OpenArch/releases/latest)
 (Apple silicon, macOS 15 or later) or see [openarch.app](https://openarch.app).
+How everything works: [docs.openarch.app](https://docs.openarch.app).
 
 ## Build and run
 
@@ -263,6 +264,8 @@ Lessons learned on the way:
 - `Shared/`: the Swift package both use for sharing (format, crypto, relay client, tests)
 - `relay/`: the relay for live shares, a Cloudflare Worker ([README](relay/README.md))
 - `docs/sharing.md`: the sharing format, its threat model and the relay API
+- `docs-site/`: the documentation at docs.openarch.app, published by
+  `.github/workflows/docs.yml` ([how the pages are written](docs-site/WRITING.md))
 - `website/`: the website, published by `.github/workflows/pages.yml`;
   `website/s/` shows shared links to people without OpenArch
 - `scripts/fetch-cef.sh`: downloads the pinned CEF binary distribution into `Vendor/cef`
