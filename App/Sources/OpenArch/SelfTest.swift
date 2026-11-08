@@ -755,6 +755,21 @@ final class SelfTest {
         if let nested = space.pinned.allItems.first(where: { $0.displayTitle == "Projekt A" }) {
             expect(nested.parentFolder?.displayTitle == "Kunden", "nested folders survive")
         }
+        // Dragging within the pinned tabs keeps the address a pinned tab
+        // returns to; a today tab dragged in is pinned at its current page.
+        if let pinned = space.pinned.items.first(where: { $0.kind == .tab }) {
+            let saved = pinned.savedURL, live = pinned.liveURL
+            pinned.liveURL = "https://example.com/navigated-away"
+            browser.move(pinned, to: .end(space.pinned))
+            let kept = pinned.savedURL == saved
+            pinned.liveURL = live
+            let dragged = browser.openInNewTab("https://example.com/drag-to-pin", select: false)
+            dragged.liveURL = "https://example.com/drag-to-pin/now"
+            browser.move(dragged, to: .end(space.pinned))
+            expect(kept && dragged.role == .pinned && dragged.savedURL == "https://example.com/drag-to-pin/now",
+                   "a pinned tab dragged among the pinned keeps its pinned address, a today tab is pinned where it is")
+            dragged.detach()
+        }
     }
 
     private func arcImport() {

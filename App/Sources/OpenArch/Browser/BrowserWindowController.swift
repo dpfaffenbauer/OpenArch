@@ -1339,6 +1339,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Moves |item| relative to |target| (drag and drop in the sidebar).
     func move(_ item: Item, to target: DropTarget) {
+        // A pinned tab or favorite keeps the address it returns to; one
+        // dragged in from under the line is pinned at its current page.
+        let wasBookmark = item.role == .pinned || item.role == .favorites
         switch target {
         case .before(let other):
             guard other !== item, !other.isDescendant(of: item), let container = other.container else { return }
@@ -1358,7 +1361,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             dropForSplit(item, onto: other)
             return
         }
-        if item.role == .pinned || item.role == .favorites, item.kind == .tab {
+        if !wasBookmark, item.role == .pinned || item.role == .favorites, item.kind == .tab {
             item.savedURL = item.currentURL
         }
         library.setNeedsSave()
