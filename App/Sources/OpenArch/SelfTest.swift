@@ -844,6 +844,20 @@ final class SelfTest {
         expect(DropZone.at(y: 18, folder: false, tab: true) == .split && DropZone.at(y: 4, folder: false, tab: true) == .before
                && DropZone.at(y: 32, folder: false, tab: true) == .after && DropZone.at(y: 16, folder: true, tab: false) == .into,
                "the middle of a tab row splits, its edges reorder")
+        // The menus split like a drag: a favorite or a pinned tab stays where
+        // it is, and a copy of it joins the split under the line.
+        let favorites = library.profile(id: space.profileID).favorites
+        if let favorite = favorites.items.first, let pinned = space.pinned.allTabs.first {
+            let besideFavorite = browser.openInNewTab("https://example.org/menu-split")
+            browser.dropForSplit(favorite)
+            let besidePinned = browser.openInNewTab("https://example.org/menu-split-pinned")
+            browser.dropForSplit(pinned)
+            expect(favorite.role == .favorites && pinned.role == .pinned
+                   && besideFavorite.split?.children.contains { $0 !== besideFavorite && $0.currentURL == favorite.currentURL } == true
+                   && besidePinned.split?.children.contains { $0 !== besidePinned && $0.currentURL == pinned.currentURL } == true,
+                   "„In Split View öffnen“ splits a copy of a favorite or pinned tab and leaves it in place")
+        }
+
         let left = browser.openInNewTab("https://example.org/sidebar-left", select: false)
         let right = browser.openInNewTab("https://example.com/sidebar-right", select: false)
         browser.handleDrop([tabDragProvider(right)], target: .split(left))
