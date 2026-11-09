@@ -268,6 +268,20 @@ private struct GeneralPage: View {
                     .onChange(of: library.settings.httpsOnly) { library.settings.applyToChromium() }
             }
         }
+        Section(title: "Geschützte Inhalte",
+                footer: "Spotify, Netflix, Disney+, Prime Video und andere Streamingdienste spielen ihre Videos und Musik nur mit Apples FairPlay. Ihre Seiten öffnen deshalb mit Safaris Engine (WebKit), im selben Tab; Chrome-Erweiterungen laufen dort nicht. Pro Website änderst du das im Site Control Center.") {
+            Row(symbol: "safari", color: .blue, title: "DRM-Seiten mit Safaris Engine abspielen",
+                detail: "Gilt für Seiten, die du ab jetzt öffnest.") {
+                Toggle("", isOn: $library.settings.protectedMediaWebKit).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: library.settings.protectedMediaWebKit) { library.settings.applyToChromium() }
+            }
+            Row(symbol: "lock.rectangle", color: .gray, title: "Geschützte Inhalte (Widevine)",
+                detail: "Chromiums Widevine für Seiten, die es ohne Zertifizierung annehmen; Netflix und Spotify gehören nicht dazu. Gilt nach einem Neustart von OpenArch.",
+                showsDivider: false) {
+                Toggle("", isOn: $library.settings.widevine).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: library.settings.widevine) { library.setNeedsSave() }
+            }
+        }
         Section(title: "Sidebar") {
             Row(symbol: library.settings.sidebarOnRight ? "sidebar.right" : "sidebar.left", color: .purple, title: "Sidebar-Position",
                 detail: "Links wie in Arc, oder rechts. Gilt für alle Fenster; die Ampel bleibt oben links.") {

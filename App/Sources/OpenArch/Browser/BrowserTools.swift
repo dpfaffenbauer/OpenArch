@@ -401,7 +401,7 @@ final class BrowserTools {
 
     /// |tab|'s page, loaded in the background first if it has none, and
     /// waited for while it loads (up to 15 seconds).
-    private func loadedPane(of tab: Item, in browser: BrowserWindowController) async -> OACPane? {
+    private func loadedPane(of tab: Item, in browser: BrowserWindowController) async -> (any OACPage)? {
         if tab.pane == nil { browser.loadInBackground(tab) }
         for _ in 0..<60 {
             if let pane = tab.pane, pane.isLoaded, !tab.isLoading { return pane }
@@ -438,12 +438,12 @@ final class BrowserTools {
 
     // MARK: Pages
 
-    private static func evaluate(_ expression: String, in pane: OACPane) async -> String? {
+    private static func evaluate(_ expression: String, in pane: any OACPage) async -> String? {
         let result = await devTools("Runtime.evaluate", ["expression": expression, "returnByValue": true], in: pane)
         return (result?["result"] as? [String: Any])?["value"] as? String
     }
 
-    private static func devTools(_ method: String, _ params: [String: Any], in pane: OACPane,
+    private static func devTools(_ method: String, _ params: [String: Any], in pane: any OACPage,
                                  timeout: Double = 5) async -> [String: Any]? {
         let answer = await withCheckedContinuation { (continuation: CheckedContinuation<Answer, Never>) in
             let once = Once(continuation)

@@ -26,22 +26,26 @@ final class ToastWindow: NSWindow {
     }
 
     /// Shows |text| centered near the top of |area| (screen coordinates),
-    /// with |action|'s button if there is one.
+    /// with |action|'s button if there is one. A |closable| toast has a ✕
+    /// and stays a good while longer.
     func show(_ text: String, symbol: String = "checkmark.circle.fill", over area: NSRect, parent: NSWindow,
-              action: ToastAction? = nil, theme: SpaceTheme? = nil) {
+              action: ToastAction? = nil, closable: Bool = false, theme: SpaceTheme? = nil) {
         generation += 1
         let shown = generation
+        let dismiss: @MainActor () -> Void = { [weak self] in
+            guard let self, self.generation == shown else { return }
+            self.parent?.removeChildWindow(self)
+            self.orderOut(nil)
+        }
         let button = action.map { action in
-            ToastAction(title: action.title) { [weak self] in
+            ToastAction(title: action.title) {
                 action.handler()
-                guard let self, self.generation == shown else { return }
-                self.parent?.removeChildWindow(self)
-                self.orderOut(nil)
+                dismiss()
             }
         }
-        host.rootView = ToastView(text: text, symbol: symbol, action: button,
+        host.rootView = ToastView(text: text, symbol: symbol, action: button, close: closable ? dismiss : nil,
                                   fill: theme?.toastBackground ?? Color.black.opacity(0.78))
-        ignoresMouseEvents = action == nil
+        ignoresMouseEvents = action == nil && !closable
         let size = host.idealSize
         setFrame(NSRect(x: area.midX - size.width / 2, y: area.maxY - size.height - 18, width: size.width, height: size.height),
                  display: true)
@@ -52,7 +56,7 @@ final class ToastWindow: NSWindow {
         // right above |parent| the page would cover it.
         let top = parent.childWindows?.filter { $0 !== self && $0.isVisible }.min { $0.orderedIndex < $1.orderedIndex }
         order(.above, relativeTo: (top ?? parent).windowNumber)
-        after(action == nil ? 1.3 : 8) { [weak self] in
+        after(closable ? 15 : action == nil ? 1.3 : 8) { [weak self] in
             guard let self, self.generation == shown else { return }
             NSAnimationContext.runAnimationGroup({ $0.duration = 0.25; self.animator().alphaValue = 0 }) {
                 MainActor.assumeIsolated {
@@ -74,6 +78,7 @@ private struct ToastView: View {
     let text: String
     let symbol: String
     var action: ToastAction?
+    var close: (@MainActor () -> Void)?
     /// A deep pill in the space's theme.
     var fill = Color.black.opacity(0.78)
 
@@ -87,11 +92,20 @@ private struct ToastView: View {
                     .frame(height: 24)
                     .background(Capsule().fill(Color.white.opacity(0.2)))
             }
+            if let close {
+                Button { close() } label: {
+                    Image(systemName: "xmark").font(.system(size: 10, weight: .bold))
+                        .frame(width: 24, height: 24)
+                        .background(Circle().fill(Color.white.opacity(0.2)))
+                }
+                .buttonStyle(.plain)
+                .help("Schließen")
+            }
         }
         .font(.system(size: 13, weight: .semibold))
         .foregroundStyle(.white)
         .padding(.leading, 14)
-        .padding(.trailing, action == nil ? 14 : 5)
+        .padding(.trailing, action == nil && close == nil ? 14 : 5)
         .frame(height: 34)
         .background(Capsule().fill(fill))
         .padding(8)

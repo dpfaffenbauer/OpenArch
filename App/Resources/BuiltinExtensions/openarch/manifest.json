@@ -40,6 +40,18 @@
         "<all_urls>"
       ],
       "js": [
+        "protected-content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
         "capture.js",
         "call.js"
       ],

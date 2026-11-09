@@ -270,6 +270,21 @@ run. Data lives in
   shows there too, from what Spotify tells every app; its buttons control
   Spotify after macOS asks once. Leaving a tab with a video playing keeps
   it going in picture-in-picture.
+- **Streaming services:** Spotify, Netflix, Disney+, Max, Prime Video,
+  Hulu, Paramount+, Peacock, Apple TV and Apple Music, Tidal, Deezer,
+  Crunchyroll, Joyn and Rakuten TV open with Safari's engine (a `WKWebView`
+  page in the same tab), which plays their DRM with Apple's FairPlay. A
+  link from a Chromium page to one of them moves the tab there before it
+  leaves (a form's POST stays); a page with Safari's engine keeps it for its
+  own navigations, so signing in through Google or Apple comes back to it.
+  Each profile has its own WebKit store, a private window one in memory.
+  Sidebar, split view, Peek, Little OpenArch, previews, the media player,
+  picture-in-picture, sleeping tabs, find, zoom, printing and downloads work
+  on these pages; Chrome extensions and Chrome's DevTools do not (⌥⌘I opens
+  Web Inspector). A message says so once per service; Settings › Allgemein ›
+  Geschützte Inhalte turns it off, and the Site Control Center switches a
+  site either way (`protected-media.json`). `--selftest --drm-test` checks it
+  with example.org standing in for a service.
 - **Hover sidebar:** with the sidebar collapsed, the window's edge on the
   sidebar's side brings it back over the page.
 - **Updates:** OpenArch updates itself on one of two channels, chosen in
@@ -286,7 +301,8 @@ run. Data lives in
   first and opens as a prefilled GitHub issue; it holds versions, the kind
   of process, how it ended and the crashing thread's function names, never
   addresses, titles, paths or page content. No usage tracking.
-- **Feature switches:** Peek, tab previews, agent chats and Boosts can be
+- **Feature switches:** Peek, tab previews, agent chats, Boosts and
+  streaming services with Safari's engine (`drmWebKit`) can be
   switched off without an update,
   for one Mac (`defaults write dev.openarch.browser disabledFeatures -array
   peek`) or for everyone through `website/feature-switches.json` on
@@ -417,14 +433,19 @@ Lessons learned on the way:
 - **Logins from other browsers are new.** Moving cookies and passwords from
   Chromium browsers has been tested on made-up profiles only. Firefox's and
   Safari's passwords come only from an exported CSV file.
-- **No Widevine.** DRM video such as Netflix does not play, and Google sync
-  for Chromium forks is not available.
+- **Widevine in Chromium is off.** Google's component updater installs the
+  module, but pages get it only with Settings › Allgemein › Geschützte
+  Inhalte (Widevine) on (after a restart), until the licence question with
+  Google is settled. Even then the big services refuse it without Verified
+  Media Path; they play with Safari's engine instead, where Chrome
+  extensions do not run and you sign in once more. Google sync for
+  Chromium forks is not available.
+- **Deleting a profile** does not exist yet; `WebKitStores.removeStore` is
+  there for it to remove the profile's WebKit data too.
 - **Not built yet:** Easels and Notes.
 - **Crash reports see what macOS reports.** CEF tells the app only of a
   renderer's end; a GPU or utility process crash shows when macOS writes a
-  crash report for it. The feature switch `drmWebKit` is defined for a
-  WebKit fallback for protected video, which is not in OpenArch yet; it
-  does nothing until then.
+  crash report for it.
 - **Themes:** Arc's other textures (sand, denim, tweed) come over as grain
   of the same strength. ⌘S shows and hides the sidebar without a slide, on
   either side.

@@ -843,16 +843,66 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard tab.pane == nil else { return }
         let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
         let url = tab.currentURL.isEmpty ? "about:blank" : tab.currentURL
-        let pane = OACPane(profile: profile, url: url)
-        pane.delegate = self
-        pane.cornerRadius = 8
-        pane.activatesOnShow = !AppPaths.isSelfTest
-        pane.toolbarVisible = library.settings.showChromeToolbar
-        pane.offersAskAboutSelection = !isPrivate
+        let pane = ProtectedMedia.makePage(url: url, profile: profile)
+        configure(pane)
         tab.pane = pane
         tab.isAsleep = false
         tab.loadedAt = Date()
         itemsByPane[ObjectIdentifier(pane)] = tab
+        if pane.engine == .webKit {
+            // Once the page has been laid out.
+            DispatchQueue.main.async { MainActor.assumeIsolated { self.tellAboutWebKit(pane) } }
+        }
+    }
+
+    private func configure(_ page: any OACPage) {
+        page.delegate = self
+        page.cornerRadius = 8
+        page.activatesOnShow = !AppPaths.isSelfTest
+        page.toolbarVisible = library.settings.showChromeToolbar
+        page.offersAskAboutSelection = !isPrivate
+    }
+
+    /// Shows |tab| in the other engine at |url|, in its place: the same
+    /// tab, the same side of a split, the focus where it was. A streaming
+    /// service's page moves to WebKit, or back to Chromium.
+    func replacePage(of tab: Item, with url: String, engine: OACPageEngine) {
+        guard let old = tab.pane, old.delegate === self else { return }
+        let wasShown = visibleTabs.contains { $0 === tab }
+        let hadFocus = state.activeItem === tab
+        itemsByPane[ObjectIdentifier(old)] = nil
+        old.delegate = nil
+        old.hide()
+        old.close()
+        tab.pane = nil
+        tab.media = nil
+        tab.liveURL = url
+        let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
+        let page = ProtectedMedia.makePage(url: url, profile: profile, engine: engine)
+        configure(page)
+        tab.pane = page
+        tab.loadedAt = Date()
+        itemsByPane[ObjectIdentifier(page)] = tab
+        if wasShown {
+            layoutContent()
+            if hadFocus { page.focus() }
+        } else {
+            page.load()
+        }
+        tellAboutWebKit(page)
+    }
+
+    /// Once per service: "Spotify spielt mit Safaris Engine", with "Warum?"
+    /// (Site Controls, which say why) and ✕.
+    func tellAboutWebKit(_ page: any OACPage) {
+        guard let page = page as? WebKitPage, !page.serviceName.isEmpty, !ProtectedMedia.wasTold(page.serviceName),
+              let item = item(for: page), visibleTabs.contains(where: { $0 === item }) else { return }
+        ProtectedMedia.told(page.serviceName)
+        showToast("\(page.serviceName) spielt mit Safaris Engine", symbol: "safari", action: ToastAction(title: "Warum?") { [weak self] in
+            guard let self, let item = self.item(for: page) else { return }
+            if self.state.activeItem !== item { self.select(item) }
+            self.state.siteControlsVisible = true
+        }, closable: true)
     }
 
     /// Closes |tab|'s pane but keeps the item (pinned tabs, favorites).
@@ -1007,7 +1057,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func navigate(_ item: Item, to url: String) {
         let url = InternalURL.resolve(url)
         if let pane = item.pane {
-            pane.loadURL(url)
+            // OpenArch's own navigations pick the engine again.
+            let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
+            if engine != pane.engine {
+                replacePage(of: item, with: url, engine: engine)
+            } else {
+                pane.loadURL(url)
+            }
         } else {
             item.liveURL = url
             select(item)
@@ -1138,7 +1194,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             guard let pane = tab.pane, pane.delegate === self, !pane.isVisible, !tab.isAudible,
                   tab.media?.playing != true, tab.media?.pip != true, !keepsAwake(tab),
                   !visibleTabs.contains(where: { $0 === tab }) else { continue }
-            Self.asksBeforeLeaving(pane) { [weak self, weak tab] asks in
+            pane.checkAsksBeforeLeaving { [weak self, weak tab] asks in
                 guard let self, let tab, !asks, tab.pane === pane, !pane.isVisible,
                       !self.visibleTabs.contains(where: { $0 === tab }) else { return }
                 self.sleep(tab)
@@ -1152,26 +1208,6 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.liveURL = url
         tab.liveTitle = title
         tab.isAsleep = true
-    }
-
-    /// Whether the page has a beforeunload handler, which closing it (as
-    /// sleeping does) would skip.
-    private static func asksBeforeLeaving(_ pane: OACPane, completion: @escaping (Bool) -> Void) {
-        let group = "openarch-sleep"
-        pane.callDevToolsMethod("Runtime.evaluate", params: ["expression": "window", "objectGroup": group]) { result in
-            guard let object = result?["result"] as? [String: Any], let id = object["objectId"] as? String else {
-                completion(true)
-                return
-            }
-            pane.callDevToolsMethod("DOMDebugger.getEventListeners", params: ["objectId": id]) { result in
-                pane.callDevToolsMethod("Runtime.releaseObjectGroup", params: ["objectGroup": group], completion: nil)
-                guard let listeners = result?["listeners"] as? [[String: Any]] else {
-                    completion(true)
-                    return
-                }
-                completion(listeners.contains { $0["type"] as? String == "beforeunload" })
-            }
-        }
     }
 
     // MARK: Pinning, favorites, folders, splits
@@ -1522,7 +1558,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     // MARK: Actions on the active tab
 
-    var activePane: OACPane? {
+    var activePane: (any OACPage)? {
         state.activeItem?.pane
     }
 
@@ -1560,11 +1596,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private(set) var toast: ToastWindow?
 
-    func showToast(_ text: String, symbol: String = "checkmark.circle.fill", action: ToastAction? = nil) {
+    func showToast(_ text: String, symbol: String = "checkmark.circle.fill", action: ToastAction? = nil,
+                   closable: Bool = false) {
         guard let window else { return }
         let toast = self.toast ?? ToastWindow()
         self.toast = toast
-        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action, theme: theme)
+        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action,
+                   closable: closable, theme: theme)
     }
 
     /// ⌃⇧1…4: focus a side of the split view; ⌃⇧[ and ⌃⇧] the neighbours.
@@ -1625,22 +1663,22 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     // MARK: OACPaneDelegate
 
-    private func item(for pane: OACPane) -> Item? {
+    private func item(for pane: any OACPage) -> Item? {
         itemsByPane[ObjectIdentifier(pane)]
     }
 
-    func registerPane(_ pane: OACPane, for item: Item) {
+    func registerPane(_ pane: any OACPage, for item: Item) {
         itemsByPane[ObjectIdentifier(pane)] = item
     }
 
-    func pane(_ pane: OACPane, titleDidChange title: String) {
+    func pane(_ pane: any OACPage, titleDidChange title: String) {
         guard let item = item(for: pane) else { return }
         item.liveTitle = title
         if !isPrivate { history.updateTitle(url: item.currentURL, title: title) }
         library.setNeedsSave()
     }
 
-    func pane(_ pane: OACPane, addressDidChange url: String) {
+    func pane(_ pane: any OACPage, addressDidChange url: String) {
         guard let item = item(for: pane) else { return }
         if item.liveURL.map({ URL(string: $0)?.host() != URL(string: url)?.host() }) ?? false {
             item.media = nil  // Another site; its player reports anew.
@@ -1650,13 +1688,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         library.setNeedsSave()
     }
 
-    func pane(_ pane: OACPane, faviconDidChange favicon: NSImage) {
+    func pane(_ pane: any OACPage, faviconDidChange favicon: NSImage) {
         guard let item = item(for: pane) else { return }
         item.favicon = favicon
         if !isPrivate { FaviconStore.shared.store(favicon, forURL: item.currentURL) }
     }
 
-    func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
+    func pane(_ pane: any OACPage, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
         guard let item = item(for: pane) else { return }
         // A new load starts from nothing, not from the last one's 100 %.
         if isLoading, !item.isLoading { item.loadingProgress = 0 }
@@ -1665,11 +1703,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         item.canGoForward = canGoForward
     }
 
-    func pane(_ pane: OACPane, loadingProgressDidChange progress: Double) {
+    func pane(_ pane: any OACPage, loadingProgressDidChange progress: Double) {
         item(for: pane)?.loadingProgress = progress
     }
 
-    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+    func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         if !background, let source = item(for: pane), shouldPeek(url, from: source) {
             peek.open(url, from: source)
             return
@@ -1677,13 +1715,26 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         openInNewTab(url, after: item(for: pane), select: !background)
     }
 
-    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+    func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
         ExternalApps.open(url, from: pane.url, in: window, library: library) { [weak self] text in
             self?.showToast(text, symbol: "exclamationmark.circle.fill")
         }
     }
 
-    func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {
+    /// A Chromium page going to a streaming service: the tab moves to
+    /// WebKit at that address, in its place (a POST stays).
+    func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
+        guard let item = item(for: pane), ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { [weak self] in
+                guard let self, item.pane === pane else { return }
+                self.replacePage(of: item, with: url, engine: .webKit)
+            }
+        }
+        return true
+    }
+
+    func pane(_ pane: any OACPage, shouldInterceptNavigationToURL url: String) -> Bool {
         guard let source = item(for: pane), shouldPeek(url, from: source) else { return false }
         peek.open(url, from: source)
         return true
@@ -1702,7 +1753,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             && url.hasPrefix("http") && !PeekController.sameSite(url, source.savedURL)
     }
 
-    func paneDidBecomeActive(_ pane: OACPane) {
+    func paneDidBecomeActive(_ pane: any OACPage) {
         guard let item = item(for: pane), item !== state.activeItem else { return }
         guard visibleTabs.contains(where: { $0 === item }) else {
             // Brought to the front from outside (an AI agent via DevTools,
@@ -1718,7 +1769,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutLoadingLine(frames: frames)
     }
 
-    func paneDidClose(_ pane: OACPane) {
+    func paneDidClose(_ pane: any OACPage) {
         // The page closed itself (window.close()) or its browser went away;
         // while OpenArch quits, every browser goes, and the tabs stay.
         guard !library.isFrozen, let item = item(for: pane) else { return }
@@ -1727,7 +1778,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         close(item)
     }
 
-    func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
+    func pane(_ pane: any OACPage, handleChromeCommand commandID: Int) -> Bool {
         guard commandID != Self.runningCommand, let command = OACChromeCommand(rawValue: commandID) else { return false }
         switch command {
         case .newTab:
@@ -1795,7 +1846,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return true
     }
 
-    func pane(_ pane: OACPane, mainFrameLoadStarted started: Bool, url: String) {
+    func pane(_ pane: any OACPage, mainFrameLoadStarted started: Bool, url: String) {
         // A new document shares nothing (yet); it names itself anew.
         if started, let item = item(for: pane) {
             item.screenShare = nil
@@ -1830,7 +1881,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         BoostPanelController.show(for: active, browser: self)
     }
 
-    func pane(_ pane: OACPane, consoleMessage message: String, source: String, line: Int) {
+    func pane(_ pane: any OACPage, consoleMessage message: String, source: String, line: Int) {
         let zapPrefix = "__openarch_zap__"
         if message.hasPrefix(zapPrefix), let editor = BoostPanelController.current?.model, editor.item === item(for: pane) {
             if message.hasPrefix(zapPrefix + " ") {

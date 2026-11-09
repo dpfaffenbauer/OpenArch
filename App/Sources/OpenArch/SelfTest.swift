@@ -55,6 +55,21 @@ final class SelfTest {
                 if CommandLine.arguments.contains("--cancel-downloads") {
                     self.cancelFirstDownload()
                 }
+                // --snapshot <file>: a picture of the page after 15 s, and
+                // which engine shows it (the window itself sits behind others).
+                if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), index + 1 < CommandLine.arguments.count {
+                    let file = URL(fileURLWithPath: CommandLine.arguments[index + 1])
+                    after(15) {
+                        Swift.print("[selftest] info engine \(item.pane?.engine == .webKit ? "WebKit" : "Chromium"), "
+                                    + "title \(item.displayTitle), favicon \(item.favicon != nil), url \(item.currentURL)")
+                        item.pane?.callDevToolsMethod("Page.captureScreenshot", params: ["format": "png"]) { result in
+                            if let data = (result?["data"] as? String).flatMap({ Data(base64Encoded: $0) }) {
+                                try? data.write(to: file)
+                            }
+                            Swift.print("[selftest] info snapshot \(result?["data"] != nil)")
+                        }
+                    }
+                }
             }
             return
         }
@@ -125,6 +140,18 @@ final class SelfTest {
             after(0.5) { self.selectToday() }
             after(3) {
                 self.browserImport {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
+        // --drm-test: only streaming services in WebKit (SelfTestDRM.swift).
+        if CommandLine.arguments.contains("--drm-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.drmFeatures {
                     Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
                     if !CommandLine.arguments.contains("--stay") { Self.quit() }
                 }
@@ -2101,7 +2128,7 @@ final class SelfTest {
         browser.openInNewTab("https://example.com/kept-after-quit")
         let tab = browser.openInNewTab("https://example.com/never-closes")
         after(3) {
-            tab.pane?.refusesToCloseForTesting = true
+            (tab.pane as? OACPane)?.refusesToCloseForTesting = true
             Swift.print("[selftest] STEP quit with a browser that does not close")
             NSApp.terminate(nil)
         }

@@ -140,6 +140,8 @@ for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
   case "$helper" in
     *"(Plugin)"*) sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$helper" ;;
     *"(Alerts)"*) sign "$helper" ;;
+    # The plain helper hosts the Widevine module (see the entitlements).
+    *"/$NAME Helper.app") sign --entitlements "$SIGNING/HelperUtility.entitlements" "$helper" ;;
     *) sign --entitlements "$SIGNING/Helper.entitlements" "$helper" ;;
   esac
 done

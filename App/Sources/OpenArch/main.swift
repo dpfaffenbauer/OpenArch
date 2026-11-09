@@ -65,6 +65,7 @@ settings.useMockKeychain = !SafeStorage.usesLoginKeychain
 settings.keychainServiceName = SafeStorage.service
 settings.keychainAccountName = SafeStorage.account
 settings.extensionPaths = AppPaths.bundledExtensions("BuiltinExtensions")
+ProtectedContent.prepare(extensions: settings.extensionPaths)
 if AppPaths.isSelfTest {
     // The probe extension checks extension APIs. The self-test window sits
     // behind other windows, so Chromium must not treat it as hidden, and its

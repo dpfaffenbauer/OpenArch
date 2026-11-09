@@ -115,7 +115,7 @@ extension BrowserWindowController {
 
     /// Takes over a pane that lives elsewhere (Little OpenArch) as a new
     /// today tab, without reloading the page.
-    func adopt(_ pane: OACPane, into space: Space, url: String, title: String, favicon: NSImage?) {
+    func adopt(_ pane: any OACPage, into space: Space, url: String, title: String, favicon: NSImage?) {
         let item = Item.tab(url: url, title: title)
         item.pane = pane
         item.liveURL = url
