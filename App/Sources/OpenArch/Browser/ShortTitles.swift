@@ -651,8 +651,15 @@ struct FoundationTitleModel: ShortTitleModel {
     func shortTitle(for request: ShortTitleRequest) async throws -> String {
         let session = LanguageModelSession(model: SystemLanguageModel.default, instructions: TitlePrompt.instructions)
         do {
+            // The SDK of Xcode 26.6 (CI) names the argument sampling:, newer
+            // ones samplingMode:.
+            #if compiler(>=6.4)
+            let options = GenerationOptions(samplingMode: .greedy, maximumResponseTokens: 32)
+            #else
+            let options = GenerationOptions(sampling: .greedy, maximumResponseTokens: 32)
+            #endif
             let response = try await session.respond(to: TitlePrompt.prompt(for: request), generating: ShortTitleAnswer.self,
-                                                     options: GenerationOptions(samplingMode: .greedy, maximumResponseTokens: 32))
+                                                     options: options)
             return response.content.name
         } catch let error as LanguageModelSession.GenerationError {
             switch error {
