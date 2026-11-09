@@ -1945,29 +1945,57 @@ final class SelfTest {
         NSApp.activate()
         browser.window?.orderFrontRegardless()
         populate()
+        library.settings.autoPictureInPicture = true
+        library.settings.pictureInPictureExceptions = []
         let tab = browser.openInNewTab("https://example.com/fullscreen")
         func paneInPlace() -> Bool {
             guard let (_, expected) = browser.expectedPaneFrames.first, let window = tab.pane?.window else { return false }
             return window.parent === browser.window && abs(window.frame.minX - expected.minX) < 2 && abs(window.frame.width - expected.width) < 2
         }
-        after(3) { tab.pane?.executeJavaScript("document.documentElement.requestFullscreen()", userGesture: true) }
+        // A player as on Twitter: a video playing in a box that goes full
+        // screen. Off screen a playing video floats, and floating would end
+        // full screen.
+        after(2) {
+            tab.pane?.executeJavaScript("""
+                const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 90;
+                const context = canvas.getContext('2d');
+                setInterval(() => { context.fillStyle = '#' + Math.floor(Math.random() * 4096).toString(16); context.fillRect(0, 0, 160, 90); }, 50);
+                const player = document.createElement('div'); player.id = 'player';
+                const video = document.createElement('video'); video.muted = true; video.srcObject = canvas.captureStream(20);
+                player.appendChild(video); document.body.appendChild(player); video.play();
+                """)
+        }
+        after(3) { tab.pane?.executeJavaScript("document.getElementById('player').requestFullscreen()", userGesture: true) }
         after(6.5) {
             let window = tab.pane?.window
             self.expect(window?.styleMask.contains(.fullScreen) == true && window?.parent == nil,
                         "a page going full screen gets its own full screen space")
+            // Its own desktop puts OpenArch's window off screen; the video
+            // plays with sound (as the page reports it).
+            var media = tab.media ?? MediaState()
+            media.playing = true
+            media.video = true
+            media.audible = true
+            media.pip = false
+            tab.media = media
+            self.browser.windowVisibilityChanged(onScreen: false)
+        }
+        after(9) {
+            self.expect(tab.pane?.window?.styleMask.contains(.fullScreen) == true && tab.media?.pip != true,
+                        "a full screen video does not float when OpenArch's window goes off screen for it (pip: \(tab.media?.pip == true))")
             tab.pane?.executeJavaScript("document.exitFullscreen()")
         }
-        after(10) {
+        after(12.5) {
             self.expect(tab.pane?.window?.styleMask.contains(.fullScreen) == false && paneInPlace(),
                         "after full screen the page is back in the window")
             self.browser.window?.toggleFullScreen(nil)
         }
-        after(14) {
+        after(16.5) {
             self.expect(self.browser.window?.styleMask.contains(.fullScreen) == true && paneInPlace(),
                         "the window goes full screen with its tab in place")
             self.browser.window?.toggleFullScreen(nil)
         }
-        after(18) {
+        after(20.5) {
             self.expect(self.browser.window?.styleMask.contains(.fullScreen) == false && paneInPlace(),
                         "leaving full screen keeps the tab in place")
             Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")

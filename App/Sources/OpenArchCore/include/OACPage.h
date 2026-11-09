@@ -38,6 +38,9 @@ NS_SWIFT_UI_ACTOR
 /// -showInWindow:frame: or -load.
 @property(readonly) BOOL isLoaded;
 @property(readonly) BOOL isVisible;
+/// The page is full screen, on a desktop of its own (or on its way there
+/// or back): OpenArch's window being off screen is no reason to act.
+@property(readonly) BOOL isFullScreen;
 /// The borderless window hosting the page, once created.
 @property(readonly, nullable) NSWindow* window;
 /// Chrome's toolbar (location bar, extension buttons, downloads, menu).

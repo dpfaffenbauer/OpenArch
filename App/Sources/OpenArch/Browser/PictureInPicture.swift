@@ -63,7 +63,11 @@ extension BrowserWindowController {
         if onScreen {
             visibleTabs.forEach(pictureInPictureOnReturning)
         } else {
-            visibleTabs.forEach(pictureInPictureOnLeaving)
+            // A page gone full screen took its own desktop: the window is
+            // off screen because of it, and floating would end full screen.
+            for tab in visibleTabs where tab.pane?.isFullScreen != true {
+                pictureInPictureOnLeaving(tab)
+            }
         }
     }
 

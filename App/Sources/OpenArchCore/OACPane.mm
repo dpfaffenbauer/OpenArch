@@ -1052,6 +1052,10 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   return _browser != nullptr;
 }
 
+- (BOOL)isFullScreen {
+  return _fullScreen;
+}
+
 - (NSWindow*)window {
   return _window;
 }
