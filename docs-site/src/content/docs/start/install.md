@@ -13,6 +13,20 @@ OpenArch runs on Macs with Apple silicon and macOS 15 or later. It is free and o
 
 The download is the newest Stable version of OpenArch. GitHub also builds every change, and the newest of those is the [nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly): newer, with more that has not been tried for long.
 
+## The first launch
+
+The first time OpenArch opens, a small window walks you through setting it up before the browser window appears. Every step has a way past it: the whole thing takes a couple of minutes, or less than a minute if you skip. <kbd>Esc</kbd> goes back a step. The window has no title bar; drag it by its background.
+
+1. **Willkommen.** Click **Los geht’s**.
+2. **Nimm dein Arc mit.** If Arc is on the Mac, OpenArch reads its sidebar and builds it again in a small picture as it goes: each space with its icon and color, the favorites and pinned tabs, and a count such as "3 Spaces · 2 Profile · 12 Favoriten · 84 angeheftete Tabs". Choose **Alles übernehmen**, **Auswählen …** to tick the spaces you want (and whether favorites and Arc's logins come along), or **Neu anfangen** for one empty space. Without Arc, the step says so and OpenArch starts with one space.
+3. **Gleich fragt macOS nach deinem Passwort.** Only when Arc's logins come along: this explains the keychain question that follows. Click **Weiter**, and macOS asks whether OpenArch may read "Arc Safe Storage"; or **Logins überspringen** to take the sidebar without them. Arc is quit first if it is running. The import then runs in the background, with a small progress pill at the bottom of the window, while you go on.
+4. **Spaces und Konten.** Each profile with its spaces and the Google accounts signed in to it. **Mit Google anmelden** opens Google's sign-in in a small window of that profile, for a profile that has none; it closes by itself once you are signed in.
+5. **Mach es zu deinem.** A color for each space, and **Wie macOS**, **Hell** or **Dunkel** for pages and windows. The browser window behind shows each change at once.
+6. **OpenArch als Standardbrowser.** Only if it is not yet: **Als Standard festlegen**, and macOS asks you to confirm.
+7. **Alles bereit.** **OpenArch öffnen** grows the window into the browser window.
+
+Quitting halfway brings the steps back at the next launch. If you used OpenArch before it had them, you never see them; **Settings › Allgemein › Einführung › Erneut zeigen** opens them any time.
+
 :::tip[Coming from Arc?]
 OpenArch can take over your spaces, favorites, pinned folders and today tabs, and with them your logins, passwords, history and extensions. See [Move over from Arc](/start/import-from-arc/). From Chrome, Edge, Brave, Firefox, Safari and others, see [Move over from another browser](/start/import/).
 :::

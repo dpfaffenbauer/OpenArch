@@ -20,6 +20,7 @@ App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, 
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test   # only the AI features, with a stand-in for claude
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --release-test   # update channels, feature switches, crash reports, backups
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --sidebar-test   # only the sidebar details below
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --onboarding-test   # the first launch's steps, with an Arc fixture
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
@@ -53,6 +54,20 @@ run. Data lives in
 
 ## What works
 
+- **First launch:** a small floating window without title bar (dragged by
+  its background, Esc goes back) sets OpenArch up before the browser window
+  appears: welcome; Arc's sidebar built again in a small picture while it is
+  read, with "Alles übernehmen", "Auswählen …" or "Neu anfangen"; the
+  keychain question explained just before macOS asks it, after which Arc's
+  logins come over in the background, with a progress pill, into a profile
+  Chromium has not opened yet (no restart); each profile's Google accounts,
+  with "Mit Google anmelden" for one that has none; a color per space and
+  light or dark, shown live on the browser window behind; default browser,
+  unless it is already; and a last step that grows into the browser window.
+  Each step can be skipped. A library from before (an existing
+  `Library.json`) never shows it; Settings › Allgemein › Einführung shows it
+  again, `--skip-onboarding` leaves it out. Chromium's own first-run pages
+  never appear.
 - **Sidebar:** favorites grid, pinned tabs in folders and subfolders, today
   tabs under the line, drag and drop, inline renaming, context menus. The
   × on a pinned tab unpins it; ⌘-click on a link opens it as a tab in the
@@ -454,6 +469,11 @@ Lessons learned on the way:
   calls. Hanging up from OpenArch's window clicks the site's leave button
   where it finds one. Whether the window shows over another app's full
   screen has not been checked on screen.
+- **The first launch is new.** The self-test runs it with an Arc fixture
+  and a stand-in for Google's answer; the accounts step's reading of real
+  Google accounts and its sign-in window have not been tried on many Macs.
+  Without Arc it offers a fresh start only, until the import from other
+  browsers registers itself there (`OnboardingImportSources`).
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
 - **Short tab titles show in the sidebar only.** The command bar, the tab

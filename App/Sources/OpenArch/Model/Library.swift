@@ -211,6 +211,9 @@ final class Library {
         } else {
             library.profiles = [Profile(id: "Default", name: "Persönlich")]
             library.spaces = [Space(name: "Persönlich", icon: "person.fill", colorHex: "#7B6CF6", profileID: "Default")]
+            // The very first launch: no Library.json yet (a file that does
+            // not decode is not a first launch).
+            library.settings.onboardingPending = !FileManager.default.fileExists(atPath: library.fileURL.path)
         }
         return library
     }
@@ -442,6 +445,15 @@ struct Settings: Codable, Equatable {
     /// Long tab titles get a short name from Apple's on-device model
     /// (ShortTitles), while Apple Intelligence is there.
     var tidyTitles = false
+    /// Light or dark for pages, chats and settings, or as macOS has it.
+    var appearance = AppAppearance.system
+    /// Set on a first launch until the onboarding is finished. A library
+    /// saved before there was an onboarding never has it, so whoever used
+    /// OpenArch before never sees it.
+    var onboardingPending = false
+    /// The profile directory of Arc's own profile when the onboarding gave
+    /// it one of its own (a later import from Arc goes there too).
+    var arcDefaultProfile: String?
 
     init() {}
 
@@ -487,6 +499,9 @@ struct Settings: Codable, Equatable {
         morningBrief = try container.decodeIfPresent(Bool.self, forKey: .morningBrief) ?? defaults.morningBrief
         morningBriefMinutes = try container.decodeIfPresent(Int.self, forKey: .morningBriefMinutes) ?? defaults.morningBriefMinutes
         tidyTitles = try container.decodeIfPresent(Bool.self, forKey: .tidyTitles) ?? defaults.tidyTitles
+        appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? defaults.appearance
+        onboardingPending = try container.decodeIfPresent(Bool.self, forKey: .onboardingPending) ?? defaults.onboardingPending
+        arcDefaultProfile = try container.decodeIfPresent(String.self, forKey: .arcDefaultProfile)
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -503,6 +518,7 @@ extension Settings {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
         OACPane.devToolsDock = devToolsDock.dock
         ProtectedMedia.isEnabled = protectedMediaWebKit
+        appearance.apply()
     }
 
     /// Where a new agent chat works: the chosen folder while it is there,
@@ -513,6 +529,29 @@ extension Settings {
             return agentFolder
         }
         return FileManager.default.homeDirectoryForCurrentUser.path
+    }
+}
+
+/// Settings › Allgemein › Erscheinungsbild (also the onboarding's Aussehen
+/// step): OpenArch's windows, and with them the pages' light or dark mode.
+enum AppAppearance: String, Codable, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: "Wie macOS"
+        case .light: "Hell"
+        case .dark: "Dunkel"
+        }
+    }
+
+    @MainActor func apply() {
+        switch self {
+        case .system: NSApp.appearance = nil
+        case .light: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
     }
 }
 

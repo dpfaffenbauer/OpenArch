@@ -105,6 +105,9 @@ if AppPaths.isSelfTest {
         settings.extraSwitches += ["enable-logging=stderr", "vmodule=" + vmodule]
     }
 }
+// OpenArch decides what a first launch shows (the onboarding); Chrome's own
+// first-run pages and its default browser question never appear.
+settings.extraSwitches += ["no-first-run", "no-default-browser-check"]
 if let index = arguments.firstIndex(of: "--remote-debugging-port"), index + 1 < arguments.count {
     settings.remoteDebuggingPort = Int(arguments[index + 1]) ?? 0
 } else if !AppPaths.isSelfTest {

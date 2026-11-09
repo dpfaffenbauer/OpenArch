@@ -158,6 +158,15 @@ final class SelfTest {
             }
             return
         }
+        // --onboarding-test: the first-run flow with an Arc fixture (SelfTestOnboarding.swift).
+        if CommandLine.arguments.contains("--onboarding-test") {
+            if CommandLine.arguments.contains("--shots") { return onboardingShots() }
+            onboardingTest {
+                Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                if !CommandLine.arguments.contains("--stay") { Self.quit() }
+            }
+            return
+        }
         if CommandLine.arguments.contains("--marketing") {
             marketingScreens()
             return

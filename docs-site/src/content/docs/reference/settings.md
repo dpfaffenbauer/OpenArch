@@ -17,7 +17,9 @@ The settings of OpenArch for iPhone and iPad are on
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| **Standardbrowser** | **Als Standard festlegen** makes OpenArch the Mac's browser, so links from Mail, Slack and other apps open in it. Shows **Aktiv** once it is. OpenArch also asks once, after its first launch. See [Links from other apps](/browsing/links/). | |
+| **Standardbrowser** | **Als Standard festlegen** makes OpenArch the Mac's browser, so links from Mail, Slack and other apps open in it. Shows **Aktiv** once it is. The [first launch](/start/install/#the-first-launch) asks too. See [Links from other apps](/browsing/links/). | |
+| **Erscheinungsbild** | Light or dark for pages, chats and the settings: **Wie macOS**, **Hell** or **Dunkel**. Pages that have a dark mode follow it. The sidebar keeps its space's color. | Wie macOS |
+| **Einführung** | **Erneut zeigen** opens the steps of the first launch again: import from Arc, accounts, colors, default browser. Esc on its first step closes it. | |
 
 ### Suchen
 
