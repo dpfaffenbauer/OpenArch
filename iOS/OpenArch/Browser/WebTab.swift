@@ -15,6 +15,9 @@ final class WebTab: NSObject, WKNavigationDelegate, WKUIDelegate {
     init(item: Item, browser: Browser) {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
+        // The Fullscreen API (element.requestFullscreen), off by default in
+        // WKWebView: without it YouTube says the browser cannot go full screen.
+        configuration.preferences.isElementFullscreenEnabled = true
         configuration.websiteDataStore = .default()
         configuration.defaultWebpagePreferences.preferredContentMode = .recommended
         webView = WKWebView(frame: .zero, configuration: configuration)
