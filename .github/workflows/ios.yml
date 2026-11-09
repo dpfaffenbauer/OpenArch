@@ -1,3 +1,19 @@
+# OpenArch for iPhone and iPad: the shared package's tests and the app's
+# self-test in the simulator on every push; on main, once both pass, an
+# archive with automatic (cloud) signing goes to TestFlight, as in Hackler.
+# CFBundleShortVersionString is MARKETING_VERSION from the project,
+# CFBundleVersion the run number.
+#
+# The archive signs with a fixed "Apple Development" certificate imported into
+# a temporary keychain. Without it, automatic signing would create a new
+# development certificate on every (fresh) runner and the team would hit
+# Apple's certificate limit. The same secrets as Hackler's (team 5QAM4Z73EV):
+#   ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_P8 (contents of the .p8)
+#                               App Store Connect API key, role Admin so Xcode
+#                               may create the distribution certificate and
+#                               profiles
+#   IOS_CERTIFICATE_P12         base64 of the "Apple Development" .p12
+#   IOS_CERTIFICATE_PASSWORD    its password
 name: iOS
 
 on:
@@ -6,9 +22,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# On main a newer push waits instead of cancelling, so no upload to
+# TestFlight is cut off halfway.
 concurrency:
   group: ios-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The sharing format, crypto and relay client (docs/sharing.md).
@@ -74,3 +92,101 @@ jobs:
           name: ios-selftest-screenshots
           path: screenshots
           retention-days: 7
+
+  # Skips the upload (instead of failing) until the secrets are set.
+  secrets:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      ok: ${{ steps.check.outputs.ok }}
+    steps:
+      - id: check
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID != '' }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID != '' }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 != '' }}
+          IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 != '' }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD != '' }}
+        run: |
+          if [ "$ASC_API_KEY_ID" = true ] && [ "$ASC_API_ISSUER_ID" = true ] && [ "$ASC_API_KEY_P8" = true ] \
+            && [ "$IOS_CERTIFICATE_P12" = true ] && [ "$IOS_CERTIFICATE_PASSWORD" = true ]; then echo ok=true >> "$GITHUB_OUTPUT"; else echo "::notice::TestFlight secrets missing, skipping the upload"; echo ok=false >> "$GITHUB_OUTPUT"; fi
+
+  testflight:
+    needs: [shared, app, secrets]
+    if: needs.secrets.outputs.ok == 'true'
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      TEAM_ID: 5QAM4Z73EV
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: App Store Connect key
+        env:
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+        run: |
+          key="$RUNNER_TEMP/asc/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8"
+          mkdir -p "$(dirname "$key")"
+          printf '%s\n' "$ASC_API_KEY_P8" > "$key"
+          echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
+      - name: Signing keychain
+        env:
+          P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+        run: |
+          kc="$RUNNER_TEMP/signing.keychain-db"
+          kcpw="$(openssl rand -hex 24)"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$kcpw" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$kcpw" "$kc"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$kc" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kcpw" "$kc" >/dev/null
+          # shellcheck disable=SC2046 # one argument per existing keychain
+          security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning "$kc" | grep -q '"Apple Development: ' \
+            || { echo "no Apple Development identity in IOS_CERTIFICATE_P12" >&2; exit 1; }
+      - name: Archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project iOS/OpenArch.xcodeproj -scheme OpenArch -configuration Release \
+            -destination generic/platform=iOS -archivePath "$RUNNER_TEMP/OpenArch.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "${{ secrets.ASC_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_API_ISSUER_ID }}" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" | tail -n 200
+      - name: Upload to TestFlight
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/OpenArch.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "${{ secrets.ASC_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_API_ISSUER_ID }}" | tail -n 100
+          echo "::notice::OpenArch $(/usr/libexec/PlistBuddy -c 'Print :ApplicationProperties:CFBundleShortVersionString' "$RUNNER_TEMP/OpenArch.xcarchive/Info.plist") (${{ github.run_number }}) uploaded to TestFlight"
+      - name: Clean up
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/asc"

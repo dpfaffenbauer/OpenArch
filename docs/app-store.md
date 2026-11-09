@@ -46,7 +46,7 @@ ASC_KEY_ID=<key id> ASC_ISSUER_ID=<issuer id> scripts/upload-screenshots.sh
 
 1. `website/datenschutz/`: have the text checked, merge, and open https://openarch.app/datenschutz/.
 2. Create the app record in App Store Connect, with primary language German.
-3. Archive with Xcode 27.1 or later, and upload.
+3. Archive with Xcode 27.1 or later, and upload. Since 1.0.1 the iOS workflow does this on every push to main that touches iOS/ or Shared/: the build number is the run number, MARKETING_VERSION comes from the project.
 
 ## Answers in App Store Connect
 
