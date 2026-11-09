@@ -363,7 +363,7 @@ final class Browser {
     @discardableResult
     func addSpace() -> Space {
         let color = spaceColorPresets[library.spaces.count % spaceColorPresets.count]
-        let space = library.addSpace(name: "Space \(library.spaces.count + 1)", icon: "circle.fill", colorHex: color)
+        let space = library.addSpace(name: String(localized: "Space \(library.spaces.count + 1)"), icon: "circle.fill", colorHex: color)
         switchSpace(to: space)
         return space
     }
@@ -383,7 +383,7 @@ final class Browser {
 
     func copy(_ text: String) {
         UIPasteboard.general.string = text
-        showToast("Kopiert")
+        showToast(String(localized: "Kopiert"))
     }
 }
 

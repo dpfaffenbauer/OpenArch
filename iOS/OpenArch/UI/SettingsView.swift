@@ -48,7 +48,7 @@ struct SettingsView: View {
                                     do {
                                         try await sharing.end(share)
                                     } catch {
-                                        sharing.lastError = "„\(share.name)“: \(error.localizedDescription)"
+                                        sharing.lastError = String(localized: "„\(share.name)“: \(error.localizedDescription)")
                                     }
                                 }
                             }
@@ -75,7 +75,7 @@ struct SettingsView: View {
                             if let link {
                                 browser.present(.importShare(link))
                             } else {
-                                browser.showToast("Kein OpenArch-Link in der Zwischenablage")
+                                browser.showToast(String(localized: "Kein OpenArch-Link in der Zwischenablage"))
                             }
                         }
                     }

@@ -18,17 +18,17 @@ public enum ShareError: Error, Equatable, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidLink: "Das ist kein gültiger OpenArch-Link."
-        case .passwordNeeded: "Dieser Link ist mit einem Passwort geschützt."
-        case .wrongPassword: "Das Passwort stimmt nicht."
-        case .damaged: "Die geteilten Daten sind beschädigt oder wurden verändert."
-        case .unsupportedVersion: "Dieser Link stammt aus einer neueren OpenArch-Version."
-        case .notFound: "Diese Freigabe gibt es nicht (mehr)."
-        case .ended: "Die Freigabe wurde beendet."
-        case .outdated: "Der Server lieferte einen älteren Stand als bekannt."
-        case .tooLarge: "Zu viele Lesezeichen für eine Freigabe."
-        case .unreachable: "Der Teilen-Server ist nicht erreichbar."
-        case .server(let status): "Der Teilen-Server antwortete mit Fehler \(status)."
+        case .invalidLink: String(localized: "Das ist kein gültiger OpenArch-Link.", bundle: .main)
+        case .passwordNeeded: String(localized: "Dieser Link ist mit einem Passwort geschützt.", bundle: .main)
+        case .wrongPassword: String(localized: "Das Passwort stimmt nicht.", bundle: .main)
+        case .damaged: String(localized: "Die geteilten Daten sind beschädigt oder wurden verändert.", bundle: .main)
+        case .unsupportedVersion: String(localized: "Dieser Link stammt aus einer neueren OpenArch-Version.", bundle: .main)
+        case .notFound: String(localized: "Diese Freigabe gibt es nicht (mehr).", bundle: .main)
+        case .ended: String(localized: "Die Freigabe wurde beendet.", bundle: .main)
+        case .outdated: String(localized: "Der Server lieferte einen älteren Stand als bekannt.", bundle: .main)
+        case .tooLarge: String(localized: "Zu viele Lesezeichen für eine Freigabe.", bundle: .main)
+        case .unreachable: String(localized: "Der Teilen-Server ist nicht erreichbar.", bundle: .main)
+        case .server(let status): String(localized: "Der Teilen-Server antwortete mit Fehler \(status).", bundle: .main)
         }
     }
 }

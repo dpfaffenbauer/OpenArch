@@ -1,0 +1,1433 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "%lld Lesezeichen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld bookmarks"
+          }
+        }
+      }
+    },
+    "1 Lesezeichen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 bookmark"
+          }
+        }
+      }
+    },
+    "Abbrechen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
+    "Adresse": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address"
+          }
+        }
+      }
+    },
+    "Aktuell halten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep up to date"
+          }
+        }
+      }
+    },
+    "Als Kopie hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add as a copy"
+          }
+        }
+      }
+    },
+    "Anheften": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pin"
+          }
+        }
+      }
+    },
+    "Archiv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive"
+          }
+        }
+      }
+    },
+    "Archiv leer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive is empty"
+          }
+        }
+      }
+    },
+    "Archivieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive"
+          }
+        }
+      }
+    },
+    "Aufräumen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clean up"
+          }
+        }
+      }
+    },
+    "Aus Favoriten entfernen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from favorites"
+          }
+        }
+      }
+    },
+    "Beenden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        }
+      }
+    },
+    "Beendet": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped"
+          }
+        }
+      }
+    },
+    "Beim Folgen erscheinen Änderungen des Besitzers von selbst; was du daran änderst, überschreibt das nächste Update.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When you follow, the owner's changes appear by themselves; anything you change is overwritten by the next update."
+          }
+        }
+      }
+    },
+    "Code scannen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan Code"
+          }
+        }
+      }
+    },
+    "Das Passwort stimmt nicht.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The password is wrong."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Das ist deine eigene Freigabe.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is your own share."
+          }
+        }
+      }
+    },
+    "Das ist kein gültiger OpenArch-Link.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is not a valid OpenArch link."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Der Link zeigt danach nichts mehr. Wer die Lesezeichen hinzugefügt hat, behält den letzten Stand.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The link shows nothing afterwards. Anyone who added the bookmarks keeps the last version."
+          }
+        }
+      }
+    },
+    "Der Server lieferte einen älteren Stand als bekannt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server returned an older version than the one known."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Der Teilen-Server antwortete mit Fehler %lld.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The share server answered with error %lld."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Der Teilen-Server ist nicht erreichbar.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The share server can't be reached."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Die Freigabe wurde beendet.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sharing was stopped."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Die Lesezeichen liegen verschlüsselt auf dem Teilen-Server; der Schlüssel steht nur im Link. Änderungen erscheinen bei allen mit dem Link.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The bookmarks are stored encrypted on the share server; the key is only in the link. Changes appear for everyone with the link."
+          }
+        }
+      }
+    },
+    "Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The bookmarks travel encrypted inside the link itself; no server is involved. Later changes don't appear."
+          }
+        }
+      }
+    },
+    "Die geteilten Daten sind beschädigt oder wurden verändert.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The shared data is damaged or was changed."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Diese Adresse speichern": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save This Address"
+          }
+        }
+      }
+    },
+    "Diese Freigabe gibt es nicht (mehr).": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This share doesn't exist (anymore)."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Diese Lesezeichen sind mit einem Passwort geschützt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These bookmarks are protected with a password."
+          }
+        }
+      }
+    },
+    "Dieser Link ist mit einem Passwort geschützt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This link is protected with a password."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Dieser Link stammt aus einer neueren OpenArch-Version.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This link comes from a newer version of OpenArch."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Du folgst dieser Freigabe schon.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You already follow this share."
+          }
+        }
+      }
+    },
+    "Eine Momentaufnahme: Der Link enthält die Lesezeichen selbst, verschlüsselt, und ändert sich nicht mehr.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A snapshot: the link contains the bookmarks themselves, encrypted, and never changes."
+          }
+        }
+      }
+    },
+    "Einstellungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings"
+          }
+        }
+      }
+    },
+    "Erlaube OpenArch die Kamera in den Einstellungen, oder öffne den Link auf diesem Gerät.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow OpenArch to use the camera in Settings, or open the link on this device."
+          }
+        }
+      }
+    },
+    "Farbe": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color"
+          }
+        }
+      }
+    },
+    "Fertig": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        }
+      }
+    },
+    "Für neue Live-Freigaben. Leer lassen für share.openarch.app; ein eigener Server muss relay/ aus OpenArchs Quellcode sein und https sprechen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For new live shares. Leave empty for share.openarch.app; your own server must run relay/ from OpenArch's source code and speak https."
+          }
+        }
+      }
+    },
+    "Gelöscht": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted"
+          }
+        }
+      }
+    },
+    "Geteilt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared"
+          }
+        }
+      }
+    },
+    "Geteilte Lesezeichen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared Bookmarks"
+          }
+        }
+      }
+    },
+    "Geteilten Link einfügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste Shared Link"
+          }
+        }
+      }
+    },
+    "Halte einen Tab gedrückt und wähle „Anheften“, damit er hier bleibt.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press and hold a tab and choose “Pin” to keep it here."
+          }
+        }
+      }
+    },
+    "Heute": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Today"
+          }
+        }
+      }
+    },
+    "Hinzufügen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        }
+      }
+    },
+    "Hinzufügen als": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add as"
+          }
+        }
+      }
+    },
+    "Hinzufügen und folgen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add and follow"
+          }
+        }
+      }
+    },
+    "Hochgeladen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uploaded"
+          }
+        }
+      }
+    },
+    "In Ordner verschieben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to Folder"
+          }
+        }
+      }
+    },
+    "Inhalt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contents"
+          }
+        }
+      }
+    },
+    "Ja": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes"
+          }
+        }
+      }
+    },
+    "Jetzt aktualisieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Now"
+          }
+        }
+      }
+    },
+    "Kein Link in diesem Code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No link in this code"
+          }
+        }
+      }
+    },
+    "Kein OpenArch-Link in der Zwischenablage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No OpenArch link on the clipboard"
+          }
+        }
+      }
+    },
+    "Kopiert": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        }
+      }
+    },
+    "Leeren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        }
+      }
+    },
+    "Leiste einblenden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Toolbar"
+          }
+        }
+      }
+    },
+    "Link erstellen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create Link"
+          }
+        }
+      }
+    },
+    "Link kopieren": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Link"
+          }
+        }
+      }
+    },
+    "Link senden …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send Link…"
+          }
+        }
+      }
+    },
+    "Löschen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        }
+      }
+    },
+    "Lösen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unpin"
+          }
+        }
+      }
+    },
+    "Mehr": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More"
+          }
+        }
+      }
+    },
+    "Mit Passwort schützen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect with Password"
+          }
+        }
+      }
+    },
+    "Nach 12 Stunden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 12 hours"
+          }
+        }
+      }
+    },
+    "Nach 24 Stunden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 24 hours"
+          }
+        }
+      }
+    },
+    "Nach 7 Tagen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After 7 days"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "Nein": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No"
+          }
+        }
+      }
+    },
+    "Neu laden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reload"
+          }
+        }
+      }
+    },
+    "Neuen Link erstellen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create New Link"
+          }
+        }
+      }
+    },
+    "Neuer Ordner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Folder"
+          }
+        }
+      }
+    },
+    "Neuer Space": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Space"
+          }
+        }
+      }
+    },
+    "Neuer Tab": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Tab"
+          }
+        }
+      }
+    },
+    "Neuer Unterordner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New Subfolder"
+          }
+        }
+      }
+    },
+    "Nicht mehr folgen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unfollow"
+          }
+        }
+      }
+    },
+    "Nie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Never"
+          }
+        }
+      }
+    },
+    "Oberste Ebene": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top Level"
+          }
+        }
+      }
+    },
+    "Oder ein Emoji": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or an emoji"
+          }
+        }
+      }
+    },
+    "Ohne „Aktuell halten“ geht es ganz ohne Server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Without “Keep up to date” no server is needed at all."
+          }
+        }
+      }
+    },
+    "OpenArch auf GitHub": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OpenArch on GitHub"
+          }
+        }
+      }
+    },
+    "Ordner": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder"
+          }
+        }
+      }
+    },
+    "Ordner löschen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Folder"
+          }
+        }
+      }
+    },
+    "Ordner teilen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Folder"
+          }
+        }
+      }
+    },
+    "Ordner teilen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Folder…"
+          }
+        }
+      }
+    },
+    "Ordner und Spaces teilst du über ihr Menü. Ohne Konto: Der Link ist der Schlüssel, und der Server sieht nur verschlüsselte Daten. Geteilte Ordner und Spaces, denen du folgst, aktualisieren sich alle fünf Minuten, solange OpenArch offen ist.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share folders and spaces from their menu. No account needed: the link is the key, and the server only sees encrypted data. Shared folders and spaces you follow update every five minutes while OpenArch is open."
+          }
+        }
+      }
+    },
+    "Ordner · %lld Lesezeichen · Momentaufnahme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder · %lld bookmarks · snapshot"
+          }
+        }
+      }
+    },
+    "Ordner · %lld Lesezeichen · aktuell gehalten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder · %lld bookmarks · kept up to date"
+          }
+        }
+      }
+    },
+    "Passwort": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
+          }
+        }
+      }
+    },
+    "Passwort (mindestens 4 Zeichen)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password (at least 4 characters)"
+          }
+        }
+      }
+    },
+    "Persönlich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personal"
+          }
+        }
+      }
+    },
+    "QR-Code des Links": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "QR code of the link"
+          }
+        }
+      }
+    },
+    "Scanne den Code mit OpenArch auf dem iPhone oder Mac (Code scannen), oder öffne den Link dort. Der Schlüssel steht hinter dem # und erreicht nie einen Server.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan the code with OpenArch on iPhone or Mac (Scan Code), or open the link there. The key is after the # and never reaches a server."
+          }
+        }
+      }
+    },
+    "Scannen nicht möglich": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't Scan"
+          }
+        }
+      }
+    },
+    "Schließen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        }
+      }
+    },
+    "Seite schließen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close Page"
+          }
+        }
+      }
+    },
+    "Seite teilen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Page…"
+          }
+        }
+      }
+    },
+    "Seitenleiste": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sidebar"
+          }
+        }
+      }
+    },
+    "Space": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space"
+          }
+        }
+      }
+    },
+    "Space %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space %lld"
+          }
+        }
+      }
+    },
+    "Space bearbeiten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Space"
+          }
+        }
+      }
+    },
+    "Space bearbeiten …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit Space…"
+          }
+        }
+      }
+    },
+    "Space löschen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Space"
+          }
+        }
+      }
+    },
+    "Space teilen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Space"
+          }
+        }
+      }
+    },
+    "Space teilen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Space…"
+          }
+        }
+      }
+    },
+    "Space · %lld Lesezeichen · Momentaufnahme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space · %lld bookmarks · snapshot"
+          }
+        }
+      }
+    },
+    "Space · %lld Lesezeichen · aktuell gehalten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space · %lld bookmarks · kept up to date"
+          }
+        }
+      }
+    },
+    "Stand": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "Suche": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        }
+      }
+    },
+    "Suchen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search"
+          }
+        }
+      }
+    },
+    "Suchen oder Adresse": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search or address"
+          }
+        }
+      }
+    },
+    "Suchen oder Adresse eingeben": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search or enter address"
+          }
+        }
+      }
+    },
+    "Suchmaschine": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search Engine"
+          }
+        }
+      }
+    },
+    "Suchvorschläge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search Suggestions"
+          }
+        }
+      }
+    },
+    "Symbol": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icon"
+          }
+        }
+      }
+    },
+    "Tab schließen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close Tab"
+          }
+        }
+      }
+    },
+    "Tabs": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabs"
+          }
+        }
+      }
+    },
+    "Tabs unter der Linie, die du so lange nicht angesehen hast, kommen ins Archiv, wie auf dem Mac.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabs below the line that you haven't looked at for this long move to the archive, just like on the Mac."
+          }
+        }
+      }
+    },
+    "Teilen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share"
+          }
+        }
+      }
+    },
+    "Teilen beenden": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Sharing"
+          }
+        }
+      }
+    },
+    "Teilen beenden?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop Sharing?"
+          }
+        }
+      }
+    },
+    "Teilen …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share…"
+          }
+        }
+      }
+    },
+    "Teilen-Server": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share Server"
+          }
+        }
+      }
+    },
+    "Umbenennen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        }
+      }
+    },
+    "Version": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version"
+          }
+        }
+      }
+    },
+    "Version %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %lld"
+          }
+        }
+      }
+    },
+    "Vorwärts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Forward"
+          }
+        }
+      }
+    },
+    "Wird entschlüsselt …": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decrypting…"
+          }
+        }
+      }
+    },
+    "Zu Favoriten": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add to Favorites"
+          }
+        }
+      }
+    },
+    "Zu Tab wechseln": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to Tab"
+          }
+        }
+      }
+    },
+    "Zu viele Lesezeichen für eine Freigabe.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many bookmarks for one share."
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "Zu viele Lesezeichen für einen QR-Code. Sende den Link stattdessen.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many bookmarks for a QR code. Send the link instead."
+          }
+        }
+      }
+    },
+    "Zuletzt: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last: %@"
+          }
+        }
+      }
+    },
+    "Zur gespeicherten Adresse": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to Saved Address"
+          }
+        }
+      }
+    },
+    "Zurück": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        }
+      }
+    },
+    "openarch.app": {
+      "shouldTranslate": false
+    },
+    "share.openarch.app": {
+      "shouldTranslate": false
+    },
+    "Änderungen erscheinen bei allen, die den Link hinzugefügt haben. Nur dieses Gerät kann die Freigabe ändern. Wer sie schon hat, behält sie, wenn du das Teilen beendest.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes appear for everyone who added the link. Only this device can change the share. Anyone who already has it keeps it when you stop sharing."
+          }
+        }
+      }
+    },
+    "Öffnen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        }
+      }
+    },
+    "„%@“ hinzugefügt": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added “%@”"
+          }
+        }
+      }
+    },
+    "„%@“ hinzugefügt, folgt Änderungen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added “%@”, following changes"
+          }
+        }
+      }
+    },
+    "„%@“: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”: %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
