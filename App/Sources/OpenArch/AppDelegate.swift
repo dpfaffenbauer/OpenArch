@@ -44,6 +44,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         log("Chromium \(OACEngine.versionString)")
+        if !selfTest {
+            // The crashes since the last launch, before this one can add any.
+            CrashReports.shared.collectAtLaunch()
+            CrashReports.shared.installSignalHandlers()
+            startFeatureSwitches()
+        }
+        OACPane.renderProcessGoneHandler = { status, code in
+            MainActor.assumeIsolated { CrashReports.shared.rendererGone(status: status, code: code) }
+        }
         AppIcons.repairBundle()
         SpotifyPlayer.shared.start()
         library = Library.load()
@@ -119,10 +128,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     alert.informativeText = result
                     alert.runModal()
                 }
+                if let result = Backups.takeResult() {
+                    let alert = NSAlert()
+                    alert.messageText = "Sicherung importiert"
+                    alert.informativeText = result
+                    alert.runModal()
+                }
+                Backups.shared.start(library: library)
+                after(2) { [weak self] in
+                    CrashReports.shared.offer { url in _ = self?.mainBrowser?.openInNewTab(url.absoluteString) }
+                }
             }
         }
         if !selfTest {
             NSApp.activate()
+        }
+    }
+
+    /// The remote feature switches at launch and every six hours; a feature
+    /// switched off while it shows closes.
+    private func startFeatureSwitches() {
+        let build = Updater.shared.currentBuild
+        let chromium = OACEngine.versionString
+        let refresh: @Sendable () -> Void = { FeatureSwitches.shared.refresh(build: build, chromium: chromium) }
+        refresh()
+        Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { _ in refresh() }
+        NotificationCenter.default.addObserver(forName: FeatureSwitches.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.featureSwitchesChanged() }
+        }
+    }
+
+    func featureSwitchesChanged() {
+        let switches = FeatureSwitches.shared
+        if !switches.disabled.isEmpty {
+            log("features switched off: \(switches.disabled.keys.map(\.rawValue).sorted())")
+        }
+        for browser in browsers {
+            if !switches.isOn(.peek) { browser.peek.close() }
+            if !switches.isOn(.tabPreviews) { browser.tabPreview.hide() }
         }
     }
 

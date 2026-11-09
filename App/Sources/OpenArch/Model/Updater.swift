@@ -2,10 +2,14 @@ import AppKit
 import CryptoKit
 import Observation
 
-/// Updates from the "nightly" release on GitHub. CI publishes latest.json
-/// next to OpenArch.zip; OpenArch compares its build number, downloads the
-/// newer build, checks its SHA-256, unpacks it next to the cache and swaps
-/// the app when it quits or restarts. Downloads go through curl (URLSession
+/// Updates from OpenArch's releases on GitHub, on one of two channels:
+/// Stable, the newest version tag (v1.2.0), and Nightly, the "nightly"
+/// release that every change to main replaces. CI publishes latest.json
+/// next to OpenArch.zip in both; OpenArch compares its build number,
+/// downloads a newer build, checks its SHA-256, unpacks it next to the cache
+/// and swaps the app when it quits or restarts. Build numbers count up across
+/// both channels, and only a higher one installs: going back from Nightly to
+/// Stable waits until a Stable version is newer than the build you have. Downloads go through curl (URLSession
 /// fails inside Chromium's process), which also leaves no quarantine flag.
 ///
 /// The checksum comes from the same release as the zip, so it only shows
@@ -29,6 +33,26 @@ final class Updater {
         let sha256: String
         let size: Int?
         let url: String
+        /// "1.2.0" for a Stable release; missing in Nightly's.
+        let version: String?
+    }
+
+    enum Channel: String, CaseIterable, Identifiable {
+        case stable, nightly
+        var id: String { rawValue }
+        var title: String { self == .stable ? "Stable" : "Nightly" }
+    }
+
+    /// A release from GitHub's list (only what the Stable channel needs).
+    struct Release: Decodable {
+        struct Asset: Decodable {
+            let name: String
+            let browser_download_url: String
+        }
+        let tag_name: String
+        let draft: Bool
+        let prerelease: Bool
+        let assets: [Asset]
     }
 
     struct UpdateError: LocalizedError {
@@ -38,6 +62,8 @@ final class Updater {
 
     static let shared = Updater()
     static let releaseManifest = "https://github.com/dpfaffenbauer/OpenArch/releases/download/nightly/latest.json"
+    /// OpenArch's releases, newest first; Stable picks the newest version tag.
+    static let releaseList = "https://api.github.com/repos/dpfaffenbauer/OpenArch/releases?per_page=50"
     /// Where updates may come from: files of OpenArch's own releases.
     static let releaseDownloads = "https://github.com/dpfaffenbauer/OpenArch/releases/download/"
     /// OpenArch's Apple developer team (TEAM_ID in .github/workflows/build.yml),
@@ -52,8 +78,33 @@ final class Updater {
             schedule()
         }
     }
-    /// Where latest.json comes from; the self-test points it at a local file.
+    /// The channel updates come from. Builds from a version tag start on
+    /// Stable, all others on Nightly (OpenArchChannel in Info.plist).
+    var channel: Channel {
+        didSet {
+            guard channel != oldValue else { return }
+            if persistsChannel { UserDefaults.standard.set(channel.rawValue, forKey: "updateChannel") }
+            // A build waiting from the other channel is not wanted any more.
+            if case .ready = phase {
+                stagedApp = nil
+                readyVersion = nil
+            }
+            aheadOfChannel = nil
+            phase = .idle
+            if isEnabled && !isDevelopmentBuild { check(automatic: true) }
+        }
+    }
+    /// The channel's newest build is older than this one (after switching
+    /// from Nightly to Stable): its build number, until Stable catches up.
+    private(set) var aheadOfChannel: Int?
+    /// The ready update as people know it: "OpenArch 1.2.0" or "Nightly 512".
+    private(set) var readyVersion: String?
+    /// Where Nightly's latest.json and Stable's release list come from; the
+    /// self-test points them at local files.
     var manifestURL = releaseManifest
+    var releaseListURL = releaseList
+    /// The self-test's updaters change no setting.
+    var persistsChannel = true
     /// The self-test's fake builds are local files without a signature.
     var allowsLocalFiles = false
     var requiresDeveloperID = true
@@ -64,9 +115,22 @@ final class Updater {
     private var timer: Timer?
     private var installing = false
 
-    init(bundle: Bundle = .main) {
-        currentBuild = Int(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0
+    /// The channel this build was made for.
+    let buildChannel: Channel
+
+    /// |build| and |channel|: the self-test's stand-ins, which leave the
+    /// user's channel setting alone.
+    init(bundle: Bundle = .main, build: Int? = nil, channel: Channel? = nil) {
+        currentBuild = build ?? Int(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") ?? 0
         currentCommit = bundle.object(forInfoDictionaryKey: "OpenArchCommit") as? String ?? ""
+        let buildChannel = Channel(rawValue: bundle.object(forInfoDictionaryKey: "OpenArchChannel") as? String ?? "") ?? .nightly
+        self.buildChannel = buildChannel
+        if let channel {
+            self.channel = channel
+            persistsChannel = false
+        } else {
+            self.channel = Channel(rawValue: UserDefaults.standard.string(forKey: "updateChannel") ?? "") ?? buildChannel
+        }
     }
 
     /// Builds made with App/build.sh outside CI have build number 0 and do
@@ -76,7 +140,8 @@ final class Updater {
     var versionDescription: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
         if isDevelopmentBuild { return "\(version) (eigener Build)" }
-        return "\(version) (Nightly \(currentBuild)\(currentCommit.isEmpty ? "" : ", \(currentCommit)"))"
+        let kind = buildChannel == .stable ? "Build" : "Nightly"
+        return "\(version) (\(kind) \(currentBuild)\(currentCommit.isEmpty ? "" : ", \(currentCommit)"))"
     }
 
     /// Checks shortly after launch and then every six hours.
@@ -101,27 +166,66 @@ final class Updater {
         case .checking, .downloading, .ready: return
         default: break
         }
-        if isDevelopmentBuild && manifestURL == Self.releaseManifest {
-            phase = .failed("Selbst gebaute Versionen aktualisieren sich nicht; Updates gibt es für die Nightly-Builds.")
+        if isDevelopmentBuild && manifestURL == Self.releaseManifest && releaseListURL == Self.releaseList {
+            phase = .failed("Selbst gebaute Versionen aktualisieren sich nicht; Updates gibt es für die Builds von GitHub.")
             return
         }
         phase = .checking
+        let channel = channel
         Task {
             do {
-                let manifest = try JSONDecoder().decode(Manifest.self, from: try await Self.fetch(manifestURL))
+                let location = try await manifestLocation(for: channel)
+                let manifest = try JSONDecoder().decode(Manifest.self, from: try await Self.fetch(location))
+                guard channel == self.channel else { return }
                 lastCheck = Date()
+                // Never back to an older build, also not after a switch from
+                // Nightly to Stable: then it waits until Stable is newer.
                 guard manifest.build > currentBuild else {
+                    aheadOfChannel = manifest.build < currentBuild ? manifest.build : nil
                     phase = .upToDate
                     return
                 }
-                try await download(manifest)
+                aheadOfChannel = nil
+                try await download(manifest, channel: channel)
             } catch {
+                guard channel == self.channel else { return }
                 phase = automatic ? .idle : .failed(error.localizedDescription)
             }
         }
     }
 
-    private func download(_ manifest: Manifest) async throws {
+    /// Nightly: the "nightly" release's latest.json. Stable: the latest.json
+    /// of the newest version tag that is not a pre-release.
+    private func manifestLocation(for channel: Channel) async throws -> String {
+        guard channel == .stable else { return manifestURL }
+        let releases = try JSONDecoder().decode([Release].self, from: try await Self.fetch(releaseListURL))
+        guard let release = Self.newestStable(in: releases) else {
+            throw UpdateError("Es gibt noch keine Stable-Version.")
+        }
+        guard let manifest = release.assets.first(where: { $0.name == "latest.json" })?.browser_download_url else {
+            throw UpdateError("Die Stable-Version \(release.tag_name) lässt sich nicht automatisch installieren.")
+        }
+        let isLocalFile = allowsLocalFiles && URL(string: manifest)?.isFileURL == true
+        guard isLocalFile || Self.isReleaseAsset(manifest) else {
+            throw UpdateError("Das Update kommt nicht aus OpenArchs Releases auf GitHub.")
+        }
+        return manifest
+    }
+
+    /// The newest release tagged v<version> that is neither a draft nor a
+    /// pre-release, by version number; "nightly" and the Chromium builds'
+    /// releases are left out.
+    static func newestStable(in releases: [Release]) -> Release? {
+        let versioned = releases.compactMap { release -> ([Int], Release)? in
+            guard !release.draft, !release.prerelease, release.tag_name.hasPrefix("v") else { return nil }
+            let parts = release.tag_name.dropFirst().split(separator: ".", omittingEmptySubsequences: false).map { Int($0) }
+            guard !parts.isEmpty, !parts.contains(nil) else { return nil }
+            return (parts.compactMap { $0 }, release)
+        }
+        return versioned.max { $0.0.lexicographicallyPrecedes($1.0) }?.1
+    }
+
+    private func download(_ manifest: Manifest, channel: Channel) async throws {
         let target = Bundle.main.bundleURL
         guard FileManager.default.isWritableFile(atPath: target.deletingLastPathComponent().path) else {
             throw UpdateError("Keine Schreibrechte für \(target.deletingLastPathComponent().path).")
@@ -153,8 +257,11 @@ final class Updater {
         let unpacked = folder.appendingPathComponent("unpacked")
         try await Self.run("/usr/bin/ditto", ["-x", "-k", zip.path, unpacked.path])
         let app = unpacked.appendingPathComponent(target.lastPathComponent)
-        guard let bundle = Bundle(url: app), bundle.bundleIdentifier == Bundle.main.bundleIdentifier,
-              Int(bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "") == manifest.build else {
+        // Info.plist itself, not Bundle(url:): Bundle keeps what it read of
+        // an earlier download to the same place (another channel's build).
+        let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist"))
+        guard let info, info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier,
+              Int(info["CFBundleVersion"] as? String ?? "") == manifest.build else {
             throw UpdateError("Das Update enthält keine passende OpenArch-App.")
         }
         if requiresDeveloperID {
@@ -167,7 +274,9 @@ final class Updater {
             }
         }
         try? FileManager.default.removeItem(at: zip)
+        guard channel == self.channel else { return }
         stagedApp = app
+        readyVersion = manifest.version.map { "OpenArch \($0)" } ?? "Nightly \(manifest.build)"
         phase = .ready(manifest.build)
     }
 

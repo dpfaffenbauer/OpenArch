@@ -61,6 +61,7 @@ namespace {
 void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_about_page_handler)(void) = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+void (^g_render_process_gone_handler)(NSString*, int) = nil;
 NSString* g_ask_selection_title = nil;
 
 // The context menu item for selected text (+askAboutSelectionTitle).
@@ -451,6 +452,24 @@ class PaneClient : public CefClient,
   }
 
   // CefRequestHandler
+
+  void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
+                                 TerminationStatus status,
+                                 int error_code,
+                                 const CefString& error_string) override {
+    NSString* kind = nil;
+    switch (status) {
+      case TS_PROCESS_CRASHED: kind = @"crashed"; break;
+      case TS_PROCESS_OOM: kind = @"oom"; break;
+      case TS_ABNORMAL_TERMINATION: kind = @"abnormal"; break;
+      case TS_LAUNCH_FAILED: kind = @"launch-failed"; break;
+      case TS_INTEGRITY_FAILURE: kind = @"integrity"; break;
+      default: break;  // Killed on purpose.
+    }
+    if (kind && g_render_process_gone_handler) {
+      g_render_process_gone_handler(kind, error_code);
+    }
+  }
 
   // ⌘-clicks and middle clicks on links: Chrome would make the tab itself,
   // in a window of its own, and OpenArch could only adopt it afterwards
@@ -931,6 +950,14 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   found->second->Cancel();
   DownloadCallbacks().erase(found);
   return YES;
+}
+
++ (void (^)(NSString*, int))renderProcessGoneHandler {
+  return g_render_process_gone_handler;
+}
+
++ (void)setRenderProcessGoneHandler:(void (^)(NSString*, int))handler {
+  g_render_process_gone_handler = [handler copy];
 }
 
 + (void (^)(OACDownload*))downloadHandler {

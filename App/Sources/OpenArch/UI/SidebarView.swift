@@ -887,7 +887,7 @@ private struct SpaceHeader: View {
                     Button("Nicht mehr folgen") { Sharing.shared.unsubscribe(space.id) }
                 }
                 Button("Neuer Ordner") { browser.newFolder() }
-                if browser.library.settings.agentChats {
+                if browser.library.settings.agentChatsOn {
                     Button("Neuer Agent-Chat") { browser.newAgentChat() }
                 }
                 Divider()
@@ -1359,7 +1359,7 @@ private struct NewTabRow: View {
             Spacer()
             if hovering {
                 Text("⌘T").font(.system(size: 11)).opacity(0.6)
-                if browser.library.settings.agentChats, !browser.isStandalone {
+                if browser.library.settings.agentChatsOn, !browser.isStandalone {
                     SmallButton(symbol: "sparkles", help: "Neuer Agent-Chat") { browser.newAgentChat() }
                 }
             }
@@ -1397,7 +1397,7 @@ private struct SpaceBar: View {
             .contextMenu { LibraryButtonMenu(browser: browser) }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {
-                    if browser.library.settings.agentChats, !browser.isPrivate {
+                    if browser.library.settings.agentChatsOn, !browser.isPrivate {
                         AgentsSpaceButton(browser: browser, theme: theme)
                     }
                     ForEach(Array(browser.library.spaces.enumerated()), id: \.element.id) { index, space in
@@ -1410,7 +1410,7 @@ private struct SpaceBar: View {
             Menu {
                 Button("Neuer Space") { browser.addSpace() }
                 Button("Neuer Ordner") { browser.newFolder() }
-                if browser.library.settings.agentChats, !browser.isPrivate {
+                if browser.library.settings.agentChatsOn, !browser.isPrivate {
                     Button("Neuer Agent-Chat") { browser.newAgentChat() }
                 }
                 Menu("GitHub-Live-Ordner") {

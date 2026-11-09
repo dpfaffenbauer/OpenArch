@@ -364,6 +364,8 @@ struct Settings: Codable, Equatable {
     var shareRelay = ""
     /// Agent chats (Claude Code) in the sidebar, next to the tabs.
     var agentChats = false
+    /// Agent chats are on and not switched off (FeatureSwitches).
+    var agentChatsOn: Bool { agentChats && FeatureSwitches.shared.isOn(.agentChats) }
     /// The folder new agent chats work in; empty for the home folder.
     var agentFolder = ""
     /// The glass look: the desktop shows through the window, and from

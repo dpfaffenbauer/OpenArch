@@ -1597,7 +1597,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Pinned tabs and favorites keep their page: links to other sites
     /// open in Peek.
     private func shouldPeek(_ url: String, from source: Item) -> Bool {
-        library.settings.peek && (source.role == .pinned || source.role == .favorites)
+        library.settings.peek && FeatureSwitches.shared.isOn(.peek) && (source.role == .pinned || source.role == .favorites)
             && url.hasPrefix("http") && !PeekController.sameSite(url, source.savedURL)
     }
 
@@ -1699,7 +1699,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         if started, let item = item(for: pane) { item.screenShare = nil }
         // Boosts go in as early as the page allows and again once it is
         // complete (the style sheet is replaced, the script runs once).
-        if let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
+        if FeatureSwitches.shared.isOn(.boosts), let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
            !boost.styleSheet.isEmpty || !boost.javaScript.isEmpty {
             pane.executeJavaScript(BoostStore.script(for: boost))
         }
@@ -1707,6 +1707,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// A changed boost reaches the open tabs of its site at once.
     func applyBoost(_ boost: Boost) {
+        guard FeatureSwitches.shared.isOn(.boosts) else { return }
         for tab in allTabs where tab.pane != nil && boost.applies(to: tab.currentURL) {
             tab.pane?.executeJavaScript(BoostStore.script(for: boost))
         }
@@ -1714,6 +1715,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func editBoost() {
         guard let active = state.activeItem, active.kind == .tab else { return }
+        guard FeatureSwitches.shared.isOn(.boosts) else {
+            showToast("Boosts sind vorübergehend abgeschaltet", symbol: "exclamationmark.circle.fill")
+            return
+        }
         BoostPanelController.show(for: active, browser: self)
     }
 

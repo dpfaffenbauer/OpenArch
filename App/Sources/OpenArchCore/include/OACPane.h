@@ -229,6 +229,11 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 /// Gets every download's progress, from any tab or window, including tabs
 /// that closed after starting one.
 @property(class, nonatomic, copy, nullable) void (^downloadHandler)(OACDownload* download);
+
+/// A tab's renderer process ended unexpectedly: |status| is "crashed",
+/// "oom", "abnormal", "launch-failed" or "integrity", |code| its exit code.
+/// Renderers that were killed on purpose (closing, discarding) do not count.
+@property(class, nonatomic, copy, nullable) void (^renderProcessGoneHandler)(NSString* status, int code);
 /// Cancels a running download. Returns NO when it is not running.
 + (BOOL)cancelDownload:(uint32_t)identifier;
 

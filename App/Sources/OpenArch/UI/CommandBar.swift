@@ -426,7 +426,7 @@ final class CommandBarModel {
     /// A new agent chat (Claude Code in the sidebar) with the input as its
     /// first message.
     private func agentResult(_ text: String) -> CommandResult? {
-        guard case .newTab = mode, browser.library.settings.agentChats, !browser.isStandalone else { return nil }
+        guard case .newTab = mode, browser.library.settings.agentChatsOn, !browser.isStandalone else { return nil }
         return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: "Agent-Chat starten",
                              action: { [unowned self] in self.browser.newAgentChat(prompt: text) })
     }
@@ -559,7 +559,7 @@ final class CommandBarModel {
             })
             commands.append(reopen)
         }
-        if browser.library.settings.agentChats, !browser.isStandalone {
+        if browser.library.settings.agentChatsOn, !browser.isStandalone {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
             let agents: Command = ("Agents", "sparkles", #selector(AppDelegate.toggleAgents(_:)), { browser.toggleAgents() })
             commands += [agent, agents]
