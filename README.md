@@ -19,6 +19,7 @@ open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, runs behind other windows
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test   # only the AI features, with a stand-in for claude
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --release-test   # update channels, feature switches, crash reports, backups
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --sidebar-test   # only the sidebar details below
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
@@ -57,8 +58,20 @@ run. Data lives in
   × on a pinned tab unpins it; ⌘-click on a link opens it as a tab in the
   background. ⌘-click on a tab (or a folder) in the sidebar loads it in the
   background, so its page and title are there when you come to it.
+  ⇧-click selects a range of rows, ⌘⇧-click (or ⌘-click while rows are
+  selected) one more; selected rows drag together, and their menu archives
+  them, puts them in a new folder ("Neuer Ordner mit N Tabs") or another
+  space, and copies their URLs (⇧⌘C too). Resting on a closed folder shows a
+  searchable list of its tabs. Favorites and pinned tabs of Gmail, X,
+  WhatsApp, Slack, Outlook and the like get a dot while their title reports
+  unread items; Google Calendar's icon shows today's date.
 - **Spaces:** name, icon (SF Symbol or emoji), color, and a profile each.
-  Drag the icons at the bottom of the sidebar into the order you want.
+  Drag the icons at the bottom of the sidebar into the order you want, or
+  sort, rename, edit and delete them in "Spaces verwalten …" (space menu,
+  library); deleting one says what happens to its tabs and archives them.
+  Resting on the space's name shows its profile and that profile's Google
+  account; with several profiles the space icons get a ring in the
+  profile's color.
   Profiles keep logins (e.g. a different Google account per space), cookies,
   history, passwords and extensions apart.
 - **GitHub live folders** (+ › GitHub-Live-Ordner): pinned folders that
@@ -200,8 +213,10 @@ run. Data lives in
   archive. ⌘⇧T brings back the last closed window where it was, tabs and
   all, when it closed after the last tab (as in Chrome and Dia); Ablage ›
   Geschlossenes Fenster wieder öffnen always does.
-- **Peek:** links from pinned tabs and favorites to other sites open in a
-  card over the page, which can become a tab or a split.
+- **Peek:** links from pinned tabs and favorites to other sites, and
+  ⇧-clicks on any link, open in a card over the page, which can become a tab
+  or a split. ⌘Z right after closing it, or ⇧⌘T, opens it again; Settings ›
+  Links turns it off.
 - **Meetings** (Settings › Allgemein › Kalender): the next meeting from the
   Mac's calendars sits at the bottom of the sidebar, with when it starts and
   a button to join the call (Meet, Zoom, Teams, Webex … links in the

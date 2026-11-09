@@ -228,10 +228,6 @@ private struct GeneralPage: View {
                 }
                 .labelsHidden().fixedSize()
             }
-            Row(symbol: "eye", color: .teal, title: "Peek",
-                detail: "Links aus angehefteten Tabs und Favoriten zu anderen Seiten öffnen als Vorschau über der Seite.") {
-                Toggle("", isOn: $library.settings.peek).labelsHidden().toggleStyle(.switch)
-            }
             Row(symbol: "pip", color: .pink, title: "Bild-in-Bild beim Tab-Wechsel",
                 detail: "Ein laufendes Video mit Ton spielt in einem kleinen Fenster weiter, wenn du den Tab verlässt.") {
                 Toggle("", isOn: $library.settings.autoPictureInPicture).labelsHidden().toggleStyle(.switch)
@@ -436,6 +432,13 @@ private struct LinksPage: View {
     @Bindable var library: Library
 
     var body: some View {
+        Section(title: "Links in Tabs") {
+            Row(symbol: "eye", color: .teal, title: "Peek",
+                detail: "Links aus angehefteten Tabs und Favoriten zu anderen Seiten und ⇧-Klicks auf Links öffnen als Vorschau über der Seite. ⌘Z oder ⇧⌘T öffnet eine gerade geschlossene Vorschau wieder.",
+                showsDivider: false) {
+                Toggle("", isOn: $library.settings.peek).labelsHidden().toggleStyle(.switch)
+            }
+        }
         LinkRulesSection(library: library)
         Section(title: "Links aus anderen Apps") {
             Row(symbol: "macwindow.on.rectangle", color: .pink, title: "In Little OpenArch öffnen",

@@ -126,6 +126,18 @@ final class SelfTest {
             quitWithStuckBrowser()
             return
         }
+        // --sidebar-test: only the sidebar's details (SelfTestSidebar.swift).
+        if CommandLine.arguments.contains("--sidebar-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.sidebarDetails {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         // --ai-test: only the AI features (SelfTestAI.swift), in a few seconds.
         if CommandLine.arguments.contains("--ai-test") {
             populate()

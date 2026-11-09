@@ -102,6 +102,9 @@ NS_SWIFT_UI_ACTOR
 /// A link the user clicked is about to replace the page. Return YES to
 /// take it over (the navigation is cancelled), e.g. to show it in Peek.
 - (BOOL)pane:(OACPane*)pane shouldInterceptNavigationToURL:(NSString*)url;
+/// A ⇧-click on a link (Chrome would open a new window). Return YES to
+/// show it in Peek; NO opens it in a new tab.
+- (BOOL)pane:(OACPane*)pane wantsPeekWithURL:(NSString*)url;
 /// The page went to an address another app opens (bambustudioopen:,
 /// zoommtg:, mailto: ...). The navigation was cancelled.
 - (void)pane:(OACPane*)pane wantsToOpenExternalURL:(NSString*)url;

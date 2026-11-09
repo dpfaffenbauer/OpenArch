@@ -385,6 +385,17 @@ private struct SpacesSection: View {
                 }
                 .buttonStyle(.plain)
                 .opacity(0.75)
+                Button {
+                    browser.manageSpaces.show()
+                } label: {
+                    Label("Spaces verwalten …", systemImage: "slider.horizontal.3")
+                        .font(.system(size: 13))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
+                }
+                .buttonStyle(.plain)
+                .opacity(0.75)
             }
         }
         .scrollIndicators(.never)

@@ -505,8 +505,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     /// ⌘⇧T: the last closed tab, or the last closed window if it closed
-    /// later, as in Chrome.
+    /// later, as in Chrome; a Peek card closed after both.
     @objc func reopenTab(_ sender: Any?) {
+        // A Peek card closed after the last tab comes back first.
+        if let browser, browser.peek.canReopen(newerThan: library.archive.first?.date) {
+            return browser.peek.reopen()
+        }
         if ClosedWindows.shared.lastIsNewer(than: library.archive), ClosedWindows.shared.reopen(app: self) { return }
         browser?.reopenClosedTab()
     }

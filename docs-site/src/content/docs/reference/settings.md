@@ -32,7 +32,6 @@ The settings of OpenArch for iPhone and iPad are on
 | --- | --- | --- |
 | **Tabs unter dem Strich archivieren** | Today tabs you have not used for this long go to the archive: after 12 hours, 24 hours, 7 days, 30 days, or never. See [Tabs](/sidebar/tabs/). | nach 12 Stunden |
 | **Schlafende Tabs** | Tabs you have not looked at for this long free their memory and load again when you come back: after 30 minutes, 1 hour, 2 hours, 6 hours, or never. Tabs playing sound or with unsaved input stay awake. See [Tabs](/sidebar/tabs/). | nach 2 Stunden |
-| **Peek** | Links from pinned tabs and favorites to other sites open in a card over the page. See [Peek](/browsing/peek/). | On |
 | **Bild-in-Bild beim Tab-Wechsel** | A video playing with sound goes on in a small window when you leave its tab. See [Player, meetings and screen sharing](/sidebar/cards/). | On |
 | **Chrome-Toolbar in Tabs** | The address bar, extension icons and downloads above the page (<kbd>⇧⌘D</kbd>). See [Extensions and Chrome features](/browsing/chrome/). | On |
 | **Adresse oben in der Sidebar** | The page's address at the top of the sidebar. See [The sidebar](/sidebar/basics/). | Off |
@@ -103,6 +102,12 @@ sidebar. See [Spaces and profiles](/sidebar/spaces/). Default: one profile,
 **Persönlich**.
 
 ## Links
+
+### Links in Tabs
+
+| Setting | What it does | Default |
+| --- | --- | --- |
+| **Peek** | Links from pinned tabs and favorites to other sites, and <kbd>⇧</kbd>-clicked links, open in a card over the page; <kbd>⌘Z</kbd> or <kbd>⇧⌘T</kbd> opens a card just closed again. Off: they open as usual, a <kbd>⇧</kbd>-clicked link as a new tab. See [Peek](/browsing/peek/). | On |
 
 ### Link-Regeln
 
