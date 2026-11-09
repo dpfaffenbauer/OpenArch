@@ -367,6 +367,14 @@ struct Settings: Codable, Equatable {
     var linkRules: [LinkRule] = []
     /// A playing video moves to picture-in-picture when you switch tabs.
     var autoPictureInPicture = true
+    /// A call (a page using the camera or the microphone) moves to a
+    /// floating window when you leave its tab or window.
+    var callPictureInPicture = true
+    /// Sites (hosts) whose videos and calls never float by themselves.
+    var pictureInPictureExceptions: [String] = []
+    /// Where the floating window was moved to last (screen coordinates);
+    /// nil: the bottom right of the screen.
+    var pictureInPictureFrame: CGRect?
     /// Links from pinned tabs and favorites to other sites, and ⇧-clicks on
     /// any link, open in Peek.
     var peek = true
@@ -375,6 +383,11 @@ struct Settings: Codable, Equatable {
     /// Minutes after which a tab nobody looks at goes to sleep (its page is
     /// closed until you come back to it); 0 = never.
     var sleepAfterMinutes = 120
+    /// Pinned tabs and favorites of chat and mail sites (KeepAwakeSites)
+    /// never sleep.
+    var keepChatSitesAwake = true
+    /// More sites (hosts) for that.
+    var keepAwakeSites: [String] = []
     /// Chromium's HTTPS-First mode: http:// addresses try https:// first and
     /// warn before loading without it.
     var httpsOnly = false
@@ -438,9 +451,15 @@ struct Settings: Codable, Equatable {
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture
+        callPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .callPictureInPicture) ?? defaults.callPictureInPicture
+        pictureInPictureExceptions = try container.decodeIfPresent([String].self, forKey: .pictureInPictureExceptions)
+            ?? defaults.pictureInPictureExceptions
+        pictureInPictureFrame = try container.decodeIfPresent(CGRect.self, forKey: .pictureInPictureFrame)
         peek = try container.decodeIfPresent(Bool.self, forKey: .peek) ?? defaults.peek
         askAI = try container.decodeIfPresent(AIChat.self, forKey: .askAI) ?? defaults.askAI
         sleepAfterMinutes = try container.decodeIfPresent(Int.self, forKey: .sleepAfterMinutes) ?? defaults.sleepAfterMinutes
+        keepChatSitesAwake = try container.decodeIfPresent(Bool.self, forKey: .keepChatSitesAwake) ?? defaults.keepChatSitesAwake
+        keepAwakeSites = try container.decodeIfPresent([String].self, forKey: .keepAwakeSites) ?? defaults.keepAwakeSites
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps

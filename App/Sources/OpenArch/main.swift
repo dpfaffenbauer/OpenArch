@@ -91,6 +91,11 @@ if AppPaths.isSelfTest {
         "disable-backgrounding-occluded-windows", "disable-renderer-backgrounding",
         "disable-background-timer-throttling", "autoplay-policy=no-user-gesture-required",
     ]
+    // The call test: Chromium's fake camera and microphone, without asking
+    // (nor macOS).
+    if arguments.contains("--call-test") {
+        settings.extraSwitches += ["use-fake-device-for-media-stream", "use-fake-ui-for-media-stream"]
+    }
     if let vmodule = arguments.firstIndex(of: "--chromium-vmodule").map({ arguments[$0 + 1] }) {
         settings.extraSwitches += ["enable-logging=stderr", "vmodule=" + vmodule]
     }

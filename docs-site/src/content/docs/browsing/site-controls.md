@@ -31,6 +31,8 @@ Each permission has a menu. **Standard** does what Chrome does when nothing is c
 
 A choice applies to the site's address as you see it at the top (scheme, host and port, say `https://www.example.com`), in the tab's profile. A space with another profile keeps its own choices.
 
+Below the permissions, **Bild-in-Bild beim Verlassen** decides whether the site's videos and calls float in a small window when you leave the tab (see [Calls in picture-in-picture](/sidebar/cards/#calls-in-picture-in-picture)). Turning it off adds the site's host to **Settings › Allgemein › Tabs › Ohne Bild-in-Bild**, for every profile.
+
 ### Zoom
 
 **Zoom** shows the page's size in percent, with **−** and **+** to change it and **Zurücksetzen** to go back to 100 %. Chrome keeps the zoom per site, so every page of the site opens at it. The menu commands do the same:

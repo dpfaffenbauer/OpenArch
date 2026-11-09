@@ -218,7 +218,7 @@ private struct GeneralPage: View {
                 .labelsHidden().fixedSize()
             }
             Row(symbol: "moon.zzz", color: .indigo, title: "Schlafende Tabs",
-                detail: "Tabs, die du so lange nicht angesehen hast, geben ihren Speicher frei und laden neu, wenn du zurückkommst. Tabs mit Ton oder ungespeicherten Eingaben bleiben wach.") {
+                detail: "Tabs, die du so lange nicht angesehen hast, geben ihren Speicher frei und laden neu, wenn du zurückkommst. Tabs mit Ton, ungespeicherten Eingaben oder in einem Anruf bleiben wach.") {
                 Picker("", selection: $library.settings.sleepAfterMinutes) {
                     Text("nach 30 Minuten").tag(30)
                     Text("nach 1 Stunde").tag(60)
@@ -228,9 +228,26 @@ private struct GeneralPage: View {
                 }
                 .labelsHidden().fixedSize()
             }
+            Row(symbol: "bubble.left.and.bubble.right", color: .green, title: "Chat und Mail wach halten",
+                detail: "Angeheftete Tabs und Favoriten von Slack, Gmail, Outlook, WhatsApp, Telegram, Discord, Teams, Google Chat und ähnlichen Diensten schlafen nie ein, damit Nachrichten und Anrufe ankommen.") {
+                Toggle("", isOn: $library.settings.keepChatSitesAwake).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "plus.bubble", color: .green, title: "Weitere Seiten wach halten",
+                detail: "Adressen, durch Kommas getrennt, z. B. „chat.firma.de, linear.app“.") {
+                SiteListField(sites: $library.settings.keepAwakeSites, placeholder: "chat.firma.de")
+                    .disabled(!library.settings.keepChatSitesAwake)
+            }
             Row(symbol: "pip", color: .pink, title: "Bild-in-Bild beim Tab-Wechsel",
                 detail: "Ein laufendes Video mit Ton spielt in einem kleinen Fenster weiter, wenn du den Tab verlässt.") {
                 Toggle("", isOn: $library.settings.autoPictureInPicture).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "video.bubble", color: .pink, title: "Anrufe in Bild-in-Bild",
+                detail: "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich.") {
+                Toggle("", isOn: $library.settings.callPictureInPicture).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "pip.remove", color: .pink, title: "Ohne Bild-in-Bild",
+                detail: "Seiten, deren Videos und Anrufe nie von selbst schweben, durch Kommas getrennt. Auch im Site Control Center (⌃⌘I).") {
+                SiteListField(sites: $library.settings.pictureInPictureExceptions, placeholder: "youtube.com")
             }
             Row(symbol: "menubar.rectangle", color: .indigo, title: "Chrome-Toolbar in Tabs",
                 detail: "Adressleiste, Extension-Symbole und Downloads über der Seite (⌘⇧D).") {
@@ -288,6 +305,25 @@ private struct GeneralPage: View {
         AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
+/// A list of sites typed as text, separated by commas; what you type stays
+/// as typed while the list is updated.
+private struct SiteListField: View {
+    @Binding var sites: [String]
+    let placeholder: String
+    @State private var text = ""
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 180)
+            .onAppear { text = sites.joined(separator: ", ") }
+            .onChange(of: text) {
+                let parsed = KeepAwakeSites.parse(text)
+                if parsed != sites { sites = parsed }
+            }
     }
 }
 

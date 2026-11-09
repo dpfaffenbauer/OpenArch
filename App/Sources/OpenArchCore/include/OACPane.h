@@ -95,6 +95,9 @@ NS_SWIFT_UI_ACTOR
     consoleMessage:(NSString*)message
             source:(NSString*)source
               line:(NSInteger)line;
+/// The page started or stopped using the camera (video) or the
+/// microphone (audio), as Chrome's recording indicator shows it.
+- (void)pane:(OACPane*)pane mediaAccessDidChangeVideo:(BOOL)video audio:(BOOL)audio;
 /// The browser is gone (closed by the page, a crash or -close).
 - (void)paneDidClose:(OACPane*)pane;
 /// A new document started (YES) or finished (NO) loading in the main frame.

@@ -83,6 +83,17 @@ final class SelfTest {
             }
             return
         }
+        // --call-test: only calls in picture-in-picture and tabs kept awake
+        // (SelfTestCalls.swift); their floating windows pop up.
+        if CommandLine.arguments.contains("--call-test") {
+            after(0.5) {
+                self.callFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         // --theme-test: only themes and the sidebar on the right (SelfTestTheme.swift).
         if CommandLine.arguments.contains("--theme-test") {
             populate()
@@ -1227,19 +1238,24 @@ final class SelfTest {
     /// Plays a tone in a tab that was muted first (so nothing is heard) and
     /// checks that the sidebar learns about it.
     /// A tab nobody looked at goes to sleep and comes back on the same page;
-    /// one whose page asks before leaving stays awake.
+    /// one whose page asks before leaving stays awake, and so does a pinned
+    /// tab of a chat site (here example.com, added to the list).
     private func sleepingTabs(then next: @escaping () -> Void) {
         guard let space = library.spaces.first else { return }
         browser.switchSpace(to: space)
         let shown = browser.state.activeItem
         let sleepy = browser.openInNewTab("https://example.com/?sleepy", select: false)
         let asking = browser.openInNewTab("https://example.com/?asking", select: false)
+        let chat = space.pinned.allTabs.first { $0.currentURL == "https://example.com/pinned" }
+        let keepAwakeSites = library.settings.keepAwakeSites
+        library.settings.keepAwakeSites = ["example.com"]
         browser.select(sleepy, focus: false)
         browser.select(asking, focus: false)
+        if let chat { browser.select(chat, focus: false) }
         if let shown { browser.select(shown, focus: false) }
         after(3) {
             asking.pane?.executeJavaScript("window.addEventListener('beforeunload', e => e.preventDefault())")
-            for tab in [sleepy, asking] {
+            for tab in [sleepy, asking] + [chat].compactMap({ $0 }) {
                 tab.lastActiveAt = Date().addingTimeInterval(-3600)
                 tab.loadedAt = tab.lastActiveAt
             }
@@ -1249,6 +1265,9 @@ final class SelfTest {
                     self.expect(sleepy.isAsleep && sleepy.pane == nil && sleepy.currentURL == "https://example.com/?sleepy",
                                 "a tab nobody looked at sleeps and keeps its address (asleep \(sleepy.isAsleep), \(sleepy.currentURL))")
                     self.expect(!asking.isAsleep && asking.pane != nil, "a page that asks before leaving stays awake")
+                    self.expect(chat != nil && chat?.isAsleep == false && chat?.pane != nil,
+                                "a pinned tab of a chat site stays awake")
+                    self.library.settings.keepAwakeSites = keepAwakeSites
                     self.browser.select(sleepy, focus: false)
                     after(2.5) {
                         self.expect(!sleepy.isAsleep && sleepy.pane?.url == "https://example.com/?sleepy",
@@ -2617,6 +2636,7 @@ final class SelfTest {
     }
 
     func consoleMessage(_ message: String, from item: Item?) {
+        if callConsoleMessage(message) { return }
         if message.hasPrefix("__selftest_media__ ") {
             mediaChecks.append(String(message.dropFirst("__selftest_media__ ".count)))
             return
