@@ -24,7 +24,7 @@ The editor has:
 
 - **Name**.
 - **Symbol** (icon): one of 30 symbols, or any emoji typed into the field beside **oder Emoji**.
-- **Farbe** (color): one of twelve, or any color from the color picker at the end. The sidebar, the window around the pages and the Dock icon (if you choose it) take this color. See [Colors, glass and grain](/sidebar/appearance/).
+- **Theme**: Arc's theme picker, with one to three colors on a color disc, Arc's nine swatches, **Auto**, **Hell** or **Dunkel**, **Intensität** and **Körnung**. The sidebar and the window around the pages take the theme, the Dock icon (if you choose it) its first color. See [Themes, glass and the sidebar's side](/sidebar/appearance/).
 - **Profil**: which profile the space uses, and **Neues Profil …** to make one.
 
 Changes apply as you make them.

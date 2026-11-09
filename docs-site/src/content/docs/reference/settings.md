@@ -52,10 +52,10 @@ The settings of OpenArch for iPhone and iPad are on
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| **Breite** | The sidebar's width, from 200 to 440 points. Dragging the sidebar's edge does the same; dragging it far to the left hides the sidebar. See [The sidebar](/sidebar/basics/). | 300 |
-| **Glas-Effekt** | The desktop shows through the window. From macOS 26 the sidebar floats on it as Liquid Glass, before that as frosted glass; the pages lie beside it as cards. See [Colors, glass and grain](/sidebar/appearance/). | Off |
-| **Tönung** | How much of the space's color is in the glass: little lets more of the desktop through, a lot keeps the text easy to read. Only with **Glas-Effekt** on. | Just left of the middle |
-| **Körnung** | Arc's fine grain on the space's color. All the way to the left, it is off. See [Colors, glass and grain](/sidebar/appearance/). | Off |
+| **Sidebar-Position** | **Links** or **Rechts**: the sidebar on the window's left or right, in every window. See [Themes, glass and the sidebar's side](/sidebar/appearance/#the-sidebar-on-the-right). | Links |
+| **Breite** | The sidebar's width, from 200 to 440 points. Dragging the sidebar's inner edge does the same; dragging it far towards the window's edge hides the sidebar. See [The sidebar](/sidebar/basics/). | 300 |
+| **Glas-Effekt** | The desktop shows through the window. From macOS 26 the sidebar floats on it as Liquid Glass, before that as frosted glass; the pages lie beside it as cards. See [Themes, glass and the sidebar's side](/sidebar/appearance/). | Off |
+| **Tönung** | How much of the space's colors is on the glass: little lets more of the desktop through, a lot keeps the text easy to read. Only with **Glas-Effekt** on. | Just left of the middle |
 | **Vorschau beim Überfahren** | Resting the pointer on a tab in the sidebar shows a picture of its page beside it. See [Tabs](/sidebar/tabs/). | On |
 
 ### App-Symbol
@@ -63,7 +63,7 @@ The settings of OpenArch for iPhone and iPad are on
 The Dock icon: twelve takes on the arch, **Space-Farbe** (the color of the
 space you are in) or **Jeden Tag** (a different one each day). The fixed
 icons also show for OpenArch in the Finder. See
-[Colors, glass and grain](/sidebar/appearance/). Default: **Tunnel**,
+[Themes, glass and the sidebar's side](/sidebar/appearance/). Default: **Tunnel**,
 OpenArch's own.
 
 ### Seitensuche

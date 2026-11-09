@@ -15,6 +15,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     let model = LittleOpenArchModel()
     private var transferred = false
     private let theme: SpaceTheme
+    private let background = SpaceBackgroundView()
+    private var bar: NSView?
     static let barHeight: CGFloat = 40
 
     /// Opens a Little OpenArch window, with |url| or with an address field.
@@ -62,10 +64,12 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         window.titleVisibility = .hidden
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 480, height: 320)
-        let theme = SpaceTheme(hex: space.colorHex)
+        // The space's theme around the page, as in the main window.
+        let theme = SpaceTheme.resolve(space.theme)
         self.theme = theme
-        window.backgroundColor = theme.base
-        window.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.appearance = theme.appearance
         // Cascade from the last Little OpenArch window, or sit at the screen's center.
         if let last = Self.open.last?.window {
             window.setFrameTopLeftPoint(NSPoint(x: last.frame.minX + 28, y: last.frame.maxY - 28))
@@ -75,9 +79,17 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         super.init(window: window)
         window.delegate = self
         model.url = url ?? ""
+        background.autoresizingMask = [.width, .height]
+        background.cornerRadius = BrowserWindowController.windowCornerRadius
+        if let content = window.contentView {
+            background.frame = content.bounds
+            content.addSubview(background)
+        }
         let bar = NSHostingView(rootView: LittleOpenArchBar(controller: self, theme: theme))
         bar.sizingOptions = []
         window.contentView?.addSubview(bar)
+        self.bar = bar
+        applyColor()
         pane.delegate = self
         pane.cornerRadius = 8
         pane.activatesOnShow = !AppPaths.isSelfTest
@@ -94,8 +106,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     func layout() {
         guard let window, let content = window.contentView else { return }
-        content.subviews.first?.frame = NSRect(x: 0, y: content.bounds.height - Self.barHeight,
-                                               width: content.bounds.width, height: Self.barHeight)
+        bar?.frame = NSRect(x: 0, y: content.bounds.height - Self.barHeight, width: content.bounds.width, height: Self.barHeight)
         if pane.isVisible {
             pane.setFrame(paneFrame)
         } else {
@@ -110,7 +121,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     private func applyColor() {
         let front = AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
-        window?.backgroundColor = front ? theme.base : theme.inactiveBase
+        background.apply(theme, active: front)
     }
     func windowDidMove(_ notification: Notification) { layout() }
 

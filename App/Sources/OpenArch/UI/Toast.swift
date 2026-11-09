@@ -28,7 +28,7 @@ final class ToastWindow: NSWindow {
     /// Shows |text| centered near the top of |area| (screen coordinates),
     /// with |action|'s button if there is one.
     func show(_ text: String, symbol: String = "checkmark.circle.fill", over area: NSRect, parent: NSWindow,
-              action: ToastAction? = nil) {
+              action: ToastAction? = nil, theme: SpaceTheme? = nil) {
         generation += 1
         let shown = generation
         let button = action.map { action in
@@ -39,7 +39,8 @@ final class ToastWindow: NSWindow {
                 self.orderOut(nil)
             }
         }
-        host.rootView = ToastView(text: text, symbol: symbol, action: button)
+        host.rootView = ToastView(text: text, symbol: symbol, action: button,
+                                  fill: theme?.toastBackground ?? Color.black.opacity(0.78))
         ignoresMouseEvents = action == nil
         let size = host.idealSize
         setFrame(NSRect(x: area.midX - size.width / 2, y: area.maxY - size.height - 18, width: size.width, height: size.height),
@@ -73,6 +74,8 @@ private struct ToastView: View {
     let text: String
     let symbol: String
     var action: ToastAction?
+    /// A deep pill in the space's theme.
+    var fill = Color.black.opacity(0.78)
 
     var body: some View {
         HStack(spacing: 12) {
@@ -90,7 +93,7 @@ private struct ToastView: View {
         .padding(.leading, 14)
         .padding(.trailing, action == nil ? 14 : 5)
         .frame(height: 34)
-        .background(Capsule().fill(Color.black.opacity(0.78)))
+        .background(Capsule().fill(fill))
         .padding(8)
         .fixedSize()
     }

@@ -32,6 +32,8 @@ final class BrowserState {
     let downloadStack = DownloadStack()
     /// Horizontal offset of the sidebar while it is being swiped.
     var swipeOffset: CGFloat = 0
+    /// The Mac is in dark mode, which auto themes follow.
+    var systemDark = false
     /// The library button and the whole sidebar, both in SwiftUI's global
     /// coordinates (whose origin depends on the safe area), for downloads
     /// flying into the button.
