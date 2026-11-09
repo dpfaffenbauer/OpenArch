@@ -48,6 +48,26 @@ ASC_KEY_ID=<key id> ASC_ISSUER_ID=<issuer id> scripts/upload-screenshots.sh
 2. Create the app record in App Store Connect, with primary language German.
 3. Archive with Xcode 27.1 or later, and upload. Since 1.0.1 the iOS workflow does this on every push to main that touches iOS/ or Shared/: the build number is the run number, MARKETING_VERSION comes from the project.
 
+## TestFlight from GitHub Actions
+
+`.github/workflows/ios.yml` uploads every push to main that touches `iOS/` or `Shared/` once the tests pass; without the secrets it skips the upload. A new App Store version needs a higher `MARKETING_VERSION` in the project, as builds of a version that is out are refused.
+
+Repo secrets:
+
+- `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API_KEY_P8` (contents of the `.p8`): the team key "OpenArch GitHub Actions" (`9ZLCU383CU`, role Admin, so Xcode may create the distribution certificate and profiles itself).
+- `IOS_CERTIFICATE_P12` (`base64 -i ios-ci.p12`), `IOS_CERTIFICATE_PASSWORD`: the "Apple Development" certificate `28Y6W75MBZ` the archive signs with, valid until 2027-11-09. Without it every fresh runner would make a new development certificate until the team's limit is reached.
+
+Key, CSR and certificate are in `OpenArch-Signing/` (`ios-ci.*`), next to this repo. To renew, make a certificate from the CSR with the API key (`POST /v1/certificates`, `certificateType` `DEVELOPMENT`) or on developer.apple.com, then:
+
+```bash
+openssl x509 -inform DER -in ios-ci.cer -out ios-ci.pem
+PW=$(openssl rand -base64 24)
+openssl pkcs12 -export -legacy -inkey ios-ci.key -in ios-ci.pem -out ios-ci.p12 -passout pass:"$PW" \
+  -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES -macalg sha1
+gh secret set IOS_CERTIFICATE_P12 --body "$(base64 -i ios-ci.p12)"
+printf %s "$PW" | gh secret set IOS_CERTIFICATE_PASSWORD
+```
+
 ## Answers in App Store Connect
 
 | Question | Answer |
