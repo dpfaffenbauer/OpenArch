@@ -48,6 +48,10 @@ SafeStorage.prepare(chromiumData: AppPaths.chromiumData, arguments: safeStorageA
 
 // A full import from Arc replaces the profile before Chromium opens it.
 ArcProfileImport.runIfPending(chromiumData: AppPaths.chromiumData) { History().importChromiumHistory(from: $0) }
+// Logins and passwords from other browsers or a CSV file, the same way.
+if !AppPaths.isSelfTest {
+    CredentialImport.runIfPending(chromiumData: AppPaths.chromiumData)
+}
 
 // An imported backup (Settings › Info › Sicherung) replaces the library
 // before anything reads it.

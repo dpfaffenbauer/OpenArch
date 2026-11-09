@@ -817,6 +817,8 @@ private struct SharingPage: View {
 
 private struct ImportPage: View {
     let app: AppDelegate
+    @Bindable var model = BrowserImportModel.shared
+    @State private var passwordProfile = ""
 
     var body: some View {
         Section(title: "Aus Arc", footer: ArcImporter.isAvailable ? nil : "Auf diesem Mac wurden keine Arc-Daten gefunden.") {
@@ -825,10 +827,177 @@ private struct ImportPage: View {
                 Button("Importieren …") { app.importFromArc(nil) }.disabled(!ArcImporter.isAvailable)
             }
             Row(symbol: "puzzlepiece.extension", color: .green, title: "Extensions aus Arc",
-                detail: "Ein Ordner mit je einem Web-Store-Link pro Extension, falls du sie lieber neu installierst.", showsDivider: false) {
+                detail: "Ein Ordner mit je einem Web-Store-Link pro Extension, falls du sie lieber neu installierst.") {
                 Button("Ordner anlegen") { app.installArcExtensions(nil) }
             }
+            Row(symbol: "archivebox", color: .orange, title: "Arc-Daten sichern",
+                detail: "Arcs Sidebar, Spaces und Profilliste als ZIP-Datei in „Dokumente“. Arc wird am 22. Dezember 2026 eingestellt; aus der Sicherung lässt sich die Sidebar auch danach noch lesen.",
+                showsDivider: false) {
+                Button("Sichern") { app.backUpArc(nil) }.disabled(!ArcBackup.isAvailable)
+            }
         }
+        Section(title: "Aus anderen Browsern",
+                footer: "Jedes Profil wird ein Profil in OpenArch und ein Space mit seinem Namen: die Lesezeichenleiste als angeheftete Tabs und Ordner, „Weitere Lesezeichen“ als eigener Ordner. Der Verlauf kommt in die Befehlsleiste. Ein zweiter Import legt nichts doppelt an. Die anderen Browser bleiben unverändert.") {
+            if !model.hasDetected {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Suche Browser …").font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+                .padding(14)
+            } else if model.installs.isEmpty {
+                Text("Auf diesem Mac wurden keine anderen Browser gefunden.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary).padding(14)
+            }
+            ForEach(Array(model.installs.enumerated()), id: \.element.id) { index, install in
+                BrowserImportRow(install: install, model: model, showsDivider: index < model.installs.count - 1)
+            }
+        }
+        HStack(spacing: 10) {
+            if case .running(let text, let progress) = model.phase {
+                ProgressView(value: progress).frame(width: 160)
+                Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Importieren") { model.run(app: app) }
+                .disabled(!model.canRun)
+        }
+        if case .done(let report) = model.phase {
+            ImportResultView(report: report)
+        }
+        Section(title: "Aus Dateien",
+                footer: "Passwörter liest OpenArch beim nächsten Start aus der Datei, bevor Chromium startet, und lässt die Datei unverändert. Sie enthält deine Passwörter im Klartext: Lösche sie danach.") {
+            Row(symbol: "bookmark.fill", color: .blue, title: "Lesezeichen-Datei (HTML)",
+                detail: "Wie Safari, Chrome, Firefox oder Edge Lesezeichen exportieren. Kommt in einen eigenen Space im aktuellen Profil.") {
+                Button("Datei wählen …") { model.importBookmarksFile(app: app) }
+            }
+            Row(symbol: "key.fill", color: .gray, title: "Passwörter (CSV)",
+                detail: "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden.",
+                showsDivider: false) {
+                HStack {
+                    Picker("", selection: $passwordProfile) {
+                        ForEach(app.library.profiles) { profile in Text(profile.name).tag(profile.id) }
+                    }
+                    .labelsHidden().frame(width: 130)
+                    Button("Datei wählen …") {
+                        model.importPasswordFile(app: app, profileID: passwordProfile.isEmpty ? app.library.profiles[0].id : passwordProfile)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            if passwordProfile.isEmpty { passwordProfile = app.browser?.state.space.profileID ?? app.library.profiles[0].id }
+            model.detect()
+        }
+    }
+}
+
+/// One browser: its profiles to tick, what to take, or why it cannot be read.
+private struct BrowserImportRow: View {
+    let install: BrowserInstall
+    @Bindable var model: BrowserImportModel
+    var showsDivider = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                icon.frame(width: 28, height: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(install.name).font(.system(size: 13, weight: .medium))
+                    if install.needsAccess {
+                        Text(install.kind == .safari
+                             ? "Safari schützt Lesezeichen und Verlauf. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal."
+                             : "macOS lässt OpenArch den Ordner von \(install.name) nicht lesen. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal.")
+                            .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 12)
+                if install.needsAccess {
+                    Button("Systemeinstellungen …") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            }
+            if !install.needsAccess {
+                HStack(spacing: 14) {
+                    ForEach(BrowserImportModel.DataKind.allCases.filter { $0 != .logins || install.canImportLogins }, id: \.self) { kind in
+                        Toggle(kind.title, isOn: Binding(get: { model.takes(kind, from: install) },
+                                                         set: { model.set(kind, for: install, $0) }))
+                            .toggleStyle(.checkbox).font(.system(size: 12))
+                    }
+                }
+                .padding(.leading, 40)
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(install.profiles) { profile in
+                        Toggle(isOn: Binding(get: { model.isSelected(install, profile) },
+                                             set: { model.setSelected(install, profile, $0) })) {
+                            HStack(spacing: 6) {
+                                Circle().fill(Color(nsColor: NSColor(hex: profile.color ?? install.kind.color) ?? .systemBlue))
+                                    .frame(width: 8, height: 8)
+                                Text(profile.name).font(.system(size: 12))
+                            }
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+                .padding(.leading, 40)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        if showsDivider {
+            Divider().padding(.leading, 54).opacity(0.6)
+        }
+    }
+
+    @ViewBuilder private var icon: some View {
+        if let image = Self.appIcon(install.bundleIDs) {
+            Image(nsImage: image).resizable()
+        } else {
+            Image(systemName: install.kind.icon)
+                .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(nsColor: NSColor(hex: install.kind.color) ?? .systemBlue).gradient))
+        }
+    }
+
+    static func appIcon(_ bundleIDs: [String]) -> NSImage? {
+        for id in bundleIDs {
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+                return NSWorkspace.shared.icon(forFile: url.path)
+            }
+        }
+        return nil
+    }
+}
+
+/// The numbers of the last import, and what was left out.
+private struct ImportResultView: View {
+    let report: BrowserImportReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(report.errors.isEmpty ? "Import abgeschlossen" : "Import nicht möglich",
+                  systemImage: report.errors.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(report.errors.isEmpty ? .green : .orange)
+            if report.errors.isEmpty {
+                ForEach(report.lines, id: \.self) { Text($0).font(.system(size: 12)) }
+            }
+            if !report.pendingLogins.isEmpty {
+                Text("Logins und Passwörter aus \(report.pendingLogins.joined(separator: ", ")) kommen beim nächsten Start dazu.")
+                    .font(.system(size: 12))
+            }
+            if !report.skippedLines.isEmpty {
+                Text("Übersprungen").font(.system(size: 12, weight: .semibold)).padding(.top, 4)
+                ForEach(report.skippedLines, id: \.self) { Text($0).font(.system(size: 12)).foregroundStyle(.secondary) }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)))
     }
 }
 

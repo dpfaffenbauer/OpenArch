@@ -25,6 +25,13 @@ Google does not offer Chrome sync to other Chromium browsers. Signing in to Goog
 
 The full import, with logins, passwords and extensions, has been tested on copies of Arc profiles, not yet on many real ones. It never changes Arc's own data, so Arc keeps working as it was. See [Move over from Arc](/start/import-from-arc/).
 
+## Moving over from other browsers
+
+Logins and cookies come over from Chromium browsers only; they have been
+tested with made-up profiles, not yet with many real ones. Firefox's and
+Safari's passwords come only from an exported CSV file, and Safari needs
+Full Disk Access. See [Move over from another browser](/start/import/).
+
 ## Not built yet
 
 Arc's **Easels** and **Notes** have no counterpart in OpenArch yet.

@@ -138,6 +138,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 after(2) { [weak self] in
                     CrashReports.shared.offer { url in _ = self?.mainBrowser?.openInNewTab(url.absoluteString) }
                 }
+                if let result = CredentialImport.takeResult() {
+                    let alert = NSAlert()
+                    alert.messageText = "Logins und Passwörter importiert"
+                    alert.informativeText = result
+                    alert.runModal()
+                }
             }
         }
         if !selfTest {
@@ -423,12 +429,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Arc has to be closed so its databases are complete on disk.
     private func quitArcIfNeeded() -> Bool {
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: ArcProfileImport.arcBundleID)
+        quitAppIfNeeded(bundleIDs: [ArcProfileImport.arcBundleID], name: "Arc")
+    }
+
+    /// A browser whose logins are imported has to be closed, so its
+    /// databases are complete on disk.
+    func quitAppIfNeeded(bundleIDs: [String], name: String) -> Bool {
+        let running = bundleIDs.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
         guard !running.isEmpty else { return true }
         let alert = NSAlert()
-        alert.messageText = "Arc beenden?"
-        alert.informativeText = "Arc läuft noch. Damit Logins und Website-Daten vollständig übernommen werden, muss Arc beendet sein. Deine Tabs in Arc bleiben erhalten."
-        alert.addButton(withTitle: "Arc beenden")
+        alert.messageText = "\(name) beenden?"
+        alert.informativeText = "\(name) läuft noch. Damit Logins und Website-Daten vollständig übernommen werden, muss \(name) beendet sein. Deine Tabs in \(name) bleiben erhalten."
+        alert.addButton(withTitle: "\(name) beenden")
         alert.addButton(withTitle: "Abbrechen")
         guard alert.runModal() == .alertFirstButtonReturn else { return false }
         for app in running { app.terminate() }
@@ -438,12 +450,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if running.contains(where: { !$0.isTerminated }) {
             let failed = NSAlert()
-            failed.messageText = "Arc ließ sich nicht beenden."
-            failed.informativeText = "Bitte beende Arc selbst und starte den Import dann noch einmal."
+            failed.messageText = "\(name) ließ sich nicht beenden."
+            failed.informativeText = "Bitte beende \(name) selbst und starte den Import dann noch einmal."
             failed.runModal()
             return false
         }
         return true
+    }
+
+    /// Settings › Import, where the other browsers on this Mac are listed.
+    @objc func importFromOtherBrowser(_ sender: Any?) {
+        showSettings(page: .importing)
+    }
+
+    @objc func backUpArc(_ sender: Any?) {
+        do {
+            let file = try ArcBackup.make()
+            NSWorkspace.shared.activateFileViewerSelecting([file])
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     @objc func installArcExtensions(_ sender: Any?) {
@@ -696,6 +722,7 @@ enum MainMenu {
             .separator(),
             item("Seite sichern unter …", #selector(AppDelegate.savePage(_:)), "s", [.command, .shift]),
             item("Aus Arc importieren …", #selector(AppDelegate.importFromArc(_:))),
+            item("Aus anderem Browser importieren …", #selector(AppDelegate.importFromOtherBrowser(_:))),
             .separator(),
             item("Drucken …", #selector(AppDelegate.printPage(_:)), "p"),
         ]))

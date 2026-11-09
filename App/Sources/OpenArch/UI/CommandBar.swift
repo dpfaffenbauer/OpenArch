@@ -557,6 +557,7 @@ final class CommandBarModel {
             ("Browser-Einstellungen", "gearshape.2", nil, { browser.openChromePage("chrome://settings") }),
             ("OpenArch-Einstellungen", "gearshape", #selector(AppDelegate.showSettings(_:)), { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
             ("Aus Arc importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }),
+            ("Aus anderem Browser importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromOtherBrowser(nil) }),
         ]
         if !ClosedWindows.shared.isEmpty {
             let reopen: Command = ("Geschlossenes Fenster wieder öffnen", "macwindow.badge.plus", nil, {

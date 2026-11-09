@@ -70,8 +70,9 @@ final class Library {
     }
 
     @discardableResult
-    func addSpace(name: String, icon: String = "circle.fill", colorHex: String = "#7B6CF6", profileID: String? = nil) -> Space {
-        let space = Space(name: name, icon: icon, colorHex: colorHex, profileID: profileID ?? profiles[0].id)
+    func addSpace(id: UUID = UUID(), name: String, icon: String = "circle.fill", colorHex: String = "#7B6CF6",
+                  profileID: String? = nil) -> Space {
+        let space = Space(id: id, name: name, icon: icon, colorHex: colorHex, profileID: profileID ?? profiles[0].id)
         spaces.append(space)
         setNeedsSave()
         return space
