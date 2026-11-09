@@ -6,6 +6,13 @@ enum AppPaths {
 
     static let support: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        // OPENARCH_DATA_DIR: a data folder of its own, so a test build runs
+        // next to the OpenArch in use without touching its data.
+        if !isSelfTest, let custom = ProcessInfo.processInfo.environment["OPENARCH_DATA_DIR"], !custom.isEmpty {
+            let url = URL(fileURLWithPath: (custom as NSString).expandingTildeInPath, isDirectory: true)
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
         let url = base.appendingPathComponent(isSelfTest ? "OpenArch SelfTest" : "OpenArch", isDirectory: true)
         // A fresh folder per test run; --keep-data starts a second instance on
         // the running test's data (the second-launch test).

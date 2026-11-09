@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "OpenArch",
   "version": "1.0",
-  "description": "Built into OpenArch: tells the sidebar which tabs play audio and video (and what), and which share the screen.",
+  "description": "Built into OpenArch: tells the sidebar which tabs play audio and video (and what), and which share the screen and which are in a call.",
   "background": {
     "service_worker": "background.js"
   },
@@ -40,7 +40,20 @@
         "<all_urls>"
       ],
       "js": [
-        "capture.js"
+        "protected-content.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "capture.js",
+        "call.js"
       ],
       "run_at": "document_start",
       "all_frames": false,

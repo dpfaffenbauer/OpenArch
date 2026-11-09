@@ -70,8 +70,9 @@ final class Library {
     }
 
     @discardableResult
-    func addSpace(name: String, icon: String = "circle.fill", colorHex: String = "#7B6CF6", profileID: String? = nil) -> Space {
-        let space = Space(name: name, icon: icon, colorHex: colorHex, profileID: profileID ?? profiles[0].id)
+    func addSpace(id: UUID = UUID(), name: String, icon: String = "circle.fill", colorHex: String = "#7B6CF6",
+                  profileID: String? = nil) -> Space {
+        let space = Space(id: id, name: name, icon: icon, colorHex: colorHex, profileID: profileID ?? profiles[0].id)
         spaces.append(space)
         setNeedsSave()
         return space
@@ -94,6 +95,12 @@ final class Library {
         guard let index = spaces.firstIndex(where: { $0 === space }) else { return }
         let target = max(0, min(spaces.count - 1, index + offset))
         spaces.move(fromOffsets: IndexSet(integer: index), toOffset: target > index ? target + 1 : target)
+        setNeedsSave()
+    }
+
+    /// Sorting by dragging in „Spaces verwalten“.
+    func moveSpaces(fromOffsets source: IndexSet, toOffset destination: Int) {
+        spaces.move(fromOffsets: source, toOffset: destination)
         setNeedsSave()
     }
 
@@ -204,6 +211,9 @@ final class Library {
         } else {
             library.profiles = [Profile(id: "Default", name: "Persönlich")]
             library.spaces = [Space(name: "Persönlich", icon: "person.fill", colorHex: "#7B6CF6", profileID: "Default")]
+            // The very first launch: no Library.json yet (a file that does
+            // not decode is not a first launch).
+            library.settings.onboardingPending = !FileManager.default.fileExists(atPath: library.fileURL.path)
         }
         return library
     }
@@ -217,8 +227,9 @@ final class Library {
         if profiles.isEmpty {
             profiles = [Profile(id: "Default", name: "Persönlich")]
         }
-        spaces = data.spaces.map(Space.init(data:))
         settings = data.settings ?? Settings()
+        // Before themes, grain was one setting for every space.
+        spaces = data.spaces.map { Space(data: $0, legacyGrain: settings.grain) }
         archive = data.archive ?? []
         selectedSpaceID = data.selectedSpaceID
     }
@@ -262,24 +273,27 @@ final class Space: Identifiable {
     var name: String
     /// SF Symbol name, or a single emoji.
     var icon: String
-    var colorHex: String
+    /// Arc's theme: colors, intensity, grain, light or dark.
+    var theme: ThemeData
     var profileID: String
     let pinned = Container(role: .pinned)
     let today = Container(role: .today)
 
-    init(id: UUID = UUID(), name: String, icon: String, colorHex: String, profileID: String) {
+    init(id: UUID = UUID(), name: String, icon: String, colorHex: String, profileID: String, theme: ThemeData? = nil) {
         self.id = id
         self.name = name
         self.icon = icon
-        self.colorHex = colorHex
+        self.theme = theme ?? ThemeData(hex: colorHex)
         self.profileID = profileID
     }
 
     /// The tab last shown in this space.
     var activeItemID: UUID?
 
-    convenience init(data: SpaceData) {
-        self.init(id: data.id, name: data.name, icon: data.icon, colorHex: data.colorHex, profileID: data.profileID)
+    /// |legacyGrain|: the grain of every space before each had its own.
+    convenience init(data: SpaceData, legacyGrain: Double = 0) {
+        self.init(id: data.id, name: data.name, icon: data.icon, colorHex: data.colorHex, profileID: data.profileID,
+                  theme: data.theme ?? ThemeData(hex: data.colorHex, grain: legacyGrain))
         pinned.replace(with: data.pinned.map(Item.init(data:)))
         today.replace(with: data.today.map(Item.init(data:)))
         activeItemID = data.activeItemID
@@ -287,7 +301,18 @@ final class Space: Identifiable {
 
     var data: SpaceData {
         SpaceData(id: id, name: name, icon: icon, colorHex: colorHex, profileID: profileID,
-                  pinned: pinned.items.map(\.data), today: today.items.map(\.data), activeItemID: activeItemID)
+                  pinned: pinned.items.map(\.data), today: today.items.map(\.data), activeItemID: activeItemID,
+                  theme: theme)
+    }
+
+    /// The theme's first color (the app icon, shared spaces). Setting it
+    /// changes only that color.
+    var colorHex: String {
+        get { theme.colors.first ?? "#7B6CF6" }
+        set {
+            guard RGB(hex: newValue) != nil else { return }
+            if theme.colors.isEmpty { theme.colors = [newValue] } else { theme.colors[0] = newValue }
+        }
     }
 
     var color: NSColor {
@@ -346,24 +371,46 @@ struct Settings: Codable, Equatable {
     var linkRules: [LinkRule] = []
     /// A playing video moves to picture-in-picture when you switch tabs.
     var autoPictureInPicture = true
-    /// Links from pinned tabs and favorites to other sites open in Peek.
+    /// A call (a page using the camera or the microphone) moves to a
+    /// floating window when you leave its tab or window.
+    var callPictureInPicture = true
+    /// Sites (hosts) whose videos and calls never float by themselves.
+    var pictureInPictureExceptions: [String] = []
+    /// Where the floating window was moved to last (screen coordinates);
+    /// nil: the bottom right of the screen.
+    var pictureInPictureFrame: CGRect?
+    /// Links from pinned tabs and favorites to other sites, and ⇧-clicks on
+    /// any link, open in Peek.
     var peek = true
     /// Where the command bar sends a question.
     var askAI = AIChat.claude
     /// Minutes after which a tab nobody looks at goes to sleep (its page is
     /// closed until you come back to it); 0 = never.
     var sleepAfterMinutes = 120
+    /// Pinned tabs and favorites of chat and mail sites (KeepAwakeSites)
+    /// never sleep.
+    var keepChatSitesAwake = true
+    /// More sites (hosts) for that.
+    var keepAwakeSites: [String] = []
     /// Chromium's HTTPS-First mode: http:// addresses try https:// first and
     /// warn before loading without it.
     var httpsOnly = false
     /// Where DevTools open (Ansicht › DevTools anordnen).
     var devToolsDock = DevToolsDock.right
+    /// Streaming services (Spotify, Netflix …) open in WebKit, which plays
+    /// their DRM with Apple's FairPlay (see ProtectedMedia).
+    var protectedMediaWebKit = true
+    /// Chromium's Widevine for sites that accept it without Verified Media
+    /// Path. Off until the licence question with Google is settled.
+    var widevine = false
     /// Sites whose links to an app open it without asking: "host scheme".
     var allowedExternalApps: [String] = []
     /// The relay for new live shares (docs/sharing.md); empty: share.openarch.app.
     var shareRelay = ""
     /// Agent chats (Claude Code) in the sidebar, next to the tabs.
     var agentChats = false
+    /// Agent chats are on and not switched off (FeatureSwitches).
+    var agentChatsOn: Bool { agentChats && FeatureSwitches.shared.isOn(.agentChats) }
     /// The folder new agent chats work in; empty for the home folder.
     var agentFolder = ""
     /// The glass look: the desktop shows through the window, and from
@@ -377,8 +424,11 @@ struct Settings: Codable, Equatable {
     /// Kinds of files (DownloadKind) they leave out, as strings, so that a
     /// kind unknown to this version does not spoil the settings.
     var downloadStackHidden: [String] = []
-    /// Arc's grain on the space's color (0 = none, 1 = strong).
+    /// The grain every space had before each space's theme got its own;
+    /// read once to carry it over (ThemeData.grain).
     var grain = 0.0
+    /// The sidebar on the window's right instead of its left, in every window.
+    var sidebarOnRight = false
     /// A picture of the page when the pointer rests on a tab in the sidebar.
     var tabPreviews = true
     /// The next meeting from the Mac's calendar at the bottom of the sidebar,
@@ -392,6 +442,18 @@ struct Settings: Codable, Equatable {
     var morningBrief = false
     /// When, in minutes after midnight (7:30).
     var morningBriefMinutes = 450
+    /// Long tab titles get a short name from Apple's on-device model
+    /// (ShortTitles), while Apple Intelligence is there.
+    var tidyTitles = false
+    /// Light or dark for pages, chats and settings, or as macOS has it.
+    var appearance = AppAppearance.system
+    /// Set on a first launch until the onboarding is finished. A library
+    /// saved before there was an onboarding never has it, so whoever used
+    /// OpenArch before never sees it.
+    var onboardingPending = false
+    /// The profile directory of Arc's own profile when the onboarding gave
+    /// it one of its own (a later import from Arc goes there too).
+    var arcDefaultProfile: String?
 
     init() {}
 
@@ -408,11 +470,19 @@ struct Settings: Codable, Equatable {
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture
+        callPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .callPictureInPicture) ?? defaults.callPictureInPicture
+        pictureInPictureExceptions = try container.decodeIfPresent([String].self, forKey: .pictureInPictureExceptions)
+            ?? defaults.pictureInPictureExceptions
+        pictureInPictureFrame = try container.decodeIfPresent(CGRect.self, forKey: .pictureInPictureFrame)
         peek = try container.decodeIfPresent(Bool.self, forKey: .peek) ?? defaults.peek
         askAI = try container.decodeIfPresent(AIChat.self, forKey: .askAI) ?? defaults.askAI
         sleepAfterMinutes = try container.decodeIfPresent(Int.self, forKey: .sleepAfterMinutes) ?? defaults.sleepAfterMinutes
+        keepChatSitesAwake = try container.decodeIfPresent(Bool.self, forKey: .keepChatSitesAwake) ?? defaults.keepChatSitesAwake
+        keepAwakeSites = try container.decodeIfPresent([String].self, forKey: .keepAwakeSites) ?? defaults.keepAwakeSites
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
+        protectedMediaWebKit = try container.decodeIfPresent(Bool.self, forKey: .protectedMediaWebKit) ?? defaults.protectedMediaWebKit
+        widevine = try container.decodeIfPresent(Bool.self, forKey: .widevine) ?? defaults.widevine
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
         shareRelay = try container.decodeIfPresent(String.self, forKey: .shareRelay) ?? defaults.shareRelay
         agentChats = try container.decodeIfPresent(Bool.self, forKey: .agentChats) ?? defaults.agentChats
@@ -422,11 +492,16 @@ struct Settings: Codable, Equatable {
         downloadStack = try container.decodeIfPresent(Bool.self, forKey: .downloadStack) ?? defaults.downloadStack
         downloadStackHidden = try container.decodeIfPresent([String].self, forKey: .downloadStackHidden) ?? defaults.downloadStackHidden
         grain = try container.decodeIfPresent(Double.self, forKey: .grain) ?? defaults.grain
+        sidebarOnRight = try container.decodeIfPresent(Bool.self, forKey: .sidebarOnRight) ?? defaults.sidebarOnRight
         tabPreviews = try container.decodeIfPresent(Bool.self, forKey: .tabPreviews) ?? defaults.tabPreviews
         meetingBar = try container.decodeIfPresent(Bool.self, forKey: .meetingBar) ?? defaults.meetingBar
         shortcuts = try container.decodeIfPresent([String: String].self, forKey: .shortcuts) ?? defaults.shortcuts
         morningBrief = try container.decodeIfPresent(Bool.self, forKey: .morningBrief) ?? defaults.morningBrief
         morningBriefMinutes = try container.decodeIfPresent(Int.self, forKey: .morningBriefMinutes) ?? defaults.morningBriefMinutes
+        tidyTitles = try container.decodeIfPresent(Bool.self, forKey: .tidyTitles) ?? defaults.tidyTitles
+        appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? defaults.appearance
+        onboardingPending = try container.decodeIfPresent(Bool.self, forKey: .onboardingPending) ?? defaults.onboardingPending
+        arcDefaultProfile = try container.decodeIfPresent(String.self, forKey: .arcDefaultProfile)
         // 260 was the first default; Arc's rows need a bit more room.
         if sidebarWidth == 260 { sidebarWidth = defaults.sidebarWidth }
     }
@@ -442,6 +517,8 @@ extension Settings {
     @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
         OACPane.devToolsDock = devToolsDock.dock
+        ProtectedMedia.isEnabled = protectedMediaWebKit
+        appearance.apply()
     }
 
     /// Where a new agent chat works: the chosen folder while it is there,
@@ -452,6 +529,29 @@ extension Settings {
             return agentFolder
         }
         return FileManager.default.homeDirectoryForCurrentUser.path
+    }
+}
+
+/// Settings › Allgemein › Erscheinungsbild (also the onboarding's Aussehen
+/// step): OpenArch's windows, and with them the pages' light or dark mode.
+enum AppAppearance: String, Codable, CaseIterable, Identifiable {
+    case system, light, dark
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .system: "Wie macOS"
+        case .light: "Hell"
+        case .dark: "Dunkel"
+        }
+    }
+
+    @MainActor func apply() {
+        switch self {
+        case .system: NSApp.appearance = nil
+        case .light: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
     }
 }
 

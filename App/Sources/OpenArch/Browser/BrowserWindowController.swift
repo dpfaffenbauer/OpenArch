@@ -2,9 +2,9 @@ import AppKit
 import OpenArchCore
 import SwiftUI
 
-/// One browser window: the sidebar on the left and, to its right, the
-/// content area where the active tab's Chrome pane (or the panes of a split
-/// view) sit as child windows.
+/// One browser window: the sidebar on the left (or on the right, Settings ›
+/// Allgemein › Sidebar) and, beside it, the content area where the active
+/// tab's Chrome pane (or the panes of a split view) sit as child windows.
 @MainActor
 final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPaneDelegate {
     let library: Library
@@ -28,17 +28,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private(set) var visibleTabs: [Item] = []
     private var itemsByPane: [ObjectIdentifier: Item] = [:]
     private let rootView = BrowserRootView()
-    /// The glass look (Settings › Allgemein): the desktop blurred behind the
-    /// window, and the space's color over it.
-    private let glass = NSVisualEffectView()
-    private let glassTint = NSView()
-    /// macOS 26: the whole window is one sheet of Liquid Glass, the sidebar
-    /// and the window buttons directly on it and the page floating above.
+    /// The space's theme behind the sidebar and around the pages: the
+    /// window's blur, white or black, the colors and the grain.
+    let background = SpaceBackgroundView()
+    /// macOS 26 in the glass look (Settings › Allgemein): the whole window is
+    /// one sheet of Liquid Glass, the sidebar and the window buttons directly
+    /// on it and the page floating above.
     private var windowGlass: NSView?
-    /// Arc's grain on the space's color (Settings › Allgemein › Sidebar).
-    private let grainView = GrainView()
     /// How much grain shows (self-test).
-    var grainAmount: Double { grainView.isHidden ? 0 : grainView.amount }
+    var grainAmount: Double { background.grainAmount }
     private var sidebarHost: NSHostingView<SidebarView>!
     private var emptyHost: NSHostingView<EmptyContentView>!
     private var agentHost: NSHostingView<AgentContentView>!
@@ -51,11 +49,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private let sidebarEdge = SidebarEdgeView()
     private(set) lazy var floatingSidebar = FloatingSidebar(browser: self)
     private(set) lazy var peek = PeekController(browser: self)
+    private(set) lazy var manageSpaces = ManageSpacesController(browser: self)
     private(set) lazy var commandBar = CommandBarController(browser: self)
     private(set) lazy var tabSwitcher = TabSwitcher(browser: self)
     private(set) lazy var tabPreview = TabPreview(browser: self)
     private(set) var sidebarSwipe: SidebarSwipe?
     private var archiveTimer: Timer?
+    private var occlusionCheck: DispatchWorkItem?
+    /// Whether the window was on screen at the last occlusion change.
+    private var isOnScreen = true
 
     static let contentInset: CGFloat = 8
     /// A titled window's corners, which the glass has to follow.
@@ -70,11 +72,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         homeSpace = isPrivate ? nil : home
         if isPrivate {
             // Not part of the library: never saved, never in the space bar.
-            state = BrowserState(space: Space(name: "Privates Fenster", icon: "eyeglasses", colorHex: "#2C2C30", profileID: ""))
+            state = BrowserState(space: Space(name: "Privates Fenster", icon: "eyeglasses", colorHex: "#2C2C30", profileID: "",
+                                              theme: ThemeData(colors: ["#2C2C30"], appearance: .dark)))
             privateProfile = OACProfile.makePrivate()
         } else if let home {
             // Not part of the library either, but on the home space's profile.
-            state = BrowserState(space: Space(name: home.name, icon: home.icon, colorHex: home.colorHex, profileID: home.profileID))
+            state = BrowserState(space: Space(name: home.name, icon: home.icon, colorHex: home.colorHex, profileID: home.profileID,
+                                              theme: home.theme))
         } else {
             state = BrowserState(space: library.space(id: library.selectedSpaceID) ?? library.spaces[0])
         }
@@ -94,14 +98,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
         rootView.controller = self
         window.contentView = rootView
-        glass.material = .sidebar
-        glass.blendingMode = .behindWindow
-        // Glass in front or not: macOS would flatten an inactive window's
-        // glass to plain gray (with Settings in front, for instance).
-        glass.state = .active
-        glassTint.wantsLayer = true
-        rootView.addSubview(glass)
-        rootView.addSubview(glassTint)
+        state.systemDark = SpaceTheme.systemIsDark
+        rootView.addSubview(background)
         #if compiler(>=6.2)
         if #available(macOS 26.0, *) {
             let sheet = NSGlassEffectView()
@@ -110,10 +108,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             // readable; clear glass left it sharp behind the text.
             sheet.style = .regular
             windowGlass = sheet
-            rootView.addSubview(sheet)
+            background.setGlassSheet(sheet)
         }
         #endif
-        rootView.addSubview(grainView)
         sidebarHost = NSHostingView(rootView: SidebarView(browser: self))
         sidebarHost.sizingOptions = []
         emptyHost = NSHostingView(rootView: EmptyContentView(browser: self))
@@ -134,8 +131,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         loadingLine.sizingOptions = []
         loadingLine.safeAreaRegions = []  // it sits under the title bar
         rootView.addSubview(loadingLine)
-        // The handle's middle is 4 pt inside the sidebar's edge.
-        sidebarHandle.onDrag = { [weak self] _, x in self?.resizeSidebar(to: x + 4) }
+        // The handle's middle is 4 pt inside the sidebar's edge; on the
+        // right, the sidebar reaches from there to the window's edge.
+        sidebarHandle.onDrag = { [weak self] _, x in
+            guard let self else { return }
+            self.resizeSidebar(to: self.sidebarOnRight ? self.rootView.bounds.width - x - 4 : x + 4)
+        }
         rootView.addSubview(sidebarHandle)
         sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
         rootView.addSubview(sidebarEdge)
@@ -159,7 +160,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             // AppKit's own appearance changes a moment after the notification.
             guard let self else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-                MainActor.assumeIsolated { self?.applyTheme() }
+                MainActor.assumeIsolated {
+                    // Auto themes follow the Mac's light or dark mode.
+                    self?.state.systemDark = SpaceTheme.systemIsDark
+                    self?.applyTheme()
+                }
             }
         }
         for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
@@ -194,14 +199,16 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private func observeChanges() {
         withObservationTracking {
-            _ = state.space.colorHex
+            _ = state.space.theme
             _ = state.space.id
-            _ = homeSpace?.colorHex
+            _ = homeSpace?.theme
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    // A separate window keeps its home space's color.
-                    if let self, let home = self.homeSpace { self.state.space.colorHex = home.colorHex }
+                    // A separate window keeps its home space's theme.
+                    if let self, let home = self.homeSpace, self.state.space.theme != home.theme {
+                        self.state.space.theme = home.theme
+                    }
                     self?.applyTheme()
                     self?.observeChanges()
                 }
@@ -215,30 +222,28 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         AppPaths.isSelfTest || (NSApp.isActive && window?.isMainWindow == true)
     }
 
+    /// The space's theme, resolved for the Mac's light or dark mode: every
+    /// color of the sidebar, the command bar, menus and toasts comes from it.
+    var theme: SpaceTheme {
+        SpaceTheme.resolve(state.space.theme, systemDark: state.systemDark)
+    }
+
     func applyTheme() {
-        let theme = SpaceTheme(hex: state.space.colorHex)
-        let base = isFrontmost ? theme.base : theme.inactiveBase
+        let theme = self.theme
         let glassy = library.settings.glass
-        let tint = library.settings.glassTint
-        // macOS 26: Liquid Glass with the color in it, which the frosted glass
-        // under it would only turn gray. Before, frosted glass and color over it.
-        glass.isHidden = !glassy || windowGlass != nil
-        glassTint.isHidden = !glassy || windowGlass != nil
-        glassTint.layer?.backgroundColor = base.withAlphaComponent(tint).cgColor
-        #if compiler(>=6.2)
-        if #available(macOS 26.0, *), let sheet = windowGlass as? NSGlassEffectView {
-            sheet.tintColor = base.withAlphaComponent(tint)
-        }
-        #endif
+        // macOS 26: Liquid Glass with the colors over it; before, frosted
+        // glass and the colors over that.
         windowGlass?.isHidden = !glassy
-        grainView.amount = library.settings.grain
-        window?.isOpaque = !glassy
-        window?.backgroundColor = glassy ? .clear : base
+        background.apply(theme, active: isFrontmost, glassTint: glassy ? library.settings.glassTint : nil)
+        // The desktop shows through: in the glass look, and faintly behind
+        // the theme while the window is in front.
+        window?.isOpaque = false
+        window?.backgroundColor = .clear
         if isFrontmost, !isStandalone, !AppPaths.isSelfTest {
             AppIcons.spaceDidChange(state.space.colorHex)
         }
-        window?.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
-        focusRing.color = theme.isDark ? NSColor.white.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.35)
+        window?.appearance = theme.appearance
+        focusRing.color = theme.focusRing
         // An agent chat is light or dark like the pages, not like the space.
         agentHost?.appearance = NSApp.effectiveAppearance
         pageChatHost?.appearance = NSApp.effectiveAppearance
@@ -259,7 +264,26 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         pageArea(in: contentAreaRect)
     }
 
-    /// The area right of the sidebar, in window coordinates.
+    /// The sidebar on the window's right (Settings › Allgemein › Sidebar).
+    var sidebarOnRight: Bool { library.settings.sidebarOnRight }
+
+    /// Room at the start of the sidebar's top bar for the window buttons,
+    /// which stay at the window's top left: none with the sidebar on the
+    /// right, or floating below them.
+    func sidebarButtonRoom(floating: Bool) -> CGFloat {
+        floating || sidebarOnRight ? 4 : 72
+    }
+
+    var sidebarSymbol: String { sidebarOnRight ? "sidebar.right" : "sidebar.left" }
+
+    /// |rect| laid out for a sidebar on the left, where it goes with the
+    /// sidebar on the right: mirrored across the window.
+    func mirrored(_ rect: NSRect) -> NSRect {
+        guard sidebarOnRight else { return rect }
+        return NSRect(x: rootView.bounds.width - rect.maxX, y: rect.minY, width: rect.width, height: rect.height)
+    }
+
+    /// The area beside the sidebar, in window coordinates.
     var contentAreaRect: NSRect {
         let bounds = rootView.bounds
         let inset = Self.contentInset
@@ -269,6 +293,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             rect.size.width = bounds.width - sidebarWidth - inset
             rect.origin.y = inset
             rect.size.height = bounds.height - 2 * inset
+            if sidebarOnRight {
+                // The window buttons stay at the top left, now over the page's
+                // side: room for them above it, as with the sidebar hidden.
+                let top: CGFloat = window?.styleMask.contains(.fullScreen) == true ? inset : 30
+                rect.size.height = bounds.height - inset - top
+                rect = mirrored(rect)
+            }
         } else {
             // Leave room for the window buttons above the content.
             let top: CGFloat = window?.styleMask.contains(.fullScreen) == true ? inset : 30
@@ -277,22 +308,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return rect
     }
 
-    /// The right edge of a sidebar row, at its middle, in window coordinates
-    /// (where a tab's preview goes). |row| is in the sidebar's SwiftUI
-    /// coordinates, like state.sidebarFrame.
+    /// The inner edge of a sidebar row (its right edge, or its left with the
+    /// sidebar on the right), at its middle, in window coordinates: where a
+    /// tab's preview goes. |row| is in the sidebar's SwiftUI coordinates,
+    /// like state.sidebarFrame.
     func sidebarAnchor(forRow row: CGRect) -> NSPoint? {
         let sidebar = state.sidebarFrame
         guard state.sidebarVisible, !row.isEmpty, !sidebar.isEmpty else { return nil }
         // Measured from the sidebar's bottom, as for the library button.
-        let point = NSPoint(x: sidebarWidth, y: sidebarHost.bounds.height - (sidebar.maxY - row.midY))
+        let point = NSPoint(x: sidebarOnRight ? 0 : sidebarWidth, y: sidebarHost.bounds.height - (sidebar.maxY - row.midY))
         return sidebarHost.convert(point, to: nil)
     }
 
     /// The library button in window coordinates (downloads fly into it); the
-    /// bottom left corner while the sidebar is hidden.
+    /// bottom corner on the sidebar's side while the sidebar is hidden.
     var libraryButtonCenter: NSPoint {
         let button = state.libraryButtonFrame, sidebar = state.sidebarFrame
-        guard state.sidebarVisible, !button.isEmpty, !sidebar.isEmpty else { return NSPoint(x: 24, y: 22) }
+        guard state.sidebarVisible, !button.isEmpty, !sidebar.isEmpty else {
+            return NSPoint(x: sidebarOnRight ? rootView.bounds.width - 24 : 24, y: 22)
+        }
         // Measured from the sidebar's bottom left corner, which is the
         // hosting view's (flipped) bottom left corner.
         let point = NSPoint(x: button.midX - sidebar.minX, y: sidebarHost.bounds.height - (sidebar.maxY - button.midY))
@@ -302,23 +336,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func layoutContent() {
         guard let window else { return }
         let bounds = rootView.bounds
-        glass.frame = bounds
-        glassTint.frame = bounds
-        windowGlass?.frame = bounds
-        grainView.frame = bounds
+        let corner = window.styleMask.contains(.fullScreen) ? 0 : Self.windowCornerRadius
+        background.frame = bounds
+        background.cornerRadius = corner
         #if compiler(>=6.2)
         if #available(macOS 26.0, *), let sheet = windowGlass as? NSGlassEffectView {
-            sheet.cornerRadius = window.styleMask.contains(.fullScreen) ? 0 : Self.windowCornerRadius
+            sheet.cornerRadius = corner
         }
         #endif
         sidebarHost.isHidden = !state.sidebarVisible
-        sidebarHost.frame = NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height)
+        sidebarHost.frame = mirrored(NSRect(x: 0, y: 0, width: sidebarWidth, height: bounds.height))
         sidebarHandle.isHidden = !state.sidebarVisible
-        // All of it left of the page: the page's window lies above this one,
-        // so a part under it never got the mouse.
-        sidebarHandle.frame = NSRect(x: sidebarWidth - 8, y: 0, width: 8, height: max(0, bounds.height - 40))
+        // All of it on the sidebar's side of the page: the page's window lies
+        // above this one, so a part under it never got the mouse. (On the
+        // left it stops below the window buttons.)
+        sidebarHandle.frame = mirrored(NSRect(x: sidebarWidth - 8, y: 0, width: 8,
+                                              height: max(0, bounds.height - (sidebarOnRight ? 0 : 40))))
+        // The window's edge on the sidebar's side brings it back while hidden.
         sidebarEdge.isHidden = state.sidebarVisible
-        sidebarEdge.frame = NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30))
+        sidebarEdge.frame = mirrored(NSRect(x: 0, y: 0, width: Self.contentInset - 2, height: max(0, bounds.height - 30)))
         let content = contentRect
         let showsAgent = state.activeItem?.kind == .agent
         emptyHost.frame = content
@@ -341,6 +377,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutLoadingLine(frames: frames)
         floatingSidebar.layout()
         peek.layout()
+        manageSpaces.layout()
     }
 
     func paneFrames(in rect: NSRect) -> [NSRect] {
@@ -446,8 +483,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         library.setNeedsSave()
     }
 
-    /// Dragging the sidebar's edge. Far enough to the left, it collapses
-    /// like Arc's; dragging back out (still holding) opens it again.
+    /// Dragging the sidebar's inner edge to make it |x| wide. Narrow enough
+    /// (far to the left, or to the right with the sidebar there), it
+    /// collapses like Arc's; dragging back out (still holding) opens it again.
     func resizeSidebar(to x: CGFloat) {
         if x < 150 {
             if state.sidebarVisible {
@@ -513,11 +551,33 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func windowWillMiniaturize(_ notification: Notification) {
+        windowVisibilityChanged(onScreen: false)
         hidePanesForTransition()
     }
 
     func windowDidDeminiaturize(_ notification: Notification) {
         relayoutSoon()
+        windowVisibilityChanged(onScreen: true)
+    }
+
+    /// Covered by another window, on another desktop or hidden: a call or
+    /// video in the window floats once that lasts a moment (a window passing
+    /// over it does not count). The self-test's window always sits behind
+    /// others, so there the test says when.
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard !AppPaths.isSelfTest, let window, !window.isMiniaturized else { return }
+        let onScreen = window.occlusionState.contains(.visible)
+        occlusionCheck?.cancel()
+        let check = DispatchWorkItem { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let window = self.window, window.occlusionState.contains(.visible) == onScreen,
+                      onScreen != self.isOnScreen else { return }
+                self.isOnScreen = onScreen
+                self.windowVisibilityChanged(onScreen: onScreen)
+            }
+        }
+        occlusionCheck = check
+        DispatchQueue.main.asyncAfter(deadline: .now() + (onScreen ? 0.05 : 0.6), execute: check)
     }
 
     private func hidePanesForTransition() {
@@ -538,6 +598,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// (self-test).
     var windowGlassFrame: NSRect? {
         windowGlass.flatMap { $0.isHidden ? nil : $0.frame }
+    }
+
+    /// Where the sidebar, its resize handle and the strip that brings it
+    /// back are, in window coordinates, if shown (self-test).
+    var sidebarLayout: (sidebar: NSRect?, handle: NSRect?, edge: NSRect?) {
+        (sidebarHost.isHidden ? nil : sidebarHost.frame, sidebarHandle.isHidden ? nil : sidebarHandle.frame,
+         sidebarEdge.isHidden ? nil : sidebarEdge.frame)
     }
 
     /// Where the loading line above the page is, in window coordinates, if
@@ -690,15 +757,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let tabs = item.kind == .agent ? [] : (item.split?.children ?? [item])
         for old in visibleTabs where !tabs.contains(where: { $0 === old }) {
             TabSnapshots.capture(old)
-            pictureInPictureIfPlaying(old)
+            pictureInPictureOnLeaving(old)
             old.pane?.hide()
         }
         for tab in tabs {
             claim(tab)
         }
-        for tab in tabs where tab.media?.pip == true {
-            mediaCommand(tab, "exitpip")
-        }
+        tabs.forEach(pictureInPictureOnReturning)
         visibleTabs = tabs
         for tab in tabs {
             ensurePane(for: tab)
@@ -720,8 +785,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// A click in the sidebar. With ⌘ the tab, or a folder's tabs, load in
     /// the background, so their pages and titles are there when you come
     /// to them; without, it shows the tab (or opens and closes the folder).
-    func click(_ item: Item) {
-        if NSEvent.modifierFlags.contains(.command) {
+    /// ⇧ and ⌘⇧ (and ⌘ while rows are selected) select rows instead.
+    func click(_ item: Item, modifiers: NSEvent.ModifierFlags = NSEvent.modifierFlags) {
+        if selectionClick(item, modifiers: modifiers) { return }
+        clearSelection()
+        state.selectionAnchorID = (item.split ?? item).id
+        if modifiers.contains(.command) {
             loadInBackground(item)
         } else {
             select(item)
@@ -774,16 +843,66 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard tab.pane == nil else { return }
         let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
         let url = tab.currentURL.isEmpty ? "about:blank" : tab.currentURL
-        let pane = OACPane(profile: profile, url: url)
-        pane.delegate = self
-        pane.cornerRadius = 8
-        pane.activatesOnShow = !AppPaths.isSelfTest
-        pane.toolbarVisible = library.settings.showChromeToolbar
-        pane.offersAskAboutSelection = !isPrivate
+        let pane = ProtectedMedia.makePage(url: url, profile: profile)
+        configure(pane)
         tab.pane = pane
         tab.isAsleep = false
         tab.loadedAt = Date()
         itemsByPane[ObjectIdentifier(pane)] = tab
+        if pane.engine == .webKit {
+            // Once the page has been laid out.
+            DispatchQueue.main.async { MainActor.assumeIsolated { self.tellAboutWebKit(pane) } }
+        }
+    }
+
+    private func configure(_ page: any OACPage) {
+        page.delegate = self
+        page.cornerRadius = 8
+        page.activatesOnShow = !AppPaths.isSelfTest
+        page.toolbarVisible = library.settings.showChromeToolbar
+        page.offersAskAboutSelection = !isPrivate
+    }
+
+    /// Shows |tab| in the other engine at |url|, in its place: the same
+    /// tab, the same side of a split, the focus where it was. A streaming
+    /// service's page moves to WebKit, or back to Chromium.
+    func replacePage(of tab: Item, with url: String, engine: OACPageEngine) {
+        guard let old = tab.pane, old.delegate === self else { return }
+        let wasShown = visibleTabs.contains { $0 === tab }
+        let hadFocus = state.activeItem === tab
+        itemsByPane[ObjectIdentifier(old)] = nil
+        old.delegate = nil
+        old.hide()
+        old.close()
+        tab.pane = nil
+        tab.media = nil
+        tab.liveURL = url
+        let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
+        let page = ProtectedMedia.makePage(url: url, profile: profile, engine: engine)
+        configure(page)
+        tab.pane = page
+        tab.loadedAt = Date()
+        itemsByPane[ObjectIdentifier(page)] = tab
+        if wasShown {
+            layoutContent()
+            if hadFocus { page.focus() }
+        } else {
+            page.load()
+        }
+        tellAboutWebKit(page)
+    }
+
+    /// Once per service: "Spotify spielt mit Safaris Engine", with "Warum?"
+    /// (Site Controls, which say why) and ✕.
+    func tellAboutWebKit(_ page: any OACPage) {
+        guard let page = page as? WebKitPage, !page.serviceName.isEmpty, !ProtectedMedia.wasTold(page.serviceName),
+              let item = item(for: page), visibleTabs.contains(where: { $0 === item }) else { return }
+        ProtectedMedia.told(page.serviceName)
+        showToast("\(page.serviceName) spielt mit Safaris Engine", symbol: "safari", action: ToastAction(title: "Warum?") { [weak self] in
+            guard let self, let item = self.item(for: page) else { return }
+            if self.state.activeItem !== item { self.select(item) }
+            self.state.siteControlsVisible = true
+        }, closable: true)
     }
 
     /// Closes |tab|'s pane but keeps the item (pinned tabs, favorites).
@@ -807,12 +926,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.media = nil
         tab.screenShare = nil
         tab.captureHandle = nil
+        tab.mediaAccess = MediaAccess()
+        tab.call = nil
         tab.isAsleep = false
         visibleTabs.removeAll { $0 === tab }
     }
 
     func switchSpace(to space: Space, restoring: Bool = true) {
         guard space !== state.space, !isStandalone else { return }
+        clearSelection()
         state.space = space
         library.selectedSpaceID = space.id
         library.setNeedsSave()
@@ -821,6 +943,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
            library.space(containing: item) === space || item.role == .favorites {
             select(item)
         } else {
+            visibleTabs.forEach(pictureInPictureOnLeaving)
             showNothing()
         }
     }
@@ -934,7 +1057,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func navigate(_ item: Item, to url: String) {
         let url = InternalURL.resolve(url)
         if let pane = item.pane {
-            pane.loadURL(url)
+            // OpenArch's own navigations pick the engine again.
+            let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
+            if engine != pane.engine {
+                replacePage(of: item, with: url, engine: engine)
+            } else {
+                pane.loadURL(url)
+            }
         } else {
             item.liveURL = url
             select(item)
@@ -1054,7 +1183,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Sleeping tabs: a tab nobody has looked at for a while gives its memory
     /// back. Its page closes; the tab keeps its place, address and title and
     /// loads again when shown. Tabs that play something, or whose page would
-    /// ask before leaving (an unsent form, unsaved changes), stay awake.
+    /// ask before leaving (an unsent form, unsaved changes), stay awake, and
+    /// so do calls and pinned chat and mail sites (keepsAwake).
     func sleepInactiveTabs(olderThan minutes: Int? = nil) {
         let minutes = minutes ?? library.settings.sleepAfterMinutes
         guard minutes > 0 else { return }
@@ -1062,9 +1192,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         // Loaded in the background a moment ago counts as recent too.
         for tab in allTabs where max(tab.lastActiveAt, tab.loadedAt ?? .distantPast) < cutoff {
             guard let pane = tab.pane, pane.delegate === self, !pane.isVisible, !tab.isAudible,
-                  tab.media?.playing != true, tab.media?.pip != true,
+                  tab.media?.playing != true, tab.media?.pip != true, !keepsAwake(tab),
                   !visibleTabs.contains(where: { $0 === tab }) else { continue }
-            Self.asksBeforeLeaving(pane) { [weak self, weak tab] asks in
+            pane.checkAsksBeforeLeaving { [weak self, weak tab] asks in
                 guard let self, let tab, !asks, tab.pane === pane, !pane.isVisible,
                       !self.visibleTabs.contains(where: { $0 === tab }) else { return }
                 self.sleep(tab)
@@ -1078,26 +1208,6 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.liveURL = url
         tab.liveTitle = title
         tab.isAsleep = true
-    }
-
-    /// Whether the page has a beforeunload handler, which closing it (as
-    /// sleeping does) would skip.
-    private static func asksBeforeLeaving(_ pane: OACPane, completion: @escaping (Bool) -> Void) {
-        let group = "openarch-sleep"
-        pane.callDevToolsMethod("Runtime.evaluate", params: ["expression": "window", "objectGroup": group]) { result in
-            guard let object = result?["result"] as? [String: Any], let id = object["objectId"] as? String else {
-                completion(true)
-                return
-            }
-            pane.callDevToolsMethod("DOMDebugger.getEventListeners", params: ["objectId": id]) { result in
-                pane.callDevToolsMethod("Runtime.releaseObjectGroup", params: ["objectGroup": group], completion: nil)
-                guard let listeners = result?["listeners"] as? [[String: Any]] else {
-                    completion(true)
-                    return
-                }
-                completion(listeners.contains { $0["type"] as? String == "beforeunload" })
-            }
-        }
     }
 
     // MARK: Pinning, favorites, folders, splits
@@ -1448,7 +1558,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     // MARK: Actions on the active tab
 
-    var activePane: OACPane? {
+    var activePane: (any OACPage)? {
         state.activeItem?.pane
     }
 
@@ -1466,8 +1576,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         Self.runningCommand = nil
     }
 
-    /// The page in front: Peek's card while it is open, else the tab.
+    /// The page in front: Peek's card while it is open, else the tab. With
+    /// rows selected in the sidebar, all their addresses.
     func copyURL() {
+        if selectedItems.count > 1, !peek.isOpen {
+            return copySelectedURLs()
+        }
         guard let url = peek.isOpen ? peek.model.url : state.activeItem?.currentURL, !url.isEmpty else { return }
         OpenArch.copy(url)
         showToast("Link kopiert")
@@ -1482,11 +1596,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private(set) var toast: ToastWindow?
 
-    func showToast(_ text: String, symbol: String = "checkmark.circle.fill", action: ToastAction? = nil) {
+    func showToast(_ text: String, symbol: String = "checkmark.circle.fill", action: ToastAction? = nil,
+                   closable: Bool = false) {
         guard let window else { return }
         let toast = self.toast ?? ToastWindow()
         self.toast = toast
-        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action)
+        toast.show(text, symbol: symbol, over: window.convertToScreen(contentRect), parent: window, action: action,
+                   closable: closable, theme: theme)
     }
 
     /// ⌃⇧1…4: focus a side of the split view; ⌃⇧[ and ⌃⇧] the neighbours.
@@ -1514,6 +1630,23 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutContent()
     }
 
+    /// The sidebar moved to the other side (Settings › Allgemein › Sidebar):
+    /// a short cross-fade, since sliding it across the page looks like a
+    /// glitch, and everything laid out again.
+    func sidebarSideChanged() {
+        tabPreview.hide()
+        floatingSidebar.hide()
+        state.downloadStack.dismiss()
+        layoutContent()
+        if window?.isVisible == true, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            sidebarHost.alphaValue = 0
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.22
+                sidebarHost.animator().alphaValue = 1
+            }
+        }
+    }
+
     func toggleChromeToolbar() {
         library.settings.showChromeToolbar.toggle()
         let visible = library.settings.showChromeToolbar
@@ -1530,22 +1663,22 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     // MARK: OACPaneDelegate
 
-    private func item(for pane: OACPane) -> Item? {
+    private func item(for pane: any OACPage) -> Item? {
         itemsByPane[ObjectIdentifier(pane)]
     }
 
-    func registerPane(_ pane: OACPane, for item: Item) {
+    func registerPane(_ pane: any OACPage, for item: Item) {
         itemsByPane[ObjectIdentifier(pane)] = item
     }
 
-    func pane(_ pane: OACPane, titleDidChange title: String) {
+    func pane(_ pane: any OACPage, titleDidChange title: String) {
         guard let item = item(for: pane) else { return }
         item.liveTitle = title
         if !isPrivate { history.updateTitle(url: item.currentURL, title: title) }
         library.setNeedsSave()
     }
 
-    func pane(_ pane: OACPane, addressDidChange url: String) {
+    func pane(_ pane: any OACPage, addressDidChange url: String) {
         guard let item = item(for: pane) else { return }
         if item.liveURL.map({ URL(string: $0)?.host() != URL(string: url)?.host() }) ?? false {
             item.media = nil  // Another site; its player reports anew.
@@ -1555,13 +1688,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         library.setNeedsSave()
     }
 
-    func pane(_ pane: OACPane, faviconDidChange favicon: NSImage) {
+    func pane(_ pane: any OACPage, faviconDidChange favicon: NSImage) {
         guard let item = item(for: pane) else { return }
         item.favicon = favicon
         if !isPrivate { FaviconStore.shared.store(favicon, forURL: item.currentURL) }
     }
 
-    func pane(_ pane: OACPane, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
+    func pane(_ pane: any OACPage, loadingStateDidChange isLoading: Bool, canGoBack: Bool, canGoForward: Bool) {
         guard let item = item(for: pane) else { return }
         // A new load starts from nothing, not from the last one's 100 %.
         if isLoading, !item.isLoading { item.loadingProgress = 0 }
@@ -1570,11 +1703,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         item.canGoForward = canGoForward
     }
 
-    func pane(_ pane: OACPane, loadingProgressDidChange progress: Double) {
+    func pane(_ pane: any OACPage, loadingProgressDidChange progress: Double) {
         item(for: pane)?.loadingProgress = progress
     }
 
-    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+    func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         if !background, let source = item(for: pane), shouldPeek(url, from: source) {
             peek.open(url, from: source)
             return
@@ -1582,13 +1715,26 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         openInNewTab(url, after: item(for: pane), select: !background)
     }
 
-    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+    func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
         ExternalApps.open(url, from: pane.url, in: window, library: library) { [weak self] text in
             self?.showToast(text, symbol: "exclamationmark.circle.fill")
         }
     }
 
-    func pane(_ pane: OACPane, shouldInterceptNavigationToURL url: String) -> Bool {
+    /// A Chromium page going to a streaming service: the tab moves to
+    /// WebKit at that address, in its place (a POST stays).
+    func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
+        guard let item = item(for: pane), ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { [weak self] in
+                guard let self, item.pane === pane else { return }
+                self.replacePage(of: item, with: url, engine: .webKit)
+            }
+        }
+        return true
+    }
+
+    func pane(_ pane: any OACPage, shouldInterceptNavigationToURL url: String) -> Bool {
         guard let source = item(for: pane), shouldPeek(url, from: source) else { return false }
         peek.open(url, from: source)
         return true
@@ -1596,12 +1742,18 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// Pinned tabs and favorites keep their page: links to other sites
     /// open in Peek.
+    func pane(_ pane: OACPane, wantsPeekWithURL url: String) -> Bool {
+        guard library.settings.peek, url.hasPrefix("http"), let source = item(for: pane) else { return false }
+        peek.open(url, from: source)
+        return true
+    }
+
     private func shouldPeek(_ url: String, from source: Item) -> Bool {
-        library.settings.peek && (source.role == .pinned || source.role == .favorites)
+        library.settings.peek && FeatureSwitches.shared.isOn(.peek) && (source.role == .pinned || source.role == .favorites)
             && url.hasPrefix("http") && !PeekController.sameSite(url, source.savedURL)
     }
 
-    func paneDidBecomeActive(_ pane: OACPane) {
+    func paneDidBecomeActive(_ pane: any OACPage) {
         guard let item = item(for: pane), item !== state.activeItem else { return }
         guard visibleTabs.contains(where: { $0 === item }) else {
             // Brought to the front from outside (an AI agent via DevTools,
@@ -1617,7 +1769,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         layoutLoadingLine(frames: frames)
     }
 
-    func paneDidClose(_ pane: OACPane) {
+    func paneDidClose(_ pane: any OACPage) {
         // The page closed itself (window.close()) or its browser went away;
         // while OpenArch quits, every browser goes, and the tabs stay.
         guard !library.isFrozen, let item = item(for: pane) else { return }
@@ -1626,7 +1778,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         close(item)
     }
 
-    func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
+    func pane(_ pane: any OACPage, handleChromeCommand commandID: Int) -> Bool {
         guard commandID != Self.runningCommand, let command = OACChromeCommand(rawValue: commandID) else { return false }
         switch command {
         case .newTab:
@@ -1694,19 +1846,27 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         return true
     }
 
-    func pane(_ pane: OACPane, mainFrameLoadStarted started: Bool, url: String) {
+    func pane(_ pane: any OACPage, mainFrameLoadStarted started: Bool, url: String) {
         // A new document shares nothing (yet); it names itself anew.
-        if started, let item = item(for: pane) { item.screenShare = nil }
+        if started, let item = item(for: pane) {
+            item.screenShare = nil
+            item.call = nil
+        }
         // Boosts go in as early as the page allows and again once it is
         // complete (the style sheet is replaced, the script runs once).
-        if let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
+        if FeatureSwitches.shared.isOn(.boosts), let boost = BoostStore.shared.boost(for: url), boost.isEnabled,
            !boost.styleSheet.isEmpty || !boost.javaScript.isEmpty {
             pane.executeJavaScript(BoostStore.script(for: boost))
         }
     }
 
+    func pane(_ pane: OACPane, mediaAccessDidChangeVideo video: Bool, audio: Bool) {
+        item(for: pane)?.mediaAccess = MediaAccess(video: video, audio: audio)
+    }
+
     /// A changed boost reaches the open tabs of its site at once.
     func applyBoost(_ boost: Boost) {
+        guard FeatureSwitches.shared.isOn(.boosts) else { return }
         for tab in allTabs where tab.pane != nil && boost.applies(to: tab.currentURL) {
             tab.pane?.executeJavaScript(BoostStore.script(for: boost))
         }
@@ -1714,10 +1874,14 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func editBoost() {
         guard let active = state.activeItem, active.kind == .tab else { return }
+        guard FeatureSwitches.shared.isOn(.boosts) else {
+            showToast("Boosts sind vorübergehend abgeschaltet", symbol: "exclamationmark.circle.fill")
+            return
+        }
         BoostPanelController.show(for: active, browser: self)
     }
 
-    func pane(_ pane: OACPane, consoleMessage message: String, source: String, line: Int) {
+    func pane(_ pane: any OACPage, consoleMessage message: String, source: String, line: Int) {
         let zapPrefix = "__openarch_zap__"
         if message.hasPrefix(zapPrefix), let editor = BoostPanelController.current?.model, editor.item === item(for: pane) {
             if message.hasPrefix(zapPrefix + " ") {
@@ -1737,10 +1901,25 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             item.captureHandle = String(message.dropFirst(handlePrefix.count))
             return
         }
+        let callPrefix = "__openarch_call__"
+        if message.hasPrefix(callPrefix), let item = item(for: pane) {
+            let rest = message.dropFirst(callPrefix.count)
+            if rest.hasPrefix(" ") {
+                let call = try? JSONDecoder().decode(CallState.self, from: Data(rest.dropFirst().utf8))
+                let opened = call?.pip.isEmpty == false && item.call?.pip.isEmpty != false
+                item.call = call
+                if opened { PictureInPictureWindows.shared.expect() }
+            } else if rest == "-back" {
+                returnToCall(item)
+            }
+            SelfTest.current?.consoleMessage(message, from: item)
+            return
+        }
         let mediaPrefix = "__openarch_media__ "
         if message.hasPrefix(mediaPrefix), let item = item(for: pane) {
             let media = try? JSONDecoder().decode(MediaState.self, from: Data(message.dropFirst(mediaPrefix.count).utf8))
             if media?.playing == true, item.media?.playing != true { item.mediaDismissed = false }
+            if media?.pip == true, item.media?.pip != true { PictureInPictureWindows.shared.expect() }
             item.media = media
             return
         }
@@ -1832,14 +2011,6 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func seekMedia(_ item: Item, to seconds: Double) {
         guard seconds.isFinite else { return }
         mediaCommand(item, "seek:" + String(format: "%.2f", max(0, seconds)))
-    }
-
-    /// Like Arc: leaving a tab with a video playing (with sound) keeps the
-    /// video going in picture-in-picture.
-    private func pictureInPictureIfPlaying(_ item: Item) {
-        guard library.settings.autoPictureInPicture, let media = item.media,
-              media.playing, media.video, media.audible, !media.pip else { return }
-        mediaCommand(item, "pip")
     }
 
     /// The speaker on a tab: mutes or unmutes it.

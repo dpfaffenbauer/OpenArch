@@ -8,7 +8,7 @@ extension BrowserWindowController {
     @discardableResult
     func newAgentChat(prompt: String? = nil) -> Item? {
         guard !isStandalone else { return nil }
-        guard library.settings.agentChats else {
+        guard library.settings.agentChatsOn else {
             (NSApp.delegate as? AppDelegate)?.showSettings(page: .ai)
             return nil
         }
@@ -74,7 +74,7 @@ extension BrowserWindowController {
     /// session, like a space of its own; the page or chat in front stays.
     func toggleAgents() {
         guard !isStandalone else { return }
-        guard library.settings.agentChats else {
+        guard library.settings.agentChatsOn else {
             (NSApp.delegate as? AppDelegate)?.showSettings(page: .ai)
             return
         }

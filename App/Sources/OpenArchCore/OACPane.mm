@@ -31,13 +31,16 @@
                      canGoForward:(BOOL)canGoForward;
 - (void)oac_loadingProgressDidChange:(double)progress;
 - (void)oac_wantsNewTabWithURL:(NSString*)url background:(BOOL)background;
+- (BOOL)oac_wantsPeekWithURL:(NSString*)url;
 - (BOOL)oac_handleChromeCommand:(int)commandID;
 - (void)oac_didActivate;
 - (void)oac_consoleMessage:(NSString*)message
                     source:(NSString*)source
                       line:(NSInteger)line;
 - (void)oac_mainFrameLoadStarted:(BOOL)started url:(NSString*)url;
+- (void)oac_mediaAccessDidChangeVideo:(BOOL)video audio:(BOOL)audio;
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url;
+- (BOOL)oac_shouldHandOffNavigationToURL:(NSString*)url method:(NSString*)method;
 - (void)oac_willToggleFullScreen;
 - (void)oac_wantsExternalURL:(NSString*)url;
 - (void)oac_askAboutSelection:(NSString*)text;
@@ -53,7 +56,31 @@
 @property(readwrite) BOOL isFailed;
 @end
 
+static void OACReportDownload(OACDownload* download);
+
 @implementation OACDownload
+
+- (instancetype)initWithIdentifier:(uint32_t)identifier
+                          fileName:(NSString*)fileName
+                              path:(NSString*)path
+                   percentComplete:(NSInteger)percentComplete
+                        isComplete:(BOOL)isComplete
+                          isFailed:(BOOL)isFailed {
+  if ((self = [super init])) {
+    _identifier = identifier;
+    _fileName = [fileName copy];
+    _path = [path copy];
+    _percentComplete = percentComplete;
+    _isComplete = isComplete;
+    _isFailed = isFailed;
+  }
+  return self;
+}
+
++ (void)report:(OACDownload*)download {
+  OACReportDownload(download);
+}
+
 @end
 
 namespace {
@@ -61,7 +88,18 @@ namespace {
 void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_about_page_handler)(void) = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+void (^g_render_process_gone_handler)(NSString*, int) = nil;
 NSString* g_ask_selection_title = nil;
+
+}  // namespace
+
+static void OACReportDownload(OACDownload* download) {
+  if (g_download_handler) {
+    g_download_handler(download);
+  }
+}
+
+namespace {
 
 // The context menu item for selected text (+askAboutSelectionTitle).
 constexpr int kAskAboutSelectionCommand = MENU_ID_USER_FIRST + 1;
@@ -278,6 +316,11 @@ class PaneClient : public CefClient,
       case CEF_WOD_NEW_WINDOW:
       case CEF_WOD_SINGLETON_TAB:
       case CEF_WOD_SWITCH_TO_TAB:
+        // ⇧-click on a link (a new window, for Chrome) opens Peek.
+        if (target_disposition == CEF_WOD_NEW_WINDOW && user_gesture &&
+            [pane oac_wantsPeekWithURL:OACToNSString(target_url)]) {
+          return true;
+        }
         // Tabs belong in OpenArch's sidebar, not in Chrome windows.
         [pane oac_wantsNewTabWithURL:OACToNSString(target_url)
                           background:target_disposition ==
@@ -366,6 +409,15 @@ class PaneClient : public CefClient,
     return false;
   }
 
+  // Chrome's recording indicator: the page (or a frame in it) uses the
+  // camera or the microphone.
+  void OnMediaAccessChange(CefRefPtr<CefBrowser> browser,
+                           bool has_video_access,
+                           bool has_audio_access) override {
+    [Own(browser) oac_mediaAccessDidChangeVideo:has_video_access
+                                          audio:has_audio_access];
+  }
+
   // CefLoadHandler
 
   void OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
@@ -452,6 +504,24 @@ class PaneClient : public CefClient,
 
   // CefRequestHandler
 
+  void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
+                                 TerminationStatus status,
+                                 int error_code,
+                                 const CefString& error_string) override {
+    NSString* kind = nil;
+    switch (status) {
+      case TS_PROCESS_CRASHED: kind = @"crashed"; break;
+      case TS_PROCESS_OOM: kind = @"oom"; break;
+      case TS_ABNORMAL_TERMINATION: kind = @"abnormal"; break;
+      case TS_LAUNCH_FAILED: kind = @"launch-failed"; break;
+      case TS_INTEGRITY_FAILURE: kind = @"integrity"; break;
+      default: break;  // Killed on purpose.
+    }
+    if (kind && g_render_process_gone_handler) {
+      g_render_process_gone_handler(kind, error_code);
+    }
+  }
+
   // ⌘-clicks and middle clicks on links: Chrome would make the tab itself,
   // in a window of its own, and OpenArch could only adopt it afterwards
   // (shown, in front). The sidebar takes it in the background instead.
@@ -472,6 +542,11 @@ class PaneClient : public CefClient,
       case CEF_WOD_NEW_FOREGROUND_TAB:
       case CEF_WOD_NEW_BACKGROUND_TAB:
       case CEF_WOD_NEW_WINDOW:
+        // ⇧-click on a link (a new window, for Chrome) opens Peek.
+        if (target_disposition == CEF_WOD_NEW_WINDOW && user_gesture &&
+            [pane oac_wantsPeekWithURL:OACToNSString(target_url)]) {
+          return true;
+        }
         [pane oac_wantsNewTabWithURL:OACToNSString(target_url)
                           background:target_disposition ==
                                      CEF_WOD_NEW_BACKGROUND_TAB];
@@ -492,11 +567,22 @@ class PaneClient : public CefClient,
       [pane oac_wantsExternalURL:OACToNSString(request->GetURL())];
       return true;
     }
-    if (!pane || !frame->IsMain() || is_redirect) {
+    if (!pane || !frame->IsMain()) {
+      return false;
+    }
+    const int transition = request->GetTransitionType();
+    // A page OpenArch shows in WebKit (a streaming service): links,
+    // redirects and scripts going there move the tab before the request
+    // goes out. Reloads stay.
+    if ((transition & TT_SOURCE_MASK) != TT_RELOAD &&
+        [pane oac_shouldHandOffNavigationToURL:OACToNSString(request->GetURL())
+                                        method:OACToNSString(request->GetMethod())]) {
+      return true;
+    }
+    if (is_redirect) {
       return false;
     }
     // Back/forward and reloads stay in the tab.
-    const int transition = request->GetTransitionType();
     if ((transition & TT_FORWARD_BACK_FLAG) || (transition & TT_SOURCE_MASK) == TT_RELOAD) {
       return false;
     }
@@ -933,6 +1019,14 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   return YES;
 }
 
++ (void (^)(NSString*, int))renderProcessGoneHandler {
+  return g_render_process_gone_handler;
+}
+
++ (void)setRenderProcessGoneHandler:(void (^)(NSString*, int))handler {
+  g_render_process_gone_handler = [handler copy];
+}
+
 + (void (^)(OACDownload*))downloadHandler {
   return g_download_handler;
 }
@@ -1215,6 +1309,45 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   [_devToolsCallbacks removeObjectForKey:@(messageID)];
   id result = success ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
   completion([result isKindOfClass:NSDictionary.class] ? result : nil);
+}
+
+- (OACPageEngine)engine {
+  return OACPageEngineChromium;
+}
+
+- (void)checkAsksBeforeLeaving:(void (^)(BOOL asks))completion {
+  NSString* group = @"openarch-sleep";
+  [self callDevToolsMethod:@"Runtime.evaluate"
+                    params:@{@"expression" : @"window", @"objectGroup" : group}
+                completion:^(NSDictionary<NSString*, id>* result) {
+                  NSDictionary* object = result[@"result"];
+                  NSString* objectID =
+                      [object isKindOfClass:NSDictionary.class] ? object[@"objectId"] : nil;
+                  if (![objectID isKindOfClass:NSString.class]) {
+                    completion(YES);
+                    return;
+                  }
+                  [self callDevToolsMethod:@"DOMDebugger.getEventListeners"
+                                    params:@{@"objectId" : objectID}
+                                completion:^(NSDictionary<NSString*, id>* listeners) {
+                                  [self callDevToolsMethod:@"Runtime.releaseObjectGroup"
+                                                    params:@{@"objectGroup" : group}
+                                                completion:nil];
+                                  NSArray* list = listeners[@"listeners"];
+                                  if (![list isKindOfClass:NSArray.class]) {
+                                    completion(YES);
+                                    return;
+                                  }
+                                  for (NSDictionary* listener in list) {
+                                    if ([listener isKindOfClass:NSDictionary.class] &&
+                                        [listener[@"type"] isEqual:@"beforeunload"]) {
+                                      completion(YES);
+                                      return;
+                                    }
+                                  }
+                                  completion(NO);
+                                }];
+                }];
 }
 
 - (NSInteger)zoomPercent {
@@ -1595,6 +1728,13 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   }
 }
 
+- (BOOL)oac_wantsPeekWithURL:(NSString*)url {
+  if ([self.delegate respondsToSelector:@selector(pane:wantsPeekWithURL:)]) {
+    return [self.delegate pane:self wantsPeekWithURL:url];
+  }
+  return NO;
+}
+
 - (BOOL)oac_handleChromeCommand:(int)commandID {
   if ([self.delegate respondsToSelector:@selector(pane:handleChromeCommand:)]) {
     return [self.delegate pane:self handleChromeCommand:commandID];
@@ -1619,6 +1759,12 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   if ([self.delegate respondsToSelector:@selector
                      (pane:consoleMessage:source:line:)]) {
     [self.delegate pane:self consoleMessage:message source:source line:line];
+  }
+}
+
+- (void)oac_mediaAccessDidChangeVideo:(BOOL)video audio:(BOOL)audio {
+  if ([self.delegate respondsToSelector:@selector(pane:mediaAccessDidChangeVideo:audio:)]) {
+    [self.delegate pane:self mediaAccessDidChangeVideo:video audio:audio];
   }
 }
 
@@ -1681,6 +1827,13 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
     [window setFrame:[parent convertRectToScreen:_frame] display:YES];
     [parent addChildWindow:window ordered:NSWindowAbove];
   }
+}
+
+- (BOOL)oac_shouldHandOffNavigationToURL:(NSString*)url method:(NSString*)method {
+  if ([self.delegate respondsToSelector:@selector(pane:shouldHandOffNavigationToURL:method:)]) {
+    return [self.delegate pane:self shouldHandOffNavigationToURL:url method:method];
+  }
+  return NO;
 }
 
 - (BOOL)oac_shouldInterceptNavigationToURL:(NSString*)url {

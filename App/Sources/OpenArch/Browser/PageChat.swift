@@ -158,16 +158,16 @@ enum PageReader {
     static let selectionScript = "String(window.getSelection ? window.getSelection() : '').slice(0, 50000)"
 
     /// |pane|'s page, or nil when it has none (yet) or does not answer.
-    static func read(_ pane: OACPane) async -> PageContent? {
+    static func read(_ pane: any OACPage) async -> PageContent? {
         await evaluate(script, in: pane).flatMap(PageContent.init(json:))
     }
 
     /// The text selected on |pane|'s page, or nil.
-    static func selection(_ pane: OACPane) async -> String? {
+    static func selection(_ pane: any OACPage) async -> String? {
         PageChat.cleaned(await evaluate(selectionScript, in: pane))
     }
 
-    private static func evaluate(_ expression: String, in pane: OACPane, timeout: Double = 5) async -> String? {
+    private static func evaluate(_ expression: String, in pane: any OACPage, timeout: Double = 5) async -> String? {
         await withCheckedContinuation { continuation in
             let once = ResumeOnce(continuation)
             pane.callDevToolsMethod("Runtime.evaluate", params: ["expression": expression, "returnByValue": true]) { result in
@@ -302,7 +302,7 @@ extension BrowserWindowController {
 
     /// "Claude fragen" on selected text: the chat opens with it as its focus.
     @objc(pane:askAboutSelection:)
-    func pane(_ pane: OACPane, askAboutSelection text: String) {
+    func pane(_ pane: any OACPage, askAboutSelection text: String) {
         guard !isPrivate, let tab = allTabs.first(where: { $0.pane === pane }) else { return }
         if state.activeItem !== tab { select(tab) }
         openPageChat(tab, selection: text)

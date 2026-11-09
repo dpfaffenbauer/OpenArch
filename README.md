@@ -18,6 +18,9 @@ App/build.sh                      # fetches CEF, builds App/build/OpenArch.app
 open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks, runs behind other windows
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --ai-test   # only the AI features, with a stand-in for claude
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --release-test   # update channels, feature switches, crash reports, backups
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --sidebar-test   # only the sidebar details below
+App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest --onboarding-test   # the first launch's steps, with an Arc fixture
 ```
 
 Requires Xcode 16+ (Swift 6), CMake and Ninja.
@@ -51,13 +54,39 @@ run. Data lives in
 
 ## What works
 
+- **First launch:** a small floating window without title bar (dragged by
+  its background, Esc goes back) sets OpenArch up before the browser window
+  appears: welcome; Arc's sidebar built again in a small picture while it is
+  read, with "Alles übernehmen", "Auswählen …" or "Neu anfangen"; the
+  keychain question explained just before macOS asks it, after which Arc's
+  logins come over in the background, with a progress pill, into a profile
+  Chromium has not opened yet (no restart); each profile's Google accounts,
+  with "Mit Google anmelden" for one that has none; a color per space and
+  light or dark, shown live on the browser window behind; default browser,
+  unless it is already; and a last step that grows into the browser window.
+  Each step can be skipped. A library from before (an existing
+  `Library.json`) never shows it; Settings › Allgemein › Einführung shows it
+  again, `--skip-onboarding` leaves it out. Chromium's own first-run pages
+  never appear.
 - **Sidebar:** favorites grid, pinned tabs in folders and subfolders, today
   tabs under the line, drag and drop, inline renaming, context menus. The
   × on a pinned tab unpins it; ⌘-click on a link opens it as a tab in the
   background. ⌘-click on a tab (or a folder) in the sidebar loads it in the
   background, so its page and title are there when you come to it.
-- **Spaces:** name, icon (SF Symbol or emoji), color, and a profile each.
-  Drag the icons at the bottom of the sidebar into the order you want.
+  ⇧-click selects a range of rows, ⌘⇧-click (or ⌘-click while rows are
+  selected) one more; selected rows drag together, and their menu archives
+  them, puts them in a new folder ("Neuer Ordner mit N Tabs") or another
+  space, and copies their URLs (⇧⌘C too). Resting on a closed folder shows a
+  searchable list of its tabs. Favorites and pinned tabs of Gmail, X,
+  WhatsApp, Slack, Outlook and the like get a dot while their title reports
+  unread items; Google Calendar's icon shows today's date.
+- **Spaces:** name, icon (SF Symbol or emoji), theme, and a profile each.
+  Drag the icons at the bottom of the sidebar into the order you want, or
+  sort, rename, edit and delete them in "Spaces verwalten …" (space menu,
+  library); deleting one says what happens to its tabs and archives them.
+  Resting on the space's name shows its profile and that profile's Google
+  account; with several profiles the space icons get a ring in the
+  profile's color.
   Profiles keep logins (e.g. a different Google account per space), cookies,
   history, passwords and extensions apart.
 - **GitHub live folders** (+ › GitHub-Live-Ordner): pinned folders that
@@ -93,13 +122,24 @@ run. Data lives in
 - **Links to apps** (bambustudioopen:, zoommtg:, mailto: …) open the app on
   the Mac after asking, as in Chrome; „Links von <host> immer in „<App>“
   öffnen“ remembers it per site.
-- **Arc's look:** your space's color with white text, Arc's row sizes, and
-  favicons taken from Arc's own icon cache. Or glass (Settings › Allgemein ›
-  Sidebar): the desktop shows through the window, on macOS 26 as one sheet
-  of Liquid Glass tinted with the space's color, the sidebar directly on it
-  and the pages floating above as cards. Drag the sidebar edge far to the
-  left to collapse it, ⌘S brings it back. Settings › Allgemein › Sidebar ›
-  Körnung puts Arc's grain on the color.
+- **Arc's themes:** each space has Arc's theme picker (in its editor): a
+  color disc with one to three handles, Arc's nine swatches, Auto/Hell/Dunkel,
+  intensity (0.81 to start) and grain, and the window changes with every
+  move. It is drawn as Arc draws it: the colors blend in OKLab along the 45°
+  diagonal at 0.2 + 0.55 × intensity over white or black, over the window's
+  blur, with the grain on top (a quarter of it in a window not in front).
+  The same theme colors the sidebar's text, hover and selection, the command
+  bar, menus and toasts. Arc's row sizes, and favicons taken from Arc's own
+  icon cache. Or glass (Settings › Allgemein › Sidebar): the desktop shows
+  through the window, on macOS 26 as one sheet of Liquid Glass with the
+  space's colors over it, the sidebar directly on it and the pages floating
+  above as cards. Drag the sidebar edge far to the left to collapse it, ⌘S
+  brings it back.
+- **Sidebar on the right** (Settings › Allgemein › Sidebar ›
+  Sidebar-Position), for every window, with a short cross-fade: the pages,
+  resizing from the inner edge, the hover sidebar from the right edge, tab
+  previews (to the left of it), downloads flying into the library button
+  and swipes all follow; the window buttons stay at the top left.
 - **Tab previews:** resting the pointer on a tab in the sidebar shows a
   picture of its page beside the sidebar, with its title and address (and a
   pull request's checks); moving down the list switches it at once.
@@ -173,6 +213,17 @@ run. Data lives in
   "Übernehmen"; then the folders sit at the top under the line, and ⌘Z or
   Rückgängig in the toast puts everything back. Pinned tabs and favorites
   stay as they are.
+- **Short tab titles on the Mac** (Settings › KI › Tab-Titel kürzen, off by
+  default): with Apple Intelligence (macOS 26 or later), long or noisy titles
+  of pinned and today tabs get a short name from Apple's on-device model, as
+  in Arc Max ("Inbox (3) - x@y.de - Gmail" becomes "Gmail Inbox"). The model
+  sees only the title without counts and email addresses, and the host.
+  Renamed tabs, favorites, folders, splits and private windows keep their
+  titles; the tab preview (or the tooltip, with previews off) shows the full
+  one. Names are kept by address in `ShortTitles.json`, together with the
+  shorter titles from "Tabs mit KI aufräumen"; turning it off deletes the
+  ones made on the Mac. Without Apple Intelligence the switch is greyed out
+  with the reason, and OpenArch still runs on macOS 15.
 - **AI control:** turn it on under Settings › KI. OpenArch then opens Chrome's
   DevTools protocol on 127.0.0.1:9222, so Claude Code can drive the real
   browser and its tabs:
@@ -188,8 +239,10 @@ run. Data lives in
   archive. ⌘⇧T brings back the last closed window where it was, tabs and
   all, when it closed after the last tab (as in Chrome and Dia); Ablage ›
   Geschlossenes Fenster wieder öffnen always does.
-- **Peek:** links from pinned tabs and favorites to other sites open in a
-  card over the page, which can become a tab or a split.
+- **Peek:** links from pinned tabs and favorites to other sites, and
+  ⇧-clicks on any link, open in a card over the page, which can become a tab
+  or a split. ⌘Z right after closing it, or ⇧⌘T, opens it again; Settings ›
+  Links turns it off.
 - **Meetings** (Settings › Allgemein › Kalender): the next meeting from the
   Mac's calendars sits at the bottom of the sidebar, with when it starts and
   a button to join the call (Meet, Zoom, Teams, Webex … links in the
@@ -200,6 +253,16 @@ run. Data lives in
   video call), a red card at the bottom of the sidebar says what is shared;
   a click goes to the shared tab, ■ ends the sharing. The sharing tab and
   the shared one carry a red mark in the sidebar.
+- **Calls in picture-in-picture:** leaving a tab in a call (its page uses
+  the camera or microphone) by switching tabs or spaces, minimizing the
+  window or the window going out of sight, keeps the call in a floating
+  window. Google Meet opens its own (its tiles and buttons, via the page's
+  Document Picture-in-Picture); other calls get OpenArch's, with the call's
+  videos and buttons for microphone, camera, hanging up and going back to
+  the tab. Coming back closes it. It opens at the bottom right, remembers
+  where you drag it, and stays above other apps on every desktop. Off
+  under Settings › Allgemein › Tabs, or per site in the Site Control
+  Center; muted videos and sound alone never float.
 - **Site Control Center** (⌃⌘I, or the sliders at the top of the sidebar):
   camera, microphone, location, notifications, pop-ups, sound, downloads,
   clipboard and JavaScript per site, the page's zoom, its boost, and
@@ -222,10 +285,47 @@ run. Data lives in
   shows there too, from what Spotify tells every app; its buttons control
   Spotify after macOS asks once. Leaving a tab with a video playing keeps
   it going in picture-in-picture.
-- **Hover sidebar:** with the sidebar collapsed, the window's left edge
-  brings it back over the page.
-- **Updates:** OpenArch updates itself from the nightly release (checked
-  at launch and every six hours; only builds signed with OpenArch's Developer ID, from its own GitHub releases).
+- **Streaming services:** Spotify, Netflix, Disney+, Max, Prime Video,
+  Hulu, Paramount+, Peacock, Apple TV and Apple Music, Tidal, Deezer,
+  Crunchyroll, Joyn and Rakuten TV open with Safari's engine (a `WKWebView`
+  page in the same tab), which plays their DRM with Apple's FairPlay. A
+  link from a Chromium page to one of them moves the tab there before it
+  leaves (a form's POST stays); a page with Safari's engine keeps it for its
+  own navigations, so signing in through Google or Apple comes back to it.
+  Each profile has its own WebKit store, a private window one in memory.
+  Sidebar, split view, Peek, Little OpenArch, previews, the media player,
+  picture-in-picture, sleeping tabs, find, zoom, printing and downloads work
+  on these pages; Chrome extensions and Chrome's DevTools do not (⌥⌘I opens
+  Web Inspector). A message says so once per service; Settings › Allgemein ›
+  Geschützte Inhalte turns it off, and the Site Control Center switches a
+  site either way (`protected-media.json`). `--selftest --drm-test` checks it
+  with example.org standing in for a service.
+- **Hover sidebar:** with the sidebar collapsed, the window's edge on the
+  sidebar's side brings it back over the page.
+- **Updates:** OpenArch updates itself on one of two channels, chosen in
+  Settings › Info: Stable (the newest `v*` release) or Nightly (the newest
+  build of `main`). Checked at launch and every six hours; only builds
+  signed with OpenArch's Developer ID, from its own GitHub releases, and
+  never one older than the build running, so going back from Nightly to
+  Stable waits until Stable catches up. Tag builds start on Stable, all
+  others on Nightly.
+- **Crash reports, only by hand:** OpenArch notes its own crashes, tabs'
+  renderers that end unexpectedly (CEF's `OnRenderProcessTerminated`) and
+  macOS's crash reports of its helpers (renderer, GPU, utility processes),
+  and asks at the next launch whether to send a report. The report shows
+  first and opens as a prefilled GitHub issue; it holds versions, the kind
+  of process, how it ended and the crashing thread's function names, never
+  addresses, titles, paths or page content. No usage tracking.
+- **Feature switches:** Peek, tab previews, agent chats, Boosts and
+  streaming services with Safari's engine (`drmWebKit`) can be
+  switched off without an update,
+  for one Mac (`defaults write dev.openarch.browser disabledFeatures -array
+  peek`) or for everyone through `website/feature-switches.json` on
+  openarch.app (by build range and Chromium version; fetched only from that
+  address, and anything that goes wrong leaves every feature on).
+- **Daily backup:** `Library.json` (spaces, tabs, link rules), `Boosts.json`
+  and the settings go once a day into a folder you choose, iCloud Drive
+  included; the newest 14 stay. Export and import in Settings › Info.
 - **Settings** in Arc's style: Allgemein, Profile, Links, Teilen, KI, Import,
   Info.
 - **Über OpenArch:** a flight through OpenArch's arches; click the logo for
@@ -234,6 +334,20 @@ run. Data lives in
   in the current space's color, or a different one each day. While OpenArch
   is closed, a Dock tile plug-in keeps showing it; the app bundle is never
   changed, so its signature stays valid.
+- **Keychain:** saved passwords, cookies and card numbers are encrypted
+  with a key kept as "OpenArch Safe Storage" in the login keychain, as
+  Chrome does with its own. Developer ID builds make the item themselves
+  before Chromium starts, so macOS does not ask, and signed updates read it
+  without asking. If the item was made by a copy signed differently, a
+  dialog explains, macOS asks once, and OpenArch puts the key into an item
+  of its own (`SafeStorage.swift`). Data from before, encrypted with
+  Chromium's mock keychain, is re-encrypted with the new key at the first
+  launch, before Chromium opens it, with a backup that goes back if
+  anything fails (`SafeStorageMigration.swift`). Local builds are signed
+  ad hoc, which macOS would ask about after every rebuild, so they keep the
+  mock keychain (`--login-keychain` uses the real one, and a data folder
+  already moved always does). `--selftest --keychain-test` moves a profile
+  with a saved password and a cookie over in three launches.
 - **Sandbox:** pages, the GPU and the network service run in Chromium's
   sandbox, as in Chrome; every helper process starts it before loading
   Chromium.
@@ -243,15 +357,30 @@ run. Data lives in
 - **Housekeeping:** today tabs are archived after 12 hours (configurable),
   and ⌘⇧T reopens closed tabs. Tabs you have not looked at for two hours
   (configurable) go to sleep: their page closes and loads again when you
-  come back. Tabs playing something, or whose page would ask before
-  leaving, stay awake.
+  come back. Tabs playing something, in a call, or whose page would ask
+  before leaving stay awake, and so do pinned tabs and favorites of chat
+  and mail sites (Slack, Gmail, Outlook, WhatsApp, Teams …; more under
+  Settings › Allgemein › Tabs).
 - **HTTPS only** (Settings › Allgemein): Chromium's HTTPS-First mode,
   which loads http:// addresses over HTTPS and warns before falling back.
-- **Import from Arc:** spaces, favorites, pinned folders, today tabs and split
+- **Import from Arc:** spaces with their themes (gradient, intensity, grain,
+  light or dark, exactly), favorites, pinned folders, today tabs and split
   views (from Arc's `StorableSidebar.json`). "Alles übernehmen" also brings
   logins and cookies, saved passwords, history, website data and the
   installed extensions with their settings. Arc's profile is cloned, and
-  encrypted values are re-encrypted with OpenArch's key.
+  encrypted values are re-encrypted with OpenArch's key from the keychain. "Arc-Daten
+  sichern" zips Arc's JSON files and `Local State` into ~/Documents.
+- **Import from other browsers** (Ablage › Aus anderem Browser importieren …,
+  Settings › Import): Chrome and its channels, Brave, Edge, Vivaldi, Opera,
+  Chromium, Dia, Helium, Comet (profiles from `Local State`), Firefox and Zen
+  (`profiles.ini`) and Safari (with Full Disk Access). Each profile becomes
+  an OpenArch profile and a space with its name: the bookmarks bar as pinned
+  tabs and folders, other bookmarks as a folder of their own, history into
+  the command bar. For Chromium browsers also cookies and passwords, at the
+  next launch, re-encrypted with OpenArch's key after the browser's
+  "Safe Storage" key is read from the keychain. Bookmarks HTML files and
+  password CSV files (Chrome, Firefox, Safari, 1Password, Bitwarden) too.
+  Importing again adds nothing twice.
 - **Default browser:** OpenArch can be set as the default browser and opens
   links from other apps.
 - **Sharing without an account:** a pinned folder (right-click › Teilen …) or a space
@@ -310,18 +439,47 @@ Lessons learned on the way:
 
 ## Known limitations
 
-- **Mock keychain.** Every build, the Developer ID builds included, uses
-  Chromium's mock keychain (`App/Sources/OpenArch/main.swift`), so saved
-  cookies and passwords are not protected by the login keychain. Local
-  builds are signed ad hoc.
+- **No way back to older versions.** Once a Developer ID build has moved
+  passwords and cookies to the keychain's key, versions from before that
+  can't read them.
 - **The full Arc import is new.** Moving logins, passwords and extensions has
   been tested on copies of Arc profiles, not yet on many real ones. Arc's own
   data is never changed.
-- **No Widevine.** DRM video such as Netflix does not play, and Google sync
-  for Chromium forks is not available.
+- **Logins from other browsers are new.** Moving cookies and passwords from
+  Chromium browsers has been tested on made-up profiles only. Firefox's and
+  Safari's passwords come only from an exported CSV file.
+- **Widevine in Chromium is off.** Google's component updater installs the
+  module, but pages get it only with Settings › Allgemein › Geschützte
+  Inhalte (Widevine) on (after a restart), until the licence question with
+  Google is settled. Even then the big services refuse it without Verified
+  Media Path; they play with Safari's engine instead, where Chrome
+  extensions do not run and you sign in once more. Google sync for
+  Chromium forks is not available.
+- **Deleting a profile** does not exist yet; `WebKitStores.removeStore` is
+  there for it to remove the profile's WebKit data too.
 - **Not built yet:** Easels and Notes.
+- **Crash reports see what macOS reports.** CEF tells the app only of a
+  renderer's end; a GPU or utility process crash shows when macOS writes a
+  crash report for it.
+- **Themes:** Arc's other textures (sand, denim, tweed) come over as grain
+  of the same strength. ⌘S shows and hides the sidebar without a slide, on
+  either side.
+- **Calls in picture-in-picture** are checked with local test pages and
+  Chromium's fake camera, not yet with real Meet, Zoom, Teams or Slack
+  calls. Hanging up from OpenArch's window clicks the site's leave button
+  where it finds one. Whether the window shows over another app's full
+  screen has not been checked on screen.
+- **The first launch is new.** The self-test runs it with an Arc fixture
+  and a stand-in for Google's answer; the accounts step's reading of real
+  Google accounts and its sign-in window have not been tried on many Macs.
+  Without Arc it offers a fresh start only, until the import from other
+  browsers registers itself there (`OnboardingImportSources`).
 - **Full screen is new.** Video full screen gets its own space like in
   Chrome; `--selftest --fullscreen-test` checks it visibly.
+- **Short tab titles show in the sidebar only.** The command bar, the tab
+  switcher keep the page's own title. The self-test runs
+  them with a stand-in for Apple's model and makes one request to the real
+  model only where Apple Intelligence is on.
 
 ## Hosting
 

@@ -44,6 +44,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         log("Chromium \(OACEngine.versionString)")
+        if !selfTest {
+            // The crashes since the last launch, before this one can add any.
+            CrashReports.shared.collectAtLaunch()
+            CrashReports.shared.installSignalHandlers()
+            startFeatureSwitches()
+        }
+        OACPane.renderProcessGoneHandler = { status, code in
+            MainActor.assumeIsolated { CrashReports.shared.rendererGone(status: status, code: code) }
+        }
         AppIcons.repairBundle()
         SpotifyPlayer.shared.start()
         library = Library.load()
@@ -99,7 +108,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             OACPane.downloadHandler = { [weak self] download in
                 MainActor.assumeIsolated { Downloads.shared.update(download, in: self?.mainBrowser) }
             }
-            browser.showWindow(nil)
+            // The first launch starts with the onboarding; the browser window
+            // comes in behind it. --skip-onboarding leaves it out.
+            let onboarding = !selfTest && library.settings.onboardingPending
+                && !CommandLine.arguments.contains("--skip-onboarding")
+            if !onboarding { browser.showWindow(nil) }
             if selfTest {
                 test = SelfTest(browser: browser)
                 test?.start()
@@ -107,15 +120,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 browser.restoreSession()
                 for url in pendingURLs { openExternal(url) }
                 pendingURLs = []
-                offerArcImportOnFirstRun()
+                if onboarding {
+                    startOnboarding(mode: .firstRun)
+                } else {
+                    offerArcImportOnFirstRun()
+                    // After the Arc import question, not on top of it.
+                    after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
+                }
                 importArcFaviconsOnce()
                 Updater.shared.start()
                 AppIcons.applyAtLaunch(spaceHex: browser.state.space.colorHex)
-                // After the Arc import question, not on top of it.
-                after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
                 if let result = ArcProfileImport.takeResult() {
                     let alert = NSAlert()
                     alert.messageText = "Import aus Arc"
+                    alert.informativeText = result
+                    alert.runModal()
+                }
+                if let result = Backups.takeResult() {
+                    let alert = NSAlert()
+                    alert.messageText = "Sicherung importiert"
+                    alert.informativeText = result
+                    alert.runModal()
+                }
+                Backups.shared.start(library: library)
+                after(2) { [weak self] in
+                    CrashReports.shared.offer { url in _ = self?.mainBrowser?.openInNewTab(url.absoluteString) }
+                }
+                if let result = CredentialImport.takeResult() {
+                    let alert = NSAlert()
+                    alert.messageText = "Logins und Passwörter importiert"
                     alert.informativeText = result
                     alert.runModal()
                 }
@@ -123,6 +156,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if !selfTest {
             NSApp.activate()
+        }
+    }
+
+    /// The remote feature switches at launch and every six hours; a feature
+    /// switched off while it shows closes.
+    private func startFeatureSwitches() {
+        let build = Updater.shared.currentBuild
+        let chromium = OACEngine.versionString
+        let refresh: @Sendable () -> Void = { FeatureSwitches.shared.refresh(build: build, chromium: chromium) }
+        refresh()
+        Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { _ in refresh() }
+        NotificationCenter.default.addObserver(forName: FeatureSwitches.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.featureSwitchesChanged() }
+        }
+    }
+
+    func featureSwitchesChanged() {
+        let switches = FeatureSwitches.shared
+        if !switches.disabled.isEmpty {
+            log("features switched off: \(switches.disabled.keys.map(\.rawValue).sorted())")
+        }
+        for browser in browsers {
+            if !switches.isOn(.peek) { browser.peek.close() }
+            if !switches.isOn(.tabPreviews) { browser.tabPreview.hide() }
         }
     }
 
@@ -156,6 +213,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if let onboarding {
+            onboarding.window.makeKeyAndOrderFront(nil)
+            return true
+        }
         mainBrowser?.showWindow(nil)
         return true
     }
@@ -291,6 +352,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ArcFavicons.importIcons(for: ArcFavicons.urls(in: library))
     }
 
+    // MARK: Onboarding
+
+    private(set) var onboarding: OnboardingController?
+
+    /// The onboarding: by itself at the first launch, again from Settings ›
+    /// Allgemein.
+    @objc func showOnboarding(_ sender: Any?) {
+        startOnboarding(mode: .rerun)
+    }
+
+    @discardableResult
+    func startOnboarding(mode: OnboardingController.Mode, arc: OnboardingArcSource = OnboardingArcSource(),
+                         focus: Bool = true) -> OnboardingController {
+        if let onboarding {
+            onboarding.window.makeKeyAndOrderFront(nil)
+            return onboarding
+        }
+        settingsWindow?.orderOut(nil)
+        let controller = OnboardingController(app: self, mode: mode, arc: arc, focus: focus && !selfTest)
+        onboarding = controller
+        controller.present()
+        return controller
+    }
+
+    func onboardingDidEnd(_ controller: OnboardingController) {
+        if onboarding === controller { onboarding = nil }
+    }
+
     private func offerArcImportOnFirstRun() {
         let key = "didOfferArcImport"
         guard !UserDefaults.standard.bool(forKey: key), ArcImporter.isAvailable else { return }
@@ -340,7 +429,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let browser = mainBrowser else { return }
         do {
             let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
-            let (data, summary) = try ArcImporter.load(currentProfiles: current)
+            let arcProfile = library.settings.arcDefaultProfile ?? "Default"
+            let (data, summary) = try ArcImporter.load(currentProfiles: current, defaultDirectory: arcProfile)
             let alert = NSAlert()
             alert.messageText = "Aus Arc importieren"
             alert.informativeText = """
@@ -371,7 +461,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser.libraryWasReplaced()
             if choice == .alertFirstButtonReturn {
                 library.save()
-                ArcProfileImport.scheduleAndRelaunch()
+                ArcProfileImport.scheduleAndRelaunch(into: arcProfile)
             }
         } catch {
             NSAlert(error: error).runModal()
@@ -379,13 +469,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Arc has to be closed so its databases are complete on disk.
-    private func quitArcIfNeeded() -> Bool {
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: ArcProfileImport.arcBundleID)
+    func quitArcIfNeeded() -> Bool {
+        quitAppIfNeeded(bundleIDs: [ArcProfileImport.arcBundleID], name: "Arc")
+    }
+
+    /// A browser whose logins are imported has to be closed, so its
+    /// databases are complete on disk.
+    func quitAppIfNeeded(bundleIDs: [String], name: String) -> Bool {
+        let running = bundleIDs.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
         guard !running.isEmpty else { return true }
         let alert = NSAlert()
-        alert.messageText = "Arc beenden?"
-        alert.informativeText = "Arc läuft noch. Damit Logins und Website-Daten vollständig übernommen werden, muss Arc beendet sein. Deine Tabs in Arc bleiben erhalten."
-        alert.addButton(withTitle: "Arc beenden")
+        alert.messageText = "\(name) beenden?"
+        alert.informativeText = "\(name) läuft noch. Damit Logins und Website-Daten vollständig übernommen werden, muss \(name) beendet sein. Deine Tabs in \(name) bleiben erhalten."
+        alert.addButton(withTitle: "\(name) beenden")
         alert.addButton(withTitle: "Abbrechen")
         guard alert.runModal() == .alertFirstButtonReturn else { return false }
         for app in running { app.terminate() }
@@ -395,12 +491,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if running.contains(where: { !$0.isTerminated }) {
             let failed = NSAlert()
-            failed.messageText = "Arc ließ sich nicht beenden."
-            failed.informativeText = "Bitte beende Arc selbst und starte den Import dann noch einmal."
+            failed.messageText = "\(name) ließ sich nicht beenden."
+            failed.informativeText = "Bitte beende \(name) selbst und starte den Import dann noch einmal."
             failed.runModal()
             return false
         }
         return true
+    }
+
+    /// Settings › Import, where the other browsers on this Mac are listed.
+    @objc func importFromOtherBrowser(_ sender: Any?) {
+        showSettings(page: .importing)
+    }
+
+    @objc func backUpArc(_ sender: Any?) {
+        do {
+            let file = try ArcBackup.make()
+            NSWorkspace.shared.activateFileViewerSelecting([file])
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     @objc func installArcExtensions(_ sender: Any?) {
@@ -462,8 +572,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     /// ⌘⇧T: the last closed tab, or the last closed window if it closed
-    /// later, as in Chrome.
+    /// later, as in Chrome; a Peek card closed after both.
     @objc func reopenTab(_ sender: Any?) {
+        // A Peek card closed after the last tab comes back first.
+        if let browser, browser.peek.canReopen(newerThan: library.archive.first?.date) {
+            return browser.peek.reopen()
+        }
         if ClosedWindows.shared.lastIsNewer(than: library.archive), ClosedWindows.shared.reopen(app: self) { return }
         browser?.reopenClosedTab()
     }
@@ -649,6 +763,7 @@ enum MainMenu {
             .separator(),
             item("Seite sichern unter …", #selector(AppDelegate.savePage(_:)), "s", [.command, .shift]),
             item("Aus Arc importieren …", #selector(AppDelegate.importFromArc(_:))),
+            item("Aus anderem Browser importieren …", #selector(AppDelegate.importFromOtherBrowser(_:))),
             .separator(),
             item("Drucken …", #selector(AppDelegate.printPage(_:)), "p"),
         ]))

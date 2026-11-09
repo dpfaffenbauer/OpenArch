@@ -55,6 +55,21 @@ final class SelfTest {
                 if CommandLine.arguments.contains("--cancel-downloads") {
                     self.cancelFirstDownload()
                 }
+                // --snapshot <file>: a picture of the page after 15 s, and
+                // which engine shows it (the window itself sits behind others).
+                if let index = CommandLine.arguments.firstIndex(of: "--snapshot"), index + 1 < CommandLine.arguments.count {
+                    let file = URL(fileURLWithPath: CommandLine.arguments[index + 1])
+                    after(15) {
+                        Swift.print("[selftest] info engine \(item.pane?.engine == .webKit ? "WebKit" : "Chromium"), "
+                                    + "title \(item.displayTitle), favicon \(item.favicon != nil), url \(item.currentURL)")
+                        item.pane?.callDevToolsMethod("Page.captureScreenshot", params: ["format": "png"]) { result in
+                            if let data = (result?["data"] as? String).flatMap({ Data(base64Encoded: $0) }) {
+                                try? data.write(to: file)
+                            }
+                            Swift.print("[selftest] info snapshot \(result?["data"] != nil)")
+                        }
+                    }
+                }
             }
             return
         }
@@ -67,6 +82,88 @@ final class SelfTest {
                     Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
                     if !CommandLine.arguments.contains("--stay") { Self.quit() }
                 }
+            }
+            return
+        }
+        // --release-test: update channels, feature switches, crash reports
+        // and backups (SelfTestRelease.swift), with a real renderer crash.
+        if CommandLine.arguments.contains("--release-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.releaseQuality(crashRenderer: true) {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
+        // --call-test: only calls in picture-in-picture and tabs kept awake
+        // (SelfTestCalls.swift); their floating windows pop up.
+        if CommandLine.arguments.contains("--call-test") {
+            after(0.5) {
+                self.callFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
+        // --theme-test: only themes and the sidebar on the right (SelfTestTheme.swift).
+        if CommandLine.arguments.contains("--theme-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.themeFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
+        // One launch of --keychain-test (SelfTestKeychain.swift).
+        if KeychainSelfTest.phase > 0 {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(3) {
+                self.keychainPhase(KeychainSelfTest.phase) {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    KeychainSelfTest.report(phase: KeychainSelfTest.phase, failures: self.failures.count)
+                    Self.quit()
+                }
+            }
+            return
+        }
+        // --import-test: only the import from other browsers (SelfTestImport.swift).
+        if CommandLine.arguments.contains("--import-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(3) {
+                self.browserImport {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
+        // --drm-test: only streaming services in WebKit (SelfTestDRM.swift).
+        if CommandLine.arguments.contains("--drm-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.drmFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
+        // --onboarding-test: the first-run flow with an Arc fixture (SelfTestOnboarding.swift).
+        if CommandLine.arguments.contains("--onboarding-test") {
+            if CommandLine.arguments.contains("--shots") { return onboardingShots() }
+            onboardingTest {
+                Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                if !CommandLine.arguments.contains("--stay") { Self.quit() }
             }
             return
         }
@@ -98,6 +195,18 @@ final class SelfTest {
         }
         if CommandLine.arguments.contains("--quit-test") {
             quitWithStuckBrowser()
+            return
+        }
+        // --sidebar-test: only the sidebar's details (SelfTestSidebar.swift).
+        if CommandLine.arguments.contains("--sidebar-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.sidebarDetails {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
             return
         }
         // --ai-test: only the AI features (SelfTestAI.swift), in a few seconds.
@@ -156,6 +265,7 @@ final class SelfTest {
             (36.48, "tab switcher previews", { self.tabSwitcherPreviews() }),
             (36.4, "menus", { self.menus() }),
             (36.6, "arc crypto", { self.arcCrypto() }),
+            (90, "browser import", { self.browserImport {} }),
             (36.8, "little openarch", { self.littleOpenArch() }),
             (37, "updater", { self.updaterTest() }),
             (37.1, "loading bar", { self.loadingBar() }),
@@ -164,10 +274,13 @@ final class SelfTest {
             (50.5, "boosts", { self.boostTest() }),
             (56, "peek", { self.peekTest() }),
             (61, "dia features", { self.diaFeatures {} }),
+            (63, "themes and sidebar right", { self.themeFeatures {} }),
             (64.5, "windows", { self.windowsTest() }),
             // Last and on its own: it renders windows, which the steps taking
             // pictures of tabs do not like.
             (73, "sharing", { self.sharingTest() }),
+            // After the updater step: both use the update download folder.
+            (82, "release quality", { self.releaseQuality(crashRenderer: false) {} }),
             (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.aboutPage { self.externalAppLinks() } } } } } } }),
         ]
         for (time, name, step) in steps {
@@ -1125,8 +1238,10 @@ final class SelfTest {
         library.settings.glass = false
         browser.applyTheme()
         browser.layoutContent()
-        expect(browser.window?.isOpaque == true && browser.windowGlassFrame == nil,
-               "and without it the window is solid again")
+        // Without it, the theme lies on white or black again, over the
+        // window's blur as in Arc.
+        expect(browser.windowGlassFrame == nil && browser.background.underlayOpacity > 0.75,
+               "and without it the window has the theme on white or black again (\(browser.background.underlayOpacity))")
 
         guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
             expect(false, "a new agent chat")
@@ -1172,19 +1287,24 @@ final class SelfTest {
     /// Plays a tone in a tab that was muted first (so nothing is heard) and
     /// checks that the sidebar learns about it.
     /// A tab nobody looked at goes to sleep and comes back on the same page;
-    /// one whose page asks before leaving stays awake.
+    /// one whose page asks before leaving stays awake, and so does a pinned
+    /// tab of a chat site (here example.com, added to the list).
     private func sleepingTabs(then next: @escaping () -> Void) {
         guard let space = library.spaces.first else { return }
         browser.switchSpace(to: space)
         let shown = browser.state.activeItem
         let sleepy = browser.openInNewTab("https://example.com/?sleepy", select: false)
         let asking = browser.openInNewTab("https://example.com/?asking", select: false)
+        let chat = space.pinned.allTabs.first { $0.currentURL == "https://example.com/pinned" }
+        let keepAwakeSites = library.settings.keepAwakeSites
+        library.settings.keepAwakeSites = ["example.com"]
         browser.select(sleepy, focus: false)
         browser.select(asking, focus: false)
+        if let chat { browser.select(chat, focus: false) }
         if let shown { browser.select(shown, focus: false) }
         after(3) {
             asking.pane?.executeJavaScript("window.addEventListener('beforeunload', e => e.preventDefault())")
-            for tab in [sleepy, asking] {
+            for tab in [sleepy, asking] + [chat].compactMap({ $0 }) {
                 tab.lastActiveAt = Date().addingTimeInterval(-3600)
                 tab.loadedAt = tab.lastActiveAt
             }
@@ -1194,6 +1314,9 @@ final class SelfTest {
                     self.expect(sleepy.isAsleep && sleepy.pane == nil && sleepy.currentURL == "https://example.com/?sleepy",
                                 "a tab nobody looked at sleeps and keeps its address (asleep \(sleepy.isAsleep), \(sleepy.currentURL))")
                     self.expect(!asking.isAsleep && asking.pane != nil, "a page that asks before leaving stays awake")
+                    self.expect(chat != nil && chat?.isAsleep == false && chat?.pane != nil,
+                                "a pinned tab of a chat site stays awake")
+                    self.library.settings.keepAwakeSites = keepAwakeSites
                     self.browser.select(sleepy, focus: false)
                     after(2.5) {
                         self.expect(!sleepy.isAsleep && sleepy.pane?.url == "https://example.com/?sleepy",
@@ -1542,23 +1665,36 @@ final class SelfTest {
     private func glassShots() {
         populate()
         browser.openInNewTab("https://example.com/glass")
-        browser.window?.orderFrontRegardless()
+        // --behind: stays behind other windows (for `screencapture -l`, which
+        // takes the window without the desktop).
+        if !CommandLine.arguments.contains("--behind") { browser.window?.orderFrontRegardless() }
+        Swift.print("[selftest] window \(browser.window?.windowNumber ?? 0)")
         let color = browser.state.space.colorHex
-        let variants: [(name: String, glass: Bool, tint: Double, color: String, sidebar: Bool)] = [
-            ("glass", true, 0.4, color, true),
-            ("light", true, 0.4, "#EDE6D6", true),
-            ("dark", true, 0.4, "#2C2C30", true),
-            ("tint0", true, 0, color, true),
-            ("tint9", true, 0.9, color, true),
-            ("hidden", true, 0.4, color, false),
-            ("solid", false, 0.4, color, true),
+        let gradient = ["#2F6AF0", "#E0559F", "#F2D46C"]
+        let variants: [(name: String, glass: Bool, tint: Double, colors: [String], sidebar: Bool, right: Bool)] = [
+            ("glass", true, 0.4, [color], true, false),
+            ("light", true, 0.4, ["#EDE6D6"], true, false),
+            ("dark", true, 0.4, ["#2C2C30"], true, false),
+            ("tint0", true, 0, [color], true, false),
+            ("tint9", true, 0.9, [color], true, false),
+            ("hidden", true, 0.4, [color], false, false),
+            ("solid", false, 0.4, [color], true, false),
+            // Arc's themes: a gradient of three colors with grain, and the
+            // sidebar on the right, solid and in glass.
+            ("gradient", false, 0.4, gradient, true, false),
+            ("right", false, 0.4, gradient, true, true),
+            ("right-glass", true, 0.4, gradient, true, true),
         ]
         for (index, variant) in variants.enumerated() {
             after(6 + Double(index) * 3) {
                 self.library.settings.glass = variant.glass
                 self.library.settings.glassTint = variant.tint
-                self.browser.state.space.colorHex = variant.color
+                self.browser.state.space.theme = ThemeData(colors: variant.colors, grain: variant.colors.count > 1 ? 0.5 : 0)
                 if self.browser.state.sidebarVisible != variant.sidebar { self.browser.toggleSidebar() }
+                if self.library.settings.sidebarOnRight != variant.right {
+                    self.library.settings.sidebarOnRight = variant.right
+                    self.browser.sidebarSideChanged()
+                }
                 self.browser.applyTheme()
             }
             after(7.5 + Double(index) * 3) { Swift.print("[selftest] STEP shot \(variant.name)") }
@@ -1732,10 +1868,11 @@ final class SelfTest {
                "Split View menu lists the open sides (\(sides.map(\.title)))")
     }
 
-    /// Re-encryption as the full Arc import does it, with throwaway keys.
-    private func arcCrypto() {
+    /// Re-encryption as the full Arc import does it, from a throwaway key to
+    /// the one Chromium uses at this launch.
+    func arcCrypto() {
         let arcKey = ArcProfileImport.derivedKey(password: Data("arc-test-password".utf8))
-        let openArchKey = ArcProfileImport.derivedKey(password: Data("mock_password".utf8))
+        let openArchKey = SafeStorage.key
         let plain = Data("session=geheim".utf8)
         guard let encrypted = ArcProfileImport.aes(CCOperation(kCCEncrypt), plain, key: arcKey) else {
             return expect(false, "test value encrypts")
@@ -1762,7 +1899,8 @@ final class SelfTest {
         sqlite3_finalize(select)
         sqlite3_close(handle)
         let roundTrip = ArcProfileImport.aes(CCOperation(kCCDecrypt), stored.dropFirst(3), key: openArchKey)
-        expect(converted == 1 && failed == 0 && roundTrip == plain, "Arc values are re-encrypted with OpenArch's key")
+        expect(converted == 1 && failed == 0 && roundTrip == plain,
+               "Arc values are re-encrypted with OpenArch's key (\(SafeStorage.usesLoginKeychain ? "login keychain" : "mock keychain"))")
     }
 
     /// Opens a link in Little OpenArch, then moves it into the main window.
@@ -1999,7 +2137,7 @@ final class SelfTest {
         browser.openInNewTab("https://example.com/kept-after-quit")
         let tab = browser.openInNewTab("https://example.com/never-closes")
         after(3) {
-            tab.pane?.refusesToCloseForTesting = true
+            (tab.pane as? OACPane)?.refusesToCloseForTesting = true
             Swift.print("[selftest] STEP quit with a browser that does not close")
             NSApp.terminate(nil)
         }
@@ -2547,6 +2685,7 @@ final class SelfTest {
     }
 
     func consoleMessage(_ message: String, from item: Item?) {
+        if callConsoleMessage(message) { return }
         if message.hasPrefix("__selftest_media__ ") {
             mediaChecks.append(String(message.dropFirst("__selftest_media__ ".count)))
             return

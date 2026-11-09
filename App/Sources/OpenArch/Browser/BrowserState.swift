@@ -10,6 +10,13 @@ final class BrowserState {
     var sidebarVisible = true
     /// Item being renamed inline in the sidebar.
     var renamingItemID: UUID?
+    /// Sidebar rows selected with ⇧- or ⌘⇧-click (SidebarSelection).
+    var selection: [UUID] = []
+    /// Where a ⇧-click range starts: the row clicked last.
+    @ObservationIgnored var selectionAnchorID: UUID?
+    /// The closed folder whose tabs show beside it (FolderPreview).
+    var folderPreviewID: UUID?
+    @ObservationIgnored var folderPreviewTimer: DispatchWorkItem?
     /// Space whose editor popover is open.
     var editingSpaceID: UUID?
     /// The Site Control Center popover is open.
@@ -25,6 +32,8 @@ final class BrowserState {
     let downloadStack = DownloadStack()
     /// Horizontal offset of the sidebar while it is being swiped.
     var swipeOffset: CGFloat = 0
+    /// The Mac is in dark mode, which auto themes follow.
+    var systemDark = false
     /// The library button and the whole sidebar, both in SwiftUI's global
     /// coordinates (whose origin depends on the safe area), for downloads
     /// flying into the button.

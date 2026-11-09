@@ -9,6 +9,11 @@ extension BrowserWindowController {
     @discardableResult
     func handleDrop(_ providers: [NSItemProvider], target: DropTarget) -> Bool {
         loadDroppedString(providers) { string in
+            // Several selected rows, one id per line.
+            let ids = string.split(separator: "\n").compactMap { UUID(uuidString: String($0)) }
+            if ids.count > 1 {
+                return self.moveAll(ids.compactMap { self.ownItem(id: $0) }, to: target)
+            }
             if let id = UUID(uuidString: string), let item = self.ownItem(id: id) {
                 self.move(item, to: target)
             } else if let id = UUID(uuidString: string), let (item, owner) = self.separateWindowItem(id: id) {
@@ -32,6 +37,11 @@ extension BrowserWindowController {
 
     /// A tab dropped on a space's icon moves there; a link opens there.
     func drop(_ string: String, toSpace space: Space) {
+        let ids = string.split(separator: "\n").compactMap { UUID(uuidString: String($0)) }
+        if ids.count > 1 {
+            for item in ids.compactMap({ ownItem(id: $0) }) { moveToSpace(item, space) }
+            return clearSelection()
+        }
         if let id = UUID(uuidString: string), let item = ownItem(id: id) {
             moveToSpace(item, space)
         } else if let id = UUID(uuidString: string), let (item, owner) = separateWindowItem(id: id) {
@@ -73,7 +83,9 @@ extension BrowserWindowController {
     private func loadDroppedString(_ providers: [NSItemProvider], _ handler: @escaping @MainActor (String) -> Void) -> Bool {
         let wrapped: @MainActor (String) -> Void = { string in
             // A sidebar item landed in a window: no separate window for it.
-            if UUID(uuidString: string) != nil { BrowserWindowController.tabDropHandled = true }
+            if string.split(separator: "\n").first.flatMap({ UUID(uuidString: String($0)) }) != nil {
+                BrowserWindowController.tabDropHandled = true
+            }
             handler(string)
         }
         if let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.openArchTab.identifier) }) {
@@ -103,7 +115,7 @@ extension BrowserWindowController {
 
     /// Takes over a pane that lives elsewhere (Little OpenArch) as a new
     /// today tab, without reloading the page.
-    func adopt(_ pane: OACPane, into space: Space, url: String, title: String, favicon: NSImage?) {
+    func adopt(_ pane: any OACPage, into space: Space, url: String, title: String, favicon: NSImage?) {
         let item = Item.tab(url: url, title: title)
         item.pane = pane
         item.liveURL = url
@@ -225,15 +237,44 @@ extension BrowserWindowController {
         guard library.spaces.count > 1 else { return }
         let alert = NSAlert()
         alert.messageText = "Space „\(space.name)“ löschen?"
-        alert.informativeText = "Angeheftete Tabs, Ordner und offene Tabs dieses Space werden entfernt. Die Daten des Profils (Logins, Cookies) bleiben erhalten."
+        alert.informativeText = deleteSpaceMessage(space)
         alert.addButton(withTitle: "Löschen")
         alert.addButton(withTitle: "Abbrechen")
         alert.buttons[0].hasDestructiveAction = true
         guard alert.runModal() == .alertFirstButtonReturn else { return }
+        removeSpace(space)
+    }
+
+    /// What deleting |space| does to its tabs, for the question before.
+    func deleteSpaceMessage(_ space: Space) -> String {
+        let pinned = space.pinned.allTabs.count, open = space.today.allTabs.count
+        let folders = space.pinned.allItems.filter { $0.kind == .folder }.count
+        let chats = (space.pinned.allItems + space.today.allItems).filter { $0.kind == .agent }.count
+        func tabs(_ count: Int) -> String { count == 1 ? "1 Tab" : "\(count) Tabs" }
+        var parts: [String] = []
+        if pinned + open == 0 {
+            parts.append("Der Space hat keine Tabs.")
+        } else {
+            var what: [String] = []
+            if pinned > 0 { what.append("\(tabs(pinned)) angeheftet" + (folders > 0 ? " (in \(folders == 1 ? "1 Ordner" : "\(folders) Ordnern"))" : "")) }
+            if open > 0 { what.append("\(tabs(open)) offen") }
+            parts.append("\(what.joined(separator: ", ")): sie kommen ins Archiv (Bibliothek › Archiv, ⇧⌘T), von wo du sie wieder öffnen kannst. Die Ordner gehen verloren.")
+        }
+        if chats > 0 { parts.append(chats == 1 ? "1 Agent-Chat wird gelöscht." : "\(chats) Agent-Chats werden gelöscht.") }
+        let profile = library.profile(id: space.profileID).name
+        parts.append("Das Profil „\(profile)“ mit seinen Logins und Cookies bleibt.")
+        return parts.joined(separator: " ")
+    }
+
+    /// Deletes |space| without asking; its tabs go into the archive.
+    func removeSpace(_ space: Space) {
+        guard library.spaces.count > 1 else { return }
         if space === state.space, let other = library.spaces.first(where: { $0 !== space }) {
             switchSpace(to: other)
         }
+        // Pinned first, so that ⇧⌘T brings back the open tabs first.
         for tab in space.pinned.allTabs + space.today.allTabs {
+            library.archive(tab)
             unload(tab)
         }
         library.removeSpace(space)

@@ -24,7 +24,7 @@ final class TabSwitcher {
             guard tabs.count > 1 else { return }
             model.tabs = Array(tabs.prefix(8))
             model.selection = 0
-            model.theme = SpaceTheme(hex: browser.state.space.colorHex)
+            model.theme = browser.theme
             model.fit(model.tabs.count, in: browser.contentRect.size)
             // Fresh pictures of the pages that are open; sleeping ones keep
             // the last one taken.
@@ -183,7 +183,7 @@ struct TabSwitcherView: View {
         }
         .padding(12)
         .foregroundStyle(theme.foreground)
-        .background(RoundedRectangle(cornerRadius: 18).fill(theme.background).shadow(color: .black.opacity(0.3), radius: 18, y: 6))
+        .background(RoundedRectangle(cornerRadius: 18).fill(theme.gradient).shadow(color: .black.opacity(0.3), radius: 18, y: 6))
         .padding(24)
         .environment(\.colorScheme, theme.colorScheme)
     }

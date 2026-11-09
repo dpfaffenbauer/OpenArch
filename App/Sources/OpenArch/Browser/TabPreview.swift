@@ -25,7 +25,7 @@ final class TabPreview {
     /// sidebar's SwiftUI coordinates.
     func hover(_ item: Item, row: CGRect, inside: Bool) {
         guard inside else { return leave(item) }
-        guard browser.library.settings.tabPreviews, browser.state.sidebarVisible, item.kind == .tab,
+        guard browser.library.settings.tabPreviews, FeatureSwitches.shared.isOn(.tabPreviews), browser.state.sidebarVisible, item.kind == .tab,
               item !== browser.state.activeItem, let anchor = browser.sidebarAnchor(forRow: row) else { return }
         pending?.cancel()
         self.item = item
@@ -64,8 +64,8 @@ final class TabPreview {
         self.window = window
         let content = browser.contentRect
         let aspect = content.width > 0 ? min(0.75, max(0.45, content.height / content.width)) : 0.6
-        window.show(TabPreviewCard(item: item, aspect: aspect, theme: SpaceTheme(hex: browser.state.space.colorHex)),
-                    beside: anchor, in: parent)
+        window.show(TabPreviewCard(item: item, aspect: aspect, theme: browser.theme),
+                    beside: anchor, in: parent, toTheLeft: browser.sidebarOnRight)
     }
 }
 
@@ -86,16 +86,19 @@ final class TabPreviewWindow: NSWindow {
         contentView = host
     }
 
-    /// Left edge at the sidebar's edge, centered on the row, inside the window.
+    /// Beside the sidebar's edge (to its left with the sidebar on the
+    /// right), centered on the row, inside the window.
     @MainActor
-    func show(_ card: TabPreviewCard, beside anchor: NSPoint, in parent: NSWindow) {
+    func show(_ card: TabPreviewCard, beside anchor: NSPoint, in parent: NSWindow, toTheLeft: Bool = false) {
         host.rootView = AnyView(card)
         // Measured on a view of its own: the window's view has no sizing
         // options (it must not resize the window), so it measures as zero.
         let size = NSHostingView(rootView: card).fittingSize
         let screenAnchor = parent.convertPoint(toScreen: anchor)
         let limits = parent.frame.insetBy(dx: 8, dy: 8)
-        var origin = NSPoint(x: screenAnchor.x + 4, y: screenAnchor.y - size.height / 2)
+        var origin = NSPoint(x: toTheLeft ? screenAnchor.x - 4 - size.width : screenAnchor.x + 4,
+                             y: screenAnchor.y - size.height / 2)
+        origin.x = min(max(origin.x, limits.minX), limits.maxX - size.width)
         origin.y = min(max(origin.y, limits.minY), limits.maxY - size.height)
         setFrame(NSRect(origin: origin, size: size), display: true)
         if self.parent !== parent {

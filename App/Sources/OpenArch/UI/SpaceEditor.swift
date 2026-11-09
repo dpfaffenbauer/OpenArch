@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Popover for a space: name, icon, color and profile.
+/// Popover for a space: name, icon, theme and profile.
 struct SpaceEditor: View {
     let browser: BrowserWindowController
     @Bindable var space: Space
@@ -45,26 +45,8 @@ struct SpaceEditor: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Farbe").font(.caption).foregroundStyle(.secondary)
-                LazyVGrid(columns: columns, spacing: 6) {
-                    ForEach(spaceColorPresets, id: \.self) { hex in
-                        Circle()
-                            .fill(Color(nsColor: NSColor(hex: hex) ?? .gray))
-                            .frame(width: 22, height: 22)
-                            .overlay(Circle().strokeBorder(Color.primary.opacity(space.colorHex == hex ? 0.8 : 0), lineWidth: 2))
-                            .onTapGesture {
-                                space.colorHex = hex
-                                library.setNeedsSave()
-                            }
-                    }
-                    ColorPicker("", selection: Binding(
-                        get: { Color(nsColor: space.color) },
-                        set: { color in
-                            space.colorHex = NSColor(color).hexString
-                            library.setNeedsSave()
-                        }), supportsOpacity: false)
-                        .labelsHidden()
-                }
+                Text("Theme").font(.caption).foregroundStyle(.secondary)
+                ThemeEditor(theme: $space.theme) { library.setNeedsSave() }
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -109,7 +91,7 @@ struct EmptyContentView: View {
 
     var body: some View {
         let space = browser.state.space
-        let theme = SpaceTheme(hex: space.colorHex)
+        let theme = browser.theme
         RoundedRectangle(cornerRadius: 8)
             .fill(theme.foreground.opacity(0.06))
             .overlay {

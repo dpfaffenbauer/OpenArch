@@ -31,8 +31,11 @@ enum ArcImporter {
 
     /// |currentProfiles|: OpenArch's profiles now, directory by name. An Arc
     /// profile imported before keeps its directory, and its logins; any
-    /// other gets one no profile has used.
-    static func load(from url: URL = sidebarURL, currentProfiles: [String: String] = [:]) throws -> (LibraryData, Summary) {
+    /// other gets one no profile has used. Arc's own profile goes into
+    /// |defaultDirectory| ("Default", or a fresh one the onboarding fills
+    /// with Arc's logins while Chromium runs).
+    static func load(from url: URL = sidebarURL, currentProfiles: [String: String] = [:],
+                     defaultDirectory: String = "Default") throws -> (LibraryData, Summary) {
         guard let raw = try? Data(contentsOf: url),
               let root = try? JSONSerialization.jsonObject(with: raw) as? [String: Any]
         else { throw ImportError.unreadable }
@@ -58,9 +61,9 @@ enum ArcImporter {
             let key = profileKey(arcProfile)
             if let existing = profileIDsByArcKey[key] { return existing }
             let name = key == "default" ? "Persönlich" : "Arc – \(key)"
-            let taken = Set(profiles.map(\.id))
+            let taken = Set(profiles.map(\.id)).union([defaultDirectory])
             let id = if key == "default" {
-                "Default"
+                defaultDirectory
             } else if let kept = currentProfiles[name], kept != "Default", !taken.contains(kept) {
                 kept
             } else {
@@ -118,14 +121,16 @@ enum ArcImporter {
             let today = (todayID.flatMap { byID[$0]?["childrenIds"] as? [String] } ?? []).compactMap { convert($0) }
                 .map(markActive)
             let info = space["customInfo"] as? [String: Any]
+            let theme = theme(from: info?["windowTheme"]) ?? ThemeData(hex: "#7B6CF6")
             spaces.append(SpaceData(
                 id: UUID(uuidString: id) ?? UUID(),
                 name: space["title"] as? String ?? "Space",
                 icon: icon(from: info?["iconType"]),
-                colorHex: color(from: info?["windowTheme"]) ?? "#7B6CF6",
+                colorHex: theme.colors[0],
                 profileID: profileID(for: space["profile"]),
                 pinned: pinned,
-                today: today))
+                today: today,
+                theme: theme))
             summary.spaces += 1
             summary.pinned += pinned.reduce(0) { $0 + tabCount($1) }
             summary.today += today.reduce(0) { $0 + tabCount($1) }
@@ -209,13 +214,79 @@ enum ArcImporter {
         return "circle.fill"
     }
 
-    private static func color(from theme: Any?) -> String? {
-        guard let theme = theme as? [String: Any],
-              let palette = theme["primaryColorPalette"] as? [String: Any],
-              let mid = palette["midTone"] as? [String: Any],
-              let red = mid["red"] as? Double, let green = mid["green"] as? Double, let blue = mid["blue"] as? Double
-        else { return nil }
-        func byte(_ value: Double) -> Int { max(0, min(255, Int((value * 255).rounded()))) }
-        return String(format: "#%02X%02X%02X", byte(red), byte(green), byte(blue))
+    /// A space's theme as Arc keeps it (customInfo.windowTheme): under
+    /// background.single, a `blendedSingleColor` (one color) or a
+    /// `blendedGradient` (baseColors, then overlayColors), each with
+    /// modifiers.intensityFactor and noiseFactor, and translucencyStyle light
+    /// or dark. Arc wraps values in {"_0": …}. Older files only have
+    /// primaryColorPalette.midTone, which becomes a single color.
+    static func theme(from windowTheme: Any?) -> ThemeData? {
+        guard let windowTheme = windowTheme as? [String: Any] else { return nil }
+        if let (kind, style) = find(["blendedGradient", "blendedSingleColor"], in: windowTheme["background"]) {
+            let node = unwrap(style)
+            var colors: [String] = []
+            if kind == "blendedGradient" {
+                colors = list(node["baseColors"]).compactMap(hex) + list(node["overlayColors"]).compactMap(hex)
+            } else if let single = hex(node["color"]) ?? hex(node) {
+                colors = [single]
+            }
+            let modifiers = unwrap(node["modifiers"])
+            if !colors.isEmpty {
+                return ThemeData(colors: Array(colors.prefix(ThemeData.maxColors)),
+                                 intensity: number(modifiers["intensityFactor"]) ?? ThemeData.defaultIntensity,
+                                 grain: number(modifiers["noiseFactor"]) ?? 0,
+                                 appearance: appearance(node["translucencyStyle"] ?? modifiers["translucencyStyle"]))
+            }
+        }
+        let palette = unwrap(windowTheme["primaryColorPalette"])
+        return hex(palette["midTone"]).map { ThemeData(hex: $0) }
+    }
+
+    /// {"_0": x} → x, however deep.
+    private static func unwrap(_ value: Any?) -> [String: Any] {
+        var dict = value as? [String: Any] ?? [:]
+        while dict.count == 1, let inner = dict["_0"] as? [String: Any] { dict = inner }
+        return dict
+    }
+
+    private static func list(_ value: Any?) -> [Any] {
+        if let array = value as? [Any] { return array }
+        return []
+    }
+
+    private static func number(_ value: Any?) -> Double? {
+        (value as? NSNumber)?.doubleValue
+    }
+
+    /// {red, green, blue} from 0 to 1 (extended sRGB may go beyond), or
+    /// such a color under "color".
+    private static func hex(_ value: Any?) -> String? {
+        let dict = unwrap(value)
+        if dict["red"] == nil, let inner = dict["color"] { return hex(inner) }
+        guard let red = number(dict["red"]), let green = number(dict["green"]), let blue = number(dict["blue"]) else { return nil }
+        return RGB(red, green, blue).hex
+    }
+
+    private static func appearance(_ value: Any?) -> ThemeAppearance {
+        let label = (value as? String) ?? (value as? [String: Any])?.keys.first ?? ""
+        if label.lowercased().contains("dark") { return .dark }
+        if label.lowercased().contains("light") { return .light }
+        return .auto
+    }
+
+    /// The first of |keys| found, depth first, with its value.
+    private static func find(_ keys: [String], in value: Any?, depth: Int = 0) -> (String, Any)? {
+        guard depth < 12 else { return nil }
+        if let dict = value as? [String: Any] {
+            for key in keys { if let found = dict[key] { return (key, found) } }
+            for key in dict.keys.sorted() {
+                if let found = find(keys, in: dict[key], depth: depth + 1) { return found }
+            }
+        } else if let array = value as? [Any] {
+            for element in array {
+                if let found = find(keys, in: element, depth: depth + 1) { return found }
+            }
+        }
+        return nil
     }
 }

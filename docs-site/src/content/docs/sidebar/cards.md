@@ -28,6 +28,8 @@ Which tab the player shows: one whose sound is on (a muted video that plays by i
 
 When you switch away from a tab whose video plays with sound, the video keeps playing in a small picture-in-picture window. Coming back to the tab ends it. Turn this off under **Settings › Allgemein › Tabs › Bild-in-Bild beim Tab-Wechsel**.
 
+A muted video that plays by itself, such as an ad or a page background, does not float, and neither does sound without a picture. Calls float too; see [Calls in picture-in-picture](#calls-in-picture-in-picture).
+
 ### Spotify
 
 The player also shows what the Spotify app on your Mac plays. Spotify tells every app on the Mac when its track or state changes, so this needs no permission. If Spotify is already playing when OpenArch starts, the player appears with the next change, or right away once you have allowed OpenArch to control Spotify.
@@ -69,3 +71,18 @@ When a page shares your screen, a window or a tab, as video calls do, a card wit
 In the sidebar, the tab that shares carries a red dot (**Teilt gerade**), and the tab being shared a red screen symbol (**Wird gerade geteilt**).
 
 OpenArch knows which tab is shared because its built-in extension gives every page a name the sharing page can read. A page that sets its own name for this (Google Slides does, for Meet) keeps it; the card then says only **Du teilst einen Tab**.
+
+## Calls in picture-in-picture
+
+When you leave a tab that is in a call, the call keeps going in a small floating window, as in Arc. A tab counts as in a call while its page uses your camera or microphone. Leaving means switching to another tab or space, minimizing the window, or the window going out of sight behind other windows or on another desktop.
+
+- **Google Meet**, and any site that offers a picture-in-picture of its own, opens its own window: Meet's tiles with its buttons for the microphone, the camera and leaving.
+- **Other calls** (Zoom, Microsoft Teams or Slack huddles in the browser) get OpenArch's window: the call's videos in a grid, and buttons for **Mikrofon**, **Kamera** and **Auflegen** (hang up). **‹** (**Zurück zum Tab**) goes back to the call. The buttons use the site's own controls where the page offers them. Otherwise **Mikrofon** and **Kamera** switch your microphone or camera off in the call, and **Auflegen** clicks the site's leave button, or ends your camera and microphone if OpenArch finds none.
+
+Coming back to the tab closes the window: it fades out and the call is back in the page. Closing the window does not end the call.
+
+The window opens at the bottom right of the screen. Drag it elsewhere and the next one opens there. It stays above other apps and shows on every desktop.
+
+Turn this off under **Settings › Allgemein › Tabs › Anrufe in Bild-in-Bild**. To keep one site's videos and calls in their tab, turn off **Bild-in-Bild beim Verlassen** in its [Site Control Center](/browsing/site-controls/), or add the site under **Settings › Allgemein › Tabs › Ohne Bild-in-Bild** (addresses separated by commas).
+
+A tab in a call never [goes to sleep](/sidebar/tabs/#sleeping-tabs).

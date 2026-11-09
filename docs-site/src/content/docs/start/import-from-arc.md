@@ -11,9 +11,12 @@ Arc's own data is only read, never changed.
 
 ## Start the import
 
-On its first launch, if Arc is on the Mac, OpenArch asks **Sidebar aus Arc
-übernehmen?** Click **Übernehmen** to go on, or **Nicht jetzt**. It asks only
-once. Later, start the import from any of these:
+On its first launch, if Arc is on the Mac, OpenArch offers the import as
+the second of its [first-launch steps](/start/install/#the-first-launch),
+with a picture of your Arc sidebar. There, **Alles übernehmen** needs no
+restart: Arc's logins go into a profile of their own that OpenArch's
+Chromium has not opened yet, while you go on with the next steps (see
+below). Later, start the import from any of these:
 
 - **Ablage › Aus Arc importieren …**
 - the **+** at the bottom of the sidebar › **Aus Arc importieren …**
@@ -79,16 +82,23 @@ This is what happens:
    caches and Arc's open windows. The copy is an APFS clone: it is quick and
    takes no extra disk space until files change. Values Chromium encrypts
    (cookies, passwords, payment cards) are decrypted with Arc's key and
-   encrypted again with OpenArch's (see [Known limitations](/reference/limitations/)
-   for how OpenArch stores them).
+   encrypted again with OpenArch's own key, **OpenArch Safe Storage** in your
+   keychain (see [Data and privacy](/reference/data-and-privacy/#the-key-to-your-passwords-and-cookies)).
 5. The message **Import aus Arc** says how many cookies, passwords, history
    entries and extensions came over, and how many values could not be
    decrypted and were left out.
 
+From the first launch's steps it goes without the restart: a step explains
+the keychain question, macOS asks right after **Weiter**, and the copy runs
+in the background while you go on, with a progress pill at the bottom of
+the window. The last step shows the same counts.
+
 ## What to expect
 
 - **Logins are in your first profile.** The browser data comes from Arc's
-  default profile and goes into **Persönlich**. Spaces that used Arc's
+  default profile and goes into **Persönlich** (from the first launch, in a
+  profile folder of its own, such as `Profile 2`; a later import goes to the
+  same one). Spaces that used Arc's
   default profile are signed in; spaces from other Arc profiles get a
   profile of their own, but start signed out.
 - **Nothing of OpenArch's is deleted.** The browser data OpenArch had in its
@@ -102,6 +112,12 @@ This is what happens:
 The full import is new. Moving logins, passwords and extensions has been
 tested on copies of Arc profiles, not yet on many real ones.
 :::
+
+## Back up Arc's data
+
+Arc ends on 22 December 2026. **Settings › Import › Arc-Daten sichern ›
+Sichern** puts Arc's JSON files and its `Local State` into a zip file in
+your Documents folder. See [Move over from another browser](/start/import/#back-up-arcs-data).
 
 ## Only the extensions
 

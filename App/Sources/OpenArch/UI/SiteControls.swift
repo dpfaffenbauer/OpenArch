@@ -13,16 +13,25 @@ struct SiteControls: View {
     @State private var cleared = false
 
     private var origin: String? { SiteControls.origin(of: item.currentURL) }
-    private var profile: OACProfile? { item.pane?.profile }
+    /// Chromium's site settings; a WebKit page has its own (WebKit asks).
+    private var profile: OACProfile? { item.pane?.engine == .chromium ? item.pane?.profile : nil }
+    private var isWebKit: Bool { item.pane?.engine == .webKit }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             header
+            if origin != nil, item.pane != nil {
+                Divider()
+                engineRow
+            }
             if let origin, let profile {
                 Divider()
                 VStack(spacing: 2) {
                     ForEach(SitePermission.all) { permission in
                         PermissionRow(permission: permission, value: binding(permission, origin: origin, profile: profile))
+                    }
+                    if let host = KeepAwakeSites.host(of: item.currentURL) {
+                        pictureInPictureRow(host)
                     }
                 }
             }
@@ -54,6 +63,57 @@ struct SiteControls: View {
                 }
             }
         }
+    }
+
+    /// Whether the site's videos and calls float by themselves when you
+    /// leave the tab (Settings › Allgemein › Tabs › Ohne Bild-in-Bild).
+    private func pictureInPictureRow(_ host: String) -> some View {
+        let library = browser.library
+        return HStack(spacing: 8) {
+            Image(systemName: "pip").frame(width: 20).foregroundStyle(.secondary)
+            Text("Bild-in-Bild beim Verlassen").font(.system(size: 13))
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { !KeepAwakeSites.listed(item.currentURL, in: library.settings.pictureInPictureExceptions) },
+                set: { on in
+                    var sites = library.settings.pictureInPictureExceptions
+                    if on {
+                        sites.removeAll { KeepAwakeSites.listed(item.currentURL, in: [$0]) }
+                    } else {
+                        sites.append(host)
+                    }
+                    library.settings.pictureInPictureExceptions = sites
+                    library.setNeedsSave()
+                }))
+                .labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
+        .frame(height: 26)
+    }
+    /// Safari's engine for this site, both ways: the page opens again in
+    /// the other engine at once.
+    private var engineRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: "safari").frame(width: 20).foregroundStyle(.secondary)
+                Text("Safaris Engine").font(.system(size: 13))
+                Spacer()
+                Toggle("", isOn: Binding(get: { isWebKit }, set: { switchEngine(toWebKit: $0) }))
+                    .labelsHidden().toggleStyle(.switch).controlSize(.small)
+            }
+            .frame(height: 26)
+            if isWebKit {
+                let service = (item.pane as? WebKitPage)?.serviceName ?? ""
+                Text("\(service.isEmpty ? "Diese Seite" : service) spielt geschützte Videos und Musik nur mit Apples FairPlay, darum läuft sie mit Safaris Engine. Chrome-Erweiterungen und Chromes DevTools gibt es hier nicht (⌥⌘I öffnet den Web Inspector), und Logins aus Chromium gelten hier nicht: Du meldest dich einmal neu an.")
+                    .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func switchEngine(toWebKit: Bool) {
+        let engine: OACPageEngine = toWebKit ? .webKit : .chromium
+        ProtectedMedia.choose(engine, for: item.currentURL)
+        browser.replacePage(of: item, with: item.currentURL, engine: engine)
+        browser.state.siteControlsVisible = false
     }
 
     private var zoomRow: some View {

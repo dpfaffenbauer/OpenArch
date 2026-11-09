@@ -26,7 +26,7 @@ export default defineConfig({
       sidebar: [
         {
           label: 'Start here',
-          items: ['start/install', 'start/tour', 'start/import-from-arc'],
+          items: ['start/install', 'start/tour', 'start/import-from-arc', 'start/import'],
         },
         {
           label: 'Sidebar',
@@ -48,6 +48,7 @@ export default defineConfig({
             'browsing/windows',
             'browsing/library',
             'browsing/site-controls',
+            'browsing/protected-media',
             'browsing/links',
             'browsing/chrome',
           ],

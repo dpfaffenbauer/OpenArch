@@ -3,16 +3,23 @@ import OpenArchCore
 import SwiftUI
 
 /// Peek, like Arc's: links from pinned tabs and favorites that lead to
-/// another site open in a card over the page instead of replacing it. The
-/// card can become a tab or a split; Escape or a click beside it closes it.
+/// another site, and ⇧-clicks on any link, open in a card over the page
+/// instead of replacing it. The card can become a tab or a split; Escape or
+/// a click beside it closes it, and ⌘Z right after (or ⇧⌘T) opens it again.
 @MainActor
 final class PeekController: NSObject, OACPaneDelegate {
     private unowned let browser: BrowserWindowController
     private var backdrop: PeekBackdropWindow?
-    private(set) var pane: OACPane?
+    private(set) var pane: (any OACPage)?
     private var source: Item?
     private var keyMonitor: Any?
+    /// After closing: ⌘Z within a few seconds, before any other key, opens
+    /// the card again.
+    private var undoMonitor: Any?
     let model = PeekModel()
+    /// The card closed last, for ⌘Z and ⇧⌘T.
+    private(set) var lastClosed: (url: String, source: Item?, date: Date)?
+    static let undoWindow: TimeInterval = 10
 
     init(browser: BrowserWindowController) {
         self.browser = browser
@@ -43,10 +50,12 @@ final class PeekController: NSObject, OACPaneDelegate {
 
     func open(_ url: String, from source: Item?) {
         close()
+        forgetClosed()
         guard let window = browser.window else { return }
         let space = browser.state.space
         let profile = source.map { browser.library.profile(for: $0, in: space) } ?? browser.library.profile(id: space.profileID)
-        let pane = OACPane(profile: profile.chromium, url: url)
+        // A streaming service peeks in WebKit, like its tab would.
+        let pane = ProtectedMedia.makePage(url: url, profile: profile.chromium)
         pane.delegate = self
         pane.cornerRadius = 12
         pane.activatesOnShow = !AppPaths.isSelfTest
@@ -80,6 +89,8 @@ final class PeekController: NSObject, OACPaneDelegate {
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = nil
         if let pane {
+            let url = model.url.isEmpty ? pane.url : model.url
+            if url.hasPrefix("http") { remember(url, source: source) }
             pane.delegate = nil
             pane.close()
         }
@@ -94,6 +105,66 @@ final class PeekController: NSObject, OACPaneDelegate {
             backdrop.parent?.removeChildWindow(backdrop)
             backdrop.orderOut(nil)
         }
+    }
+
+    // MARK: Opening again
+
+    private func remember(_ url: String, source: Item?) {
+        lastClosed = (url, source, Date())
+        if let undoMonitor { NSEvent.removeMonitor(undoMonitor) }
+        undoMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let handled = MainActor.assumeIsolated { () -> Bool in
+                // Keys in this window: the page under the card, or the window itself.
+                guard let self, let window = self.browser.window,
+                      NSApp.keyWindow === window || NSApp.keyWindow?.parent === window else { return false }
+                return self.handleUndoKey(event)
+            }
+            return handled ? nil : event
+        }
+    }
+
+    /// ⌘Z while the card closed moments ago (and nothing was typed since)
+    /// opens it again; any other key ends that chance, so ⌘Z undoes typing
+    /// as usual.
+    func handleUndoKey(_ event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
+        let isUndo = flags == .command && event.charactersIgnoringModifiers?.lowercased() == "z"
+        let armed = undoMonitor != nil
+        forgetUndo()
+        guard isUndo, armed, canReopen, !isOpen else { return false }
+        reopen()
+        return true
+    }
+
+    private func forgetUndo() {
+        if let undoMonitor { NSEvent.removeMonitor(undoMonitor) }
+        undoMonitor = nil
+    }
+
+    private func forgetClosed() {
+        forgetUndo()
+        lastClosed = nil
+    }
+
+    /// A card closed in the last moments can be opened again.
+    var canReopen: Bool {
+        guard let lastClosed else { return false }
+        return Date().timeIntervalSince(lastClosed.date) < Self.undoWindow
+    }
+
+    /// ⇧⌘T: the card, when it closed after the last tab did.
+    func canReopen(newerThan date: Date?) -> Bool {
+        guard let lastClosed, !isOpen else { return false }
+        return date.map { lastClosed.date > $0 } ?? true
+    }
+
+    func reopen() {
+        guard let lastClosed else { return }
+        let source = lastClosed.source?.container != nil ? lastClosed.source : nil
+        if let source, browser.state.activeItem !== source, source.kind == .tab {
+            browser.select(source)
+        }
+        open(lastClosed.url, from: source)
     }
 
     /// The page becomes a tab of its own, as it is.
@@ -125,14 +196,14 @@ final class PeekController: NSObject, OACPaneDelegate {
 
     // MARK: OACPaneDelegate
 
-    func pane(_ pane: OACPane, titleDidChange title: String) { model.title = title }
-    func pane(_ pane: OACPane, addressDidChange url: String) { model.url = url }
+    func pane(_ pane: any OACPage, titleDidChange title: String) { model.title = title }
+    func pane(_ pane: any OACPage, addressDidChange url: String) { model.url = url }
 
-    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+    func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         browser.openInNewTab(url, select: !background)
     }
 
-    func pane(_ pane: OACPane, handleChromeCommand commandID: Int) -> Bool {
+    func pane(_ pane: any OACPage, handleChromeCommand commandID: Int) -> Bool {
         switch OACChromeCommand(rawValue: commandID) {
         case .closeTab:
             close()
@@ -146,11 +217,24 @@ final class PeekController: NSObject, OACPaneDelegate {
         return true
     }
 
-    func pane(_ pane: OACPane, wantsToOpenExternalURL url: String) {
+    func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
         browser.pane(pane, wantsToOpenExternalURL: url)
     }
 
-    func paneDidClose(_ pane: OACPane) {
+    /// A link in the card to a streaming service: the card shows it in WebKit.
+    func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
+        guard pane === self.pane, ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        let source = self.source
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated { [weak self] in
+                guard let self, self.pane === pane else { return }
+                self.open(url, from: source)
+            }
+        }
+        return true
+    }
+
+    func paneDidClose(_ pane: any OACPage) {
         if pane === self.pane { close() }
     }
 }

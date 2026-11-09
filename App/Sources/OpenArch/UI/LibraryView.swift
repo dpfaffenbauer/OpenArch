@@ -12,11 +12,11 @@ struct LibraryView: View {
 
     var body: some View {
         let state = browser.state
-        let theme = SpaceTheme(hex: state.space.colorHex)
+        let theme = browser.theme
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
-                Spacer().frame(width: 72)
-                IconButton(symbol: "sidebar.left", help: "Sidebar ausblenden (⌘S)") { browser.toggleSidebar() }
+                Spacer().frame(width: browser.sidebarButtonRoom(floating: false))
+                IconButton(symbol: browser.sidebarSymbol, help: "Sidebar ausblenden (⌘S)") { browser.toggleSidebar() }
                 Spacer()
                 IconButton(symbol: "xmark", help: "Bibliothek schließen (⌥⌘B)") { browser.toggleLibrary() }
             }
@@ -378,6 +378,17 @@ private struct SpacesSection: View {
                     browser.addSpace()
                 } label: {
                     Label("Neuer Space", systemImage: "plus")
+                        .font(.system(size: 13))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
+                }
+                .buttonStyle(.plain)
+                .opacity(0.75)
+                Button {
+                    browser.manageSpaces.show()
+                } label: {
+                    Label("Spaces verwalten …", systemImage: "slider.horizontal.3")
                         .font(.system(size: 13))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)

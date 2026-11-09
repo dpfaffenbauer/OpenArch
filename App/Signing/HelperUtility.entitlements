@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The plain helper ("OpenArch Helper.app"): Chromium's utility processes,
+     among them the one that loads Google's Widevine module
+     (media.mojom.CdmServiceBroker). The module is signed by Google, not by
+     OpenArch's team, so under the hardened runtime this helper may load
+     code signed by others. Renderer, GPU and the app keep library
+     validation. Pages get Widevine only with Settings › „Geschützte
+     Inhalte (Widevine)“ on. -->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key><true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key><true/>
+  <key>com.apple.security.cs.disable-library-validation</key><true/>
+</dict>
+</plist>

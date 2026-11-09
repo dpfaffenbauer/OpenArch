@@ -190,7 +190,20 @@ private struct GeneralPage: View {
 
     var body: some View {
         Section(title: "Browser") {
-            DefaultBrowserRow(app: app, showsDivider: false)
+            DefaultBrowserRow(app: app, showsDivider: true)
+            Row(symbol: "circle.lefthalf.filled", color: .gray, title: "Erscheinungsbild",
+                detail: "Hell oder dunkel für Seiten, Chats und Einstellungen. Die Sidebar trägt die Farbe ihres Space.") {
+                Picker("", selection: $library.settings.appearance) {
+                    ForEach(AppAppearance.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+                .onChange(of: library.settings.appearance) { library.settings.appearance.apply() }
+            }
+            Row(symbol: "sparkles", color: .purple, title: "Einführung",
+                detail: "Die Schritte vom ersten Start noch einmal: Import aus Arc, Konten, Farben, Standardbrowser.",
+                showsDivider: false) {
+                Button("Erneut zeigen") { app.showOnboarding(nil) }
+            }
         }
         Section(title: "Suchen") {
             Row(symbol: "magnifyingglass", color: .blue, title: "Suchmaschine",
@@ -218,7 +231,7 @@ private struct GeneralPage: View {
                 .labelsHidden().fixedSize()
             }
             Row(symbol: "moon.zzz", color: .indigo, title: "Schlafende Tabs",
-                detail: "Tabs, die du so lange nicht angesehen hast, geben ihren Speicher frei und laden neu, wenn du zurückkommst. Tabs mit Ton oder ungespeicherten Eingaben bleiben wach.") {
+                detail: "Tabs, die du so lange nicht angesehen hast, geben ihren Speicher frei und laden neu, wenn du zurückkommst. Tabs mit Ton, ungespeicherten Eingaben oder in einem Anruf bleiben wach.") {
                 Picker("", selection: $library.settings.sleepAfterMinutes) {
                     Text("nach 30 Minuten").tag(30)
                     Text("nach 1 Stunde").tag(60)
@@ -228,13 +241,26 @@ private struct GeneralPage: View {
                 }
                 .labelsHidden().fixedSize()
             }
-            Row(symbol: "eye", color: .teal, title: "Peek",
-                detail: "Links aus angehefteten Tabs und Favoriten zu anderen Seiten öffnen als Vorschau über der Seite.") {
-                Toggle("", isOn: $library.settings.peek).labelsHidden().toggleStyle(.switch)
+            Row(symbol: "bubble.left.and.bubble.right", color: .green, title: "Chat und Mail wach halten",
+                detail: "Angeheftete Tabs und Favoriten von Slack, Gmail, Outlook, WhatsApp, Telegram, Discord, Teams, Google Chat und ähnlichen Diensten schlafen nie ein, damit Nachrichten und Anrufe ankommen.") {
+                Toggle("", isOn: $library.settings.keepChatSitesAwake).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "plus.bubble", color: .green, title: "Weitere Seiten wach halten",
+                detail: "Adressen, durch Kommas getrennt, z. B. „chat.firma.de, linear.app“.") {
+                SiteListField(sites: $library.settings.keepAwakeSites, placeholder: "chat.firma.de")
+                    .disabled(!library.settings.keepChatSitesAwake)
             }
             Row(symbol: "pip", color: .pink, title: "Bild-in-Bild beim Tab-Wechsel",
                 detail: "Ein laufendes Video mit Ton spielt in einem kleinen Fenster weiter, wenn du den Tab verlässt.") {
                 Toggle("", isOn: $library.settings.autoPictureInPicture).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "video.bubble", color: .pink, title: "Anrufe in Bild-in-Bild",
+                detail: "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich.") {
+                Toggle("", isOn: $library.settings.callPictureInPicture).labelsHidden().toggleStyle(.switch)
+            }
+            Row(symbol: "pip.remove", color: .pink, title: "Ohne Bild-in-Bild",
+                detail: "Seiten, deren Videos und Anrufe nie von selbst schweben, durch Kommas getrennt. Auch im Site Control Center (⌃⌘I).") {
+                SiteListField(sites: $library.settings.pictureInPictureExceptions, placeholder: "youtube.com")
             }
             Row(symbol: "menubar.rectangle", color: .indigo, title: "Chrome-Toolbar in Tabs",
                 detail: "Adressleiste, Extension-Symbole und Downloads über der Seite (⌘⇧D).") {
@@ -255,9 +281,33 @@ private struct GeneralPage: View {
                     .onChange(of: library.settings.httpsOnly) { library.settings.applyToChromium() }
             }
         }
+        Section(title: "Geschützte Inhalte",
+                footer: "Spotify, Netflix, Disney+, Prime Video und andere Streamingdienste spielen ihre Videos und Musik nur mit Apples FairPlay. Ihre Seiten öffnen deshalb mit Safaris Engine (WebKit), im selben Tab; Chrome-Erweiterungen laufen dort nicht. Pro Website änderst du das im Site Control Center.") {
+            Row(symbol: "safari", color: .blue, title: "DRM-Seiten mit Safaris Engine abspielen",
+                detail: "Gilt für Seiten, die du ab jetzt öffnest.") {
+                Toggle("", isOn: $library.settings.protectedMediaWebKit).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: library.settings.protectedMediaWebKit) { library.settings.applyToChromium() }
+            }
+            Row(symbol: "lock.rectangle", color: .gray, title: "Geschützte Inhalte (Widevine)",
+                detail: "Chromiums Widevine für Seiten, die es ohne Zertifizierung annehmen; Netflix und Spotify gehören nicht dazu. Gilt nach einem Neustart von OpenArch.",
+                showsDivider: false) {
+                Toggle("", isOn: $library.settings.widevine).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: library.settings.widevine) { library.setNeedsSave() }
+            }
+        }
         Section(title: "Sidebar") {
-            Row(symbol: "sidebar.left", color: .purple, title: "Breite",
-                detail: "Auch durch Ziehen am Rand der Sidebar; ganz nach links zieht sie zu.") {
+            Row(symbol: library.settings.sidebarOnRight ? "sidebar.right" : "sidebar.left", color: .purple, title: "Sidebar-Position",
+                detail: "Links wie in Arc, oder rechts. Gilt für alle Fenster; die Ampel bleibt oben links.") {
+                Picker("", selection: $library.settings.sidebarOnRight) {
+                    Text("Links").tag(false)
+                    Text("Rechts").tag(true)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 160)
+            }
+            Row(symbol: "arrow.left.and.right", color: .purple, title: "Breite",
+                detail: "Auch durch Ziehen am inneren Rand der Sidebar; ganz an den Fensterrand gezogen, klappt sie zu.") {
                 Slider(value: $library.settings.sidebarWidth, in: 200...440, step: 10).frame(width: 160)
                     .onChange(of: library.settings.sidebarWidth) { app.browsers.forEach { $0.layoutContent() } }
             }
@@ -270,10 +320,6 @@ private struct GeneralPage: View {
                 Slider(value: $library.settings.glassTint, in: 0...0.9).frame(width: 160)
                     .disabled(!library.settings.glass)
             }
-            Row(symbol: "circle.dotted", color: .brown, title: "Körnung",
-                detail: "Feines Korn auf der Farbe des Space, wie in Arc. Ganz links ist es aus.") {
-                Slider(value: $library.settings.grain, in: 0...1).frame(width: 160)
-            }
             Row(symbol: "rectangle.on.rectangle.angled", color: .blue, title: "Vorschau beim Überfahren",
                 detail: "Ruht der Zeiger auf einem Tab in der Sidebar, zeigt OpenArch ein Bild der Seite daneben.",
                 showsDivider: false) {
@@ -282,10 +328,29 @@ private struct GeneralPage: View {
         }
         .onChange(of: library.settings.glass) { app.browsers.forEach { $0.applyTheme() } }
         .onChange(of: library.settings.glassTint) { app.browsers.forEach { $0.applyTheme() } }
-        .onChange(of: library.settings.grain) { app.browsers.forEach { $0.applyTheme() } }
+        .onChange(of: library.settings.sidebarOnRight) { app.browsers.forEach { $0.sidebarSideChanged() } }
         AppIconSection()
         SiteSearchSection(library: library)
         .onChange(of: library.settings) { library.setNeedsSave() }
+    }
+}
+
+/// A list of sites typed as text, separated by commas; what you type stays
+/// as typed while the list is updated.
+private struct SiteListField: View {
+    @Binding var sites: [String]
+    let placeholder: String
+    @State private var text = ""
+
+    var body: some View {
+        TextField(placeholder, text: $text)
+            .textFieldStyle(.roundedBorder)
+            .frame(width: 180)
+            .onAppear { text = sites.joined(separator: ", ") }
+            .onChange(of: text) {
+                let parsed = KeepAwakeSites.parse(text)
+                if parsed != sites { sites = parsed }
+            }
     }
 }
 
@@ -436,6 +501,13 @@ private struct LinksPage: View {
     @Bindable var library: Library
 
     var body: some View {
+        Section(title: "Links in Tabs") {
+            Row(symbol: "eye", color: .teal, title: "Peek",
+                detail: "Links aus angehefteten Tabs und Favoriten zu anderen Seiten und ⇧-Klicks auf Links öffnen als Vorschau über der Seite. ⌘Z oder ⇧⌘T öffnet eine gerade geschlossene Vorschau wieder.",
+                showsDivider: false) {
+                Toggle("", isOn: $library.settings.peek).labelsHidden().toggleStyle(.switch)
+            }
+        }
         LinkRulesSection(library: library)
         Section(title: "Links aus anderen Apps") {
             Row(symbol: "macwindow.on.rectangle", color: .pink, title: "In Little OpenArch öffnen",
@@ -492,6 +564,38 @@ private struct LinkRulesSection: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
         }
+    }
+}
+
+/// Short names for long tab titles, from Apple's model on this Mac; greyed
+/// out with the reason while Apple Intelligence isn't there.
+private struct TabTitlesSection: View {
+    @Bindable var library: Library
+    let titles = ShortTitles.shared
+
+    var body: some View {
+        let availability = titles.availability
+        Section(title: "Tabs",
+                footer: "Die Namen macht Apples Modell auf diesem Mac. Es bekommt nur den Titel ohne Zähler und E-Mail-Adressen und den Host der Seite, nie ihren Inhalt, den Verlauf oder den Rest der Adresse. Umbenannte Tabs, Favoriten, Ordner, Splits und private Fenster bleiben, wie sie sind. Ausschalten löscht die Namen.") {
+            Row(symbol: "textformat.size.smaller", color: .teal, title: "Tab-Titel kürzen",
+                detail: availability.isAvailable
+                    ? "Angeheftete und heutige Tabs mit langem Titel bekommen einen kurzen Namen wie „Gmail Inbox“. Den ganzen Titel zeigt die Vorschau des Tabs."
+                    : availability.reason,
+                showsDivider: false) {
+                HStack {
+                    if availability == .notEnabled {
+                        Button("Systemeinstellungen …") { AppleIntelligence.openSettings() }
+                    }
+                    Toggle("", isOn: Binding(get: { availability.isAvailable && library.settings.tidyTitles },
+                                             set: { library.settings.tidyTitles = $0 }))
+                        .labelsHidden().toggleStyle(.switch)
+                        .disabled(!availability.isAvailable)
+                }
+            }
+        }
+        .onAppear { titles.refreshAvailability() }
+        .onChange(of: library.settings.tidyTitles) { titles.settingChanged(enabled: library.settings.tidyTitles) }
+        .onChange(of: library.settings) { library.setNeedsSave() }
     }
 }
 
@@ -620,6 +724,7 @@ private struct AIPage: View {
 
     var body: some View {
         let running = OACEngine.remoteDebuggingPort
+        TabTitlesSection(library: app.library)
         AskAISection(library: app.library)
         AgentChatsSection(library: app.library)
         MorningBriefSection(app: app, library: app.library)
@@ -739,6 +844,8 @@ private struct SharingPage: View {
 
 private struct ImportPage: View {
     let app: AppDelegate
+    @Bindable var model = BrowserImportModel.shared
+    @State private var passwordProfile = ""
 
     var body: some View {
         Section(title: "Aus Arc", footer: ArcImporter.isAvailable ? nil : "Auf diesem Mac wurden keine Arc-Daten gefunden.") {
@@ -747,16 +854,184 @@ private struct ImportPage: View {
                 Button("Importieren …") { app.importFromArc(nil) }.disabled(!ArcImporter.isAvailable)
             }
             Row(symbol: "puzzlepiece.extension", color: .green, title: "Extensions aus Arc",
-                detail: "Ein Ordner mit je einem Web-Store-Link pro Extension, falls du sie lieber neu installierst.", showsDivider: false) {
+                detail: "Ein Ordner mit je einem Web-Store-Link pro Extension, falls du sie lieber neu installierst.") {
                 Button("Ordner anlegen") { app.installArcExtensions(nil) }
             }
+            Row(symbol: "archivebox", color: .orange, title: "Arc-Daten sichern",
+                detail: "Arcs Sidebar, Spaces und Profilliste als ZIP-Datei in „Dokumente“. Arc wird am 22. Dezember 2026 eingestellt; aus der Sicherung lässt sich die Sidebar auch danach noch lesen.",
+                showsDivider: false) {
+                Button("Sichern") { app.backUpArc(nil) }.disabled(!ArcBackup.isAvailable)
+            }
         }
+        Section(title: "Aus anderen Browsern",
+                footer: "Jedes Profil wird ein Profil in OpenArch und ein Space mit seinem Namen: die Lesezeichenleiste als angeheftete Tabs und Ordner, „Weitere Lesezeichen“ als eigener Ordner. Der Verlauf kommt in die Befehlsleiste. Ein zweiter Import legt nichts doppelt an. Die anderen Browser bleiben unverändert.") {
+            if !model.hasDetected {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("Suche Browser …").font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+                .padding(14)
+            } else if model.installs.isEmpty {
+                Text("Auf diesem Mac wurden keine anderen Browser gefunden.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary).padding(14)
+            }
+            ForEach(Array(model.installs.enumerated()), id: \.element.id) { index, install in
+                BrowserImportRow(install: install, model: model, showsDivider: index < model.installs.count - 1)
+            }
+        }
+        HStack(spacing: 10) {
+            if case .running(let text, let progress) = model.phase {
+                ProgressView(value: progress).frame(width: 160)
+                Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Importieren") { model.run(app: app) }
+                .disabled(!model.canRun)
+        }
+        if case .done(let report) = model.phase {
+            ImportResultView(report: report)
+        }
+        Section(title: "Aus Dateien",
+                footer: "Passwörter liest OpenArch beim nächsten Start aus der Datei, bevor Chromium startet, und lässt die Datei unverändert. Sie enthält deine Passwörter im Klartext: Lösche sie danach.") {
+            Row(symbol: "bookmark.fill", color: .blue, title: "Lesezeichen-Datei (HTML)",
+                detail: "Wie Safari, Chrome, Firefox oder Edge Lesezeichen exportieren. Kommt in einen eigenen Space im aktuellen Profil.") {
+                Button("Datei wählen …") { model.importBookmarksFile(app: app) }
+            }
+            Row(symbol: "key.fill", color: .gray, title: "Passwörter (CSV)",
+                detail: "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden.",
+                showsDivider: false) {
+                HStack {
+                    Picker("", selection: $passwordProfile) {
+                        ForEach(app.library.profiles) { profile in Text(profile.name).tag(profile.id) }
+                    }
+                    .labelsHidden().frame(width: 130)
+                    Button("Datei wählen …") {
+                        model.importPasswordFile(app: app, profileID: passwordProfile.isEmpty ? app.library.profiles[0].id : passwordProfile)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            if passwordProfile.isEmpty { passwordProfile = app.browser?.state.space.profileID ?? app.library.profiles[0].id }
+            model.detect()
+        }
+    }
+}
+
+/// One browser: its profiles to tick, what to take, or why it cannot be read.
+private struct BrowserImportRow: View {
+    let install: BrowserInstall
+    @Bindable var model: BrowserImportModel
+    var showsDivider = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                icon.frame(width: 28, height: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(install.name).font(.system(size: 13, weight: .medium))
+                    if install.needsAccess {
+                        Text(install.kind == .safari
+                             ? "Safari schützt Lesezeichen und Verlauf. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal."
+                             : "macOS lässt OpenArch den Ordner von \(install.name) nicht lesen. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal.")
+                            .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 12)
+                if install.needsAccess {
+                    Button("Systemeinstellungen …") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
+            }
+            if !install.needsAccess {
+                HStack(spacing: 14) {
+                    ForEach(BrowserImportModel.DataKind.allCases.filter { $0 != .logins || install.canImportLogins }, id: \.self) { kind in
+                        Toggle(kind.title, isOn: Binding(get: { model.takes(kind, from: install) },
+                                                         set: { model.set(kind, for: install, $0) }))
+                            .toggleStyle(.checkbox).font(.system(size: 12))
+                    }
+                }
+                .padding(.leading, 40)
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(install.profiles) { profile in
+                        Toggle(isOn: Binding(get: { model.isSelected(install, profile) },
+                                             set: { model.setSelected(install, profile, $0) })) {
+                            HStack(spacing: 6) {
+                                Circle().fill(Color(nsColor: NSColor(hex: profile.color ?? install.kind.color) ?? .systemBlue))
+                                    .frame(width: 8, height: 8)
+                                Text(profile.name).font(.system(size: 12))
+                            }
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+                .padding(.leading, 40)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        if showsDivider {
+            Divider().padding(.leading, 54).opacity(0.6)
+        }
+    }
+
+    @ViewBuilder private var icon: some View {
+        if let image = Self.appIcon(install.bundleIDs) {
+            Image(nsImage: image).resizable()
+        } else {
+            Image(systemName: install.kind.icon)
+                .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(nsColor: NSColor(hex: install.kind.color) ?? .systemBlue).gradient))
+        }
+    }
+
+    static func appIcon(_ bundleIDs: [String]) -> NSImage? {
+        for id in bundleIDs {
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+                return NSWorkspace.shared.icon(forFile: url.path)
+            }
+        }
+        return nil
+    }
+}
+
+/// The numbers of the last import, and what was left out.
+private struct ImportResultView: View {
+    let report: BrowserImportReport
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(report.errors.isEmpty ? "Import abgeschlossen" : "Import nicht möglich",
+                  systemImage: report.errors.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(report.errors.isEmpty ? .green : .orange)
+            if report.errors.isEmpty {
+                ForEach(report.lines, id: \.self) { Text($0).font(.system(size: 12)) }
+            }
+            if !report.pendingLogins.isEmpty {
+                Text("Logins und Passwörter aus \(report.pendingLogins.joined(separator: ", ")) kommen beim nächsten Start dazu.")
+                    .font(.system(size: 12))
+            }
+            if !report.skippedLines.isEmpty {
+                Text("Übersprungen").font(.system(size: 12, weight: .semibold)).padding(.top, 4)
+                ForEach(report.skippedLines, id: \.self) { Text($0).font(.system(size: 12)).foregroundStyle(.secondary) }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)))
     }
 }
 
 private struct AboutPage: View {
     let app: AppDelegate
     @Bindable var updater = Updater.shared
+    @State private var crashReports = CrashReports.shared.isEnabled
 
     var body: some View {
         HStack(spacing: 16) {
@@ -772,7 +1047,16 @@ private struct AboutPage: View {
             Button("Über OpenArch …") { AboutWindowController.shared.show() }
         }
         Section(title: "Updates",
-                footer: "OpenArch lädt neue Nightly-Builds von GitHub, prüft ihre Prüfsumme und tauscht sich beim nächsten Beenden aus.") {
+                footer: "OpenArch lädt neue Versionen von GitHub, prüft Prüfsumme und Signatur und tauscht sich beim nächsten Beenden aus. Eine ältere Version als deine installiert es nie.") {
+            Row(symbol: "point.3.connected.trianglepath.dotted", color: .indigo, title: "Update-Kanal",
+                detail: updater.channel == .stable
+                    ? "Stable: die veröffentlichten Versionen. Kommst du von Nightly, wartet OpenArch, bis Stable aufholt."
+                    : "Nightly: jeder Build von main, mit allem Neuen und manchem Fehler.") {
+                Picker("", selection: $updater.channel) {
+                    ForEach(Updater.Channel.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().pickerStyle(.segmented).fixedSize()
+            }
             Row(symbol: "arrow.down.circle", color: .green, title: "Automatisch aktualisieren",
                 detail: "Sucht beim Start und alle sechs Stunden nach einer neuen Version.") {
                 Toggle("", isOn: $updater.isEnabled).labelsHidden().toggleStyle(.switch)
@@ -790,6 +1074,23 @@ private struct AboutPage: View {
             Row(symbol: "folder", color: .blue, title: "Profile, Sidebar und Verlauf",
                 detail: AppPaths.support.path, showsDivider: false) {
                 Button("Im Finder zeigen") { NSWorkspace.shared.activateFileViewerSelecting([AppPaths.support]) }
+            }
+        }
+        BackupSection(app: app)
+        Section(title: "Absturzberichte",
+                footer: "Ein Bericht enthält Versionen, die Art des Prozesses und die Stelle im Code, nie Adressen, Titel oder Seiteninhalte. Er geht nur als GitHub-Issue raus, das du selbst abschickst.") {
+            Row(symbol: "ant", color: .red, title: "Nach einem Absturz fragen",
+                detail: "Merkt sich Abstürze von OpenArch und seinen Prozessen und fragt beim nächsten Start, ob du einen Bericht senden willst.",
+                showsDivider: !FeatureSwitches.shared.disabled.isEmpty) {
+                Toggle("", isOn: $crashReports).labelsHidden().toggleStyle(.switch)
+                    .onChange(of: crashReports) { CrashReports.shared.isEnabled = crashReports }
+            }
+            let disabled = FeatureSwitches.shared.disabled
+            if !disabled.isEmpty {
+                Row(symbol: "switch.2", color: .orange, title: "Vorübergehend abgeschaltet",
+                    detail: disabled.sorted { $0.key.rawValue < $1.key.rawValue }
+                        .map { "\($0.key.title): \($0.value)" }.joined(separator: "\n"),
+                    showsDivider: false) { EmptyView() }
             }
         }
         Section(title: "Projekt") {
@@ -811,7 +1112,7 @@ private struct AboutPage: View {
         case .checking: "Suche nach Updates …"
         case .upToDate: "OpenArch ist aktuell"
         case .downloading(let progress): "Lade Update … \(Int(progress * 100)) %"
-        case .ready(let build): "Nightly \(build) ist bereit"
+        case .ready(let build): "\(updater.readyVersion ?? "Nightly \(build)") ist bereit"
         case .failed: "Update nicht möglich"
         }
     }
@@ -820,7 +1121,72 @@ private struct AboutPage: View {
         switch updater.phase {
         case .ready: "Wird beim Neustart oder beim nächsten Beenden installiert."
         case .failed(let message): message
+        case .upToDate where updater.aheadOfChannel != nil:
+            "Deine Version ist neuer als die neueste auf \(updater.channel.title) (Build \(updater.aheadOfChannel ?? 0)). Sie bleibt, bis \(updater.channel.title) aufholt."
         default: updater.lastCheck.map { "Zuletzt geprüft: \($0.formatted(date: .omitted, time: .shortened))" }
         }
+    }
+}
+
+/// Settings › Info › Sicherung: the daily backup, export and import.
+private struct BackupSection: View {
+    let app: AppDelegate
+    @State private var isEnabled = Backups.shared.isEnabled
+    @State private var folder = Backups.shared.folder
+    @State private var lastBackup = Backups.shared.lastBackup
+    @State private var error: String?
+
+    var body: some View {
+        Section(title: "Sicherung",
+                footer: "Jeden Tag ein Ordner mit Library.json (Spaces, Tabs, Link-Regeln), Boosts und Einstellungen; die letzten \(Backups.keep) bleiben. Logins, Passwörter und Verlauf sind nicht dabei.") {
+            Row(symbol: "clock.arrow.2.circlepath", color: .teal, title: "Tägliche Sicherung",
+                detail: error ?? lastBackup.map { "Zuletzt: \($0.formatted(date: .abbreviated, time: .shortened))" }
+                    ?? "Noch keine Sicherung.") {
+                HStack {
+                    Button("Jetzt sichern") {
+                        do {
+                            try Backups.shared.backUp(library: app.library)
+                            error = nil
+                        } catch {
+                            self.error = error.localizedDescription
+                        }
+                        lastBackup = Backups.shared.lastBackup
+                    }
+                    Toggle("", isOn: $isEnabled).labelsHidden().toggleStyle(.switch)
+                        .onChange(of: isEnabled) { Backups.shared.isEnabled = isEnabled }
+                }
+            }
+            Row(symbol: "folder.badge.gearshape", color: .blue, title: "Ordner",
+                detail: (folder.path as NSString).abbreviatingWithTildeInPath) {
+                HStack {
+                    Button("Zeigen") {
+                        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                        NSWorkspace.shared.open(folder)
+                    }
+                    Button("Wählen …") { chooseFolder() }
+                }
+            }
+            Row(symbol: "arrow.up.arrow.down.square", color: .gray, title: "Export und Import",
+                detail: "Eine Sicherung in einen Ordner deiner Wahl, oder eine zurückholen (OpenArch startet dafür neu).",
+                showsDivider: false) {
+                HStack {
+                    Button("Exportieren …") { Backups.shared.exportInteractively(library: app.library) }
+                    Button("Importieren …") { Backups.shared.importInteractively(library: app.library) }
+                }
+            }
+        }
+    }
+
+    private func chooseFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = folder
+        panel.prompt = "Wählen"
+        panel.message = "Wohin sollen die täglichen Sicherungen? Ein Ordner in iCloud Drive geht auch."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        Backups.shared.folder = url
+        folder = Backups.shared.folder
     }
 }
