@@ -11,7 +11,7 @@ import SQLite3
 /// Arc and OpenArch are both Chromium 156, so Arc's profile files can be used
 /// as they are, except for values Chromium encrypts with a key from the macOS
 /// keychain. Those are decrypted with Arc's key ("Arc Safe Storage") and
-/// encrypted again with OpenArch's. Chromium must not run while its profile
+/// encrypted again with OpenArch's ("OpenArch Safe Storage", SafeStorage).Chromium must not run while its profile
 /// changes, so the import runs at the next launch, before Chromium starts.
 enum ArcProfileImport {
     static let arcProfile = FileManager.default.homeDirectoryForCurrentUser
@@ -102,7 +102,9 @@ enum ArcProfileImport {
 
     static func run(into target: URL, history: (URL) -> Int) throws -> Summary {
         let arcKey = try keychainKey(service: "Arc Safe Storage")
-        let openArchKey = derivedKey(password: Data("mock_password".utf8))
+        // The login keychain's key, or the mock key where this launch still
+        // uses it (SafeStorage.prepare runs first).
+        let openArchKey = SafeStorage.key
         let fm = FileManager.default
 
         // Keep what OpenArch had, just in case.

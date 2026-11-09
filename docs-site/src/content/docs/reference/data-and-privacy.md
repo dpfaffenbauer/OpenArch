@@ -25,8 +25,18 @@ Everything lives in `~/Library/Application Support/OpenArch`. **Settings › Inf
 
 A private window (<kbd>⇧⌘N</kbd>) keeps nothing: its profile lives in memory and is gone when the window closes.
 
-:::caution[Saved passwords and cookies]
-Chrome protects saved passwords and cookies with a key in your login keychain. OpenArch does not use the keychain yet, so they are not protected that way: a program running as your user could read them. FileVault still protects them while the Mac is off.
+## The key to your passwords and cookies
+
+As in Chrome, saved passwords, cookies, card numbers and a few other values in `Chromium/` are encrypted with a key from your login keychain. OpenArch keeps it as **OpenArch Safe Storage**; Keychain Access shows it under that name.
+
+OpenArch makes the key itself at its first launch, so macOS does not ask. Updates read it without asking too.
+
+macOS asks only when the key is there but this copy of OpenArch may not read it yet, for example because a copy signed differently made it. OpenArch explains first, then macOS asks for your Mac password. Choose **Immer erlauben** (Always Allow). OpenArch then keeps the key in an item of its own, and the question does not come back.
+
+If you used OpenArch before it had this key, the first launch with it moves your saved passwords and cookies to the new key before any page opens. It copies the files it changes to `Chromium/OpenArch Keychain Backup` first and puts them back if anything fails. The copy is deleted at the next launch.
+
+:::caution[Keep the key]
+Don't delete **OpenArch Safe Storage** from your keychain. Without it, OpenArch can't read your saved passwords and cookies, and you sign in to websites again.
 :::
 
 ## What leaves your Mac

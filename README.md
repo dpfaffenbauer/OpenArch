@@ -267,6 +267,20 @@ run. Data lives in
   in the current space's color, or a different one each day. While OpenArch
   is closed, a Dock tile plug-in keeps showing it; the app bundle is never
   changed, so its signature stays valid.
+- **Keychain:** saved passwords, cookies and card numbers are encrypted
+  with a key kept as "OpenArch Safe Storage" in the login keychain, as
+  Chrome does with its own. Developer ID builds make the item themselves
+  before Chromium starts, so macOS does not ask, and signed updates read it
+  without asking. If the item was made by a copy signed differently, a
+  dialog explains, macOS asks once, and OpenArch puts the key into an item
+  of its own (`SafeStorage.swift`). Data from before, encrypted with
+  Chromium's mock keychain, is re-encrypted with the new key at the first
+  launch, before Chromium opens it, with a backup that goes back if
+  anything fails (`SafeStorageMigration.swift`). Local builds are signed
+  ad hoc, which macOS would ask about after every rebuild, so they keep the
+  mock keychain (`--login-keychain` uses the real one, and a data folder
+  already moved always does). `--selftest --keychain-test` moves a profile
+  with a saved password and a cookie over in three launches.
 - **Sandbox:** pages, the GPU and the network service run in Chromium's
   sandbox, as in Chrome; every helper process starts it before loading
   Chromium.
@@ -284,7 +298,7 @@ run. Data lives in
   views (from Arc's `StorableSidebar.json`). "Alles übernehmen" also brings
   logins and cookies, saved passwords, history, website data and the
   installed extensions with their settings. Arc's profile is cloned, and
-  encrypted values are re-encrypted with OpenArch's key.
+  encrypted values are re-encrypted with OpenArch's key from the keychain.
 - **Default browser:** OpenArch can be set as the default browser and opens
   links from other apps.
 - **Sharing without an account:** a pinned folder (right-click › Teilen …) or a space
@@ -343,10 +357,9 @@ Lessons learned on the way:
 
 ## Known limitations
 
-- **Mock keychain.** Every build, the Developer ID builds included, uses
-  Chromium's mock keychain (`App/Sources/OpenArch/main.swift`), so saved
-  cookies and passwords are not protected by the login keychain. Local
-  builds are signed ad hoc.
+- **No way back to older versions.** Once a Developer ID build has moved
+  passwords and cookies to the keychain's key, versions from before that
+  can't read them.
 - **The full Arc import is new.** Moving logins, passwords and extensions has
   been tested on copies of Arc profiles, not yet on many real ones. Arc's own
   data is never changed.

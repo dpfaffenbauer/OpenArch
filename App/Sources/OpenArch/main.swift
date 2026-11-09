@@ -12,6 +12,12 @@ if let index = arguments.firstIndex(of: "--export-icons"), index + 1 < arguments
     exit(0)
 }
 
+// --selftest --keychain-test: three launches on one data folder, from the
+// mock keychain to the login keychain (SelfTestKeychain.swift).
+if AppPaths.isSelfTest, arguments.contains("--keychain-test") {
+    exit(KeychainSelfTest.runPhases())
+}
+
 guard OACEngine.loadFramework() else {
     fatalError("Could not load the Chromium Embedded Framework")
 }
@@ -28,6 +34,18 @@ if AppPaths.isSelfTest, arguments.contains("--arc-profile-test") {
     try? ArcProfileImport.cloneProfile(into: AppPaths.chromiumData.appendingPathComponent("Default"))
 }
 
+// The key for passwords and cookies: "OpenArch Safe Storage" in the login
+// keychain for Developer ID builds, the mock keychain for ad-hoc builds
+// (--login-keychain / --mock-keychain choose). Data still on the mock key
+// moves to the keychain's here, before Chromium opens it.
+var safeStorageArguments = arguments
+switch KeychainSelfTest.phase {
+case 1: safeStorageArguments.append("--mock-keychain")
+case 2, 3: safeStorageArguments.append("--login-keychain")
+default: break
+}
+SafeStorage.prepare(chromiumData: AppPaths.chromiumData, arguments: safeStorageArguments)
+
 // A full import from Arc replaces the profile before Chromium opens it.
 ArcProfileImport.runIfPending(chromiumData: AppPaths.chromiumData) { History().importChromiumHistory(from: $0) }
 
@@ -39,9 +57,9 @@ if !AppPaths.isSelfTest {
 
 let settings = OACEngineSettings()
 settings.rootCachePath = AppPaths.chromiumData.path
-// Ad-hoc signed builds change signature on every build; the real keychain
-// would ask for "OpenArch Safe Storage" each time.
-settings.useMockKeychain = true
+settings.useMockKeychain = !SafeStorage.usesLoginKeychain
+settings.keychainServiceName = SafeStorage.service
+settings.keychainAccountName = SafeStorage.account
 settings.extensionPaths = AppPaths.bundledExtensions("BuiltinExtensions")
 if AppPaths.isSelfTest {
     // The probe extension checks extension APIs. The self-test window sits

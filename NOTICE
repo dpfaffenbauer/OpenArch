@@ -7,8 +7,12 @@ OpenArch includes code adapted from other projects, under their own licences:
 
 - Airc (https://github.com/red545/airc), Copyright 2026 The Airc Authors,
   Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0).
-  App/Sources/OpenArch/Browser/ShortTitles.swift adapts Airc's Tidy Titles
-  (packages/AircKit/Sources/AircKit/AI/TidyTitles.swift and
-  apps/browser/Sources/Airc/AI/AppleIntelligence.swift, commit 88fb3dd):
-  the title rules, the prompt, the request queue with its timeout and the
-  Foundation Models call. Changed for OpenArch.
+  - App/Sources/OpenArch/Browser/ShortTitles.swift adapts Airc's Tidy Titles
+    (packages/AircKit/Sources/AircKit/AI/TidyTitles.swift and
+    apps/browser/Sources/Airc/AI/AppleIntelligence.swift, commit 88fb3dd):
+    the title rules, the prompt, the request queue with its timeout and the
+    Foundation Models call. Changed for OpenArch.
+  - App/Sources/OpenArch/Model/SafeStorage.swift: taking over the keychain
+    item "OpenArch Safe Storage" (a copy that is read back before the old item
+    is deleted, and put back after an interrupted take-over) follows Airc's
+    apps/browser/Sources/Airc/App/SafeStorageKey.swift.

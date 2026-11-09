@@ -14,9 +14,14 @@ NS_ASSUME_NONNULL_BEGIN
 @property(copy) NSArray<NSString*>* extensionPaths;
 /// 0 disables remote debugging.
 @property NSInteger remoteDebuggingPort;
-/// Stores Chromium's encryption key in a fake keychain instead of the login
-/// keychain. Avoids keychain prompts for ad-hoc signed builds.
+/// Stores Chromium's encryption key in a fake keychain (a fixed password)
+/// instead of the login keychain. For ad-hoc signed builds, which macOS would
+/// otherwise ask about at every launch (see SafeStorage.swift).
 @property BOOL useMockKeychain;
+/// The login keychain item holding the encryption key ("OpenArch Safe
+/// Storage"), unless useMockKeychain is set.
+@property(copy) NSString* keychainServiceName;
+@property(copy) NSString* keychainAccountName;
 /// Additional Chromium command-line switches ("name" or "name=value").
 @property(copy) NSArray<NSString*>* extraSwitches;
 @end
