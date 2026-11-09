@@ -367,7 +367,7 @@ enum CredentialImport {
                 return (0, 0)
             }
         }
-        let key = ArcProfileImport.derivedKey(password: Data("mock_password".utf8))
+        let key = SafeStorage.key
         var db: OpaquePointer?
         guard sqlite3_open(database.path, &db) == SQLITE_OK, let db else { return (0, 0) }
         defer { sqlite3_close(db) }

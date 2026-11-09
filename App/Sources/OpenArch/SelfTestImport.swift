@@ -308,7 +308,7 @@ extension SelfTest {
         defer { sqlite3_finalize(statement) }
         guard sqlite3_step(statement) == SQLITE_ROW, let bytes = sqlite3_column_blob(statement, 0) else { return nil }
         let value = Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 0)))
-        let key = ArcProfileImport.derivedKey(password: Data("mock_password".utf8))
+        let key = SafeStorage.key
         guard value.starts(with: Data("v10".utf8)),
               let plain = ArcProfileImport.aes(CCOperation(kCCDecrypt), value.dropFirst(3), key: key) else { return nil }
         return String(data: plain, encoding: .utf8)
