@@ -12,7 +12,7 @@ struct GoogleAccount: Equatable {
 /// answer, the list Chromium itself keeps per profile, fetched with the
 /// profile's own cookies.
 @MainActor
-enum GoogleAccounts {
+enum OnboardingGoogleAccounts {
     static let listURL = "https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard"
 
     /// The self-test's answer by profile directory; the self-test never asks

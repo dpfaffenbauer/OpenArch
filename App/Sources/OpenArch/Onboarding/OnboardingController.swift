@@ -441,7 +441,7 @@ final class OnboardingController: NSObject {
         for profile in profilesInUse where force || model.accounts[profile.id] == nil
             || model.accounts[profile.id] == .unknown {
             model.accounts[profile.id] = .searching
-            GoogleAccounts.read(profile) { [weak self] accounts in
+            OnboardingGoogleAccounts.read(profile) { [weak self] accounts in
                 self?.model.accounts[profile.id] = accounts.map { .found($0) } ?? .unknown
             }
         }

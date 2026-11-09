@@ -253,7 +253,7 @@ extension SelfTest {
                 peek.close()
             }
             self.library.settings.peek = false
-            let taken = tab.pane.map { self.browser.pane($0, wantsPeekWithURL: "https://www.iana.org/") } ?? true
+            let taken = (tab.pane as? OACPane).map { self.browser.pane($0, wantsPeekWithURL: "https://www.iana.org/") } ?? true
             self.expect(!taken && !peek.isOpen, "with Peek off a ⇧-click opens a new tab instead")
             self.library.settings.peek = true
             self.browser.close(tab)

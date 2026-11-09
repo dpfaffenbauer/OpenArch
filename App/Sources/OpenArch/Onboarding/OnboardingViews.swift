@@ -328,7 +328,7 @@ struct SidebarPreview: View {
         }
         .padding(12)
         .frame(width: 236, height: 390)
-        .background(LinearGradient(colors: [theme.background, theme.backgroundBottom], startPoint: .top, endPoint: .bottom))
+        .background(theme.gradient)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
         .animation(.easeInOut(duration: 0.35), value: space?.id)
@@ -512,7 +512,7 @@ private struct AccountAvatar: View {
         }
         .frame(width: 26, height: 26)
         .overlay(Circle().strokeBorder(Color(nsColor: .windowBackgroundColor), lineWidth: 2))
-        .onAppear { GoogleAccounts.photo(account.photoURL) { photo = $0 } }
+        .onAppear { OnboardingGoogleAccounts.photo(account.photoURL) { photo = $0 } }
     }
 }
 

@@ -14,7 +14,7 @@ extension SelfTest {
         firstLaunchChecks()
         let arc = writeArcFixture()
         let alex = GoogleAccount(name: "Alex", email: "alex@example.com", photoURL: nil)
-        GoogleAccounts.testAnswer = { [library] id in id == library.settings.arcDefaultProfile ? [alex] : [] }
+        OnboardingGoogleAccounts.testAnswer = { [library] id in id == library.settings.arcDefaultProfile ? [alex] : [] }
 
         let onboarding = app.startOnboarding(mode: .firstRun, arc: arc, focus: false)
         let model = onboarding.model
@@ -129,7 +129,7 @@ extension SelfTest {
         again.window.cancelOperation(nil)
         expect(!again.window.isVisible && app.onboarding == nil && library.spaces.map(\.id) == spaces,
                "Esc on its first step leaves it and changes nothing")
-        GoogleAccounts.testAnswer = nil
+        OnboardingGoogleAccounts.testAnswer = nil
         done()
     }
 
@@ -138,7 +138,7 @@ extension SelfTest {
     func onboardingShots() {
         guard let app = NSApp.delegate as? AppDelegate else { return }
         let onboarding = app.startOnboarding(mode: .firstRun, arc: writeArcFixture(), focus: false)
-        GoogleAccounts.testAnswer = { [library] id in
+        OnboardingGoogleAccounts.testAnswer = { [library] id in
             id == library.settings.arcDefaultProfile ? [GoogleAccount(name: "Alex", email: "alex@example.com")] : []
         }
         let number = onboarding.window.windowNumber
