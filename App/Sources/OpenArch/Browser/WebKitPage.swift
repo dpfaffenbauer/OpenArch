@@ -30,6 +30,7 @@ final class WebKitPage: NSObject, OACPage {
     private(set) var canGoBack = false
     private(set) var canGoForward = false
     private(set) var isVisible = false
+    var isFullScreen: Bool { webView.map { $0.fullscreenState != .notInFullscreen } ?? false }
     var isLoaded: Bool { webView != nil }
     var window: NSWindow? { hostWindow }
 
