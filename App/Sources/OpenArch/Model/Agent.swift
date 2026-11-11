@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import Observation
 import OpenArchCore
 
@@ -35,17 +36,17 @@ enum AgentPermissions: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .ask: "Nachfragen"
-        case .edits: "Dateien bearbeiten"
-        case .all: "Alles erlauben"
+        case .ask: L("Nachfragen")
+        case .edits: L("Dateien bearbeiten")
+        case .all: L("Alles erlauben")
         }
     }
 
     var detail: String {
         switch self {
-        case .ask: "Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser"
-        case .edits: "Ändert Dateien ohne Rückfrage, fragt vor Befehlen"
-        case .all: "Ändert Dateien und führt Befehle aus, ohne zu fragen"
+        case .ask: L("Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser")
+        case .edits: L("Ändert Dateien ohne Rückfrage, fragt vor Befehlen")
+        case .all: L("Ändert Dateien und führt Befehle aus, ohne zu fragen")
         }
     }
 
@@ -277,7 +278,7 @@ final class AgentSession {
                 DispatchQueue.main.async { MainActor.assumeIsolated { self.exited(status: status, errors: errors, run: run) } }
             })
         } catch {
-            messages.append(AgentMessage(role: .error, text: "Claude Code ließ sich nicht starten: \(error.localizedDescription)"))
+            messages.append(AgentMessage(role: .error, text: L("Claude Code ließ sich nicht starten: %@", error.localizedDescription)))
             return finish()
         }
         self.process = process
@@ -595,18 +596,18 @@ enum AgentTool {
     static let tabsServer = "mcp__" + BrowserTools.server
 
     static func title(_ tool: String?) -> String {
-        guard let tool else { return "Werkzeug" }
+        guard let tool else { return L("Werkzeug") }
         if tool.hasPrefix(tabsServer + "__") {
             switch tool.dropFirst(tabsServer.count + 2) {
             case "list_tabs": return "Tabs"
-            case "read_page": return "Liest die Seite"
-            case "screenshot": return "Bildschirmfoto"
-            case "scroll": return "Scrollt"
+            case "read_page": return L("Liest die Seite")
+            case "screenshot": return L("Bildschirmfoto")
+            case "scroll": return L("Scrollt")
             case "open_tab": return "Neuer Tab"
-            case "navigate": return "Öffnet"
-            case "click": return "Klickt"
-            case "type": return "Tippt"
-            case "go_back": return "Zurück"
+            case "navigate": return L("Öffnet")
+            case "click": return L("Klickt")
+            case "type": return L("Tippt")
+            case "go_back": return L("Zurück")
             default: return "Browser"
             }
         }
@@ -614,15 +615,15 @@ enum AgentTool {
             return "Browser: " + tool.dropFirst(browserServer.count + 2).replacingOccurrences(of: "_", with: " ")
         }
         switch tool {
-        case "Bash": return "Befehl"
-        case "Read": return "Liest"
-        case "Write": return "Schreibt"
-        case "Edit", "MultiEdit", "NotebookEdit": return "Ändert"
-        case "Grep", "Glob", "LS": return "Sucht"
-        case "WebFetch": return "Lädt"
-        case "WebSearch": return "Sucht im Web"
-        case "Task": return "Unteragent"
-        case "TodoWrite": return "Aufgaben"
+        case "Bash": return L("Befehl")
+        case "Read": return L("Liest")
+        case "Write": return L("Schreibt")
+        case "Edit", "MultiEdit", "NotebookEdit": return L("Ändert")
+        case "Grep", "Glob", "LS": return L("Sucht")
+        case "WebFetch": return L("Lädt")
+        case "WebSearch": return L("Sucht im Web")
+        case "Task": return L("Unteragent")
+        case "TodoWrite": return L("Aufgaben")
         default:
             return tool.hasPrefix("mcp__") ? tool.dropFirst(5).replacingOccurrences(of: "__", with: ": ") : tool
         }

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OpenArchLocalization
 
 /// „Spaces verwalten …“: a card over the page with a row per space, to
 /// sort them by dragging, rename them with a click on the name, change
@@ -139,7 +140,7 @@ private struct ManageSpacesCard: View {
                 }
                 .buttonStyle(.borderless)
                 Spacer()
-                Text(library.spaces.count == 1 ? "1 Space" : "\(library.spaces.count) Spaces")
+                Text(Localization.count(library.spaces.count, one: "1 Space", other: "%lld Spaces"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 16)
@@ -196,7 +197,7 @@ private struct ManageSpaceRow: View {
                         }
                         .help("Zum Umbenennen klicken")
                 }
-                Text("Profil: \(profile.name) · \(space.pinned.allTabs.count) angeheftet, \(space.today.allTabs.count) offen")
+                Text(L("Profil: %@ · %lld angeheftet, %lld offen", profile.name, space.pinned.allTabs.count, space.today.allTabs.count))
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 4)
@@ -208,7 +209,7 @@ private struct ManageSpaceRow: View {
             }
             .buttonStyle(.borderless)
             .disabled(library.spaces.count < 2)
-            .help(library.spaces.count < 2 ? "Der letzte Space bleibt" : "Space löschen …")
+            .help(L(library.spaces.count < 2 ? "Der letzte Space bleibt" : "Space löschen …"))
         }
         .padding(.vertical, 4)
     }

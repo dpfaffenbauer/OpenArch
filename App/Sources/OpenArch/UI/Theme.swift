@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OpenArchLocalization
 
 extension NSColor {
     convenience init?(hex: String) {
@@ -159,9 +160,9 @@ enum ThemeAppearance: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .auto: "Auto"
-        case .light: "Hell"
-        case .dark: "Dunkel"
+        case .auto: L("Auto")
+        case .light: L("Hell")
+        case .dark: L("Dunkel")
         }
     }
 

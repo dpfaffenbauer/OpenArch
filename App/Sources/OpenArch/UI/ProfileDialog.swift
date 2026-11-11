@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import SwiftUI
 
 /// "Neues Profil anlegen", like Arc's dialog: asks for a name and creates a
@@ -91,7 +92,7 @@ struct ProfileDialogView: View {
                     .onSubmit { if canCreate { onCreate(trimmed) } }
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 10))
-                    Text(isTaken ? "Ein Profil mit diesem Namen gibt es schon." : "Profile werden **nicht** zwischen Computern synchronisiert.")
+                    Text(L(isTaken ? "Ein Profil mit diesem Namen gibt es schon." : "Profile werden **nicht** zwischen Computern synchronisiert."))
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(isTaken ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))

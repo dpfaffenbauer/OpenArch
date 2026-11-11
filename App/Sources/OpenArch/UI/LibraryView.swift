@@ -1,6 +1,7 @@
 import AppKit
 import QuickLookThumbnailing
 import SwiftUI
+import OpenArchLocalization
 import UniformTypeIdentifiers
 
 /// Arc's library, in place of the sidebar: media, downloads, spaces and
@@ -353,7 +354,7 @@ private struct SpacesSection: View {
                             .background(Circle().fill(Color(nsColor: space.color)))
                         VStack(alignment: .leading, spacing: 1) {
                             Text(space.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                            Text("Profil: \(library.profile(id: space.profileID).name) · \(space.pinned.allTabs.count) angeheftet, \(space.today.allTabs.count) offen")
+                            Text(L("Profil: %@ · %lld angeheftet, %lld offen", library.profile(id: space.profileID).name, space.pinned.allTabs.count, space.today.allTabs.count))
                                 .font(.system(size: 11)).opacity(0.6).lineLimit(1)
                         }
                     }
@@ -484,7 +485,7 @@ private struct EmptyHint: View {
 
     var body: some View {
         if isEmpty {
-            Text(text).font(.system(size: 12)).opacity(0.5).multilineTextAlignment(.center).padding()
+            Text(L(text)).font(.system(size: 12)).opacity(0.5).multilineTextAlignment(.center).padding()
         }
     }
 }

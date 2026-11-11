@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 import Observation
 
 /// What the sidebar and command bar observe about one browser window.
@@ -56,10 +57,10 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .media: "Medien"
-        case .downloads: "Downloads"
-        case .spaces: "Spaces"
-        case .archive: "Archiv"
+        case .media: L("Medien")
+        case .downloads: L("Downloads")
+        case .spaces: L("Spaces")
+        case .archive: L("Archiv")
         }
     }
 

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OpenArchLocalization
 
 /// Arc's theme picker for a space: a color disc with one to three handles,
 /// Arc's nine swatches, Auto / Hell / Dunkel, intensity and grain. Every
@@ -72,7 +73,7 @@ struct ThemeEditor: View {
 
     private func slider(_ title: String, value: Binding<Double>, symbols: (String, String)) -> some View {
         HStack(spacing: 8) {
-            Text(title).font(.caption).foregroundStyle(.secondary).frame(width: 62, alignment: .leading)
+            Text(L(title)).font(.caption).foregroundStyle(.secondary).frame(width: 62, alignment: .leading)
             Image(systemName: symbols.0).font(.system(size: 10)).foregroundStyle(.secondary)
             Slider(value: value, in: 0...1)
                 .controlSize(.small)

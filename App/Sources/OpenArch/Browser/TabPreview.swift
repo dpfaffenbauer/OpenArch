@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import SwiftUI
 
 /// Resting the pointer on a tab in the sidebar shows a picture of its page
@@ -137,7 +138,7 @@ struct TabPreviewCard: View {
                         VStack(spacing: 8) {
                             FaviconView(item: item, size: 32)
                             if item.pane == nil {
-                                Text(item.isAsleep ? "Schläft" : "Nicht geladen").font(.system(size: 11)).opacity(0.6)
+                                Text(L(item.isAsleep ? "Schläft" : "Nicht geladen")).font(.system(size: 11)).opacity(0.6)
                             }
                         }
                     }

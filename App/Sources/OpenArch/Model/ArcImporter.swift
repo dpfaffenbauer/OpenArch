@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// Reads Arc's sidebar (StorableSidebar.json: spaces, favorites, pinned
 /// folders, today tabs, split views) into OpenArch's library format. This is
@@ -60,7 +61,7 @@ enum ArcImporter {
         func profileID(for arcProfile: Any?) -> String {
             let key = profileKey(arcProfile)
             if let existing = profileIDsByArcKey[key] { return existing }
-            let name = key == "default" ? "Persönlich" : "Arc – \(key)"
+            let name = key == "default" ? L("Persönlich") : L("Arc – %@", key)
             let taken = Set(profiles.map(\.id)).union([defaultDirectory])
             let id = if key == "default" {
                 defaultDirectory

@@ -5,6 +5,7 @@
 // Copyright 2026 The Airc Authors, Apache License 2.0; changed for OpenArch.
 // See NOTICE.
 import AppKit
+import OpenArchLocalization
 import CoreGraphics
 #if canImport(FoundationModels)
 import FoundationModels
@@ -583,10 +584,10 @@ enum AIAvailability: Equatable {
     var reason: String {
         switch self {
         case .available: ""
-        case .needsNewerMacOS: "Braucht Apple Intelligence, also macOS 26 oder neuer."
-        case .deviceNotEligible: "Dieser Mac unterstützt Apple Intelligence nicht."
-        case .notEnabled: "Apple Intelligence ist aus. Schalte es in den Systemeinstellungen unter „Apple Intelligence & Siri“ ein."
-        case .notReady: "Das Modell von Apple Intelligence wird noch geladen. Versuch es später noch einmal."
+        case .needsNewerMacOS: L("Braucht Apple Intelligence, also macOS 26 oder neuer.")
+        case .deviceNotEligible: L("Dieser Mac unterstützt Apple Intelligence nicht.")
+        case .notEnabled: L("Apple Intelligence ist aus. Schalte es in den Systemeinstellungen unter „Apple Intelligence & Siri“ ein.")
+        case .notReady: L("Das Modell von Apple Intelligence wird noch geladen. Versuch es später noch einmal.")
         }
     }
 }

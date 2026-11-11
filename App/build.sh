@@ -41,6 +41,8 @@ write_plist() {
   <key>CFBundleName</key><string>$4</string>
   <key>CFBundleDisplayName</key><string>$4</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleLocalizations</key><array><string>en</string><string>de</string><string>fr</string><string>es</string><string>it</string></array>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>

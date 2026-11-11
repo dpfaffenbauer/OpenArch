@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import CryptoKit
 import Observation
 
@@ -167,7 +168,7 @@ final class Updater {
         default: break
         }
         if isDevelopmentBuild && manifestURL == Self.releaseManifest && releaseListURL == Self.releaseList {
-            phase = .failed("Selbst gebaute Versionen aktualisieren sich nicht; Updates gibt es für die Builds von GitHub.")
+            phase = .failed(L("Selbst gebaute Versionen aktualisieren sich nicht; Updates gibt es für die Builds von GitHub."))
             return
         }
         phase = .checking
@@ -200,14 +201,14 @@ final class Updater {
         guard channel == .stable else { return manifestURL }
         let releases = try JSONDecoder().decode([Release].self, from: try await Self.fetch(releaseListURL))
         guard let release = Self.newestStable(in: releases) else {
-            throw UpdateError("Es gibt noch keine Stable-Version.")
+            throw UpdateError(L("Es gibt noch keine Stable-Version."))
         }
         guard let manifest = release.assets.first(where: { $0.name == "latest.json" })?.browser_download_url else {
-            throw UpdateError("Die Stable-Version \(release.tag_name) lässt sich nicht automatisch installieren.")
+            throw UpdateError(L("Die Stable-Version %@ lässt sich nicht automatisch installieren.", release.tag_name))
         }
         let isLocalFile = allowsLocalFiles && URL(string: manifest)?.isFileURL == true
         guard isLocalFile || Self.isReleaseAsset(manifest) else {
-            throw UpdateError("Das Update kommt nicht aus OpenArchs Releases auf GitHub.")
+            throw UpdateError(L("Das Update kommt nicht aus OpenArchs Releases auf GitHub."))
         }
         return manifest
     }
@@ -228,11 +229,11 @@ final class Updater {
     private func download(_ manifest: Manifest, channel: Channel) async throws {
         let target = Bundle.main.bundleURL
         guard FileManager.default.isWritableFile(atPath: target.deletingLastPathComponent().path) else {
-            throw UpdateError("Keine Schreibrechte für \(target.deletingLastPathComponent().path).")
+            throw UpdateError(L("Keine Schreibrechte für %@.", target.deletingLastPathComponent().path))
         }
         let isLocalFile = allowsLocalFiles && URL(string: manifest.url)?.isFileURL == true
         guard isLocalFile || Self.isReleaseAsset(manifest.url) else {
-            throw UpdateError("Das Update kommt nicht aus OpenArchs Releases auf GitHub.")
+            throw UpdateError(L("Das Update kommt nicht aus OpenArchs Releases auf GitHub."))
         }
         let folder = Self.cacheFolder
         try? FileManager.default.removeItem(at: folder)
@@ -252,7 +253,7 @@ final class Updater {
                                              "-o", zip.path, manifest.url])
 
         guard try Self.sha256(of: zip) == manifest.sha256.lowercased() else {
-            throw UpdateError("Die heruntergeladene Datei stimmt nicht mit der Prüfsumme überein.")
+            throw UpdateError(L("Die heruntergeladene Datei stimmt nicht mit der Prüfsumme überein."))
         }
         let unpacked = folder.appendingPathComponent("unpacked")
         try await Self.run("/usr/bin/ditto", ["-x", "-k", zip.path, unpacked.path])
@@ -262,7 +263,7 @@ final class Updater {
         let info = NSDictionary(contentsOf: app.appendingPathComponent("Contents/Info.plist"))
         guard let info, info["CFBundleIdentifier"] as? String == Bundle.main.bundleIdentifier,
               Int(info["CFBundleVersion"] as? String ?? "") == manifest.build else {
-            throw UpdateError("Das Update enthält keine passende OpenArch-App.")
+            throw UpdateError(L("Das Update enthält keine passende OpenArch-App."))
         }
         if requiresDeveloperID {
             do {
@@ -270,7 +271,7 @@ final class Updater {
                                                          "-R", Self.codeRequirement(bundleID: Bundle.main.bundleIdentifier ?? ""),
                                                          app.path])
             } catch {
-                throw UpdateError("Das Update ist nicht mit OpenArchs Developer ID signiert.")
+                throw UpdateError(L("Das Update ist nicht mit OpenArchs Developer ID signiert."))
             }
         }
         try? FileManager.default.removeItem(at: zip)

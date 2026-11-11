@@ -1,0 +1,981 @@
+# Generated from the German UI strings; reviewed by hand for critical terms.
+003a6a130a	Join	Rejoindre	Unirse	Giuntura
+005351f500	%lld rows selected	%lld lignes sélectionnées	%lld filas seleccionadas	%lld righe selezionate
+0061dbbddb	The update does not come from OpenArch's releases on GitHub.	La mise à jour ne provient pas des versions d'OpenArch sur GitHub.	La actualización no proviene de las versiones de OpenArch en GitHub.	L'aggiornamento non proviene dalle versioni di OpenArch su GitHub.
+006cca9235	Downward	Vers le bas	Hacia abajo	Verso il basso
+00b74f13fe	Searches	Recherche	Busca	Cerca
+00e5baddf1	Reload	Recharger	Recargar	Ricarica
+014b48cd14	https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F	https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F	https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F	https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F
+014bcd654c	Left	Gauche	Izquierda	Sinistra
+01505af0f4	Set as default	Définir par défaut	Establecer como predeterminado	Imposta come predefinito
+015ba822b5	Spaces and logins are coming straight from Arc...	Les espaces et les logins viennent tout droit d'Arc...	Los espacios y los inicios de sesión provienen directamente de Arc...	Spazi e accessi arrivano direttamente da Arc...
+0177f6dca0	Selection	Sélection	Selección	Selezione
+02054258f3	You share a tab	Vous partagez un onglet	Compartes una pestaña	Condividi una scheda
+021277953d	Don’t include	Ne pas inclure	No incluir	Non includere
+0509c83a63	Empty archive	Archives vides	Archivo vacío	Archivio vuoto
+05310f834e	Profiles are **not** synced between computers.	Les profils ne sont **pas** synchronisés entre les ordinateurs.	Los perfiles **no** están sincronizados entre computadoras.	I profili **non** vengono sincronizzati tra computer.
+05367df6fb	Select the exported password file (CSV) from Chrome, Firefox, Safari, 1Password or Bitwarden.	Sélectionnez le fichier de mot de passe exporté (CSV) depuis Chrome, Firefox, Safari, 1Password ou Bitwarden.	Seleccione el archivo de contraseña exportado (CSV) de Chrome, Firefox, Safari, 1Password o Bitwarden.	Seleziona il file della password esportato (CSV) da Chrome, Firefox, Safari, 1Password o Bitwarden.
+0545be5aa1	%lld passwords	%lld mots de passe	%lld contraseñas	%lld password
+0557f1b88d	OpenArch cannot read its key.	OpenArch ne peut pas lire sa clé.	OpenArch no puede leer su clave.	OpenArch non riesce a leggere la sua chiave.
+05b898c9e7	Drag tabs here to pin	Faites glisser les onglets ici pour les épingler	Arrastre las pestañas aquí para fijarlas	Trascina qui le schede per fissarle
+05fbee703f	%@ belonged to “%@” and now applies here.	%@ appartenait à « %@ » et s'applique désormais ici.	%@ pertenecía a “%@” y ahora se aplica aquí.	%@ apparteneva a “%@” e ora si applica qui.
+0601f8aae1	Unpin tab	Détacher l’onglet	Desfijar pestaña	Sblocca scheda
+06b9a27ece	1 favorite	1 favori	1 favorito	1 preferito
+06c94c5534	There is no stable version yet.	Il n'existe pas encore de version stable.	Aún no existe una versión estable.	Non esiste ancora una versione stabile.
+06cea5c40f	Choose	Choisir	Elegir	Scegli
+06d946af5d	No matching downloads	Aucun téléchargement correspondant	No hay descargas coincidentes	Nessun download corrispondente
+06e7bf0a8c	Types	Espèces	Tipos	Tipi
+070badcf4e	No folder	Sans dossier	Sin carpeta	Nessuna cartella
+0719708d1c	password	mot de passe	contraseña	password
+07af7cb30f	Cancel	Annuler	Cancelar	Cancellare
+07bc2a30be	The language of OpenArch. “System” follows macOS and takes English when macOS chooses a language that OpenArch doesn’t have. The change applies after a restart.	Le langage d'OpenArch. « Système » suit macOS et prend l'anglais lorsque macOS choisit une langue qu'OpenArch n'a pas. La modification s'applique après un redémarrage.	El lenguaje de OpenArch. "Sistema" sigue a macOS y toma el inglés cuando macOS elige un idioma que OpenArch no tiene. El cambio se aplica después de un reinicio.	Il linguaggio di OpenArch. "Sistema" segue macOS e accetta l'inglese quando macOS sceglie una lingua che OpenArch non ha. La modifica si applica dopo un riavvio.
+0801eb7da7	%lld Spaces	%lld espaces	%lld espacios	%lld spazi
+08263036d0	Close chat (⌘W)	Fermer le chat (⌘W)	Cerrar chat (⌘W)	Chiudi la chat (⌘W)
+085c92f7bc	Downloads in the library	Téléchargements dans la bibliothèque	Descargas en la biblioteca	Download in libreria
+0870c562d0	%lld unread	%lld non lus	%lld sin leer	%lld non letti
+08c127360f	%@ pinned (in %@)	%@ épinglé (dans %@)	%@ fijado (en %@)	%@ bloccato (in %@)
+08e9e73e12	Restart now	Redémarrer maintenant	Reiniciar ahora	Riavvia ora
+08efd9e5c7	#EF8C63	#EF8C63	#EF8C63	#EF8C63
+0940858cb5	Claude Code calls her the next run.	Claude Code l'appelle au prochain run.	Claude Code la llama la próxima carrera.	Claude Code la chiama per la prossima corsa.
+0957d1b08a	Each profile becomes a profile in OpenArch and a space with its name: the bookmarks bar as pinned tabs and folders, “More bookmarks” as its own folder. The history comes to the command bar. A second import does not create anything twice. The other browsers remain unchanged.	Chaque profil devient un profil dans OpenArch et un espace avec son nom : la barre de favoris sous forme d'onglets et de dossiers épinglés, « Plus de favoris » comme son propre dossier. L'historique arrive dans la barre de commandes. Une deuxième importation ne crée rien deux fois. Les autres navigateurs restent inchangés.	Cada perfil se convierte en un perfil en OpenArch y un espacio con su nombre: la barra de marcadores como pestañas y carpetas ancladas, “Más marcadores” como su propia carpeta. El historial llega a la barra de comandos. Una segunda importación no crea nada dos veces. Los demás navegadores permanecen sin cambios.	Ogni profilo diventa un profilo in OpenArch e uno spazio con il suo nome: la barra dei segnalibri come schede e cartelle appuntate, "Altri segnalibri" come una propria cartella. La cronologia arriva alla barra dei comandi. Una seconda importazione non crea nulla due volte. Gli altri browser rimangono invariati.
+09b952c164	Paused	En pause	En pausa	In pausa
+09eb10fa94	Installs the new version and restarts OpenArch. Tabs remain.	Installe la nouvelle version et redémarre OpenArch. Les onglets restent.	Instala la nueva versión y reinicia OpenArch. Las pestañas permanecen.	Installa la nuova versione e riavvia OpenArch. Rimangono le schede.
+0a0bd1c213	Reload without cache	Recharger sans cache	Recargar sin caché	Ricarica senza cache
+0a15b901f0	Collapse	Réduire	Contraer	Comprimi
+0a420ad5d3	Next meeting in the sidebar	Prochaine réunion dans la barre latérale	Próxima reunión en la barra lateral	Prossimo incontro nella barra laterale
+0a4a6641cc	Agents in the sidebar	Agents dans la barre latérale	Agentes en la barra lateral	Agenti nella barra laterale
+0ae1495916	Sleeps: reloads when you open the tab	Sommeil : se recharge lorsque vous ouvrez l'onglet	Duerme: se recarga cuando abres la pestaña	Sleep: si ricarica quando apri la scheda
+0aee6b729f	%lld is already there from a previous import, not created twice	%lld est déjà présent lors d'une importation précédente, non créé deux fois	%lld ya existe desde una importación anterior, no se creó dos veces	%lld è già presente da un'importazione precedente, non creato due volte
+0b79002ef1	About OpenArch	À propos d’OpenArch	Acerca de OpenArch	Informazioni su OpenArch
+0bba292a46	Instruction	Instruction	Instrucción	Istruzioni
+0c06053c19	Changes	Changements	Cambios	Cambiamenti
+0c5ad14a25	Checking your Google account...	Vérification de votre compte Google...	Comprobando tu cuenta de Google...	Controllo del tuo account Google...
+0cea0f3bdd	Send …	Envoyer …	Enviar …	Inviare …
+0d0bcacfa8	Abbreviation: %@	Abréviation : %@	Abreviatura: %@	Abbreviazione: %@
+0d2d97a5e1	AI	IA	AI	AI
+0d4262a496	Iowan Old Style	Style ancien de l'Iowan	Estilo antiguo de Iowa	Iowan vecchio stile
+0d87b11dfb	Claude Code looks into calendars, emails, chats and tasks with your connectors (MCP servers) and writes a page from them. It opens as a “Morning Brief” tab at the top under the line, with a dot until you have read it. Claude is only allowed to read. Runs with claude's login in the terminal, without an API key.	Claude Code consulte les calendriers, les emails, les chats et les tâches avec vos connecteurs (serveurs MCP) et en écrit une page. Il s'ouvre sous la forme d'un onglet « Morning Brief » en haut sous la ligne, avec un point jusqu'à ce que vous l'ayez lu. Claude n'a le droit que de lire. Fonctionne avec le login de Claude dans le terminal, sans clé API.	Claude Code examina calendarios, correos electrónicos, chats y tareas con sus conectores (servidores MCP) y escribe una página a partir de ellos. Se abre como una pestaña "Morning Brief" en la parte superior debajo de la línea, con un punto hasta que lo haya leído. A Claude sólo se le permite leer. Se ejecuta con el inicio de sesión de Claude en la terminal, sin una clave API.	Claude Code esamina calendari, e-mail, chat e attività con i tuoi connettori (server MCP) e scrive una pagina da essi. Si apre come una scheda "Morning Brief" in alto sotto la riga, con un punto finché non l'hai letto. A Claude è permesso solo leggere. Funziona con il login di Claude nel terminale, senza chiave API.
+0df8efc9b0	Not loaded	Non chargé	No cargado	Non caricato
+0e56bf26ef	#7EB6D5	#7EB6D5	#7EB6D5	#7EB6D5
+0e68e9a234	Addresses separated by commas, e.g. E.g. “chat.firma.de, linear.app”.	Adresses séparées par des virgules, par ex. Par ex. « chat.firma.de, linéaire.app ».	Direcciones separadas por comas, p.e. P.ej. “chat.firma.de, lineal.app”.	Indirizzi separati da virgole, ad es. Per esempio. “chat.firma.de, linear.app”.
+0eb5ac7cb6	Ask	Demander	Preguntar	Chiedi
+0f320b3883	New Google Sheet	Nouvelle feuille Google Sheets	Nueva hoja de Google Sheets	Nuovo foglio Google Sheets
+0f51765afd	Key of Arc	Clé d'Arc	Clave de Arc	Chiave d'Arc
+0f5448773b	Not checked yet	Pas encore vérifié	Aún no comprobado	Non ancora controllato
+0f72713e2f	1 folder	1 dossier	1 carpeta	1 cartella
+0fb1438972	Version %@ · Chromium %@	Version %@ · Chromium %@	Versión %@ · Chromium %@	Versione %@ · Chromium %@
+0ff47fd971	Writing	En écrivant	Escribiendo	Scrivere
+1024a634d5	This page	Cette page	Esta página	Questa pagina
+104f3bfdc3	Edit	Modifier	Editar	Modifica
+10ae8030ea	No history, no cookies on disk. Everything is gone as soon as you close the window.	Pas d'historique, pas de cookies sur le disque. Tout disparaît dès que vous fermez la fenêtre.	Sin historial, sin cookies en el disco. Todo desaparece tan pronto como cierras la ventana.	Nessuna cronologia, nessun cookie sul disco. Tutto scompare non appena chiudi la finestra.
+10b36ce842	Nothing shared yet.	Rien de partagé pour l'instant.	Nada compartido todavía.	Niente di condiviso ancora.
+10f0cffa9c	The folder is empty.	Le dossier est vide.	La carpeta está vacía.	La cartella è vuota.
+10fe389df5	Fade in again	Fondu à nouveau	Fundirse de nuevo	Dissolvenza di nuovo
+120c15ec09	Remove rule	Supprimer la règle	Eliminar regla	Rimuovi regola
+1235af9969	Edit URL…	Modifier l’URL…	Editar URL…	Modifica URL…
+12eea0dc2e	Taken over	Pris en charge	Tomado el control	Preso in consegna
+137f0fdc7d	Type the abbreviation or name in the command bar and press Tab, then the search term. %s represents the search term.	Tapez l'abréviation ou le nom dans la barre de commandes et appuyez sur Tab, puis sur le terme de recherche. %s représente le terme de recherche.	Escriba la abreviatura o el nombre en la barra de comandos y presione Tabulador, luego el término de búsqueda. %s representa el término de búsqueda.	Digita l'abbreviazione o il nome nella barra dei comandi e premi Tab, quindi il termine di ricerca. %s rappresenta il termine di ricerca.
+139f4aa823	x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles	x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles	x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles	x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles
+144ab2543d	Open video in new tab	Ouvrir la vidéo dans un nouvel onglet	Abrir vídeo en una nueva pestaña	Apri il video in una nuova scheda
+153f04ae76	Allow everything	Autoriser tout	permitir todo	Permetti tutto
+16a766caf9	Active	Actif	Activo	Attivo
+16b74fa50a	Ask Claude about this site	Interrogez Claude à propos de ce site	Pregúntale a Claude sobre este sitio.	Chiedi a Claude informazioni su questo sito
+1793745c64	Tabs that you haven't viewed in a while will free up their memory and reload when you return. Tabs with sound, unsaved entries, or in a call stay awake.	Les onglets que vous n'avez pas consultés depuis un certain temps libéreront leur mémoire et se rechargeront à votre retour. Les onglets avec du son, des entrées non enregistrées ou en cours d'appel restent éveillés.	Las pestañas que no hayas visto por un tiempo liberarán su memoria y se recargarán cuando regreses. Las pestañas con sonido, entradas no guardadas o en una llamada permanecen activas.	Le schede che non visualizzi da un po' libereranno la memoria e si ricaricheranno al tuo ritorno. Le schede con audio, voci non salvate o in una chiamata rimangono attive.
+185c5e5c96	Links from other apps that match a rule open directly in the selected space. The first appropriate rule applies. Examples: github.com (with subdomains), *.atlassian.net, docs.google.com/spreadsheets.	Les liens d'autres applications correspondant à une règle s'ouvrent directement dans l'espace sélectionné. La première règle appropriée s’applique. Exemples : github.com (avec sous-domaines), *.atlassian.net, docs.google.com/spreadsheets.	Los enlaces de otras aplicaciones que coinciden con una regla se abren directamente en el espacio seleccionado. Se aplica la primera regla apropiada. Ejemplos: github.com (con subdominios), *.atlassian.net, docs.google.com/spreadsheets.	I collegamenti di altre app che corrispondono a una regola si aprono direttamente nello spazio selezionato. Si applica la prima regola appropriata. Esempi: github.com (con sottodomini), *.atlassian.net, docs.google.com/spreadsheets.
+187f725efd	OpenArch as default browser	OpenArch comme navigateur par défaut	OpenArch como navegador predeterminado	OpenArch come browser predefinito
+188aeb0d83	%lld omitted bookmarks via %lld per profile	%lld a omis les favoris via %lld par profil	%lld marcadores omitidos a través de %lld por perfil	%lld ha omesso i segnalibri tramite %lld per profilo
+189eb2eb01	Group by	Regrouper par	Agrupar por	Raggruppa per
+1939ae3718	Apply to this page	Postuler sur cette page	Aplicar a esta página	Candidati a questa pagina
+194dad5cbf	Why?	Pourquoi?	¿Por qué?	Perché?
+194e13da72	CSS	CSS	CSS	CSS
+19a5f4077a	Connect with Claude Code	Connectez-vous avec Claude Code	Conéctate con Claude Code	Connettiti con Claude Code
+19af94821f	Light or dark for pages, chats and settings. The sidebar has the color of your space.	Clair ou sombre pour les pages, les discussions et les paramètres. La barre latérale a la couleur de votre espace.	Claro u oscuro para páginas, chats y configuraciones. La barra lateral tiene el color de tu espacio.	Chiaro o scuro per pagine, chat e impostazioni. La barra laterale ha il colore del tuo spazio.
+1a04192277	Your sidebar from Arc is here. A new import replaces them again.	Votre barre latérale d'Arc est ici. Une nouvelle importation les remplace à nouveau.	Su barra lateral de Arc está aquí. Una nueva importación los reemplaza nuevamente.	La tua barra laterale di Arc è qui. Una nuova importazione li sostituisce nuovamente.
+1a0ebdb2ca	to	à	a	A
+1a8123490a	%@: %lld passwords adopted%@.	%@ : %lld mots de passe adoptés%@.	%@: %lld contraseñas adoptadas%@.	%@: %lld password adottate%@.
+1a9eb8c597	New Google Meet	Nouveau Google Meet	Nuevo Google Meet	Nuovo Google Meet
+1aa34f408b	Videos and music	Vidéos et musique	Vídeos y música	Video e musica
+1aa6def6f9	Group by status or project	Regrouper par statut ou projet	Agrupar por estado o proyecto	Raggruppa per stato o progetto
+1c32ae1400	Scan the code with the camera or with OpenArch on the iPhone (Scan Code). The key is behind the # in the link and never reaches a server.	Scannez le code avec l'appareil photo ou avec OpenArch sur l'iPhone (Scan Code). La clé se trouve derrière le # dans le lien et n'atteint jamais un serveur.	Escanee el código con la cámara o con OpenArch en el iPhone (Escanear código). La clave está detrás del # en el enlace y nunca llega a un servidor.	Scansiona il codice con la fotocamera o con OpenArch su iPhone (Scan Code). La chiave si trova dietro il # nel collegamento e non raggiunge mai un server.
+1c4adcfd35	Loading update... %lld %%	Chargement de la mise à jour... %lld %%	Cargando actualización... %lld %%	Caricamento aggiornamento... %lld %%
+1cb97b65aa	Personal	Personnel	Personal	Personale
+1cf682b251	Will be switched off after a restart.	Sera éteint après un redémarrage.	Se apagará después de un reinicio.	Verrà spento dopo il riavvio.
+1d044bbe16	Secure now	Sécurisé maintenant	Seguro ahora	Proteggilo adesso
+1d19d17752	Search commands	Rechercher des commandes	Buscar comandos	Cerca comandi
+1da6909f55	OpenArch	OuvrirArch	OpenArch	OpenArch
+1db6fafb05	Plays	Pièces	juega	Gioca
+1e17b30ecb	Next tab	Onglet suivant	Pestaña siguiente	Scheda successiva
+1e4dc69dca	%lld folders deeper than %lld levels truncated	Dossiers %lld plus profonds que les niveaux %lld tronqués	Carpetas %lld más profundas que los niveles %lld truncadas	%lld cartelle più profonde di %lld livelli troncate
+1eea4e6409	Plus logins, passwords, history and extensions	Plus les identifiants, les mots de passe, l'historique et les extensions	Además de inicios de sesión, contraseñas, historial y extensiones.	Inoltre accessi, password, cronologia ed estensioni
+1f2ca6112b	%lld pages from history that the command bar now finds	%lld pages de l'historique que la barre de commandes trouve maintenant	%lld páginas del historial que ahora encuentra la barra de comandos	%lld pagine della cronologia che la barra dei comandi ora trova
+1f34baae8b	About OpenArch...	À propos d'OpenArch...	Acerca de OpenArch...	A proposito di OpenArch...
+1f386fb29b	Forward	Avancer	Avanzar	Avanti
+1f71666396	There is no OpenArch backup in this folder (Library.json is missing).	Il n'y a pas de sauvegarde OpenArch dans ce dossier (Library.json est manquant).	No hay ninguna copia de seguridad de OpenArch en esta carpeta (falta Library.json).	Non è presente alcun backup OpenArch in questa cartella (manca Library.json).
+1ff5c3282f	Start fresh	Recommencer	Empezar de nuevo	Ricomincia
+20a9691955	Search	Rechercher	Buscar	Cerca
+20bda6d2e7	Project	Projet	Proyecto	Progetto
+20f3ebfe22	intensity	intensité	intensidad	intensità
+21a7b4ecae	General	Général	General	Generale
+21b8683533	From Arc	Depuis Arc	Desde el arco	Dall'Arc
+220cac3eb5	Installs on reboot or next exit.	S'installe au redémarrage ou à la prochaine sortie.	Se instala al reiniciar o al salir.	Si installa al riavvio o all'uscita successiva.
+22a4868df0	Sound	Son	Sonido	Audio
+22b8e40b79	Import from another browser…	Importer depuis un autre navigateur…	Importar desde otro navegador…	Importa da un altro browser…
+22d2027ba7	Copy session ID	Copier l'ID de session	Copiar ID de sesión	Copia ID sessione
+2343ba1991	Without logins	Sans connexions	Sin inicios de sesión	Senza accessi
+23635f618a	New folder	Nouveau dossier	Nueva carpeta	Nuova cartella
+23c0b76b60	just now	tout à l' heure	En este momento	proprio adesso
+24137c6be4	Shared bookmarks	Signets partagés	Marcadores compartidos	Segnalibri condivisi
+246d868a80	Spaces and accounts	Espaces et comptes	Espacios y cuentas	Spazi e conti
+248647dbe8	Switch to Space “%@”.	Basculez vers l’espace « %@ ».	Cambie al espacio “%@”.	Passa allo spazio “%@”.
+24f315e6af	No changes since last commit.	Aucun changement depuis le dernier commit.	No hay cambios desde la última confirmación.	Nessuna modifica dall'ultimo commit.
+24f5a961bc	%lld profiles	%lld profils	%lld perfiles	%lld profili
+250c06a13d	#D85CB4	#D85CB4	#D85CB4	#D85CB4
+2531b04d96	Check for updates...	Vérifiez les mises à jour...	Busque actualizaciones...	Controlla gli aggiornamenti...
+257ea23698	Where should the daily backups go? A folder in iCloud Drive also works.	Où doivent aller les sauvegardes quotidiennes ? Un dossier dans iCloud Drive fonctionne également.	¿A dónde deberían ir las copias de seguridad diarias? También funciona una carpeta en iCloud Drive.	Dove dovrebbero andare i backup giornalieri? Funziona anche una cartella in iCloud Drive.
+2590824b63	Quit OpenArch	Quitter OpenArch	Salir de OpenArch	Esci da OpenArch
+259c85dcae	Passwords	Mots de passe	Contraseñas	Password
+25b13f0cc9	Choose a bookmark file (HTML) like Safari, Chrome, Firefox or Edge will export.	Choisissez un fichier de favoris (HTML) comme Safari, Chrome, Firefox ou Edge qui sera exporté.	Elija un archivo de marcador (HTML) como Safari, Chrome, Firefox o Edge para exportar.	Scegli un file di segnalibri (HTML) da esportare come Safari, Chrome, Firefox o Edge.
+25bb7720af	OpenArch adopts the new language the next time it is started. Tabs and windows are retained.	OpenArch adopte le nouveau langage au prochain démarrage. Les onglets et les fenêtres sont conservés.	OpenArch adopta el nuevo lenguaje la próxima vez que se inicia. Se conservan pestañas y ventanas.	OpenArch adotta la nuova lingua al successivo avvio. Le schede e le finestre vengono mantenute.
+2618729c27	Each profile has its own logins, cookies and extensions. Here you can see which Google accounts are logged in to which profile.	Chaque profil possède ses propres identifiants, cookies et extensions. Ici, vous pouvez voir quels comptes Google sont connectés à quel profil.	Cada perfil tiene sus propios inicios de sesión, cookies y extensiones. Aquí puede ver qué cuentas de Google están conectadas a cada perfil.	Ogni profilo ha i propri accessi, cookie ed estensioni. Qui puoi vedere quali account Google hanno effettuato l'accesso a quale profilo.
+2649d31033	No Arc was found on this Mac.	Aucun Arc n'a été trouvé sur ce Mac.	No se encontró ningún Arc en esta Mac.	Nessun arco trovato su questo Mac.
+266e66d0e2	Back (⌘[)	Retour (⌘[)	Atrás (⌘[)	Indietro (⌘[)
+26c90b31ca	Sign in with Google	Connectez-vous avec Google	Iniciar sesión con Google	Accedi con Google
+273005009a	Folder in the current space	Dossier dans l'espace actuel	Carpeta en el espacio actual	Cartella nello spazio corrente
+274b23e040	Extensions from Arc	Extensions d'Arc	Extensiones de Arc	Estensioni dall'Arc
+27bc1a5964	Other bookmarks	Autres signets	Otros marcadores	Altri segnalibri
+27c3def19e	Leave blank for share.openarch.app.	Laissez vide pour share.openarch.app.	Déjelo en blanco para share.openarch.app.	Lascia vuoto per share.openarch.app.
+2822d8fbd7	Appearance	Apparence	Apariencia	Aspetto
+283c735c89	Yes	Oui	Sí	SÌ
+284f159bd1	Share space	Partager l'espace	Compartir espacio	Condividi lo spazio
+2918ce3fbc	Changes appear to everyone who added the link. Only this Mac can change sharing. Anyone who already has it will keep it when you stop sharing.	Les modifications apparaissent pour tous ceux qui ont ajouté le lien. Seul ce Mac peut modifier le partage. Toute personne qui le possède déjà le conservera lorsque vous arrêterez de partager.	Los cambios aparecen para todos los que agregaron el enlace. Sólo esta Mac puede cambiar el uso compartido. Cualquiera que ya lo tenga lo conservará cuando dejes de compartirlo.	Le modifiche verranno visualizzate da tutti coloro che hanno aggiunto il collegamento. Solo questo Mac può modificare la condivisione. Chi lo possiede già lo manterrà quando interromperai la condivisione.
+297f477ad1	Checks for a new version at startup and every six hours.	Vérifie une nouvelle version au démarrage et toutes les six heures.	Comprueba si hay una nueva versión al inicio y cada seis horas.	Verifica la presenza di una nuova versione all'avvio e ogni sei ore.
+29eb1f61f6	Applies to pages you open from now on.	S'applique aux pages que vous ouvrez désormais.	Se aplica a las páginas que abras a partir de ahora.	Si applica alle pagine che aprirai da ora in poi.
+29f4662f91	Logins and passwords imported	Identifiants et mots de passe importés	Inicios de sesión y contraseñas importadas	Login e password importati
+2a0cb6b42a	Spotify	Spotify	Spotify	Spotify
+2a302b8ad0	Bookmarks menu	Menu des signets	Menú de marcadores	Menu dei segnalibri
+2a4645fe1d	Avenir Next	Avenir Suivant	Avenir Siguiente	Avenir Avanti
+2a4d562b1d	Tabs	Onglets	Pestañas	Schede
+2a7f9ae4bb	%@ open	%@ ouvrir	%@ abierto	%@ aprire
+2aab8f1ae6	Claude is thinking…	Claude réfléchit…	Claude está pensando…	Claude sta pensando…
+2ad2c4800c	macOS will immediately ask for your password	macOS vous demandera immédiatement votre mot de passe	macOS le pedirá inmediatamente su contraseña	macOS ti chiederà immediatamente la password
+2ad5837702	Create profile	Créer un profil	Crear perfil	Crea profilo
+2beba35f80	OpenArch crashed	OpenArch a planté	OpenArch se ha bloqueado	OpenArch si è bloccato
+2c300a7133	One color per space, and light or dark for sides and windows. The window behind it shows it immediately.	Une couleur par espace, et claire ou foncée pour les côtés et les fenêtres. La fenêtre derrière lui le montre immédiatement.	Un color por espacio, y claro u oscuro para laterales y ventanas. La ventana detrás lo muestra inmediatamente.	Un colore per spazio e chiaro o scuro per lati e finestre. La finestra dietro lo mostra immediatamente.
+2c65295e58	%@ – %@	%@ – %@	%@ – %@	%@ – %@
+2c7a79be2f	Reload (⌘R)	Recharger (⌘R)	Recargar (⌘R)	Ricarica (⌘R)
+2c99c74c3c	Next space	Espace suivant	siguiente espacio	Spazio successivo
+2ca29f9e20	The Morning Brief needs Claude Code on this Mac. Install it (claude.ai/code) and log in once in the terminal with “claude”. Then in the command bar: “Create morning letter now”.	The Morning Brief a besoin de Claude Code sur ce Mac. Installez-le (claude.ai/code) et connectez-vous une fois dans le terminal avec « claude ». Puis dans la barre de commandes : « Créer une lettre du matin maintenant ».	The Morning Brief necesita Claude Code en esta Mac. Instálelo (claude.ai/code) e inicie sesión una vez en la terminal con "claude". Luego en la barra de comandos: “Crear carta matutina ahora”.	The Morning Brief ha bisogno di Claude Code su questo Mac. Installalo (claude.ai/code) e accedi una volta nel terminale con "claude". Poi nella barra dei comandi: “Crea la lettera del mattino adesso”.
+2cea26fc73	Open next to the current tab...	Ouvrir à côté de l'onglet actuel...	Abrir junto a la pestaña actual...	Apri accanto alla scheda corrente...
+2ddcb7a656	One color less	Une couleur en moins	un color menos	Un colore in meno
+2e0a747a6f	Move to Space	Déplacer vers l'espace	Mover al espacio	Spostati nello spazio
+2e1b027d11	The keychain did not accept “%@” (%@). Please start OpenArch again.	Le trousseau n'a pas accepté « %@ » (%@). Veuillez redémarrer OpenArch.	El llavero no aceptó “%@” (%@). Inicie OpenArch nuevamente.	Il portachiavi non ha accettato "%@" (%@). Avvia nuovamente OpenArch.
+2e76b64048	Multiple downloads	Téléchargements multiples	Descargas múltiples	Download multipli
+2e9e39fffc	%@ only plays protected videos and music with Apple's FairPlay, which is why it runs on Safari's engine. Chromium extensions and Chromium's DevTools are not available here (⌥⌘I opens the Web Inspector), and logins from Chromium do not apply here: you log in again once.	%@ lit uniquement les vidéos et la musique protégées avec FairPlay d'Apple, c'est pourquoi il fonctionne sur le moteur de Safari. Les extensions Chromium et les DevTools de Chromium ne sont pas disponibles ici (⌥⌘J'ouvre l'inspecteur Web), et les connexions depuis Chromium ne s'appliquent pas ici : vous vous reconnectez une fois.	%@ solo reproduce vídeos y música protegidos con FairPlay de Apple, por lo que se ejecuta en el motor de Safari. Las extensiones de Chromium y las DevTools de Chromium no están disponibles aquí (⌥⌘Abro el Inspector web) y los inicios de sesión desde Chromium no se aplican aquí: inicias sesión nuevamente una vez.	%@ riproduce solo video e musica protetti con FairPlay di Apple, motivo per cui funziona sul motore di Safari. Le estensioni di Chromium e gli strumenti di sviluppo di Chromium non sono disponibili qui (⌥⌘Apro Web Inspector) e gli accessi da Chromium non si applicano qui: accedi di nuovo una volta.
+2ef92fb2e9	Connection is secure	Connexion sécurisée	Conexión segura	Connessione sicura
+2f039474b8	The update is not signed with OpenArchs Developer ID.	La mise à jour n'est pas signée avec l'ID de développeur OpenArchs.	La actualización no está firmada con el ID de desarrollador de OpenArchs.	L'aggiornamento non è firmato con l'ID sviluppatore OpenArchs.
+2f3f246253	Search on the page	Rechercher sur la page	Buscar en la página	Cerca nella pagina
+2f41780aad	Your version is newer than the latest on %@ (build %lld). She stays until %@ catches up.	Votre version est plus récente que la dernière sur %@ (build %lld). Elle reste jusqu'à ce que %@ rattrape son retard.	Su versión es más reciente que la última en %@ (compilación %lld). Ella se queda hasta que %@ la alcanza.	La tua versione è più recente dell'ultima su %@ (build %lld). Resterà finché %@ non la raggiungerà.
+302c8ecbdd	Unreadable: %@	Illisible : %@	Ilegible: %@	Illeggibile: %@
+306c014e53	%lld bookmarks and %lld folders taken over	Signets %lld et dossiers %lld repris	%lld marcadores y carpetas %lld tomados el control	%lld segnalibri e %lld cartelle rilevati
+30c0e53c70	New Google Slides presentation	Nouvelle présentation Google Slides	Nueva presentación de Google Slides	Nuova presentazione Google Slides
+30e181f69b	View source	Afficher le code source	Ver código fuente	Visualizza sorgente
+3140bc7297	Without picture-in-picture	Sans image dans l’image	Sin imagen en imagen	Senza picture-in-picture
+3178f2b737	Show in it	Montrer dedans	mostrar en ello	Mostralo
+31b5607bdb	%lld open tabs	%lld onglets ouverts	%lld pestañas abiertas	%lld schede aperte
+31c5dbac6f	Claude Code failed to start: %@	Claude Code n'a pas pu démarrer : %@	Claude Code no pudo iniciarse: %@	Impossibile avviare il codice Claude: %@
+3200d356cf	%@ could not be quit.	Impossible de quitter %@.	No se pudo cerrar %@.	Impossibile chiudere %@.
+3213d00c8d	OpenArchAboutWarp	OpenArchÀ propos deWarp	OpenArchAcerca deWarp	OpenArchAboutWarp
+3234b7ec67	Try again	Essayer à nouveau	Intentar otra vez	Riprova
+3274c3f0ee	Clear today	Vider aujourd’hui	Vaciar hoy	Svuota oggi
+32a7d95b74	Sidebar, boosts and settings now come from “%@”.	La barre latérale, les boosts et les paramètres proviennent désormais de « %@ ».	La barra lateral, las mejoras y la configuración ahora provienen de "%@".	La barra laterale, i potenziamenti e le impostazioni ora provengono da "%@".
+32ed8310ee	Folder for new chats	Dossier pour les nouvelles discussions	Carpeta para nuevos chats	Cartella per nuove chat
+331d9995d8	New Google Form	Nouveau formulaire Google Forms	Nuevo formulario de Google Forms	Nuovo modulo Google Forms
+3323916eda	Too many bookmarks for one QR code. Send the link instead.	Trop de signets pour un seul code QR. Envoyez plutôt le lien.	Demasiados marcadores para un código QR. En su lugar, envíe el enlace.	Troppi segnalibri per un codice QR. Invia invece il collegamento.
+33542be8c0	Click to rename	Cliquez pour renommer	Haga clic para cambiar el nombre	Fare clic per rinominare
+335d91df34	Bookmarks	Signets	Marcadores	Segnalibri
+33708b6c58	Export...	Exporter...	Exportar...	Esportare...
+33740a3309	No Arc data was found on this Mac.	Aucune donnée Arc n'a été trouvée sur ce Mac.	No se encontraron datos de Arc en esta Mac.	Nessun dato Arc trovato su questo Mac.
+33fe92f625	calendar	calendrier	calendario	calendario
+3406145469	Import from Arc	Importer depuis Arc	Importar desde Arc	Importa da Arc
+343c7424b7	Arc will be terminated if it is running. His tabs and data remain unchanged.	Arc sera terminé s'il est en cours d'exécution. Ses onglets et données restent inchangés.	Arc finalizará si se está ejecutando. Sus pestañas y datos permanecen sin cambios.	Arc verrà terminato se è in esecuzione. Le sue schede e i suoi dati rimangono invariati.
+3472413e8b	Search for Arc...	Rechercher Arc...	Buscar Arc...	Cerca Arc...
+347915a3e4	He only sees encrypted, signed data and who accesses which share and when. A separate server is relay/ from OpenArch's source code.	Il ne voit que les données cryptées et signées et sait qui accède à quel partage et à quel moment. Un serveur distinct est relay/ à partir du code source d'OpenArch.	Solo ve datos cifrados y firmados y quién accede a qué recurso compartido y cuándo. Un servidor separado es retransmisor del código fuente de OpenArch.	Vede solo dati crittografati e firmati e chi accede a quale condivisione e quando. Un server separato viene inoltrato dal codice sorgente di OpenArch.
+34901b355e	#E59EBA	#E59EBA	#E59EBA	#E59EBA
+34a5b4170e	Link rules	Règles de lien	Reglas de enlace	Regole di collegamento
+34e87da5e4	Too few tabs to clean up	Trop peu d'onglets à nettoyer	Muy pocas pestañas para limpiar	Troppe poche schede per pulire
+351f80333f	Profiles really separate your spaces - with their own history, saved passwords, extensions and logins. No more back and forth between work and private accounts.	Les profils séparent vraiment vos espaces - avec leur propre historique, leurs mots de passe enregistrés, leurs extensions et leurs connexions. Fini les allers-retours entre les comptes professionnels et privés.	Los perfiles realmente separan tus espacios, con su propio historial, contraseñas guardadas, extensiones e inicios de sesión. No más idas y venidas entre cuentas laborales y privadas.	I profili separano realmente i tuoi spazi: con la propria cronologia, password salvate, estensioni e accessi. Niente più avanti e indietro tra account di lavoro e privati.
+3528595692	Reads the page	Lit la page	lee la pagina	Legge la pagina
+352beb2ee6	Where should the backup of sidebar, boosts and settings go?	Où doit aller la sauvegarde de la barre latérale, des boosts et des paramètres ?	¿Dónde debería ir la copia de seguridad de la barra lateral, las mejoras y la configuración?	Dove dovrebbe andare il backup della barra laterale, dei potenziamenti e delle impostazioni?
+3532ed31a0	A running video with sound continues playing in a small window when you exit the tab.	Une vidéo en cours d'exécution avec du son continue de jouer dans une petite fenêtre lorsque vous quittez l'onglet.	Un video en ejecución con sonido continúa reproduciéndose en una ventana pequeña cuando sales de la pestaña.	La riproduzione di un video in esecuzione con audio continua in una piccola finestra quando esci dalla scheda.
+3536568516	Symbol, color and profile	Symbole, couleur et profil	Símbolo, color y perfil.	Simbolo, colore e profilo
+3539c3682f	My issues	Mes problèmes	Mis problemas	I miei problemi
+35b07ddd19	Set up OpenArch	Configurer OpenArch	Configurar OpenArch	Configura OpenArch
+35bec7db74	History	Historique	Historial	Cronologia
+35f27aa20c	Delete cookies and saved data for this website?	Supprimer les cookies et les données enregistrées de ce site ?	¿Eliminar las cookies y los datos guardados de este sitio?	Eliminare cookie e dati salvati di questo sito?
+36d7298c91	Addresses with http:// are loaded encrypted first. If that doesn't work, OpenArch asks before the page opens unencrypted.	Les adresses avec http:// sont chargées cryptées en premier. Si cela ne fonctionne pas, OpenArch demande avant que la page ne s'ouvre en clair.	Las direcciones con http:// se cargan cifradas primero. Si eso no funciona, OpenArch pregunta antes de que la página se abra sin cifrar.	Gli indirizzi con http:// vengono caricati prima crittografati. Se non funziona, OpenArch chiede prima che la pagina si apra non crittografata.
+36f732aa2a	Sleeping tabs	Onglets de couchage	Pestañas para dormir	Schede per dormire
+37035adcec	OpenArch is your default browser: Links from other apps open here.	OpenArch est votre navigateur par défaut : les liens d'autres applications s'ouvrent ici.	OpenArch es su navegador predeterminado: aquí se abren enlaces de otras aplicaciones.	OpenArch è il tuo browser predefinito: i collegamenti da altre app si aprono qui.
+3779202e34	Zoom in	Agrandir	Ampliar	Ingrandisci
+37d761e1cb	Open OpenArch	Ouvrir OpenArch	Abrir OpenArch	Apri OpenArch
+37e52feb23	Open as tab	Ouvrir comme onglet	Abrir como pestaña	Apri come scheda
+388dc92584	Security	Sécurité	Seguridad	Sicurezza
+38ab8bc145	#%02X%02X%02X	#%02X%02X%02X	#%02X%02X%02X	#%02X%02X%02X
+38c8b8be18	This session is still running in a terminal. What you write here continues separately.	Cette session est toujours en cours d'exécution dans un terminal. Ce que vous écrivez ici continue séparément.	Esta sesión todavía se está ejecutando en una terminal. Lo que escribes aquí continúa por separado.	Questa sessione è ancora in esecuzione in un terminale. Ciò che scrivi qui continua separatamente.
+38d81cd7cc	Links from other apps	Liens depuis d'autres applications	Enlaces de otras aplicaciones	Collegamenti da altre app
+3904ebcb2d	#9E749B	#9E749B	#9E749B	#9E749B
+392eff35fa	This is a share from this Mac.	Il s’agit d’un partage de ce Mac.	Este es un recurso compartido de este Mac.	Questa è una condivisione di questo Mac.
+394eacb058	Clean up tabs with AI	Nettoyer les onglets avec l'IA	Limpiar pestañas con IA	Pulisci le schede con l'intelligenza artificiale
+3a1c346a60	Don’t include selection	Ne pas inclure la sélection	No incluir la selección	Non includere la selezione
+3a218004ca	Forward (⌘])	Avancer (⌘])	Avanzar (⌘])	Avanti (⌘])
+3a383edd5f	OpenArch starts with an empty space.	OpenArch commence avec un espace vide.	OpenArch comienza con un espacio vacío.	OpenArch inizia con uno spazio vuoto.
+3a5c666ab3	The file does not contain bookmarks in HTML format.	Le fichier ne contient pas de signets au format HTML.	El archivo no contiene marcadores en formato HTML.	Il file non contiene segnalibri in formato HTML.
+3a99e88ca9	New Jira ticket	Nouveau ticket Jira	Nuevo ticket de Jira	Nuovo ticket Jira
+3af1d9e8f5	Skip	Passer	Omitir	Salta
+3b1ce6fc1c	Edit files	Modifier des fichiers	Editar archivos	Modifica file
+3b5b2dd9cc	Add as	Ajouter comme	Agregar como	Aggiungi come
+3b6f4f28a0	Allows %@ in this chat	Autorise %@ dans ce chat	Permite %@ en este chat	Consente %@ in questa chat
+3bff6169bb	Open in new tab	Ouvrir dans un nouvel onglet	Abrir en nueva pestaña	Apri in una nuova scheda
+3c3a138bcc	questions	des questions	preguntas	domande
+3d063d1f57	No rules yet.	Pas de règles pour l'instant.	Aún no hay reglas.	Nessuna regola ancora.
+3d0f9707cf	Play DRM pages with Safari's engine	Lire des pages DRM avec le moteur de Safari	Reproduce páginas DRM con el motor de Safari	Riproduci pagine DRM con il motore di Safari
+3d16903cf9	Click for warp	Cliquez pour la chaîne	Haga clic para deformar	Fare clic per deformare
+3d27579fe6	Close (stops playback)	Fermer (arrête la lecture)	Cerrar (detiene la reproducción)	Chiudi (interrompe la riproduzione)
+3d41fdbe91	A browser in the spirit of Arc: Spaces with its own profiles, a sidebar instead of a tab bar, real Chrome extensions. Set up in two minutes, skip any step.	Un navigateur dans l'esprit d'Arc : des Espaces avec ses propres profils, une barre latérale au lieu d'une barre d'onglets, de véritables extensions Chrome. Installé en deux minutes, sautez n'importe quelle étape.	Un navegador en el espíritu de Arc: Spaces con sus propios perfiles, una barra lateral en lugar de una barra de pestañas, extensiones reales de Chrome. Configure en dos minutos, omita cualquier paso.	Un browser nello spirito di Arc: Spaces con profili propri, una barra laterale invece che una barra delle schede, vere e proprie estensioni di Chrome. Configurazione in due minuti, salta qualsiasi passaggio.
+3d7c837dfe	Previous page of the split view	Page précédente de la vue fractionnée	Página anterior de la vista dividida	Pagina precedente della vista divisa
+3d92a2da7c	Manage Spaces	Gérer les espaces	Administrar espacios	Gestisci spazi
+3d9f5cb4ee	Language	Langue	Idioma	Lingua
+3da00e326d	From the calendars in the calendar app: when it starts and a button to join. The call opens in its own folder, with the links you open during it. When you turn it on, macOS asks for access.	Depuis les calendriers de l'application Calendrier : quand il démarre et un bouton pour rejoindre. L'appel s'ouvre dans son propre dossier, avec les liens que vous ouvrez pendant celui-ci. Lorsque vous l'allumez, macOS demande l'accès.	Desde los calendarios en la aplicación de calendario: cuando comienza y un botón para unirse. La llamada se abre en su propia carpeta, con los enlaces que abres durante la misma. Cuando lo enciendes, macOS solicita acceso.	Dai calendari nell'app Calendario: quando si avvia e un pulsante per partecipare. La chiamata si apre nella propria cartella, con i collegamenti aperti durante la chiamata. Quando lo accendi, macOS richiede l'accesso.
+3da036743c	The values ​​are decrypted on this Mac and re-encrypted using OpenArch's key. Nothing leaves the Mac.	Les valeurs sont décryptées sur ce Mac et rechiffrées à l'aide de la clé d'OpenArch. Rien ne quitte le Mac.	Los valores se descifran en esta Mac y se vuelven a cifrar utilizando la clave de OpenArch. Nada sale del Mac.	I valori vengono decrittografati su questo Mac e crittografati nuovamente utilizzando la chiave di OpenArch. Niente lascia il Mac.
+3e1577b809	Edit Boost…	Modifier le Boost…	Editar Boost…	Modifica Boost…
+3e6579eb28	Default browser	Navigateur par défaut	Navegador predeterminado	Browser predefinito
+3e6c50b1a1	Connection is not secure	Connexion non sécurisée	Conexión no segura	Connessione non sicura
+3e9502be64	New folder with %lld tabs	Nouveau dossier avec %lld onglets	Nueva carpeta con %lld pestañas	Nuova cartella con %lld schede
+3f717511e0	“%@” is still working.	« %@ » fonctionne toujours.	“%@” sigue funcionando.	“%@” funziona ancora.
+3f84ef531f	symbol	symbole	símbolo	simbolo
+3f97665007	Keep up to date	Maintenir à jour	Mantener actualizado	Mantieni aggiornato
+3fac47b17d	Hide elements	Masquer les éléments	Ocultar elementos	Nascondi elementi
+3fbf8018db	Duplicate tab	Onglet en double	Duplicar pestaña	Scheda duplicata
+3fd1e7ec87	The ZIP file could not be written.	Le fichier ZIP n'a pas pu être écrit.	No se pudo escribir el archivo ZIP.	Non è stato possibile scrivere il file ZIP.
+3ff806771f	Bookmark file (HTML)	Fichier de signets (HTML)	Archivo de marcador (HTML)	File dei segnalibri (HTML)
+402f5c8116	- "titles": shorter, clear titles (around 30 characters maximum) for tabs whose title is long or unclear, in the language of the title.	- "titres" : titres plus courts et clairs (environ 30 caractères maximum) pour les onglets dont le titre est long ou peu clair, dans la langue du titre.	- "títulos": títulos más breves y claros (unos 30 caracteres como máximo) para pestañas cuyo título sea largo o poco claro, en el idioma del título.	- "titoli": titoli più brevi e chiari (circa 30 caratteri al massimo) per le schede il cui titolo è lungo o poco chiaro, nella lingua del titolo.
+4080624342	Back	Retour	Atrás	Indietro
+40e983281b	Microphone	Microphone	Micrófono	Microfono
+4115474175	Open next to the tab	Ouvrir à côté de l’onglet	Abrir junto a la pestaña	Apri accanto alla scheda
+416e8f6fe7	Default (%@)	Par défaut (%@)	Predeterminado (%@)	Predefinito (%@)
+4186a39a56	Unpin: move to the tabs below the line	Détacher : vers les onglets sous la ligne	Desfijar: mover a las pestañas bajo la línea	Sblocca: sposta nelle schede sotto la linea
+41d80d31ed	Open library	Bibliothèque ouverte	biblioteca abierta	Biblioteca aperta
+422c4f38b8	Hide information	Masquer les informations	Ocultar información	Nascondi informazioni
+42774e68e6	Choose…	Choisir…	Elegir…	Scegli…
+42796dd563	Menlo	Menlo	menlo	Menlo
+432678bedf	Developer tools	Outils de développement	Herramientas de desarrollo	Strumenti di sviluppo
+4376cda1c9	Go to sharing tab	Aller à l’onglet qui partage	Ir a la pestaña que comparte	Vai alla scheda che condivide
+437ac679ac	(binary file)	(fichier binaire)	(archivo binario)	(file binario)
+4393b65707	%lld values ​​could not be deciphered and were omitted.	Les valeurs %lld n'ont pas pu être déchiffrées et ont été omises.	Los valores %lld no se pudieron descifrar y se omitieron.	Non è stato possibile decifrare i valori %lld e sono stati omessi.
+44424b1870	Close	Fermer	Cerrar	Chiudi
+44849d2fe6	Address at the top of the sidebar	Adresse en haut de la barre latérale	Dirección en la parte superior de la barra lateral	Indirizzo nella parte superiore della barra laterale
+44a11182d2	Search backwards	Rechercher à l'envers	Buscar hacia atrás	Cerca all'indietro
+44de4ce010	Picture-in-picture when switching tabs	Image dans l’image lors du changement d’onglet	Imagen en imagen al cambiar de pestaña	Picture-in-picture al cambio di scheda
+45120e9f45	Use macOS setting	Comme macOS	Como macOS	Come macOS
+452b66cc51	x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars	x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars	x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars	x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars
+45728c3570	Copy URL	Copier l’URL	Copiar URL	Copia URL
+45797b0da0	Unloading	Déchargement	Descarga	Scarico
+45fccdca13	Picture-in-picture	Image dans l’image	Imagen en imagen	Picture-in-picture
+4656b78d94	This allows links from Mail, Slack and other apps to open in OpenArch.	Cela permet aux liens de Mail, Slack et d'autres applications de s'ouvrir dans OpenArch.	Esto permite que los enlaces de Mail, Slack y otras aplicaciones se abran en OpenArch.	Ciò consente l'apertura di collegamenti da Mail, Slack e altre app in OpenArch.
+467da1a434	The import is still running and will be finished soon.	L'importation est toujours en cours et sera bientôt terminée.	La importación aún está en ejecución y finalizará pronto.	L'importazione è ancora in esecuzione e verrà completata a breve.
+46971f912d	No agents yet. Start an agent chat in the top right. Claude's sessions in the terminal or editor also appear here.	Aucun agent pour l'instant. Démarrez une discussion avec un agent en haut à droite. Les sessions de Claude dans le terminal ou l'éditeur apparaissent également ici.	Aún no hay agentes. Inicie un chat con agente en la parte superior derecha. Las sesiones de Claude en la terminal o editor también aparecen aquí.	Nessun agente ancora. Avvia una chat con l'agente in alto a destra. Qui compaiono anche le sessioni di Claude nel terminale o nell'editor.
+47bf2a7f7a	Logins from Arc	Connexions depuis Arc	Inicios de sesión desde Arc	Login da Arc
+47e0a7ec04	Protected content	Contenu protégé	Contenido protegido	Contenuti protetti
+4828575e9d	Next title	Titre suivant	Siguiente título	Titolo successivo
+4836cb5602	Open source under the MIT license · built with Chromium and CEF	Open source sous licence MIT · construit avec Chromium et CEF	Código abierto bajo licencia MIT · construido con Chromium y CEF	Open source sotto licenza MIT · costruito con Chromium e CEF
+48a3ccfd79	Show again	Remontrer	Mostrar de nuevo	Mostra di nuovo
+48d2a9ac0c	%lld duplicate entries are omitted.	%lld les entrées en double sont omises.	Se omiten %lld entradas duplicadas.	%lld voci duplicate vengono omesse.
+493f3d2af9	Without “Keep up to date” it works without a server.	Sans « Tenir à jour », cela fonctionne sans serveur.	Sin "Mantenerse actualizado" funciona sin servidor.	Senza “Mantieniti aggiornato” funziona senza server.
+499627f90b	Search %@	Recherche %@	Buscar %@	Ricerca %@
+4a4360cd27	A page from OpenArch	Une page d’OpenArch	Una página de OpenArch	Una pagina di OpenArch
+4a45f07750	To the beginning	Au début	al principio	All'inizio
+4a77849be1	Separate window	Fenêtre séparée	Ventana separada	Finestra separata
+4a802dba6e	New GitHub repository	Nouveau dépôt GitHub	Nuevo repositorio de GitHub	Nuovo repository GitHub
+4a91306366	macOS did not adopt the change. You can also select OpenArch under System Preferences › Desktop & Dock › Default Web Browser.	macOS n'a pas adopté le changement. Vous pouvez également sélectionner OpenArch sous Préférences Système › Bureau et Dock › Navigateur Web par défaut.	macOS no adoptó el cambio. También puede seleccionar OpenArch en Preferencias del sistema > Escritorio y Dock > Navegador web predeterminado.	macOS non ha adottato la modifica. Puoi anche selezionare OpenArch in Preferenze di Sistema › Desktop e Dock > Browser Web predefinito.
+4b1e9501b9	Connectors	Connecteurs	Conectores	Connettori
+4b631f6984	Info	Infos	Información	Informazioni
+4be7769a20	The space has no tabs.	L'espace n'a pas d'onglets.	El espacio no tiene pestañas.	Lo spazio non ha schede.
+4c7d714b68	Website data deleted	Données du site supprimées	Datos del sitio eliminados	Dati del sito eliminati
+4cb720e533	Archived · %@	Archivé · %@	Archivado · %@	Archiviato · %@
+4e243a07dc	after 2 hours	après 2 heures	después de 2 horas	dopo 2 ore
+4e6ea9cc32	Hover preview	Aperçu au survol	Vista previa al pasar el cursor	Anteprima al passaggio del mouse
+4e840798cb	Drag to sort	Faites glisser pour trier	Arrastra para ordenar	Trascina per ordinare
+4ecc340cdd	#E5A33B	#E5A33B	#E5A33B	#E5A33B
+4f37e20f39	Zap: Click on elements...	Zap : Cliquez sur les éléments...	Zap: Haga clic en los elementos...	Zap: fare clic sugli elementi...
+4f6ec4c7ec	no shortcut	aucun raccourci	sin atajo	nessuna scorciatoia
+4fcc80ff81	Select file...	Sélectionnez le fichier...	Seleccionar archivo...	Seleziona file...
+5004ac52df	Delete website data…	Supprimer les données du site…	Eliminar datos del sitio…	Elimina dati del sito…
+503502dde7	Export bookmarks like Safari, Chrome, Firefox or Edge. Comes into its own space in the current profile.	Exportez des favoris comme Safari, Chrome, Firefox ou Edge. Vient dans son propre espace dans le profil actuel.	Exporta marcadores como Safari, Chrome, Firefox o Edge. Ocupa su propio espacio en el perfil actual.	Esporta segnalibri come Safari, Chrome, Firefox o Edge. Entra nel proprio spazio nel profilo corrente.
+505da86e5d	Not now	Pas maintenant	Ahora no	Non ora
+5098dd1999	Checks	Chèques	cheques	Controlli
+50a1ac6163	No images in downloads or on the desktop	Aucune image dans les téléchargements ou sur le bureau	No hay imágenes en las descargas ni en el escritorio.	Nessuna immagine nei download o sul desktop
+512227d4a8	Pictures	Photos	Fotos	Immagini
+51b8e59756	With the AI ​​control, it can also operate your tabs.	Avec le contrôle AI, il peut également faire fonctionner vos onglets.	Con el control AI, también puede operar tus pestañas.	Con il controllo AI, può anche gestire le tue schede.
+51bf4f95de	OpenArch has not become the default browser.	OpenArch n'est pas devenu le navigateur par défaut.	OpenArch no se ha convertido en el navegador predeterminado.	OpenArch non è diventato il browser predefinito.
+5241cbc43d	Go to shared tab	Aller à l’onglet partagé	Ir a la pestaña compartida	Vai alla scheda condivisa
+5249c3f9c2	Bottom	En bas	Abajo	In basso
+52c0e37a1b	Backup imported	Sauvegarde importée	Copia de seguridad importada	Backup importato
+52c862a26f	System settings...	Paramètres système...	Configuración del sistema...	Impostazioni di sistema...
+52d5dc5d01	To do this, OpenArch opens Chrome's DevTools protocol to 127.0.0.1. As long as this is on, any program on this Mac can control the browser, including logged in tabs. Only turn it on when you need it.	Pour ce faire, OpenArch ouvre le protocole DevTools de Chrome vers 127.0.0.1. Tant que cette option est activée, n'importe quel programme sur ce Mac peut contrôler le navigateur, y compris les onglets connectés. Allumez-le uniquement lorsque vous en avez besoin.	Para hacer esto, OpenArch abre el protocolo DevTools de Chrome en 127.0.0.1. Mientras esté activado, cualquier programa en esta Mac puede controlar el navegador, incluidas las pestañas registradas. Enciéndelo sólo cuando lo necesites.	Per fare ciò, OpenArch apre il protocollo DevTools di Chrome su 127.0.0.1. Finché è attivo, qualsiasi programma su questo Mac può controllare il browser, comprese le schede registrate. Accendilo solo quando ne hai bisogno.
+52e9e57cdd	Changes	Changements	Cambios	Cambiamenti
+53135b7d32	Delete space “%@”?	Supprimer l'espace « %@ » ?	¿Eliminar el espacio “%@”?	Eliminare lo spazio “%@”?
+532c67fe1b	Desktop	Bureau	De oficina	Desktop
+53ef274909	No backup yet.	Aucune sauvegarde pour l'instant.	Aún no hay respaldo.	Nessun backup ancora.
+54265d4e98	Share space...	Partager l'espace...	Comparte espacio...	Condividi lo spazio...
+543bfa1e78	Pinned tabs and favorites from Slack, Gmail, Outlook, WhatsApp, Telegram, Discord, Teams, Google Chat and similar services never fall asleep so that messages and calls arrive.	Les onglets épinglés et les favoris de Slack, Gmail, Outlook, WhatsApp, Telegram, Discord, Teams, Google Chat et services similaires ne s'endorment jamais pour que les messages et les appels arrivent.	Las pestañas fijadas y favoritos de Slack, Gmail, Outlook, WhatsApp, Telegram, Discord, Teams, Google Chat y servicios similares nunca se quedan dormidos para que lleguen mensajes y llamadas.	Le schede e i preferiti appuntati di Slack, Gmail, Outlook, WhatsApp, Telegram, Discord, Teams, Google Chat e servizi simili non si addormentano mai in modo che i messaggi e le chiamate arrivino.
+5442e2b64f	GitHub	GitHub	GitHub	GitHub
+5495d6df33	Search suggestions	Suggestions de recherche	Sugerencias de búsqueda	Suggerimenti per la ricerca
+54a2cf5e63	Browser	Navigateur	Navegador	Navigatore
+55014e8ede	Pin (⌘D)	Épingler (⌘D)	Fijar (⌘D)	Fissa (⌘D)
+5516fb2a56	%@: %@	%@ : %@	%@: %@	%@: %@
+5551fc70b9	New tab ⌘T	Nouvel onglet ⌘T	Nueva pestaña ⌘T	Nuova scheda ⌘T
+559aa2b80f	Save current URL	Enregistrer l'URL actuelle	Guardar URL actual	Salva l'URL corrente
+55a19eba8d	https://…?q=%s	https://…?q=%s	https://…?q=%s	https://…?q=%s
+55a65731cb	Claude’s suggestion for the tabs below the line in “%@”. Claude only gets titles and addresses; pinned tabs and favorites stay as they are.	Suggestion de Claude pour les onglets sous la ligne dans « %@ ». Claude ne reçoit que les titres et les adresses ; les onglets épinglés et les favoris restent inchangés.	Sugerencia de Claude para las pestañas bajo la línea en «%@». Claude solo recibe títulos y direcciones; las pestañas fijadas y los favoritos no cambian.	Suggerimento di Claude per le schede sotto la linea in «%@». Claude riceve solo titoli e indirizzi; le schede fissate e i preferiti restano invariati.
+55b4e2a0c4	Server for new live shares	Serveur pour les nouveaux partages en direct	Servidor para nuevos recursos compartidos en vivo	Server per nuove condivisioni live
+55ba4638ca	Stop	Arrêt	Detener	Fermare
+55ca476cd2	Each profile has its own logins, cookies, history and extensions. Spaces can share a profile.	Chaque profil possède ses propres identifiants, cookies, historique et extensions. Les espaces peuvent partager un profil.	Cada perfil tiene sus propios inicios de sesión, cookies, historial y extensiones. Los espacios pueden compartir un perfil.	Ogni profilo ha i propri accessi, cookie, cronologia ed estensioni. Gli spazi possono condividere un profilo.
+55de9fc38b	Export from Chrome, Edge, Brave, Firefox, Safari (passwords app), 1Password or Bitwarden.	Exportez depuis Chrome, Edge, Brave, Firefox, Safari (application de mots de passe), 1Password ou Bitwarden.	Exporta desde Chrome, Edge, Brave, Firefox, Safari (aplicación de contraseñas), 1Password o Bitwarden.	Esporta da Chrome, Edge, Brave, Firefox, Safari (app per password), 1Password o Bitwarden.
+55f4d43fa9	after 30 minutes	après 30 minutes	después de 30 minutos	dopo 30 minuti
+5601fe622f	What should the profile be called?	Comment doit s'appeler le profil ?	¿Cómo debería llamarse el perfil?	Come dovrebbe chiamarsi il profilo?
+5641d9aa80	Passwords (CSV)	Mots de passe (CSV)	Contraseñas (CSV)	Password (CSV)
+56ce8ce944	Create Morning Brief now	Créer le Morning Brief maintenant	Crear Morning Brief ahora	Crea subito il Morning Brief
+578ac42c77	Stop asking about crashes	Ne plus demander après un plantage	No volver a preguntar por fallos	Non chiedere più degli arresti anomali
+578d138fdf	Let's go	Allons-y	Vamos	Andiamo
+580e61f90f	Manage extensions	Gérer les extensions	Gestionar extensiones	Gestisci estensioni
+58442f9a20	Ask after a crash	Demander après un plantage	Preguntar tras un fallo	Chiedi dopo un arresto anomalo
+584da0d696	Questions in the command bar	Questions dans la barre de commandes	Preguntas en la barra de comandos	Domande nella barra dei comandi
+58699d6d64	Shared with you	Partagé avec vous	Compartido contigo	Condiviso con te
+58d7249022	Bring to the main window	Amener à la fenêtre principale	Llevar a la ventana principal	Porta alla finestra principale
+58df4973c4	Notifications	Notifications	Notificaciones	Notifiche
+5943084263	Apply	Appliquer	Aplicar	Applica
+597f30b206	Sign in to GitHub	Connectez-vous à GitHub	Iniciar sesión en GitHub	Accedi a GitHub
+5a0a81ecd3	New Linear issue	Nouveau ticket Linear	Nueva incidencia de Linear	Nuovo ticket Linear
+5a4c60a873	Drag to choose color	Faites glisser pour choisir la couleur	Arrastra para elegir color	Trascina per scegliere il colore
+5a7b103a2a	Decrypting…	Déchiffrement…	Descifrando…	Decrittografia in corso…
+5b196de575	Import and restart	Importer et redémarrer	Importar y reiniciar	Importa e riavvia
+5b41f5e6e6	The key “%@” is missing from the keyring.	La clé « %@ » est absente du trousseau de clés.	La clave “%@” falta en el llavero.	Dal portachiavi manca la chiave "%@".
+5ba37006c7	Cancel download	Annuler le téléchargement	Cancelar descarga	Annulla il download
+5c24c3e9e5	Form data	Données du formulaire	datos del formulario	Dati del modulo
+5c31dacd9c	Logins and passwords	Identifiants et mots de passe	Inicios de sesión y contraseñas	Login e password
+5c7b1609d2	If the pointer rests on a tab in the sidebar, OpenArch shows an image of the page next to it.	Si le pointeur repose sur un onglet de la barre latérale, OpenArch affiche une image de la page à côté.	Si el puntero se encuentra en una pestaña de la barra lateral, OpenArch muestra una imagen de la página junto a ella.	Se il puntatore si posiziona su una scheda nella barra laterale, OpenArch mostra un'immagine della pagina accanto ad essa.
+5ca135544e	OpenArch cannot create its key.	OpenArch ne peut pas créer sa clé.	OpenArch no puede crear su clave.	OpenArch non può creare la sua chiave.
+5d19f1b563	What are the key points?	Quels sont les points clés ?	¿Cuáles son los puntos clave?	Quali sono i punti chiave?
+5d4a420acd	Grain	Grain	Grano	Grano
+5d830a502b	For searching from the command bar (⌘T).	Pour effectuer une recherche à partir de la barre de commandes (⌘T).	Para buscar desde la barra de comandos (⌘T).	Per effettuare la ricerca dalla barra dei comandi (⌘T).
+5e1eab915f	after 12 hours	après 12 heures	después de 12 horas	dopo 12 ore
+5eddb19dd2	Allow AI control	Autoriser le contrôle de l'IA	Permitir el control de la IA	Consenti il ​​controllo dell'IA
+5f29c1eb8a	Sleeps	Dort	duerme	Dorme
+5f8c85acad	Create folder	Créer un dossier	Crear carpeta	Crea cartella
+5fc96304eb	Add and follow	Ajouter et suivre	Añadir y seguir	Aggiungi e segui
+6011b7f7c1	No downloads	Aucun téléchargement	Sin descargas	Nessun download
+610adf54f0	Unpin	Détacher	Desfijar	Sblocca
+6126f55f50	(The text on the page could not be read.)	(Le texte sur la page n'a pas pu être lu.)	(No se pudo leer el texto de la página).	(Non è stato possibile leggere il testo della pagina.)
+61f2de21bc	Claude Code	Claude Code	Código Claude	Codice Claude
+6275a89b82	Claude gets the address, title and text of the page. Marked text becomes the focus, with @ you add additional tabs. Runs with your Claude login, without an API key.	Claude obtient l'adresse, le titre et le texte de la page. Le texte marqué devient le focus, avec @ vous ajoutez des onglets supplémentaires. Fonctionne avec votre login Claude, sans clé API.	Claude obtiene la dirección, el título y el texto de la página. El texto marcado se convierte en el foco, con @ agrega pestañas adicionales. Se ejecuta con su inicio de sesión de Claude, sin una clave API.	Claude ottiene l'indirizzo, il titolo e il testo della pagina. Il testo contrassegnato diventa il focus, con @ aggiungi ulteriori schede. Funziona con il tuo login Claude, senza chiave API.
+62ac3e6bbd	The command bar asks the search engine for suggestions as you type.	La barre de commandes demande des suggestions au moteur de recherche au fur et à mesure que vous tapez.	La barra de comandos solicita sugerencias al motor de búsqueda a medida que escribe.	La barra dei comandi chiede suggerimenti al motore di ricerca durante la digitazione.
+63602f38db	#9A95B5	#9A95B5	#9A95B5	#9A95B5
+637a4f8957	kept current	tenu à jour	mantenido actualizado	mantenuto aggiornato
+63e45bd9a5	Delete Space…	Supprimer l’espace…	Eliminar espacio…	Elimina spazio…
+64acf7e2a7	agents	agents	agentes	agenti
+6548044047	the website	le site	el sitio	il sito
+6693de24d6	These bookmarks are password protected.	Ces signets sont protégés par mot de passe.	Estos marcadores están protegidos con contraseña.	Questi segnalibri sono protetti da password.
+669fe25a32	Profile	Profil	Perfil	Profilo
+66c5ac7824	https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard	https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard	https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard	https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard
+674b19bb5b	#6B7280	#6B7280	#6B7280	#6B7280
+677363612a	Open in Split View	Ouvrir dans la vue fractionnée	Abrir en vista dividida	Apri in visualizzazione divisa
+67a1194114	A link wants to open this app.	Un lien veut ouvrir cette application.	Un enlace quiere abrir esta aplicación.	Un collegamento vuole aprire questa app.
+67d4bdf75b	1 agent chat will be deleted.	1 discussion d’agent sera supprimée.	Se eliminará 1 chat de agente.	Verrà eliminata 1 chat dell’agente.
+67e809007f	Page %lld	Page %lld	Página %lld	Pagina %lld
+6803d40995	No app found for %@:	Aucune application trouvée pour %@ :	No se encontró ninguna aplicación para %@:	Nessuna app trovata per %@:
+6879acbcec	Clear	Vider	Vaciar	Svuota
+6903660d55	You already follow this share.	Vous suivez déjà ce partage.	Ya sigues este recurso compartido.	Segui già questa condivisione.
+69084c4c4c	The full import failed. %@	L'importation complète a échoué. %@	La importación completa falló. %@	L'importazione completa non è riuscita. %@
+691902ba2d	“New Agent Chat” in the sidebar plus menu, in the command bar (⌘T) and under the tray.	« New Agent Chat » dans le menu de la barre latérale plus, dans la barre de commandes (⌘T) et sous la barre d'état.	“Chat de nuevo agente” en el menú más de la barra lateral, en la barra de comandos (⌘T) y debajo de la bandeja.	"New Agent Chat" nella barra laterale e nel menu, nella barra dei comandi (⌘T) e sotto la barra delle applicazioni.
+69648c5962	Unpinned tabs that have not been used for a long time go to the archive (⌘⇧T brings them back).	Les onglets non épinglés qui n'ont pas été utilisés depuis longtemps vont dans l'archive (⌘⇧T les ramène).	Las pestañas no fijadas que no se han utilizado durante mucho tiempo van al archivo (⌘⇧T las devuelve).	Le schede sbloccate che non vengono utilizzate da molto tempo vanno nell'archivio (⌘⇧T le riporta indietro).
+6979ccf88f	Spaces, favorites, folders and tabs, as well as logins and cookies, passwords, history, website data and extensions. OpenArch restarts for this.	Espaces, favoris, dossiers et onglets, ainsi que les identifiants et cookies, mots de passe, historique, données et extensions du site Web. OpenArch redémarre pour cela.	Espacios, favoritos, carpetas y pestañas, así como inicios de sesión y cookies, contraseñas, historial, datos del sitio web y extensiones. OpenArch se reinicia para esto.	Spazi, preferiti, cartelle e schede, nonché accessi e cookie, password, cronologia, dati di siti Web ed estensioni. OpenArch si riavvia per questo.
+69873a2aaa	Search or enter URL	Rechercher ou saisir une URL	Buscar o introducir una URL	Cerca o inserisci un URL
+6990f01ad9	LIVE	EN DIRECT	VIVIR	VIVERE
+6997e3eb28	Off	Désactivé	Desactivado	Disattivato
+6a47c464fb	Update shared folder now	Mettre à jour le dossier partagé maintenant	Actualizar carpeta compartida ahora	Aggiorna la cartella condivisa adesso
+6a55b2be90	Translate the selection into German	Traduire la sélection en allemand	Traducir la selección al alemán	Traduci la selezione in tedesco
+6a762c4476	Restore closed tab	Restaurer l’onglet fermé	Restaurar pestaña cerrada	Ripristina scheda chiusa
+6a7da39653	Select folder...	Sélectionnez le dossier...	Seleccionar carpeta...	Seleziona cartella...
+6abe5810ad	Remembers crashes of OpenArch and its processes and asks the next time you start if you want to send a report.	Se souvient des plantages d'OpenArch et de ses processus et vous demande au prochain démarrage si vous souhaitez envoyer un rapport.	Recuerda fallos de OpenArch y sus procesos y pregunta la próxima vez que inicies si quieres enviar un informe.	Ricorda i crash di OpenArch e dei suoi processi e chiede al successivo avvio se si desidera inviare un report.
+6b32324d89	Reads	Lit	Lee	Legge
+6b69e968cb	%@: %lld cookies (logins) and %lld passwords adopted.%@	%@ : %lld cookies (logins) et %lld mots de passe adoptés.%@	%@: %lld cookies (inicios de sesión) y %lld contraseñas adoptadas.%@	%@: %lld cookie (login) e %lld password adottati.%@
+6be1f09147	A profile with this name already exists.	Un profil portant ce nom existe déjà.	Ya existe un perfil con este nombre.	Esiste già un profilo con questo nome.
+6c98fa5696	Glass effect	Effet verre	Efecto vidrio	Effetto vetro
+6d72f0905c	, %lld were already saved	, %lld ont déjà été enregistrés	, %lld ya fueron guardados	, %lld erano già stati salvati
+6d8c9b124d	Space	Espace	Espacio	Spazio
+6d97594d1d	Writes	Écrit	escribe	Scrive
+6e10badc27	Searches the web	Recherche sur le Web	Busca en la web	Cerca sul web
+6e1b670dde	1 open tab	1 onglet ouvert	1 pestaña abierta	1 scheda aperta
+6e1c19b065	Keyboard	Clavier	Teclado	Tastiera
+6e630d5c7f	The update does not contain a suitable OpenArch app.	La mise à jour ne contient pas d'application OpenArch appropriée.	La actualización no contiene una aplicación OpenArch adecuada.	L'aggiornamento non contiene un'app OpenArch adatta.
+6eb287cd5a	Delete Boost	Supprimer le Boost	Eliminar Boost	Elimina Boost
+6eb9fed6eb	Chrome toolbar in tabs	Barre d'outils Chrome dans les onglets	Barra de herramientas de Chrome en pestañas	Barra degli strumenti di Chrome nelle schede
+6ef62baab6	Split View	Vue fractionnée	Vista dividida	Visualizzazione divisa
+6f85c79c93	With it, your saved passwords and logins are encrypted. If you have it from a backup \\nTo retrieve your keychain, quit OpenArch and do that first. With a new key\\nthe previous passwords and logins can no longer be read.	Avec lui, vos mots de passe et identifiants enregistrés sont cryptés. Si vous l'avez à partir d'une sauvegarde \\nPour récupérer votre trousseau, quittez OpenArch et faites-le d'abord. Avec une nouvelle clé\\nles mots de passe et identifiants précédents ne peuvent plus être lus.	Con él, sus contraseñas e inicios de sesión guardados están encriptados. Si lo tienes desde una copia de seguridad\\nPara recuperar su llavero, salga de OpenArch y hágalo primero. Con una nueva clave\\nlas contraseñas e inicios de sesión anteriores ya no se pueden leer.	Con esso, le password e gli accessi salvati vengono crittografati. Se lo hai da un backup \\nPer recuperare il tuo portachiavi, esci da OpenArch e fallo prima. Con una nuova chiave\\nle password e gli accessi precedenti non possono più essere letti.
+70012a4772	A sentence or a question in the command bar (⌘T) opens a new chat with Enter, with your login there and thus your subscription, without any API key. Short searches stay with the search engine, the chat is one line below.	Une phrase ou une question dans la barre de commande (⌘T) ouvre un nouveau chat avec Entrée, avec votre login et donc votre abonnement, sans aucune clé API. Les recherches courtes restent avec le moteur de recherche, le chat se trouve une ligne en dessous.	Una frase o una pregunta en la barra de comandos (⌘T) abre un nuevo chat con Enter, con tu login allí y por tanto tu suscripción, sin ninguna clave API. Las búsquedas cortas se quedan en el buscador, el chat está una línea más abajo.	Una frase o una domanda nella barra dei comandi (⌘T) apre una nuova chat con Invio, con lì il tuo login e quindi il tuo abbonamento, senza alcuna chiave API. Le ricerche brevi rimangono nel motore di ricerca, la chat è una riga sotto.
+7006179967	%lld times	%lld fois	%lld veces	%lld volte
+702bd04716	Arc import	Importation d'arcs	Importación de arco	Importazione dell'arco
+708ad54eca	Done	Terminé	Hecho	Fatto
+709a23220f	Name	Nom	Nombre	Nome
+70bb813787	No	Non	No	NO
+70f2ebc47b	Show history	Afficher l’historique	Mostrar historial	Mostra cronologia
+71859e7945	Choose a backup folder (“OpenArch Backup…” or “OpenArch Export…”).	Choisissez un dossier de sauvegarde (« OpenArch Backup… » ou « OpenArch Export… »).	Elija una carpeta de copia de seguridad (“OpenArch Backup…” o “OpenArch Export…”).	Scegli una cartella di backup (“OpenArch Backup…” o “OpenArch Export…”).
+721a69a45d	Reopen closed tab	Rouvrir l’onglet fermé	Reabrir pestaña cerrada	Riapri scheda chiusa
+726cea5bc1	Stand	Rester	Pararse	In piedi
+732b9b20cd	Claude Code was not found.	Claude Code est introuvable.	No se encontró Claude Code.	Claude Code non è stato trovato.
+7372d223a6	OpenArch then takes over the key and updates no longer ask.	OpenArch reprend alors la clé et les mises à jour ne demandent plus.	OpenArch luego se hace cargo de la clave y las actualizaciones ya no solicitan.	OpenArch assume quindi la chiave e gli aggiornamenti non vengono più richiesti.
+73e6d80091	Open in Space	Ouvrir dans l’espace	Abrir en el espacio	Apri nello spazio
+73ea2ab93f	1 row selected	1 ligne sélectionnée	1 fila seleccionada	1 riga selezionata
+742586230f	Protected Content (Widevine)	Contenu protégé (Widevine)	Contenido protegido (Widevine)	Contenuto protetto (Widevine)
+746ad1931a	Remove from archive	Supprimer des archives	Eliminar del archivo	Rimuovi dall'archivio
+749018dd18	Chromium %@	Chromium %@	Chromium %@	Chromium %@
+754bc8165e	"%@" open?	"%@" ouvrir?	"%@" ¿abierto?	"%@" aprire?
+7552266688	No data to backup was found in Arc's folder.	Aucune donnée à sauvegarder n'a été trouvée dans le dossier d'Arc.	No se encontraron datos para realizar una copia de seguridad en la carpeta de Arc.	Nessun dato di cui eseguire il backup trovato nella cartella di Arc.
+756f02377f	tint	teinte	tinte	tinta
+75a9146548	Reset all	Tout réinitialiser	Restablecer todo	Reimposta tutto
+76317d6730	Source code on GitHub	Code source sur GitHub	Código fuente en GitHub	Codice sorgente su GitHub
+767c147328	Open in Little OpenArch	Ouvrir dans Little OpenArch	Abrir en Little OpenArch	Apri in Little OpenArch
+76b5f74745	The file is too large.	Le fichier est trop volumineux.	El archivo es demasiado grande.	Il file è troppo grande.
+76ca526bec	Import: %@ · %lld %%	Importer : %@ · %lld %%	Importar: %@ · %lld %%	Importazione: %@ · %lld %%
+76e1317bd5	after 30 days	après 30 jours	después de 30 días	dopo 30 giorni
+77362b1a66	Just sharing	Juste partager	Solo compartiendo	Basta condividere
+778f208c21	Delete folder “%@”?	Supprimer le dossier « %@ » ?	¿Eliminar carpeta “%@”?	Eliminare la cartella “%@”?
+7809862ed2	Import from Arc…	Importer depuis Arc…	Importar desde Arc…	Importa da Arc…
+781961bc81	pause	pause	pausa	pausa
+78252beca2	Import not possible	Importation impossible	Importación no posible	Importazione non possibile
+79df0c9e54	Search again	Rechercher à nouveau	Buscar de nuevo	Cerca di nuovo
+7a38e51bd1	The steps from the first start again: import from Arc, accounts, colors, default browser.	Les étapes du premier recommencent : import depuis Arc, comptes, couleurs, navigateur par défaut.	Los pasos del primero comienzan de nuevo: importar desde Arc, cuentas, colores, navegador predeterminado.	Ricominciano i passaggi dal primo: importazione da Arc, account, colori, browser predefinito.
+7a4b221f63	Arc profile could not be copied: %@	Le profil d'arc n'a pas pu être copié : %@	No se pudo copiar el perfil de arco: %@	Impossibile copiare il profilo dell'arco: %@
+7a9a056c57	Website settings: permissions, zoom, data	Paramètres du site Web : autorisations, zoom, données	Configuración del sitio web: permisos, zoom, datos	Impostazioni del sito web: permessi, zoom, dati
+7af3d5e187	Refresh now	Actualiser maintenant	Actualizar ahora	Aggiorna ora
+7b41ce7052	Please start OpenArch again. If it happens again, restarting the Mac will help.	Veuillez redémarrer OpenArch. Si cela se reproduit, le redémarrage du Mac sera utile.	Inicie OpenArch nuevamente. Si vuelve a suceder, será útil reiniciar la Mac.	Avvia nuovamente OpenArch. Se succede di nuovo, riavviare il Mac sarà d'aiuto.
+7b535ce038	%lld hr	%lld h	%lld h	%lld h
+7bb3db4b22	Safari's engine	Le moteur de Safari	El motor de Safari	Il motore di Safari
+7bd956d0be	New profile…	Nouveau profil…	Nuevo perfil…	Nuovo profilo…
+7ca102bfa9	Checked %@	Vérifié %@	Comprobado %@	Controllato %@
+7d46630f8c	Protected videos via WebKit	Vidéos protégées via WebKit	Vídeos protegidos a través de WebKit	Video protetti tramite WebKit
+7d4a3f2aaa	Import	Importer	Importar	Importare
+7d4e3fe310	https://github.com/dpfaffenbauer/OpenArch	https://github.com/dpfaffenbauer/OpenArch	https://github.com/dpfaffenbauer/OpenArch	https://github.com/dpfaffenbauer/OpenArch
+7d8acb0d54	Show info: environment, context, connectors, changes, output	Afficher les informations : environnement, contexte, connecteurs, modifications, sortie	Mostrar información: entorno, contexto, conectores, cambios, resultados	Mostra informazioni: ambiente, contesto, connettori, modifiche, output
+7e225e4bc4	No open issues	Aucun problème ouvert	No hay problemas abiertos	Nessun problema aperto
+7e2c510e49	Create new profile	Créer un profil	Crear perfil	Crea profilo
+7e68b54853	Vicinity	Environs	Vecindad	Vicinanze
+7ef723a053	Archives, apps and installers	Archives, applications et installateurs	Archivos, aplicaciones e instaladores.	Archivi, app e programmi di installazione
+7f14c6eb9e	No open pull requests	Aucune demande de tirage ouverte	No hay solicitudes de extracción abiertas	Nessuna richiesta pull aperta
+7fbd8e8f9c	Restore defaults	Rétablir les valeurs par défaut	Restaurar valores predeterminados	Ripristina impostazioni predefinite
+808d7dca8a	default	défaut	por defecto	predefinito
+8090759f6e	command	commande	dominio	comando
+80cd0b3e86	Copy URL (⌘⇧C)	Copier l'URL (⌘⇧C)	Copiar URL (⌘⇧C)	Copia URL (⌘⇧C)
+8108226211	Safari protects bookmarks and history. Enable OpenArch under Privacy & Security › Full Disk Access, restart OpenArch, and then open this page again.	Safari protège les signets et l'historique. Activez OpenArch sous Confidentialité et sécurité › Accès complet au disque, redémarrez OpenArch, puis ouvrez à nouveau cette page.	Safari protege los marcadores y el historial. Habilite OpenArch en Privacidad y seguridad ›Acceso total al disco, reinicie OpenArch y luego abra esta página nuevamente.	Safari protegge i segnalibri e la cronologia. Abilita OpenArch in Privacy e sicurezza > Accesso completo al disco, riavvia OpenArch, quindi apri di nuovo questa pagina.
+81211845d6	This site reports	Ce site rapporte	Este sitio informa	Questo sito riporta
+815ac5f06d	The file could not be read.	Le fichier n'a pas pu être lu.	No se pudo leer el archivo.	Impossibile leggere il file.
+816f17d7cb	#F2D46C	#F2D46C	#F2D46C	#F2D46C
+81755774cd	The agent is stopped and the chat is removed.	L'agent est arrêté et le chat est supprimé.	Se detiene al agente y se elimina el chat.	L'agente viene arrestato e la chat viene rimossa.
+82d7ec9e71	This is not an OpenArch link.	Ce n'est pas un lien OpenArch.	Este no es un enlace de OpenArch.	Questo non è un collegamento OpenArch.
+83008f45ae	Camera	Caméra	Cámara	Fotocamera
+831901e0a6	Add rule	Ajouter une règle	Añadir regla	Aggiungi regola
+831f200478	HTTPS only	HTTPS uniquement	Solo HTTPS	Solo HTTPS
+83d291cf49	%lld Lines without an address or password are omitted.	%lld Les lignes sans adresse ni mot de passe sont omises.	%lld Se omiten las líneas sin dirección o contraseña.	%lld Le righe senza indirizzo o password vengono omesse.
+83e019983c	New link	Nouveau lien	Nuevo enlace	Nuovo collegamento
+84463b09eb	Without the key “%@” from your login keyring, your passwords and \\nDon't open logins. Try again and select “Always Allow” or exit OpenArch.	Sans la clé « %@ » de votre trousseau de connexion, vos mots de passe et \\nN'ouvrez pas les connexions. Réessayez et sélectionnez « Toujours autoriser » ou quittez OpenArch.	Sin la clave “%@” de su conjunto de claves de inicio de sesión, sus contraseñas y \\nNo abra inicios de sesión. Inténtelo de nuevo y seleccione "Permitir siempre" o salga de OpenArch.	Senza la chiave “%@” dal tuo portachiavi di accesso, le tue password e \\nNon aprire gli accessi. Riprova e seleziona "Consenti sempre" o esci da OpenArch.
+8484f22ebe	Helvetica Neue	Helvetica Nouvelle	Helvética Neue	Helvetica Neue
+84df42c504	Skip logins	Ignorer les identifiants	Omitir inicios de sesión	Salta gli accessi
+8520d2220f	Every day at the selected time, or the first time you start OpenArch thereafter.	Chaque jour à l'heure sélectionnée, ou lors du premier démarrage d'OpenArch par la suite.	Todos los días a la hora seleccionada, o la primera vez que inicie OpenArch a partir de entonces.	Ogni giorno all'ora selezionata o successivamente al primo avvio di OpenArch.
+8524c5cdb9	Duplicate	Double	Duplicado	Duplicato
+852b062ce1	New Space	Nouvel espace	Nuevo espacio	Nuovo spazio
+85840de27a	Contents	Contenu	Contenido	Contenuto
+8600bfbc5e	Back to %@	Revenir à %@	Volver a %@	Torna a %@
+861387c8ff	Width	Largeur	Ancho	Larghezza
+86564c324b	Own space	Propre espace	Espacio propio	Proprio spazio
+8740dab3b1	Next page of the split view	Page suivante de la vue fractionnée	Página siguiente de la vista dividida	Pagina successiva della vista divisa
+876f061837	// Widevine is allowed (Settings › General › Protected Content).	// Widevine est autorisé (Paramètres › Général › Contenu protégé).	// Widevine está permitido (Configuración › General › Contenido protegido).	// Widevine è consentito (Impostazioni › Generali › Contenuto protetto).
+878269e6bd	Add site	Ajouter un site	Añadir sitio	Aggiungi sito
+880784e9f9	Share folders	Partager des dossiers	Compartir carpetas	Condividi cartelle
+885fcb606b	Calls in picture-in-picture	Appels en image dans l’image	Llamadas en imagen en imagen	Chiamate in picture-in-picture
+88613f88c4	Also in: %@	Également dans : %@	También en: %@	Anche in: %@
+8895c31609	Show/hide sidebar	Afficher/masquer la barre latérale	Mostrar/ocultar barra lateral	Mostra/nascondi la barra laterale
+88d37067c0	Show %lld more	Afficher %lld de plus	Mostrar %lld más	Mostra altri %lld
+88e199beac	New Notion page	Nouvelle page Notion	Nueva página de Notion	Nuova pagina Notion
+89156a25fd	*	*	*	*
+893e6e0571	Open as agent chat	Ouvrir en tant qu'agent	Abrir como chat de agente	Apri come chat dell'agente
+894ae82ceb	OpenArch loads new versions from GitHub, checks the checksum and signature and exchanges the next time you exit. A version older than yours will never install.	OpenArch charge les nouvelles versions depuis GitHub, vérifie la somme de contrôle et la signature et les échange la prochaine fois que vous quittez. Une version plus ancienne que la vôtre ne sera jamais installée.	OpenArch carga nuevas versiones desde GitHub, verifica la suma de verificación y la firma y las intercambia la próxima vez que salga. Una versión anterior a la suya nunca se instalará.	OpenArch carica le nuove versioni da GitHub, controlla il checksum e la firma e scambia la prossima volta che esci. Una versione precedente alla tua non verrà mai installata.
+894dfc2ab6	Switch to tab	Passer à l’onglet	Cambiar a la pestaña	Passa alla scheda
+8953ac4253	Make it yours	Faites-le vôtre	Hazlo tuyo	Rendilo tuo
+89b7957dae	Color	Couleur	Color	Colore
+8a34d6e083	Currently being shared	En cours de partage	Actualmente siendo compartido	Attualmente in condivisione
+8a7a88d4a1	#2BB3A3	#2BB3A3	#2BB3A3	#2BB3A3
+8afbfae836	Loaded	Chargé	Cargado	Caricato
+8b3c7cdd1d	%lld bookmarklets (javascript: links) omitted	%lld bookmarklets (javascript : liens) omis	%lld bookmarklets (javascript: enlaces) omitidos	%lld bookmarklet (javascript: link) omessi
+8c51579da9	%@ · %lld Bookmarks · %@	%@ · %lld Signets · %@	%@ · %lld Marcadores · %@	%@ · %lld Segnalibri · %@
+8c5a51861f	Allow	Autoriser	Permitir	Consenti
+8c7188b6cb	A folder with one web store link per extension if you prefer to reinstall them.	Un dossier avec un lien de boutique en ligne par extension si vous préférez les réinstaller.	Una carpeta con un enlace de tienda web por extensión si prefiere reinstalarlos.	Una cartella con un collegamento al negozio Web per estensione se preferisci reinstallarli.
+8c74544adb	Take your Arc with you	Emportez votre Arc avec vous	Lleva tu Arc contigo	Porta il tuo Arc con te
+8cb31dc35a	Explain the selection	Expliquer la sélection	Explica la selección	Spiega la selezione
+8ce2146ad6	To the pinned URL	Vers l'URL épinglée	A la URL fijada	All'URL aggiunto
+8d0094c4a5	Import completed	Importation terminée	Importación completada	Importazione completata
+8d3d9232f2	Ended by the owner	Terminé par le propriétaire	Finalizado por el propietario	Terminato dal proprietario
+8d60b7d149	Write to the agent...	Écrivez à l'agent...	Escribe al agente...	Scrivi all'agente...
+8da3eba677	Open all	Tout ouvrir	Abrir todo	Apri tutto
+8dfa9fcbfb	Import logins and passwords?	Importer les identifiants et mots de passe ?	¿Importar inicios de sesión y contraseñas?	Importare login e password?
+8e60a2315b	Nothing found	Rien trouvé	No se encontró nada	Niente trovato
+8f26ce2a6f	Up	En haut	Arriba	Su
+8f3a248e6d	Google account unknown (offline?)	Compte Google inconnu (hors ligne ?)	Cuenta de Google desconocida (¿sin conexión?)	Account Google sconosciuto (offline?)
+8fc76c4e46	Ribbons	Rubans	Cintas	Nastri
+9037d87306	Previous title	Titre précédent	Título anterior	Titolo precedente
+90ccd64974	History	Histoire	Historia	Storia
+90d1652407	Sidebar only	Barre latérale uniquement	Solo barra lateral	Solo barra laterale
+9113c6c0c1	Georgia	Géorgie	Georgia	Georgia
+91ba6fdd42	Arc – %@	Arc – %@	Arc – %@	Arc – %@
+91fc742756	Open address...	Adresse ouverte...	Abrir dirección...	Apri indirizzo...
+921d42241b	No matches	Aucun résultat	Sin coincidencias	Nessuna corrispondenza
+92c7eee9e4	Delete folder...	Supprimer le dossier...	Eliminar carpeta...	Elimina cartella...
+938a610228	Your saved passwords and logins are stored with the key “%@” from your \\nLogin keychain encrypted. This OpenArch version is not allowed to read it yet, so ask \\nmacOS right after your Mac password. Enter it and select “Always allow”.	Vos mots de passe et identifiants enregistrés sont stockés avec la clé « %@ » depuis votre \\nTrousseau de connexion crypté. Cette version d'OpenArch n'est pas encore autorisée à la lire, alors demandez \\nmacOS juste après votre mot de passe Mac. Entrez-le et sélectionnez « Toujours autoriser ».	Sus contraseñas e inicios de sesión guardados se almacenan con la clave “%@” de su \\nLlavero de inicio de sesión cifrado. Esta versión de OpenArch aún no puede leerse, así que pregunte\\nmacOS justo después de tu contraseña de Mac. Introdúcela y selecciona “Permitir siempre”.	Le password e gli accessi salvati vengono archiviati con la chiave "%@" dal tuo \\nPortachiavi di accesso crittografato. Questa versione di OpenArch non è ancora autorizzata a leggerla, quindi chiedi \\nmacOS subito dopo la password del tuo Mac. Inseriscilo e seleziona "Consenti sempre".
+93f9fc36b7	Apple Intelligence is off. Turn it on in System Preferences under “Apple Intelligence & Siri.”	Apple Intelligence est désactivé. Activez-le dans les Préférences Système sous « Apple Intelligence et Siri ».	La inteligencia de Apple está apagada. Actívelo en Preferencias del Sistema en "Apple Intelligence & Siri".	L'intelligenza di Apple è disattivata. Attivalo nelle Preferenze di Sistema in "Apple Intelligence e Siri".
+93fed5649c	New folder with 1 tab	Nouveau dossier avec 1 onglet	Nueva carpeta con 1 pestaña	Nuova cartella con 1 scheda
+943cb6a70f	Stop sharing…	Arrêter le partage…	Dejar de compartir…	Interrompi condivisione…
+943e268194	Drag to sort, click on name to rename, click on color and profile icon.	Faites glisser pour trier, cliquez sur le nom pour renommer, cliquez sur la couleur et l'icône de profil.	Arrastre para ordenar, haga clic en el nombre para cambiar el nombre, haga clic en el color y el icono de perfil.	Trascina per ordinare, fai clic sul nome per rinominare, fai clic sul colore e sull'icona del profilo.
+945fb68b00	An agent chat is in the sidebar like a tab. Claude Code works in a folder on this Mac, with Claude's login in the terminal and thus your subscription, without any API key. If the AI ​​control is on, the agent can also operate your tabs.	Une discussion d'agent se trouve dans la barre latérale comme un onglet. Claude Code fonctionne dans un dossier sur ce Mac, avec le login de Claude dans le terminal et donc votre abonnement, sans aucune clé API. Si le contrôle AI est activé, l'agent peut également exploiter vos onglets.	Un chat de agente está en la barra lateral como una pestaña. Claude Code funciona en una carpeta en esta Mac, con el inicio de sesión de Claude en la terminal y, por lo tanto, su suscripción, sin ninguna clave API. Si el control de IA está activado, el agente también puede operar sus pestañas.	La chat di un agente si trova nella barra laterale come una scheda. Claude Code funziona in una cartella su questo Mac, con il login di Claude nel terminale e quindi il tuo abbonamento, senza alcuna chiave API. Se il controllo AI è attivo, l'agente può anche utilizzare le tue schede.
+94924697c7	Claude Code was not found on this Mac. Install it (claude.ai/code) and log in once in the terminal with “claude”.	Le Claude Code n'a pas été trouvé sur ce Mac. Installez-le (claude.ai/code) et connectez-vous une fois dans le terminal avec « claude ».	El Claude Code no se encontró en esta Mac. Instálelo (claude.ai/code) e inicie sesión una vez en la terminal con "claude".	Il codice Claude non è stato trovato su questo Mac. Installalo (claude.ai/code) e accedi una volta nel terminale con "claude".
+94a638bfbf	Hide others	Masquer les autres	Ocultar otras	Nascondi altre
+9552cc12af	The Morning Brief could not be created.	Le Morning Brief n'a pas pu être créé.	No se pudo crear el Morning Brief.	Impossibile creare il Morning Brief.
+95bd7dc40f	The import will continue while you take the next steps.	L'importation se poursuivra pendant que vous passerez aux étapes suivantes.	La importación continuará mientras realiza los siguientes pasos.	L'importazione continuerà mentre esegui i passaggi successivi.
+95c712224f	Reads files, asks for changes, commands and the browser	Lit les fichiers, demande des modifications, des commandes et le navigateur	Lee archivos, solicita cambios, comandos y el navegador	Legge i file, richiede modifiche, comandi e il browser
+95e287d7af	Allowed	Autorisé	Permitido	Consentito
+9642f04a29	Restart	Redémarrer	Reiniciar	Riavvia
+965190fed9	Morning Brief	Morning Brief	Morning Brief	Morning Brief
+9683053181	Claude Code was not found on this Mac. Install it (claude.ai/code) and log in\\nonce in the terminal with “claude”, then send it again.	Le Claude Code n'a pas été trouvé sur ce Mac. Installez-le (claude.ai/code) et connectez-vous\\nune fois dans le terminal avec « claude », puis renvoyez-le.	El Claude Code no se encontró en esta Mac. Instálelo (claude.ai/code) e inicie sesión\\nuna vez en la terminal con “claude”, luego envíalo nuevamente.	Il codice Claude non è stato trovato su questo Mac. Installalo (claude.ai/code) e accedi\\nuna volta nel terminale con "claude", quindi invialo di nuovo.
+96c4569dd5	Boosts are temporarily switched off	Les Boosts sont temporairement désactivés	Los Boost están desactivados temporalmente	I Boost sono temporaneamente disattivati
+96f5efe39a	Not found. Install it from claude.ai/code, then run “claude” once in Terminal to sign in.	Introuvable. Installez-le depuis claude.ai/code, puis lancez « claude » une fois dans le Terminal pour vous connecter.	No encontrado. Instálalo desde claude.ai/code y ejecuta «claude» una vez en Terminal para iniciar sesión.	Non trovato. Installalo da claude.ai/code, poi esegui «claude» una volta nel Terminale per accedere.
+9762618ae6	What the agent is allowed to do without asking	Ce que l'agent est autorisé à faire sans demander	Lo que el agente puede hacer sin preguntar	Ciò che l'agente può fare senza chiedere
+976a4bb632	Boost %@	Booster %@	Aumentar %@	Aumento %@
+9791b68cae	Close (⌘W)	Fermer (⌘W)	Cerrar (⌘W)	Chiudi (⌘W)
+97d74dd538	Allow and continue	Autoriser et continuer	Permitir y continuar	Consenti e continua
+97d763a51c	Export and import	Exporter et importer	Exportar e importar	Esportare e importare
+97f0fa9a15	New GitHub Gist	Nouveau Gist GitHub	Nuevo Gist de GitHub	Nuovo Gist GitHub
+980771b65e	Close (⌘E)	Fermer (⌘E)	Cerrar (⌘E)	Chiudi (⌘E)
+9883779ec0	Bookmarks menu	Menu des signets	Menú de marcadores	Menu dei segnalibri
+98bd5cd476	context	contexte	contexto	contesto
+98df77e610	Which folder should the agent work in?	Dans quel dossier l'agent doit-il travailler ?	¿En qué carpeta debería trabajar el agente?	In quale cartella dovrebbe lavorare l'agente?
+98f492b5e0	Restore	Restaurer	Restaurar	Ripristinare
+98f99119c8	Sidebar: %lld space(s), %lld favorites, %lld pinned tabs in %lld folders and %lld open tabs. \\nThe previous sidebar remains as a backup.\n\n“Apply All” additionally fetches logins and cookies, saved passwords, history, website data\\nand the installed extensions including settings. To do this, OpenArch restarts, Arc must be finished, \\nand macOS asks once for access to “Arc Safe Storage”. Previous logins and website data \\nare also retained as a backup.	Barre latérale : %lld espace(s), %lld favoris, %lld onglets épinglés dans les dossiers %lld et %lld onglets ouverts. \\nLa barre latérale précédente reste comme sauvegarde.\n\n« Appliquer tout » récupère en outre les connexions et les cookies, les mots de passe enregistrés, l'historique, les données du site Web.\net les extensions installées, y compris les paramètres. Pour cela, OpenArch redémarre, Arc doit être terminé, \\net macOS demande une fois l'accès à « Arc Safe Storage ». Connexions précédentes et données du site Web\\nsont également conservés en tant que sauvegarde.	Barra lateral: %lld espacios, %lld favoritos, %lld pestañas fijadas en %lld carpetas y %lld pestañas abiertas. \\nLa barra lateral anterior permanece como respaldo.\n\n"Aplicar todo" recupera además los inicios de sesión y las cookies, las contraseñas guardadas, el historial y los datos del sitio web.\ny las extensiones instaladas, incluida la configuración. Para hacer esto, OpenArch se reinicia, Arc debe estar finalizado, \\ny macOS solicita una vez acceso a “Arc Safe Storage”. Inicios de sesión anteriores y datos del sitio web\\nTambién se conservan como respaldo.	Barra laterale: %lld spazi, %lld preferiti, %lld schede bloccate in %lld cartelle e %lld schede aperte. \\nLa barra laterale precedente rimane come backup.\n\n"Applica tutto" recupera inoltre accessi e cookie, password salvate, cronologia, dati del sito web\\ne le estensioni installate comprese le impostazioni. Per fare ciò, OpenArch si riavvia, Arc deve essere terminato, \\ne macOS richiede una volta l'accesso a “Arc Safe Storage”. Accessi precedenti e dati del sito web\\nvengono conservati anche come backup.
+992d8257ec	Shortcut	Raccourci	Atajo	Scorciatoia
+99eef7d21d	Open shared link…	Ouvrir un lien partagé…	Abrir enlace compartido…	Apri link condiviso…
+99ef5da0a6	Requires Apple Intelligence, i.e. macOS 26 or newer.	Nécessite Apple Intelligence, c'est-à-dire macOS 26 ou version ultérieure.	Requiere Apple Intelligence, es decir, macOS 26 o posterior.	Richiede Apple Intelligence, ovvero macOS 26 o successivo.
+99fc153d41	Import from Arc	Importer depuis Arc	Importar desde Arc	Importa da Arc
+9a11f6c8d3	Logins	Connexions	Inicios de sesión	Accessi
+9a6ea5f4a8	The Library.json of this backup cannot be read.	Le Library.json de cette sauvegarde ne peut pas être lu.	El Library.json de esta copia de seguridad no se puede leer.	Impossibile leggere il Library.json di questo backup.
+9b3cbed5c4	zoom	zoom	zoom	zoom
+9b584b52b2	Spaces	Espaces	Espacios	Spazi
+9b6ddaef3a	%@ not allowed	%@ non autorisé	%@ no permitido	%@ non consentito
+9bb282432d	Agent chat	Discussion avec les agents	Chat de agente	Chatta con l'agente
+9bb6eeb554	after 1 hour	après 1 heure	después de 1 hora	dopo 1 ora
+9bbf9ead6b	New profile	Nouveau profil	Nuevo perfil	Nuovo profilo
+9bd68f2d21	Drag tabs here to keep them at the top as favorites	Faites glisser les onglets ici pour les conserver en haut des favoris	Arrastre las pestañas aquí para mantenerlas en la parte superior como favoritas.	Trascina qui le schede per mantenerle in alto come preferite
+9dfaee64a4	Idle	Inactif	Inactivo	Inattivo
+9e0b0a2aca	after 6 hours	après 6 heures	después de 6 horas	dopo 6 ore
+9e33b233f7	Spaces:	Espaces :	Espacios:	Spazi:
+9e56cd5f26	Links from pinned tabs and favorites to other pages and ⇧-clicks on links open as a preview above the page. ⌘Z or ⇧⌘T reopens a preview that has just been closed.	Les liens des onglets épinglés et des favoris vers d'autres pages et les ⇧-clics sur les liens s'ouvrent en aperçu au-dessus de la page. ⌘Z ou ⇧⌘T rouvre un aperçu qui vient d'être fermé.	Los enlaces de pestañas fijadas y favoritos a otras páginas y los clics ⇧ en los enlaces se abren como una vista previa encima de la página. ⌘Z o ⇧⌘T vuelve a abrir una vista previa que acaba de cerrarse.	I collegamenti dalle schede aggiunte e dai preferiti ad altre pagine e i ⇧ clic sui collegamenti si aprono come anteprima sopra la pagina. ⌘Z o ⇧⌘T riapre un'anteprima appena chiusa.
+9e6cdaf806	Everything ready	Tout est prêt	Todo listo	Tutto pronto
+9e7a9db7ec	A report contains versions, the type of process and the location in the code, never addresses, titles or page contents. It only goes out as a GitHub issue that you submit yourself.	Un rapport contient les versions, le type de traitement et l'emplacement dans le code, jamais les adresses, les titres ou le contenu des pages. Il s'agit uniquement d'un problème GitHub que vous soumettez vous-même.	Un informe contiene versiones, el tipo de proceso y la ubicación en el código, nunca direcciones, títulos o contenidos de páginas. Solo aparece como un problema de GitHub que usted mismo envía.	Un report contiene le versioni, il tipo di processo e la posizione nel codice, mai indirizzi, titoli o contenuti di pagina. Si verifica solo come problema GitHub inviato da te.
+9ed6503318	Back up	Sauvegarder	Guardar copia	Esegui backup
+9edb426fe7	%@ pinned	%@ épinglé	%@ fijado	%@ bloccato
+9eeb28a0cc	Space bar	Barre d'espace	barra espaciadora	Barra spaziatrice
+9f011632c8	Always allow	Toujours autoriser	Permitir siempre	Consenti sempre
+9f50b3eb22	Favorites	Favoris	Favoritos	Preferiti
+9fe0383b0f	GitHub not reachable, try again	GitHub n'est pas accessible, réessayez	GitHub no es accesible, inténtalo de nuevo	GitHub non raggiungibile, riprova
+a019153bb8	Create now	Créer maintenant	Crear ahora	Crea ora
+a0a8cb4ba5	Stop sharing “%@”?	Arrêter de partager « %@ » ?	¿Dejar de compartir “%@”?	Interrompere la condivisione di "%@"?
+a0aa20d8c2	Rename	Rebaptiser	Rebautizar	Rinominare
+a0ff41b3f3	Reviews for me	Demandes de relecture pour moi	Revisiones para mí	Revisioni per me
+a10c1a6001	Close tab	Fermer l'onglet	Cerrar pestaña	Chiudi scheda
+a148255770	The key “%@” could not be read from the keyring (%@). Without it, logins and passwords cannot be adopted.	La clé « %@ » n'a pas pu être lue à partir du trousseau de clés (%@). Sans cela, les identifiants et mots de passe ne peuvent pas être adoptés.	La clave “%@” no se pudo leer del conjunto de claves (%@). Sin él, no se pueden adoptar nombres de usuario y contraseñas.	Impossibile leggere la chiave “%@” dal portachiavi (%@). Senza di esso non è possibile adottare login e password.
+a16b777cb2	Agents (⌃0): %lld are waiting for you	Agents (⌃0) : %lld vous attendent	Agentes (⌃0): %lld te están esperando	Agenti (⌃0): %lld ti stanno aspettando
+a16be9a05e	Start agent chat	Démarrer le chat avec les agents	Iniciar chat de agente	Avvia la chat dell'agente
+a1ec84cf04	Later	Plus tard	Más tarde	Più tardi
+a227895ec6	Uploaded	Téléchargé	subido	Caricato
+a245592dd9	⌘T	⌘T	⌘T	⌘T
+a287f8a589	Password (at least 4 characters)	Mot de passe (au moins 4 caractères)	Contraseña (al menos 4 caracteres)	Password (almeno 4 caratteri)
+a2f998d704	Automatically update	Mettre à jour automatiquement	Actualizar automáticamente	Aggiorna automaticamente
+a378f1cb42	Nothing found.	Rien trouvé.	No se encontró nada.	Niente trovato.
+a37d3f100f	Claude is sorting %lld tabs…	Claude trie %lld onglets…	Claude está ordenando %lld pestañas…	Claude sta ordinando %lld schede…
+a3e81aee98	#5E81F4	#5E81F4	#5E81F4	#5E81F4
+a3fc1df57d	presentation	présentation	presentación	presentazione
+a44c4de9cb	Shared from this Mac	Partagé depuis ce Mac	Compartido desde este Mac	Condiviso da questo Mac
+a450157e3d	OpenArch can inherit Spaces, Favorites, pinned tabs with folders, and open tabs from Arc. Arc itself remains unchanged.	OpenArch peut hériter des espaces, des favoris, des onglets épinglés avec des dossiers et des onglets ouverts d'Arc. L'Arc lui-même reste inchangé.	OpenArch puede heredar Espacios, Favoritos, pestañas fijadas con carpetas y pestañas abiertas de Arc. El propio arco permanece sin cambios.	OpenArch può ereditare spazi, preferiti, schede bloccate con cartelle e schede aperte da Arc. L'arco stesso rimane invariato.
+a4565af537	Reset	Réinitialiser	Reiniciar	Reset
+a466faff6e	%lld Omitted bookmarks without a usable address	%lld Signets omis sans adresse utilisable	%lld Marcadores omitidos sin una dirección utilizable	%lld Segnalibri omessi senza un indirizzo utilizzabile
+a4dbde30a6	Clipboard	Presse-papiers	Portapapeles	Appunti
+a50f75633a	Edit URL (⌘L)	Modifier l'URL (⌘L)	Editar URL (⌘L)	Modifica URL (⌘L)
+a5184dff9a	The folder is empty	Le dossier est vide	La carpeta esta vacia	La cartella è vuota
+a5ea9c0d4a	%@ finish?	%@ finition?	%@ ¿finalizar?	%@ fine?
+a5f5194ed6	Add to favorites	Ajouter aux favoris	Añadir a favoritos	Aggiungi ai preferiti
+a5fcccdfab	%lld values ​​could not be decrypted.	Les valeurs %lld n'ont pas pu être déchiffrées.	Los valores %lld no se pudieron descifrar.	Impossibile decifrare i valori %lld.
+a638c7743c	Open Spotify	Ouvrez Spotify	Abrir Spotify	Apri Spotify
+a6784c08ba	Next match	Correspondance suivante	Siguiente coincidencia	Corrispondenza successiva
+a797e30923	Theme	Thème	Tema	Tema
+a7b23eba96	Shared folders and spaces you follow update every five minutes. Anything you change will be overwritten by the next update.	Les dossiers et espaces partagés que vous suivez sont mis à jour toutes les cinq minutes. Tout ce que vous modifiez sera écrasé lors de la prochaine mise à jour.	Las carpetas y espacios compartidos que sigues se actualizan cada cinco minutos. Todo lo que cambie se sobrescribirá con la próxima actualización.	Le cartelle e gli spazi condivisi che segui si aggiornano ogni cinque minuti. Tutto ciò che modificherai verrà sovrascritto dal prossimo aggiornamento.
+a80c60bcce	Actual size	Taille réelle	Tamaño real	Dimensioni reali
+a83b592b12	Found:	Trouvé:	Encontró:	Trovato:
+a85e958fe7	Always open links from %@ in “%@”	Toujours ouvrir les liens de %@ dans « %@ »	Abrir siempre los enlaces de %@ en «%@»	Apri sempre i link da %@ in «%@»
+a862c2b21b	Downloads	Téléchargements	Descargas	Download
+a866a9ebbc	No write permissions for %@.	Aucune autorisation d'écriture pour %@.	No hay permisos de escritura para %@.	Nessuna autorizzazione di scrittura per %@.
+a90c56ed52	This Mac does not support Apple Intelligence.	Ce Mac ne prend pas en charge Apple Intelligence.	Esta Mac no es compatible con Apple Intelligence.	Questo Mac non supporta Apple Intelligence.
+a975ebf032	OpenArch found these browsers:	OpenArch a trouvé ces navigateurs :	OpenArch encontró estos navegadores:	OpenArch ha trovato questi browser:
+a994dcc811	New Google Doc	Nouveau document Google Docs	Nuevo documento de Google Docs	Nuovo documento Google Docs
+a9fc931f68	Pinned and Today tabs with a long title are given a short name like “Gmail Inbox”. The preview of the tab shows the entire title.	Les onglets Épinglés et Aujourd'hui avec un titre long reçoivent un nom court comme « Boîte de réception Gmail ». L'aperçu de l'onglet affiche l'intégralité du titre.	Las pestañas Fijadas y Hoy con un título largo reciben un nombre corto como "Bandeja de entrada de Gmail". La vista previa de la pestaña muestra el título completo.	Alle schede Appuntate e Oggi con un titolo lungo viene assegnato un nome breve come "Posta in arrivo Gmail". L'anteprima della scheda mostra l'intero titolo.
+aa98d15dc0	Update not possible	Mise à jour impossible	Actualización no posible	Aggiornamento non possibile
+ab549f337b	Copy profile	Copier le profil	Copiar perfil	Copia profilo
+ab55c91d3d	%@\nThe folder remains as long as the chat is running: Claude Code only continues the session there.	%@\nLe dossier reste tant que le chat est en cours : Claude Code n'y poursuit que la session.	%@\nLa carpeta permanece mientras el chat esté activo: Claude Code sólo continúa la sesión allí.	%@\nLa cartella rimane finché la chat è in corso: Claude Code continua la sessione solo lì.
+abc43d0a6b	Link...	Lien...	Enlace...	Collegamento...
+abf61677d5	#E5566A	#E5566A	#E5566A	#E5566A
+ac4d73e743	Becomes active after restarting OpenArch.	Devient actif après le redémarrage d'OpenArch.	Se activa después de reiniciar OpenArch.	Diventa attivo dopo il riavvio di OpenArch.
+ac4ed9ff08	Search engine	Moteur de recherche	motor de búsqueda	Motore di ricerca
+acf3b887bc	1 Space	1 espace	1 espacio	1 spazio
+ad315c5e73	Previous recently used tab	Onglet précédemment utilisé	Pestaña usada anteriormente	Scheda usata precedentemente
+ad3da60415	Make a backup in a folder of your choice, or restore one (OpenArch restarts).	Faites une sauvegarde dans un dossier de votre choix, ou restaurez-en une (Redémarrage d'OpenArch).	Haga una copia de seguridad en una carpeta de su elección o restaure una (OpenArch se reinicia).	Effettua un backup in una cartella a tua scelta o ripristinane una (OpenArch si riavvia).
+adbd6e27e6	%lld pinned tabs	%lld onglets épinglés	%lld pestañas fijadas	%lld schede fissate
+adfefd7147	Folder	Dossier	Carpeta	Cartella
+ae002f9a3c	Future	Avenir	Futuro	Futuro
+ae0f1cc2d2	The profile “%@” with its logins and cookies remains.	Le profil « %@ » avec ses identifiants et ses cookies demeure.	El perfil “%@” con sus inicios de sesión y cookies permanece.	Rimane il profilo “%@” con i suoi login e cookie.
+aea7b978f0	Backup	Sauvegarde	Respaldo	Backup
+aeb21f6956	Move to Trash	Placer dans la corbeille	Mover a la papelera	Sposta nel cestino
+aec6b2abca	Search…	Rechercher…	Buscar…	Cerca…
+aeff967b37	Continue	Continuer	Continuar	Continua
+afc7e20d8e	Off: Links from Mail, Slack & Co. open as a new tab in the window. To: in a small window from which you can bring it into a space with one click.	Désactivé : les liens de Mail, Slack & Co. s'ouvrent sous la forme d'un nouvel onglet dans la fenêtre. Vers : dans une petite fenêtre à partir de laquelle vous pouvez l'amener dans un espace en un seul clic.	Desactivado: los enlaces de Mail, Slack & Co. se abren como una nueva pestaña en la ventana. Para: en una pequeña ventana desde la que puedes llevarlo a un espacio con un clic.	Disattivato: i collegamenti da Mail, Slack & Co. si aprono come una nuova scheda nella finestra. A: in una piccola finestra da cui puoi portarlo in uno spazio con un clic.
+b0b3005985	time	temps	tiempo	tempo
+b11052e9ed	Own color	Propre couleur	Color propio	Proprio colore
+b1626243ec	Send report…	Envoyer le rapport…	Enviar informe…	Invia rapporto…
+b1a1763cde	Pin sidebar (⌘S)	Épingler la barre latérale (⌘S)	Fijar barra lateral (⌘S)	Fissa la barra laterale (⌘S)
+b1cfc8318a	Share	Partager	Compartir	Condividi
+b1ea80f235	Skipped	Sauté	Saltado	Saltato
+b24601be88	sub-agent	sous-agent	sub-agente	subagente
+b258cadf85	Your Morning Brief is being created…	Votre Morning Brief est en cours de création…	Tu Morning Brief se está creando…	Il tuo Morning Brief è in preparazione…
+b260c4058e	charter	charte	carta	carta
+b287a0090e	New subfolder	Nouveau sous-dossier	Nueva subcarpeta	Nuova sottocartella
+b2b3e329ba	“%@” is about to start	« %@ » est sur le point de démarrer	“%@” está a punto de comenzar	“%@” sta per iniziare
+b2eaf9fd4d	Play	Jouer	Jugar	Giocare
+b37db02098	Claude is working…	Claude travaille…	Claude está trabajando…	Claude sta lavorando…
+b397917842	Last: %@	Dernier: %@	Último: %@	Scorso: %@
+b4068697ae	Peek	Coup d'oeil	Ojeada	Sbirciare
+b46c7b3245	For Claude Code, Playwright or Puppeteer: Open pages, click, fill out forms, screenshots, console and network.	Pour Claude Code, Dramaturge ou Marionnettiste : Ouvrir les pages, cliquer, remplir formulaires, captures d'écran, console et réseau.	Para Claude Code, Dramaturgo o Titiritero: abra páginas, haga clic, complete formularios, capturas de pantalla, consola y red.	Per Claude Code, drammaturgo o burattinaio: apri pagine, clicca, compila moduli, screenshot, console e rete.
+b4b0955355	Unfollow	Ne plus suivre	Dejar de seguir	Smetti di seguire
+b508768094	Update ready	Mise à jour prête	Actualización lista	Aggiornamento pronto
+b51dc66943	Show	Montrer	Espectáculo	Spettacolo
+b53c432e1a	OpenArch Settings	Paramètres d'OpenArch	Configuración de OpenArch	Impostazioni di OpenArch
+b540ff6f7c	Send (↩), new line with ⌥↩	Envoyer (↩), nouvelle ligne avec ⌥↩	Enviar (↩), nueva línea con ⌥↩	Invia (↩), nuova riga con ⌥↩
+b5667aae84	New Figma file	Nouveau fichier Figma	Nuevo archivo de Figma	Nuovo file Figma
+b5743c89e6	Manage Spaces…	Gérer les espaces…	Administrar espacios…	Gestisci spazi…
+b5d98fe369	⌘T opens a tab, ⌘S hides the sidebar, ⌃1–9 changes the space. Settings › General shows this introduction again.	⌘T ouvre un onglet, ⌘S masque la barre latérale, ⌃1–9 modifie l'espace. Paramètres > Général affiche à nouveau cette introduction.	⌘T abre una pestaña, ⌘S oculta la barra lateral, ⌃1–9 cambia el espacio. Configuración › General muestra esta introducción nuevamente.	⌘T apre una scheda, ⌘S nasconde la barra laterale, ⌃1–9 cambia lo spazio. Impostazioni › Generale mostra nuovamente questa introduzione.
+b602d9b1d2	Ask about this page… (@ for tabs)	Poser une question sur cette page… (@ pour les onglets)	Preguntar sobre esta página… (@ para pestañas)	Chiedi informazioni su questa pagina… (@ per le schede)
+b626f2e459	Undo	Défaire	Deshacer	Disfare
+b677584ff8	Close Split View	Fermer la vue fractionnée	Cerrar vista dividida	Chiudi visualizzazione divisa
+b68da43453	May	Peut	Puede	Maggio
+b69fd3659c	Deselect	Désélectionner	Deseleccionar	Deseleziona
+b752525ba0	Private window	Fenêtre privée	ventana privada	Finestra privata
+b75a276ebe	You share your screen	Vous partagez votre écran	Compartes tu pantalla	Condividi il tuo schermo
+b79f70e35b	AI control	Contrôle de l'IA	control de IA	Controllo dell'intelligenza artificiale
+b81f3298d9	Archive	Archive	Archivo	Archivio
+b85900e624	Stable: the released versions. If you come from Nightly, OpenArch waits for Stable to catch up.	Stable : les versions publiées. Si vous venez de Nightly, OpenArch attend que Stable rattrape son retard.	Estable: las versiones lanzadas. Si vienes de Nightly, OpenArch espera a que Stable se ponga al día.	Stabile: le versioni rilasciate. Se provieni da Nightly, OpenArch attende che Stable raggiunga.
+b88f97db22	Reopen closed window	Rouvrir la fenêtre fermée	Reabrir ventana cerrada	Riapri finestra chiusa
+b8a2d5b9d5	Arc protects logins and passwords with a key in the key ring (“Arc Safe Storage”). So that OpenArch can take it over, macOS immediately asks whether OpenArch can read it. Enter your Mac password and select Allow.	Arc protège les identifiants et les mots de passe avec une clé dans le trousseau (« Arc Safe Storage »). Pour qu'OpenArch puisse le prendre en charge, macOS demande immédiatement si OpenArch peut le lire. Entrez votre mot de passe Mac et sélectionnez Autoriser.	Arc protege los inicios de sesión y las contraseñas con una clave en el llavero (“Arc Safe Storage”). Para que OpenArch pueda hacerse cargo, macOS pregunta inmediatamente si OpenArch puede leerlo. Ingrese su contraseña de Mac y seleccione Permitir.	Arc protegge login e password con una chiave nel portachiavi (“Arc Safe Storage”). Affinché OpenArch possa prenderne il controllo, macOS chiede immediatamente se OpenArch può leggerlo. Inserisci la password del tuo Mac e seleziona Consenti.
+b8fbf3c652	%lld folders	%lld dossiers	%lld carpetas	%lld cartelle
+b901cff24a	Downloads folder in Finder	Dossier Téléchargements dans le Finder	Carpeta de descargas en Finder	Cartella Download nel Finder
+b91ca4b637	#E1676F	#E1676F	#E1676F	#E1676F
+b92fa77444	github.com/dpfaffenbauer/OpenArch	github.com/dpfaffenbauer/OpenArch	github.com/dpfaffenbauer/OpenArch	github.com/dpfaffenbauer/OpenArch
+b951bb08c8	Hide sidebar (⌘S)	Masquer la barre latérale (⌘S)	Ocultar barra lateral (⌘S)	Nascondi la barra laterale (⌘S)
+b97d6badcd	Copy URLs (⇧⌘C)	Copier les URL (⇧⌘C)	Copiar URL (⇧⌘C)	Copia URL (⇧⌘C)
+ba2d0786db	OpenArch is not allowed to read the calendar. Allow it under System Settings › Privacy & Security › Calendar.	OpenArch n'est pas autorisé à lire le calendrier. Autorisez-le sous Paramètres système › Confidentialité et sécurité › Calendrier.	OpenArch no puede leer el calendario. Permitirlo en Configuración del sistema › Privacidad y seguridad › Calendario.	OpenArch non è autorizzato a leggere il calendario. Consentilo in Impostazioni di sistema › Privacy e sicurezza › Calendario.
+ba4fa2bfe0	-	-	-	-
+ba5176d037	Open link in new tab	Ouvrir le lien dans un nouvel onglet	Abrir enlace en nueva pestaña	Apri il collegamento in una nuova scheda
+ba8b5517e2	The link no longer shows anything after that. Whoever added the bookmarks keeps the latest status.	Le lien ne montre plus rien après cela. Celui qui a ajouté les favoris conserve le dernier statut.	El enlace ya no muestra nada después de eso. Quien haya agregado los marcadores conserva el estado más reciente.	Successivamente il collegamento non mostra più nulla. Chiunque abbia aggiunto i segnalibri mantiene lo stato più recente.
+bac3d6fd53	Pin current URL	Épingler l'URL actuelle	Fijar URL actual	Blocca l'URL corrente
+bae7d5be70	Status	Statut	Estado	Stato
+bb4cde42bd	Taken from Arc: %@	Extrait d'Arc : %@	Tomado de Arc: %@	Tratto da Arc: %@
+bb577c73cc	temporarily switched off	temporairement éteint	apagado temporalmente	temporaneamente spento
+bbf99762a8	From files	À partir de fichiers	De archivos	Dai file
+bd3ee5c1e2	Create link	Créer un lien	Crear enlace	Crea collegamento
+bd635d1f6c	Show in Finder	Afficher dans le Finder	Mostrar en Finder	Mostra nel Finder
+bdc984dd09	Open the terminal, start “claude” and log in. Then in the command bar: “Create morning letter now”.	Ouvrez le terminal, démarrez « claude » et connectez-vous. Puis dans la barre de commandes : « Créer une lettre du matin maintenant ».	Abra la terminal, inicie "claude" e inicie sesión. Luego, en la barra de comandos: "Crear carta de la mañana ahora".	Apri il terminale, avvia “claude” ed effettua il login. Poi nella barra dei comandi: “Crea lettera del mattino adesso”.
+bdda60cd52	Not logged in to Google	Non connecté à Google	No iniciado sesión en Google	Non hai effettuato l'accesso a Google
+bdf6e21e4b	If you leave a call (camera or microphone in use), it continues to float at the bottom right: Google Meet with its own window, other services with the videos and buttons for microphone, camera and hang up. Back in the tab it closes.	Si vous quittez un appel (caméra ou microphone utilisé), il continue de flotter en bas à droite : Google Meet avec sa propre fenêtre, d'autres services avec les vidéos et les boutons pour le microphone, la caméra et raccrocher. De retour dans l'onglet, il se ferme.	Si dejas una llamada (cámara o micrófono en uso), sigue flotando abajo a la derecha: Google Meet con su propia ventana, otros servicios con los vídeos y botones de micrófono, cámara y colgar. De nuevo en la pestaña se cierra.	Se lasci una chiamata (fotocamera o microfono in uso), continua a fluttuare in basso a destra: Google Meet con la propria finestra, altri servizi con i video e i pulsanti per microfono, fotocamera e riaggancia. Tornando alla scheda si chiude.
+bdfbde913f	Other	Autre	Otro	Altro
+be66977b4a	Edit Space…	Modifier l’espace…	Editar espacio…	Modifica spazio…
+becdd6af95	Select all	Tout sélectionner	Seleccionar todo	Seleziona tutto
+beedd27a25	Check now	Vérifiez maintenant	Compruébalo ahora	Controlla ora
+bf1adb18b2	Switch to tab	Passer à l'onglet	Cambiar a pestaña	Passa alla scheda
+bf208eb1ef	%lld open to-dos	%lld tâches ouvertes	%lld tareas pendientes	%lld attività aperte
+bf58896b57	Browser settings	Paramètres du navigateur	Ajustes del navegador	Impostazioni del browser
+bf703c9446	Restart and import	Redémarrer et importer	Reiniciar e importar	Riavvia e importa
+bff9ec8b7c	Press keys…	Appuyez sur les touches…	Pulsa las teclas…	Premi i tasti…
+c04e39f708	OpenArch is current	OpenArch est actuel	OpenArch es actual	OpenArch è attuale
+c058cac44b	Import backup?	Importer une sauvegarde ?	¿Importar copia de seguridad?	Importare il backup?
+c08b55fd91	May be waiting for approval	Peut-être en attente d’approbation	Puede estar esperando aprobación	Forse in attesa di approvazione
+c096a4378f	Like the page	Aimer la page	Me gusta la pagina	Metti mi piace alla pagina
+c0ba2e7a17	OpenArch has found Arc and is reading its sidebar. Arc itself remains as it is.	OpenArch a trouvé Arc et lit sa barre latérale. L'Arc lui-même reste tel qu'il est.	OpenArch ha encontrado Arc y está leyendo su barra lateral. El propio arco permanece como está.	OpenArch ha trovato Arc e sta leggendo la sua barra laterale. L'arco stesso rimane così com'è.
+c0c7718a98	Continue in the terminal	Continuer dans le terminal	Continuar en la terminal	Proseguire nel terminale
+c0fcede287	Import from another browser	Importer depuis un autre navigateur	Importar desde otro navegador	Importa da un altro browser
+c14fd798a2	Back up Arc data	Sauvegarder les données Arc	Hacer una copia de seguridad de los datos de Arc	Eseguire il backup dei dati di Arc
+c246149e41	Import everything	Tout importer	Importar todo	Importa tutto
+c26ec40ac4	A shortcut needs ⌘ or ⌃.	Un raccourci nécessite ⌘ ou ⌃.	Un atajo necesita ⌘ o ⌃.	Una scorciatoia richiede ⌘ o ⌃.
+c2a4bbefb5	Import %lld passwords?	Importer %lld mots de passe ?	¿Importar %lld contraseñas?	Importare %lld password?
+c328b288fa	New calendar event	Nouvel événement de calendrier	Nuevo evento de calendario	Nuovo evento di calendario
+c3b0c89b95	Shared with you	Partagé avec vous	Compartido contigo	Condiviso con te
+c3f46fe977	Move to folder	Déplacer vers le dossier	Mover a la carpeta	Sposta nella cartella
+c41c5cb02e	Logins and passwords from %@ will be added the next time you start.	Les identifiants et mots de passe de %@ seront ajoutés au prochain démarrage.	Los inicios de sesión y contraseñas de %@ se agregarán la próxima vez que comience.	Gli accessi e le password di %@ verranno aggiunti al prossimo avvio.
+c449964c39	%lld bookmarks	%lld signets	%lld marcadores	%lld segnalibri
+c4715ccee3	Sidebar position	Position de la barre latérale	Posición de la barra lateral	Posizione della barra laterale
+c53ec2ba8a	Share server	Partager le serveur	compartir servidor	Condividi server
+c567c51fb1	Summarize the page	Résumer la page	Resumir la página	Riepiloga la pagina
+c57addbbc0	Agents (⌃0)	Agents (⌃0)	Agentes (⌃0)	Agenti (⌃0)
+c5a0d96f20	%lld agent chats will be deleted.	%lld discussions d’agent seront supprimées.	Se eliminarán %lld chats de agente.	Verranno eliminate %lld chat dell’agente.
+c5c8a51935	%@ finish	%@ finition	%@ finalizar	%@ fine
+c614ba7c45	car	voiture	auto	auto
+c64e1a18bd	Since the last start, OpenArch or one of its processes %@ \\nended unexpectedly. A report helps to find the error. It only contains versions and the location in the code, \\nno addresses, titles, or page content, and opens as an issue on GitHub, where you can view it before submitting.	Depuis le dernier démarrage, OpenArch ou un de ses processus %@\\ns'est terminé de manière inattendue. Un rapport permet de trouver l'erreur. Il ne contient que les versions et l'emplacement dans le code, \\naucune adresse, titre ou contenu de page, et s'ouvre en tant que problème sur GitHub, où vous pouvez le consulter avant de le soumettre.	Desde el último inicio, OpenArch o uno de sus procesos %@ \\nterminó inesperadamente. Un informe ayuda a encontrar el error. Solo contiene versiones y la ubicación en el código, \\nno tiene direcciones, títulos ni contenido de página y se abre como un problema en GitHub, donde puede verlo antes de enviarlo.	Dall'ultimo avvio, OpenArch o uno dei suoi processi %@ \\nfinito inaspettatamente. Un report aiuta a trovare l'errore. Contiene solo le versioni e la posizione nel codice, \\nnessun indirizzo, titolo o contenuto della pagina e si apre come problema su GitHub, dove puoi visualizzarlo prima dell'invio.
+c667f1f22a	Tasks	Tâches	Tareas	Compiti
+c6dfa31534	Crash reports	Rapports d'erreur	Informes de fallos	Rapporti sugli incidenti
+c76d18079a	Updates	Mises à jour	Actualizaciones	Aggiornamenti
+c784757bc0	With the AI ​​control (Settings › AI) it can also operate your tabs.	Avec le contrôle AI (Paramètres › AI), il peut également faire fonctionner vos onglets.	Con el control AI (Configuración › AI) también puede operar sus pestañas.	Con il controllo AI (Impostazioni › AI) puoi anche utilizzare le tue schede.
+c7a0f59c58	Update shared space now	Mettre à jour l'espace partagé maintenant	Actualizar el espacio compartido ahora	Aggiorna lo spazio condiviso adesso
+c7c2e74080	1 profile	1 profil	1 perfil	1 profilo
+c81ee48851	Then links from Mail, Slack and other apps open in OpenArch, in the correct space according to your link rules. macOS asks again immediately.	Ensuite, les liens de Mail, Slack et d'autres applications s'ouvrent dans OpenArch, dans le bon espace selon vos règles de lien. macOS demande à nouveau immédiatement.	Luego, los enlaces de Mail, Slack y otras aplicaciones se abren en OpenArch, en el espacio correcto según sus reglas de enlace. macOS vuelve a preguntar inmediatamente.	Quindi i collegamenti da Mail, Slack e altre app si aprono in OpenArch, nello spazio corretto in base alle regole di collegamento. macOS lo chiede di nuovo immediatamente.
+c83eb2423f	Add as a copy	Ajouter en copie	Agregar como copia	Aggiungi come copia
+c8afb97e02	OpenArch wants to access the Arc Safe Storage key in your keychain.	OpenArch souhaite accéder à la clé Arc Safe Storage dans votre trousseau.	OpenArch quiere acceder a la clave Arc Safe Storage en su llavero.	OpenArch vuole accedere alla chiave Arc Safe Storage nel tuo portachiavi.
+c8bc08ee94	From other browsers	Depuis d'autres navigateurs	De otros navegadores	Da altri browser
+c8ec7f60bd	%@ is still running. In order for logins and website data to be fully applied, %@ must be closed. Your tabs in %@ will be retained.	%@ est toujours en cours d'exécution. Pour que les connexions et les données du site Web soient pleinement appliquées, %@ doit être fermé. Vos onglets dans %@ seront conservés.	%@ todavía está ejecutándose. Para que los inicios de sesión y los datos del sitio web se apliquen completamente, %@ debe estar cerrado. Se conservarán sus pestañas en %@.	%@ è ancora in esecuzione. Affinché gli accessi e i dati del sito Web vengano applicati completamente, %@ deve essere chiuso. Le tue schede in %@ verranno conservate.
+c9b13ee259	Add tab	Ajouter un onglet	Agregar pestaña	Aggiungi scheda
+c9becf0080	A profile keeps logins, cookies, history, passwords and extensions separate, for example for a second Google account. You set which profile a space uses in the space (double-click on its name).	Un profil sépare les connexions, les cookies, l'historique, les mots de passe et les extensions, par exemple pour un deuxième compte Google. Vous définissez le profil qu'un espace utilise dans l'espace (double-cliquez sur son nom).	Un perfil mantiene separados los inicios de sesión, las cookies, el historial, las contraseñas y las extensiones, por ejemplo, para una segunda cuenta de Google. Tú estableces qué perfil utiliza un espacio en el espacio (haz doble clic en su nombre).	Un profilo mantiene separati login, cookie, cronologia, password ed estensioni, ad esempio per un secondo account Google. Imposta quale profilo utilizza uno spazio nello spazio (fai doppio clic sul suo nome).
+c9e19882a8	Logins, passwords, history and extensions	Identifiants, mots de passe, historique et extensions	Inicios de sesión, contraseñas, historial y extensiones.	Login, password, cronologia ed estensioni
+c9fa304e15	Open to-dos	Tâches ouvertes	Tareas pendientes	Attività aperte
+ca6aa292e2	%@ questions	%@ questions	%@ preguntas	%@ domande
+ca8bc8df46	macOS won't let OpenArch read %@'s folder. Enable OpenArch under Privacy & Security › Full Disk Access, restart OpenArch, and then open this page again.	macOS ne permettra pas à OpenArch de lire le dossier de %@. Activez OpenArch sous Confidentialité et sécurité › Accès complet au disque, redémarrez OpenArch, puis ouvrez à nouveau cette page.	macOS no permitirá que OpenArch lea la carpeta de %@. Habilite OpenArch en Privacidad y seguridad ›Acceso total al disco, reinicie OpenArch y luego abra esta página nuevamente.	macOS non consentirà a OpenArch di leggere la cartella di %@. Abilita OpenArch in Privacy e sicurezza › Accesso completo al disco, riavvia OpenArch, quindi apri di nuovo questa pagina.
+cb11b45701	Space %lld	Espace %lld	Espacio %lld	Spazio %lld
+cb3581ff64	%@ wants to open this app.	%@ souhaite ouvrir cette application.	%@ quiere abrir esta aplicación.	%@ vuole aprire questa app.
+cb939fabb6	The next time OpenArch starts, it reads passwords from the file before Chromium starts and leaves the file unchanged. It contains your passwords in plain text: delete them afterwards.	Au prochain démarrage d'OpenArch, il lit les mots de passe du fichier avant le démarrage de Chromium et laisse le fichier inchangé. Il contient vos mots de passe en clair : supprimez-les ensuite.	La próxima vez que se inicia OpenArch, lee las contraseñas del archivo antes de que se inicie Chromium y deja el archivo sin cambios. Contiene sus contraseñas en texto plano: elimínelas después.	Al successivo avvio di OpenArch, leggerà le password dal file prima dell'avvio di Chromium e lascerà il file invariato. Contiene le tue password in chiaro: cancellale in seguito.
+cbbf179eaf	Pages whose videos and calls never float on their own, separated by commas. Also in the Site Control Center (⌃⌘I).	Des pages dont les vidéos et les appels ne flottent jamais tout seuls, séparés par des virgules. Également dans le centre de contrôle du site (⌃⌘I).	Páginas cuyos vídeos y llamadas nunca flotan por sí solos, separados por comas. También en el Centro de control del sitio (⌃⌘I).	Pagine i cui video e chiamate non fluttuano mai da soli, separati da virgole. Anche nel Centro di controllo del sito (⌃⌘I).
+cc9d4903b0	QR code of the link	QR code du lien	Código QR del enlace	Codice QR del collegamento
+ccb48bd729	Block	Bloquer	Bloquear	Blocca
+ccc280e2c3	Works in %@ with your Claude login, without an API key. %@	Fonctionne en %@ avec votre login Claude, sans clé API. %@	Funciona en %@ con tu inicio de sesión de Claude, sin una clave API. %@	Funziona in %@ con il tuo login Claude, senza chiave API. %@
+ccce5be381	Not used by any Space	Utilisé par aucun espace	No lo usa ningún espacio	Non è usato da nessuno spazio
+cce9fa8698	#3FA9F5	#3FA9F5	#3FA9F5	#3FA9F5
+cd1ee0010a	%@: they go into the archive (Library › Archive, ⇧⌘T), from where you can open them again. The folders are lost.	%@ : ils vont dans l'archive (Bibliothèque › Archive, ⇧⌘T), d'où vous pourrez les rouvrir. Les dossiers sont perdus.	%@: van al archivo (Biblioteca › Archivo, ⇧⌘T), desde donde puedes abrirlos nuevamente. Las carpetas se pierden.	%@: vanno nell'archivio (Biblioteca › Archivio, ⇧⌘T), da dove puoi riaprirli. Le cartelle sono perse.
+cd91ed0d66	You:	Toi:	Tú:	Voi:
+cda171aee2	Archived tabs appear here	Les onglets archivés apparaissent ici	Las pestañas archivadas aparecen aquí	Le schede archiviate vengono visualizzate qui
+cdd6e42e60	#F0EAE5	#F0EAE5	#F0EAE5	#F0EAE5
+ce40a8d7fc	Welcome to OpenArch	Bienvenue sur OpenArch	Bienvenido a OpenArch	Benvenuti in OpenArch
+ce4ac9d5ca	GitHub live folder	Dossier GitHub en direct	Carpeta de GitHub en vivo	Cartella live di GitHub
+ce9e650ed8	Finish	Finition	Finalizar	Fine
+cea2c1a0e7	Snapshot	Instantané	Instantánea	Istantanea
+cf311af9fe	Don’t send	Ne pas envoyer	No enviar	Non inviare
+cf811c6034	Another color for the gradient	Une autre couleur pour le dégradé	Otro color para el degradado.	Un altro colore per il gradiente
+cf9b170a60	Modifies files and executes commands without asking	Modifie les fichiers et exécute des commandes sans demander	Modifica archivos y ejecuta comandos sin preguntar	Modifica file ed esegue comandi senza chiedere
+cfa2d2f167	Insert an OpenArch link (https://openarch.app/s/#…).	Insérez un lien OpenArch (https://openarch.app/s/#…).	Inserte un enlace de OpenArch (https://openarch.app/s/#…).	Inserisci un collegamento OpenArch (https://openarch.app/s/#…).
+cfb0abd8b4	Sign in to Google · %@	Connectez-vous à Google · %@	Inicia sesión en Google · %@	Accedi a Google · %@
+cfb5cd4d8c	Turn off Boost	Désactiver le Boost	Desactivar Boost	Disattiva Boost
+d027ac71ec	Detected: Export from %@. Target: Profile “%@”.	Détecté : Exporter depuis %@. Cible : Profil « %@ ».	Detectado: Exportación desde %@. Objetivo: Perfil “%@”.	Rilevato: esportazione da %@. Obiettivo: profilo “%@”.
+d03a73cc42	Clicks	Clics	Clics	Clic
+d0ee92dd4a	Profile: %@	Profil: %@	Perfil: %@	Profilo: %@
+d0fac474c3	Show/hide Chrome toolbar	Afficher/masquer la barre d'outils Chrome	Mostrar/ocultar la barra de herramientas de Chrome	Mostra/nascondi la barra degli strumenti di Chrome
+d112889f0b	Stop sharing	Arrêter le partage	Dejar de compartir	Interrompi condivisione
+d207ca5aa1	%lld %% · %lldk of %lldk tokens	%lld %% · %lldk de %lldk jetons	%lld %% · %lldk de tokens %lldk	%lld %% · %lldk di token %lldk
+d25a7eba8b	To the saved URL	Vers l'URL enregistrée	A la URL guardada	All'URL salvato
+d26091a8f6	Working	En cours	Trabajando	Al lavoro
+d2911a6adb	Right	Droite	Derecha	Destra
+d342b05600	Switch to chat	Passer à la discussion	Cambiar al chat	Passa alla chat
+d37925ec4c	Copy	Copier	Copiar	Copia
+d3bc9a378d	,	,	,	,
+d3cd961e9c	Allow access...	Autoriser l'accès...	Permitir acceso...	Consenti accesso...
+d3dacf895c	·	·	·	·
+d40196b023	Little OpenArch	Petit OpenArch	Pequeño arco abierto	Piccolo OpenArch
+d48e5de8fb	Archive tabs below the line	Archiver les onglets sous la ligne	Archivar pestañas debajo de la línea	Schede di archivio sotto la riga
+d4f15b360d	Stop loading	Arrêter le chargement	Detener carga	Interrompi caricamento
+d56a4e77b4	Part of OpenArch crashed	Une partie d’OpenArch a planté	Parte de OpenArch se ha bloqueado	Parte di OpenArch si è bloccata
+d5f715f2c9	Share…	Partager…	Compartir…	Condividi…
+d6234c79f8	1 unread	1 non lu	1 sin leer	1 non letto
+d63b981dc4	Claude Code is not signed in.	Claude Code n’est pas connecté.	Claude Code no ha iniciado sesión.	Claude Code non ha effettuato l’accesso.
+d65099fedc	Address bar, extension icons and downloads above the page (⌘⇧D).	Barre d'adresse, icônes d'extension et téléchargements au-dessus de la page (⌘⇧D).	Barra de direcciones, íconos de extensión y descargas encima de la página (⌘⇧D).	Barra degli indirizzi, icone delle estensioni e download sopra la pagina (⌘⇧D).
+d698091c90	Divided	Divisé	Dividido	Diviso
+d6c1e88589	introduction	introduction	introducción	introduzione
+d6e2c4b86d	Click on a shortcut and press the new keys with ⌘ or ⌃. ⌫ removes the abbreviation, ⎋ cancels.	Cliquez sur un raccourci et appuyez sur les nouvelles touches avec ⌘ ou ⌃. ⌫ supprime l'abréviation, ⎋ annule.	Haga clic en un atajo y presione las nuevas teclas con ⌘ o ⌃. ⌫ elimina la abreviatura, ⎋ cancela.	Fare clic su una scorciatoia e premere i nuovi tasti con ⌘ o ⌃. ⌫ toglie l'abbreviazione, ⎋ la annulla.
+d6fbc9d2bd	Import	Import	Importar	Importa
+d706a8c2a1	%@ is ready	%@ est prêt	%@ está listo	%@ è pronto
+d70b7ac87c	Ask about the selection…	Poser une question sur la sélection…	Preguntar sobre la selección…	Chiedi informazioni sulla selezione…
+d7afea6c8a	Show command and output	Afficher la commande et sa sortie	Mostrar comando y salida	Mostra comando e output
+d8980fa120	%@ plays with Safari's engine	%@ joue avec le moteur de Safari	%@ juega con el motor de Safari	%@ gioca con il motore di Safari
+d8df6ce3a6	: profile.id)	: profil.id)	: perfil.id)	: profilo.id)
+d9431e38c8	Archive	Archive	Archivo	Archivio
+d98411eb70	:	:	:	:
+d9ec961693	%lld favorites	%lld favoris	%lld favoritos	%lld preferiti
+da0c9c3952	Show folder in Finder	Afficher le dossier dans le Finder	Mostrar carpeta en Finder	Mostra cartella nel Finder
+da7e2284d5	Open shared link	Ouvrir un lien partagé	Abrir enlace compartido	Apri link condiviso
+daa559b865	Turn on Boost	Activer le Boost	Activar Boost	Attiva Boost
+dac941a58b	Agent chats	Discussions avec les agents	Chats de agentes	L'agente chiacchiera
+daf4334cf8	What's with it?	C'est quoi ça ?	¿Qué pasa con eso?	Cosa c'è che non va?
+db361a7aee	Copy URL as Markdown	Copier l'URL en tant que Markdown	Copiar URL como Markdown	Copia l'URL come Markdown
+db5d1a85bc	Claude Code reports an error. In the command bar, “Create Morning Brief Now” tries again.	Claude Code signale une erreur. Dans la barre de commandes, « Créer un brief matinal maintenant » réessaye.	Claude Code informa un error. En la barra de comandos, "Crear informe matutino ahora" vuelve a intentarlo.	Claude Code segnala un errore. Nella barra dei comandi, "Crea brief mattutino adesso" riprova.
+dbc9fb8c74	Create	Créer	Crear	Creare
+dbeb8b997a	output	sortir	producción	produzione
+dc081b9c36	Sidebar and everything else	Barre latérale et tout le reste	Barra lateral y todo lo demás	Barra laterale e tutto il resto
+dc23463a81	Screenshot	Capture d'écran	Captura de pantalla	Schermata
+dc41be830b	Profiles, sidebar and history	Profils, barre latérale et historique	Perfiles, barra lateral e historial.	Profili, barra laterale e cronologia
+dc4c0f7d4e	OpenArch failed to start Chromium.	OpenArch n'a pas réussi à démarrer Chromium.	OpenArch no pudo iniciar Chromium.	OpenArch non è riuscito ad avviare Chromium.
+dcbb3b122a	%@-Search	%@-Recherche	%@-Buscar	%@-Ricerca
+dd09804857	%lld new spaces, %lld new profiles	%lld nouveaux espaces, %lld nouveaux profils	%lld nuevos espacios, %lld nuevos perfiles	%lld nuovi spazi, %lld nuovi profili
+dd0bb3dc4e	Search browser...	Navigateur de recherche...	Buscar navegador...	Cerca nel browser...
+dd39c7f3c9	Show side by side	Afficher côte à côte	Mostrar en paralelo	Mostra affiancate
+dd86b1252b	Data	Données	Datos	Dati
+de2937ecbf	Pop-ups	Fenêtres pop-up	Ventanas emergentes	Pop-up
+df5fa80e28	%@ reports	%@ rapports	%@ informes	%@ segnala
+dfa660bfef	Tool	Outil	Herramienta	Attrezzo
+dff66d3fe5	Protect with password	Protéger par mot de passe	Proteger con contraseña	Proteggi con password
+e0d4fb21a8	Language changed	Langue modifiée	Idioma cambiado	La lingua è cambiata
+e0e7c40d3a	Changes files without asking, asks before commands	Modifie les fichiers sans demander, demande avant les commandes	Cambia archivos sin preguntar, pregunta antes de los comandos	Modifica i file senza chiedere, chiede prima dei comandi
+e0ec3bf0b7	Links in tabs	Liens dans les onglets	Enlaces en pestañas	Collegamenti nelle schede
+e112a33591	Apple's model makes the names on this Mac. It only gets the title without counters and email addresses and the host of the page, never its content, history or the rest of the address. Renamed tabs, favorites, folders, splits and private windows remain as they are. Switching off deletes the names.	Le modèle d'Apple fait la une des noms sur ce Mac. Il récupère uniquement le titre sans compteurs ni adresses email ni l'hébergeur de la page, jamais son contenu, son historique ou le reste de l'adresse. Les onglets, favoris, dossiers, fractionnements et fenêtres privées renommés restent tels quels. La désactivation supprime les noms.	El modelo de Apple da nombre a este Mac. Sólo obtiene el título sin contadores ni direcciones de correo electrónico y el host de la página, nunca su contenido, historial o el resto de la dirección. Las pestañas, favoritos, carpetas, divisiones y ventanas privadas renombradas permanecen como están. Al apagar se borran los nombres.	Il modello di Apple fa il nome su questo Mac. Ottiene solo il titolo senza contatori, indirizzi email e host della pagina, mai il suo contenuto, la cronologia o il resto dell'indirizzo. Le schede, i preferiti, le cartelle, le suddivisioni e le finestre private rinominate rimangono invariate. Lo spegnimento cancella i nomi.
+e303db67fb	Open source · no registration, no account	Open source · pas d'inscription, pas de compte	Código abierto · sin registro, sin cuenta	Open source · nessuna registrazione, nessun account
+e315e86fda	Run once in the terminal. Claude can then control OpenArch in any project, for example to test a local site. Uses Google's MCP server chrome-devtools-mcp.	Exécutez une fois dans le terminal. Claude peut alors contrôler OpenArch dans n'importe quel projet, par exemple pour tester un site local. Utilise le serveur MCP de Google chrome-devtools-mcp.	Ejecute una vez en la terminal. Luego, Claude puede controlar OpenArch en cualquier proyecto, por ejemplo para probar un sitio local. Utiliza el servidor MCP de Google chrome-devtools-mcp.	Esegui una volta nel terminale. Claude può quindi controllare OpenArch in qualsiasi progetto, ad esempio per testare un sito locale. Utilizza il server MCP di Google chrome-devtools-mcp.
+e327c24395	You will be signed out on %@. The page will reload afterwards.	Vous serez déconnecté de %@. La page se rechargera ensuite.	Se cerrará tu sesión en %@. La página se recargará después.	Verrai disconnesso da %@. La pagina si ricaricherà.
+e3390b9022	Choose…	Choisir…	Elegir…	Scegli…
+e3962515e6	Last checked: %@	Dernière vérification : %@	Última comprobación: %@	Ultimo controllo: %@
+e3b81a7a28	%lld cookies (logins), %lld passwords, %lld history entries and %lld extensions with their settings.%@	Cookies %lld (connexions), mots de passe %lld, entrées d'historique %lld et extensions %lld avec leurs paramètres.%@	Cookies %lld (inicios de sesión), contraseñas %lld, entradas del historial %lld y extensiones %lld con sus configuraciones.%@	%lld cookie (accessi), %lld password, %lld voci della cronologia ed estensioni %lld con le relative impostazioni.%@
+e40893d66e	New agent chat	Nouvelle discussion d’agent	Nuevo chat de agente	Nuova chat dell’agente
+e40c5415ab	Split view with current tab	Vue fractionnée avec l'onglet actuel	Vista dividida con la pestaña actual	Visualizzazione divisa con la scheda corrente
+e43979ec21	Loading	Chargement	Cargando	Caricamento
+e4c58e5915	Comic Sans MS	Comic Sans MS	Cómic Sans MS	Comic Sans MS
+e524e447ae	Waiting for you	En attente de vous	Esperando por ti	In attesa di te
+e5ae144d53	Dominik Pfaffenbauer	Dominik Pfaffenbauer	Dominik Pfaffenbauer	Dominik Pfaffenbauer
+e5e10335ba	Chrome Web Store	Chrome Web Store	Chrome Web Store	Chrome Web Store
+e64821bfff	Close (Esc)	Fermer (Échap)	Cerrar (Esc)	Chiudi (Esc)
+e6b3f99f3e	The spaces you want to take with you. Arc itself remains as it is.	Les espaces que vous souhaitez emporter avec vous. L'Arc lui-même reste tel qu'il est.	Los espacios que quieres llevar contigo. El propio arco permanece como está.	Gli spazi che vuoi portare con te. L'arco stesso rimane così com'è.
+e748fed854	Delete chat	Supprimer le chat	Eliminar chat	Elimina la chat
+e756740df5	https://openarch.app/s/#…	https://openarch.app/s/#…	https://openarch.app/s/#…	https://openarch.app/s/#…
+e75a693c22	Daily backup	Sauvegarde quotidienne	Copia de seguridad diaria	Backup giornaliero
+e7657c7eee	Searching…	Recherche…	Buscando…	Ricerca in corso…
+e79c752bfc	Keep other pages awake	Gardez les autres pages ouvertes	Mantenga otras páginas despiertas	Mantieni svegli le altre pagine
+e7ee14a46d	The last space remains	Il reste le dernier espace	Queda el último espacio	Rimane l'ultimo spazio
+e7fc1e45e9	App icon	Icône de l'application	icono de la aplicación	Icona dell'app
+e8194ee4c1	Version %@	Version %@	Versión %@	Versione %@
+e81a3ee7e6	Site search	Recherche sur site	búsqueda del sitio	Ricerca nel sito
+e862220acf	or emoji	ou un emoji	o emojis	o emoji
+e868a4d1f8	Close library (⌥⌘B)	Fermer la bibliothèque (⌥⌘B)	Cerrar biblioteca (⌥⌘B)	Chiudi biblioteca (⌥⌘B)
+e896f11fe4	#F0784A	#F0784A	#F0784A	#F0784A
+e8b631dd38	Copy link	Copier le lien	Copiar enlace	Copia link
+e8f8058f5b	Links (websites)	Liens (sites Web)	Enlaces (sitios web)	Link (siti web)
+e93376ca31	macOS immediately asks for the OpenArch key	macOS demande immédiatement la clé OpenArch	macOS solicita inmediatamente la clave OpenArch	macOS richiede immediatamente la chiave OpenArch
+e9591897b9	Local	Locale	Local	Locale
+e968a1d08a	#A0B33A	#A0B33A	#A0B33A	#A0B33A
+e9ab806a6f	Ask	Demander	Preguntar	Chiedere
+e9dbf3e8aa	No other browsers were found on this Mac.	Aucun autre navigateur n'a été trouvé sur ce Mac.	No se encontraron otros navegadores en esta Mac.	Nessun altro browser trovato su questo Mac.
+e9f86c6d35	No commands yet.	Aucune commande pour l’instant.	Aún no hay comandos.	Nessun comando ancora.
+ea88c70922	1 bookmark	1 signet	1 marcador	1 segnalibro
+eb07154c2b	media	médias	medios de comunicación	media
+eb8a373819	Use OpenArch as default browser?	Utiliser OpenArch comme navigateur par défaut ?	¿Usar OpenArch como navegador predeterminado?	Utilizzi OpenArch come browser predefinito?
+eb9cbf4b79	Claude opens claude.ai, ChatGPT opens chatgpt.com.	Claude ouvre claude.ai, ChatGPT ouvre chatgpt.com.	Claude abre claude.ai, ChatGPT abre chatgpt.com.	Claude apre claude.ai, ChatGPT apre chatgpt.com.
+ec19f9e379	Swap sides (⌃⇧S)	Inverser les côtés (⌃⇧S)	Intercambiar lados (⌃⇧S)	Scambia i lati (⌃⇧S)
+ec4616f898	Dark	Sombre	Oscuro	Scuro
+ec572fba6f	%lld entries are not website logins and will be omitted.	Les entrées %lld ne sont pas des connexions au site Web et seront omises.	%lld entradas no son inicios de sesión de sitios web y se omitirán.	Le voci %lld non rappresentano accessi al sito Web e verranno omesse.
+ec5bbb5ea3	#7B6CF6	#7B6CF6	#7B6CF6	#7B6CF6
+ec63f40522	Storage.clearDataForOrigin	Stockage.clearDataForOrigin	Almacenamiento.clearDataForOrigin	Storage.clearDataForOrigin
+ec6d9a738d	Scrolls	Parchemins	Pergaminos	Pergamene
+ec9f630c86	Skill	Compétence	Habilidad	Abilità
+ecab716e57	Keep chat and email awake	Gardez le chat et les e-mails éveillés	Mantenga el chat y el correo electrónico despiertos	Mantieni attive chat ed e-mail
+ecc75a7e6c	After the first answer.	Après la première réponse.	Después de la primera respuesta.	Dopo la prima risposta.
+ecd3ef9dab	Profile: %@ · %lld pinned, %lld open	Profil : %@ · %lld épinglé, %lld ouvert	Perfil: %@ · %lld fijado, %lld abierto	Profilo: %@ · %lld bloccato, %lld aperto
+ecece084e3	Active on 127.0.0.1:%lld	Actif sur 127.0.0.1 : %lld	Activo en 127.0.0.1:%lld	Attivo su 127.0.0.1:%lld
+ed10fe113d	Light	Clair	Claro	Chiaro
+ed90464321	turned off on this Mac	désactivé sur ce Mac	apagado en esta Mac	disattivato su questo Mac
+edf9ac00b8	%lld min	%lld min	%lld min	%lld min
+ee3ba2c11d	Clean up tabs	Nettoyer les onglets	Limpiar pestañas	Pulisci le schede
+ee41469a45	Arc's sidebar file could not be read.	Le fichier de la barre latérale d'Arc n'a pas pu être lu.	No se pudo leer el archivo de la barra lateral de Arc.	Impossibile leggere il file della barra laterale di Arc.
+ee620923ff	JavaScript	JavaScript	JavaScript	JavaScript
+ee80c7d23b	›	›	›	›
+ef1bd7655f	My pull requests	Mes demandes de tirage	Mis solicitudes de extracción	Le mie richieste pull
+ef598fc512	You share “%@”	Vous partagez « %@ »	Compartes “%@”	Condividi "%@"
+efa3fa0c1c	Archive all tabs below the line	Archivez tous les onglets sous la ligne	Archivar todas las pestañas debajo de la línea	Archivia tutte le schede sotto la riga
+efb1e501b0	The Apple Intelligence model is still loading. Try again later.	Le modèle Apple Intelligence est toujours en cours de chargement. Réessayez plus tard.	El modelo Apple Intelligence aún se está cargando. Vuelve a intentarlo más tarde.	Il modello Apple Intelligence è ancora in fase di caricamento. Riprova più tardi.
+efbd14a928	No Git repository.	Pas de dépôt Git.	Sin repositorio Git.	Nessun repository Git.
+efc359c9ec	Nightly %lld	%lld en soirée	%lld nocturno	Notturno %lld
+efdda17106	The downloaded file does not match the checksum.	Le fichier téléchargé ne correspond pas à la somme de contrôle.	El archivo descargado no coincide con la suma de comprobación.	Il file scaricato non corrisponde al checksum.
+efe33f4e41	To the left	À gauche	A la izquierda	A sinistra
+f002701fbe	Downloads are running	Les téléchargements sont en cours	Las descargas se están ejecutando	I download sono in esecuzione
+f05bbf0d5c	Then links from Mail, Slack and other apps open in OpenArch, in Little OpenArch or directly in the right space according to your link rules.	Ensuite, les liens de Mail, Slack et d'autres applications s'ouvrent dans OpenArch, dans Little OpenArch ou directement dans le bon espace selon vos règles de liens.	Luego, los enlaces de Mail, Slack y otras aplicaciones se abren en OpenArch, en Little OpenArch o directamente en el espacio correcto según sus reglas de enlace.	Quindi i collegamenti da Mail, Slack e altre app si aprono in OpenArch, in Little OpenArch o direttamente nello spazio giusto in base alle regole di collegamento.
+f06eb42b42	Location	Localisation	Ubicación	Posizione
+f0d37b9d26	Add	Ajouter	Agregar	Aggiungere
+f0fbf41973	Changes · %lld	Modifications · %lld	Cambios · %lld	Modifiche · %lld
+f0ff34a3d8	#73E49B	#73E49B	#73E49B	#73E49B
+f15c317cd2	Search or enter URL…	Rechercher ou saisir une URL…	Buscar o introducir una URL…	Cerca o inserisci un URL…
+f17fff1a5d	#55B860	#55B860	#55B860	#55B860
+f189835801	What Claude should do for the letter, as a file to customize.	Ce que Claude devrait faire pour la lettre, comme fichier à personnaliser.	Lo que Claude debería hacer con la carta, como archivo para personalizar.	Cosa dovrebbe fare Claude per la lettera, come file da personalizzare.
+f1dfa89229	To the right	À droite	A la derecha	A destra
+f24185e2fc	Opens	Ouvre	Abre	Si apre
+f290a38820	Reading the page…	Lecture de la page…	Leyendo la página…	Lettura della pagina…
+f32711f8f7	Please exit %@ yourself and then start the import again.	Veuillez quitter %@ vous-même, puis relancez l'importation.	Salga de %@ usted mismo y luego comience la importación nuevamente.	Per favore esci da %@ e poi riavvia l'importazione.
+f389a57f04	Click shows the last downloads	Cliquez pour afficher les derniers téléchargements	Haga clic en muestra las últimas descargas.	Fare clic su per visualizzare gli ultimi download
+f38a7ffbf5	). Your browser window is waiting.	). La fenêtre de votre navigateur attend.	). La ventana de su navegador está esperando.	). La finestra del tuo browser è in attesa.
+f458e8dca0	Documents	Documents	Documentos	Documenti
+f481001aea	Shorten tab titles	Raccourcir les titres des onglets	Acortar títulos de pestañas	Accorciare i titoli delle schede
+f48ad08363	Edit …	Modifier …	Editar …	Modificare …
+f4b324a896	Delete …	Supprimer …	Borrar …	Eliminare …
+f4ba39a8f7	Create new key	Créer une nouvelle clé	Crear nueva clave	Crea nuova chiave
+f5171c931c	Sidebar	Barre latérale	Barra lateral	Barra laterale
+f565743bcb	Temporarily switched off	Temporairement désactivé	Desactivado temporalmente	Temporaneamente disattivato
+f5fcf57dad	Turn on sound	Activer le son	activar el sonido	Attiva l'audio
+f5fd2a3435	How much of the color of the space is in the glass: little lets more of the desk through, a lot keeps the writing easy to read.	Quelle part de la couleur de l'espace se trouve dans le verre : peu laisse passer une plus grande partie du bureau, beaucoup permet à l'écriture de rester facile à lire.	Cuánto color del espacio está en el vidrio: poco deja pasar más del escritorio, mucho mantiene la escritura fácil de leer.	Quanto colore dello spazio è nel vetro: poco lascia passare la scrivania, molto mantiene la scrittura facile da leggere.
+f60dab43e9	Claude	Claude	claudio	Claude
+f620cacbc4	Bash	Frapper	Intento	Bash
+f64d123a0b	Mute	Muet	Silenciar	Muto
+f68ef91a2e	Edit space	Modifier l'espace	Editar espacio	Modifica spazio
+f6aae8c5d9	You share a window	Vous partagez une fenêtre	Compartes una ventana	Condividi una finestra
+f71a4a049f	after 24 hours	après 24 heures	después de 24 horas	dopo 24 ore
+f76f1a3fc4	The file is not a password CSV: the address and password columns are missing.	Le fichier n'est pas un CSV de mot de passe : les colonnes adresse et mot de passe sont manquantes.	El archivo no es un CSV de contraseña: faltan las columnas de dirección y contraseña.	Il file non è un CSV con password: mancano le colonne indirizzo e password.
+f788d0ed71	From another browser	Depuis un autre navigateur	Desde otro navegador	Da un altro browser
+f78b6376e0	Remove	Retirer	Eliminar	Rimuovere
+f7c96dca82	Nightly: every build of main, with everything new and some bugs.	Tous les soirs : chaque version de main, avec tout ce qui est nouveau et quelques bugs.	Todas las noches: cada versión principal, con todo lo nuevo y algunos errores.	Nightly: ogni build del main, con tutto nuovo e alcuni bug.
+f7de519498	Show stacked	Afficher empilés	Mostrar apilados	Mostra sovrapposte
+f8234cab59	New chat for this site	Nouveau chat pour ce site	Nuevo chat para este sitio	Nuova chat per questo sito
+f85143fd69	What questions does the page leave open?	Quelles questions la page laisse-t-elle ouvertes ?	¿Qué preguntas deja abiertas la página?	Quali domande lascia aperte la pagina?
+f8ae976873	Save here	Enregistrez ici	Guardar aquí	Salva qui
+f8afc509e6	Close the window	Fermez la fenêtre	Cerrar la ventana	Chiudi la finestra
+f8b7a47e71	Import...	Importer...	Importar...	Importare...
+f8b9519e4e	New tab	Nouvel onglet	Nueva pestaña	Nuova scheda
+f8e132bbe9	· with password	· avec mot de passe	· con contraseña	· con password
+f943142e98	Sidebar, boosts and settings are replaced with those from “%@”. \\nWhat is there now will be secured beforehand. Logins, passwords and history remain as they are. OpenArch restarts for this.	La barre latérale, les boosts et les paramètres sont remplacés par ceux de « %@ ». \\nCe qui est là maintenant sera préalablement sécurisé. Les identifiants, mots de passe et historique restent tels quels. OpenArch redémarre pour cela.	La barra lateral, las mejoras y la configuración se reemplazan por las de “%@”. \\nLo que hay ahora estará asegurado de antemano. Los inicios de sesión, las contraseñas y el historial permanecen como están. OpenArch se reinicia para esto.	Barra laterale, potenziamenti e impostazioni vengono sostituiti con quelli di "%@". \\nCiò che c’è adesso sarà messo in sicurezza in anticipo. Login, password e cronologia rimangono come sono. OpenArch si riavvia per questo.
+f995493308	Import sidebar from Arc?	Importer la barre latérale depuis Arc ?	¿Importar la barra lateral desde Arc?	Importare la barra laterale da Arc?
+f9c7b52fbd	Edit address (⌘L)	Modifier l’adresse (⌘L)	Editar dirección (⌘L)	Modifica indirizzo (⌘L)
+f9e10a045d	A snapshot: The link contains the bookmarks themselves and no longer changes.	Un instantané : le lien contient les favoris eux-mêmes et ne change plus.	Una instantánea: el enlace contiene los propios marcadores y ya no cambia.	Un'istantanea: il collegamento contiene i segnalibri stessi e non cambia più.
+f9e99e6e3f	Pin / Unpin	Épingler / Détacher	Fijar / Desfijar	Fissa / Sblocca
+fa853e0537	Copied	Copié	Copiado	Copiato
+fab20af322	The stable version %@ cannot be installed automatically.	La version stable %@ ne peut pas être installée automatiquement.	La versión estable %@ no se puede instalar automáticamente.	La versione stabile %@ non può essere installata automaticamente.
+fb08521c74	Update channel	Mettre à jour la chaîne	Canal de actualización	Aggiorna canale
+fb71a167cd	after 7 days	après 7 jours	después de 7 días	dopo 7 giorni
+fc718f82af	Open	Ouvrir	Abrir	Apri
+fc936f92ab	Picture-in-picture when leaving	Image dans l’image en quittant	Imagen en imagen al salir	Picture-in-picture all’uscita
+fcb2ffe57e	#5E5CB8	#5E5CB8	#5E5CB8	#5E5CB8
+fcd9622015	Library: Media, Downloads, Spaces, Archive (⌥⌘B)	Bibliothèque : médias, téléchargements, espaces, archives (⌥⌘B)	Biblioteca: Medios, Descargas, Espacios, Archivo (⌥⌘B)	Libreria: Media, Download, Spazi, Archivio (⌥⌘B)
+fd3ea87348	Edit Boost	Modifier le Boost	Editar Boost	Modifica Boost
+fdc535cc37	Click anything on the page that you want to disappear. Esc finished.	Cliquez sur n'importe quel élément de la page que vous souhaitez faire disparaître. Echap terminé.	Haga clic en cualquier elemento de la página que desee que desaparezca. Esc finalizado.	Fai clic su qualsiasi punto della pagina che desideri far scomparire. Esc finito.
+fe035157cd	Port	Port	Puerto	Porta
+fe06eb6459	tab	languette	pestaña	scheda
+fe236ddc12	1 pinned tab	1 onglet épinglé	1 pestaña fijada	1 scheda fissata
+fe5f0a65da	by Dominik Pfaffenbauer	par Dominik Pfaffenbauer	por Dominik Pfaffenbauer	di Dominik Pfaffenbauer
+fe9db8e44a	No extensions found in Arc.	Aucune extension trouvée dans Arc.	No se encontraron extensiones en Arc.	Nessuna estensione trovata in Arc.
+ff230f1d0f	Open image in new tab	Ouvrir l'image dans un nouvel onglet	Abrir imagen en nueva pestaña	Apri l'immagine in una nuova scheda
+ff4fc0276e	Profiles	Profils	Perfiles	Profili
+ff637165ee	Current	Actuel	Actual	Attuale
+ff655bff28	Pin tab	Épingler l’onglet	Fijar pestaña	Fissa scheda
+ffa5a8a7e2	Delete	Supprimer	Eliminar	Elimina
+ffcbb22398	Remove from favorites	Retirer des favoris	Quitar de favoritos	Rimuovi dai preferiti
+b642128e00	%@ in %@. Your browser window is waiting.	%@ dans %@. Votre fenêtre de navigateur vous attend.	%@ en %@. Tu ventana del navegador te espera.	%@ in %@. La finestra del browser ti aspetta.
+a263169f77	%lld profiles	%lld profils	%lld perfiles	%lld profili
+6702b92a75	%@ bookmarks	%@-Lesezeichen	Signets %@	Marcadores de %@	Segnalibri %@
+6a397dcb02	Reading list	Leseliste	Liste de lecture	Lista de lectura	Elenco letture
+17f95b961a	Bookmarks file	Lesezeichen-Datei	Fichier de signets	Archivo de marcadores	File dei segnalibri
+5daf3bf57b	Mobile bookmarks	Mobile Lesezeichen	Signets mobiles	Marcadores móviles	Segnalibri mobili

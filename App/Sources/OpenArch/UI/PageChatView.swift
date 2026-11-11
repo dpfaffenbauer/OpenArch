@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import SwiftUI
 
 /// The panel right of the page while its chat is open (⌘E).
@@ -43,7 +44,7 @@ struct PageChatView: View {
                         if chat.isPreparing || session.isRunning {
                             HStack(spacing: 8) {
                                 ProgressView().controlSize(.small)
-                                Text(chat.isPreparing ? "Liest die Seite …" : "Claude denkt nach …")
+                                Text(L(chat.isPreparing ? "Liest die Seite …" : "Claude denkt nach …"))
                                     .font(.system(size: 12.5)).foregroundStyle(.secondary)
                             }
                         }
@@ -123,8 +124,9 @@ private struct PageChatEmptyState: View {
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(suggestions, id: \.self) { question in
+                    let label = L(question)
                     Button { ask(question) } label: {
-                        Text(question)
+                        Text(label)
                             .font(.system(size: 12.5))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
@@ -169,7 +171,7 @@ private struct PageChatInput: View {
                 mentionChips
             }
             HStack(alignment: .bottom, spacing: 8) {
-                TextField(placeholder, text: Binding(get: { session.draft }, set: { session.draft = $0 }), axis: .vertical)
+                TextField(L(placeholder), text: Binding(get: { session.draft }, set: { session.draft = $0 }), axis: .vertical)
                     .textFieldStyle(.plain)
                     .font(.system(size: 13.5))
                     .lineLimit(1...8)
@@ -221,8 +223,8 @@ private struct PageChatInput: View {
     }
 
     private var placeholder: String {
-        if chat.session.isRunning { return "Claude denkt nach …" }
-        return chat.selection != nil ? "Frag zur Auswahl …" : "Frag zu dieser Seite … (@ für Tabs)"
+        if chat.session.isRunning { return L("Claude denkt nach …") }
+        return chat.selection != nil ? L("Frag zur Auswahl …") : L("Frag zu dieser Seite … (@ für Tabs)")
     }
 
     // MARK: @

@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import Darwin
 import CommonCrypto
 import Security
@@ -63,11 +64,9 @@ enum ArcProfileImport {
         var undecryptable = 0
 
         var text: String {
-            """
-            \(cookies) Cookies (Logins), \(passwords) Passwörter, \
-            \(historyEntries) Verlaufseinträge und \(extensions) Extensions mit ihren Einstellungen.\
-            \(undecryptable > 0 ? " \(undecryptable) Werte ließen sich nicht entschlüsseln und wurden ausgelassen." : "")
-            """
+            L("%lld Cookies (Logins), %lld Passwörter, %lld Verlaufseinträge und %lld Extensions mit ihren Einstellungen.%@",
+              cookies, passwords, historyEntries, extensions,
+              undecryptable > 0 ? L(" %lld Werte ließen sich nicht entschlüsseln und wurden ausgelassen.", undecryptable) : "")
         }
     }
 
@@ -78,9 +77,9 @@ enum ArcProfileImport {
         var errorDescription: String? {
             switch self {
             case .noKeychainAccess(let service, let status):
-                "Der Schlüssel „\(service)“ konnte nicht aus dem Schlüsselbund gelesen werden (\(status)). Ohne ihn lassen sich Logins und Passwörter nicht übernehmen."
+                L("Der Schlüssel „%@“ konnte nicht aus dem Schlüsselbund gelesen werden (%@). Ohne ihn lassen sich Logins und Passwörter nicht übernehmen.", service, String(status))
             case .copyFailed(let detail):
-                "Das Arc-Profil konnte nicht kopiert werden: \(detail)"
+                L("Das Arc-Profil konnte nicht kopiert werden: %@", detail)
             }
         }
     }
@@ -103,9 +102,9 @@ enum ArcProfileImport {
         let message: String
         do {
             let summary = try run(into: chromiumData.appendingPathComponent(directory), history: history)
-            message = "Aus Arc übernommen: \(summary.text)"
+            message = L("Aus Arc übernommen: %@", summary.text)
         } catch {
-            message = "Der vollständige Import ist fehlgeschlagen. \(error.localizedDescription)"
+            message = L("Der vollständige Import ist fehlgeschlagen. %@", error.localizedDescription)
         }
         UserDefaults.standard.set(message, forKey: resultKey)
     }
@@ -114,7 +113,7 @@ enum ArcProfileImport {
     /// its own). |progress| hears what is being done, 0–1.
     static func run(into target: URL, from source: URL = arcProfile, key: Data? = nil,
                     progress: (@Sendable (Double, String) -> Void)? = nil, history: (URL) -> Int) throws -> Summary {
-        progress?(0.05, "Schlüssel von Arc")
+        progress?(0.05, L("Schlüssel von Arc"))
         let arcKey = try key ?? keychainKey(service: "Arc Safe Storage")
         // The login keychain's key, or the mock key where this launch still
         // uses it (SafeStorage.prepare runs first).
@@ -141,7 +140,7 @@ enum ArcProfileImport {
         ]
         for (index, entry) in reencrypt.enumerated() {
             progress?(0.3 + 0.5 * Double(index) / Double(reencrypt.count),
-                      entry.table == "cookies" ? "Logins" : entry.table == "logins" ? "Passwörter" : "Formulardaten")
+                      entry.table == "cookies" ? L("Logins") : entry.table == "logins" ? L("Passwörter") : L("Formulardaten"))
             let url = target.appendingPathComponent(entry.file)
             guard fm.fileExists(atPath: url.path) else { continue }
             let (converted, failed) = reencryptColumn(database: url, table: entry.table, column: entry.column,

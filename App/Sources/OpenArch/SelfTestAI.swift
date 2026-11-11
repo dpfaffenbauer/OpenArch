@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 
 /// The self-test of the AI features (chat with the page, skills, the
@@ -80,7 +81,7 @@ extension SelfTest {
             bar.show(mode: .newTab)
             bar.model.query = "zusam"
             let row = bar.model.results.first { $0.title == "/zusammenfassen" }
-            self.expect(row?.subtitle == "Skill · Fasst eine Seite in fünf Punkten zusammen.",
+            self.expect(row?.subtitle == L("Skill") + " · Fasst eine Seite in fünf Punkten zusammen.",
                         "typing a skill's name lists it in the command bar (\(bar.model.results.map(\.title)))")
             bar.model.query = "/"
             self.expect(bar.model.results.prefix(3).map(\.title) == ["/standup", "/tldr", "/zusammenfassen"],

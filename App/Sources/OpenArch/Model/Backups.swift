@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 
 /// The daily backup: once a day, Library.json (spaces, tabs, link rules and
 /// the settings kept with them), Boosts.json and OpenArch's other settings
@@ -171,8 +172,8 @@ final class Backups {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Hier sichern"
-        panel.message = "Wohin soll die Sicherung von Sidebar, Boosts und Einstellungen?"
+        panel.prompt = L("Hier sichern")
+        panel.message = L("Wohin soll die Sicherung von Sidebar, Boosts und Einstellungen?")
         guard panel.runModal() == .OK, let folder = panel.url else { return }
         let name = "OpenArch Export " + Self.stamp(Date(), "yyyy-MM-dd HHmm")
         do {
@@ -190,8 +191,8 @@ final class Backups {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.directoryURL = folder
-        panel.prompt = "Importieren"
-        panel.message = "Wähle einen Sicherungsordner („OpenArch Backup …“ oder „OpenArch Export …“)."
+        panel.prompt = L("Importieren")
+        panel.message = L("Wähle einen Sicherungsordner („OpenArch Backup …“ oder „OpenArch Export …“).")
         guard panel.runModal() == .OK, let backup = panel.url else { return }
         do {
             try Self.validate(backup)
@@ -200,13 +201,13 @@ final class Backups {
             return
         }
         let alert = NSAlert()
-        alert.messageText = "Sicherung importieren?"
-        alert.informativeText = """
-            Sidebar, Boosts und Einstellungen werden durch die aus „\(backup.lastPathComponent)“ ersetzt. \
+        alert.messageText = L("Sicherung importieren?")
+        alert.informativeText = L("""
+            Sidebar, Boosts und Einstellungen werden durch die aus „%@“ ersetzt. \
             Was jetzt da ist, wird vorher gesichert. Logins, Passwörter und Verlauf bleiben, wie sie sind. OpenArch startet dafür neu.
-            """
-        alert.addButton(withTitle: "Importieren und neu starten")
-        alert.addButton(withTitle: "Abbrechen")
+            """, backup.lastPathComponent)
+        alert.addButton(withTitle: L("Importieren und neu starten"))
+        alert.addButton(withTitle: L("Abbrechen"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         do {
             try write(library: library, into: folder, named: "OpenArch Backup vor Import "
@@ -229,10 +230,10 @@ final class Backups {
     /// A backup folder whose Library.json OpenArch can read.
     static func validate(_ backup: URL) throws {
         guard let data = try? Data(contentsOf: backup.appendingPathComponent("Library.json")) else {
-            throw BackupError("In diesem Ordner ist keine Sicherung von OpenArch (Library.json fehlt).")
+            throw BackupError(L("In diesem Ordner ist keine Sicherung von OpenArch (Library.json fehlt)."))
         }
         guard let library = try? JSONDecoder.iso.decode(LibraryData.self, from: data), !library.spaces.isEmpty else {
-            throw BackupError("Die Library.json dieser Sicherung lässt sich nicht lesen.")
+            throw BackupError(L("Die Library.json dieser Sicherung lässt sich nicht lesen."))
         }
     }
 
@@ -244,9 +245,9 @@ final class Backups {
         let message: String
         do {
             try restore(from: URL(fileURLWithPath: path, isDirectory: true), into: AppPaths.support, defaults: .standard)
-            message = "Sidebar, Boosts und Einstellungen kommen jetzt aus „\(URL(fileURLWithPath: path).lastPathComponent)“."
+            message = L("Sidebar, Boosts und Einstellungen kommen jetzt aus „%@“.", URL(fileURLWithPath: path).lastPathComponent)
         } catch {
-            message = "Der Import ist fehlgeschlagen; es ist alles, wie es war. \(error.localizedDescription)"
+            message = L("Der Import ist fehlgeschlagen; es ist alles, wie es war. %@", error.localizedDescription)
         }
         UserDefaults.standard.set(message, forKey: resultKey)
     }

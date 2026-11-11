@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 import os
 
 /// Features that can be switched off without an update, so one that a new
@@ -27,10 +28,10 @@ enum Feature: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .peek: "Peek"
-        case .tabPreviews: "Vorschau beim Überfahren"
-        case .agentChats: "Agent-Chats"
+        case .tabPreviews: L("Vorschau beim Überfahren")
+        case .agentChats: L("Agent-Chats")
         case .boosts: "Boosts"
-        case .drmWebKit: "Geschützte Videos über WebKit"
+        case .drmWebKit: L("Geschützte Videos über WebKit")
         }
     }
 }
@@ -58,7 +59,7 @@ final class FeatureSwitches: Sendable {
         let (local, remote) = state.withLock { ($0.local, $0.remote) }
         var result = remote
         for feature in local ?? Self.localDefaults() {
-            result[feature] = "auf diesem Mac abgeschaltet"
+            result[feature] = L("auf diesem Mac abgeschaltet")
         }
         return result
     }
@@ -110,7 +111,7 @@ final class FeatureSwitches: Sendable {
             guard let feature = Feature(rawValue: entry.feature),
                   build >= entry.minBuild ?? Int.min, build <= entry.maxBuild ?? Int.max,
                   entry.chromium.map({ chromium.hasPrefix($0) }) ?? true else { continue }
-            result[feature] = entry.reason ?? "vorübergehend abgeschaltet"
+            result[feature] = entry.reason ?? L("vorübergehend abgeschaltet")
         }
         return result
     }

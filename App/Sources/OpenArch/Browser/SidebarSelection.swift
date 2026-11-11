@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 
 /// Several sidebar rows at once, as in Arc: ⇧-click selects the rows from
 /// the last one clicked to this one, ⌘⇧-click (or ⌘-click while rows are
@@ -99,7 +100,7 @@ extension BrowserWindowController {
         let urls = selectedTabs.map(\.currentURL).filter { !$0.isEmpty }
         guard !urls.isEmpty else { return }
         OpenArch.copy(urls.joined(separator: "\n"))
-        showToast(urls.count == 1 ? "Link kopiert" : "\(urls.count) Links kopiert")
+        showToast(Localization.count(urls.count, one: "Link kopiert", other: "%lld Links kopiert"))
     }
 
     /// Today tabs close into the archive (⇧⌘T brings them back), pinned
@@ -117,7 +118,7 @@ extension BrowserWindowController {
             }
         }
         clearSelection()
-        if count > 0 { showToast(count == 1 ? "1 Tab archiviert" : "\(count) Tabs archiviert", symbol: "archivebox") }
+        if count > 0 { showToast(Localization.count(count, one: "1 Tab archiviert", other: "%lld Tabs archiviert"), symbol: "archivebox") }
         return count
     }
 

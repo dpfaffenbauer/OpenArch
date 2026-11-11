@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import SwiftUI
 
 /// One browser window: the sidebar on the left (or on the right, Settings ›
@@ -898,7 +899,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard let page = page as? WebKitPage, !page.serviceName.isEmpty, !ProtectedMedia.wasTold(page.serviceName),
               let item = item(for: page), visibleTabs.contains(where: { $0 === item }) else { return }
         ProtectedMedia.told(page.serviceName)
-        showToast("\(page.serviceName) spielt mit Safaris Engine", symbol: "safari", action: ToastAction(title: "Warum?") { [weak self] in
+        showToast(L("%@ spielt mit Safaris Engine", page.serviceName), symbol: "safari", action: ToastAction(title: L("Warum?")) { [weak self] in
             guard let self, let item = self.item(for: page) else { return }
             if self.state.activeItem !== item { self.select(item) }
             self.state.siteControlsVisible = true
@@ -1310,12 +1311,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func deleteFolder(_ folder: Item) {
         guard folder.kind == .folder else { return }
         let alert = NSAlert()
-        alert.messageText = "Ordner „\(folder.displayTitle)“ löschen?"
+        alert.messageText = L("Ordner „%@“ löschen?", folder.displayTitle)
         let tabs = folder.descendants.filter { $0.kind == .tab || $0.kind == .agent }.count
-        alert.informativeText = tabs == 0 ? "Der Ordner ist leer." :
-            "Die \(tabs) Tab\(tabs == 1 ? "" : "s") darin werden ebenfalls entfernt."
-        alert.addButton(withTitle: "Löschen")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.informativeText = tabs == 0 ? L("Der Ordner ist leer.")
+            : Localization.count(tabs, one: "Die 1 Tab darin wird ebenfalls entfernt.",
+                                       other: "Die %lld Tabs darin werden ebenfalls entfernt.")
+        alert.addButton(withTitle: L("Löschen"))
+        alert.addButton(withTitle: L("Abbrechen"))
         alert.buttons[0].hasDestructiveAction = true
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         for tab in folder.descendants where tab.kind == .tab {

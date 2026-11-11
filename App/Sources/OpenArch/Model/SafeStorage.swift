@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import Security
 
 /// The key Chromium encrypts saved passwords, cookies, card numbers and a few
@@ -80,8 +81,8 @@ enum SafeStorage {
             if moved {
                 // The mock key would make Chromium throw the data away.
                 let alert = NSAlert()
-                alert.messageText = "OpenArch kann seinen Schlüssel nicht anlegen."
-                alert.informativeText = "Der Schlüsselbund hat „\(service)“ nicht angenommen (\(itemOutcome)). Starte OpenArch bitte noch einmal."
+                alert.messageText = L("OpenArch kann seinen Schlüssel nicht anlegen.")
+                alert.informativeText = L("Der Schlüsselbund hat „%@“ nicht angenommen (%@). Starte OpenArch bitte noch einmal.", service, itemOutcome)
                 NSApp.activate()
                 alert.runModal()
                 exit(1)
@@ -167,13 +168,13 @@ enum SafeStorage {
     @MainActor
     private static func explainQuestion(teamSigned: Bool) {
         let alert = NSAlert()
-        alert.messageText = "macOS fragt gleich nach dem Schlüssel von OpenArch"
-        alert.informativeText = """
-            Deine gespeicherten Passwörter und Logins sind mit dem Schlüssel „\(service)“ aus deinem \
+        alert.messageText = L("macOS fragt gleich nach dem Schlüssel von OpenArch")
+        alert.informativeText = L("""
+            Deine gespeicherten Passwörter und Logins sind mit dem Schlüssel „%@“ aus deinem \
             Anmelde-Schlüsselbund verschlüsselt. Diese OpenArch-Version darf ihn noch nicht lesen, deshalb fragt \
             macOS gleich nach deinem Mac-Passwort. Gib es ein und wähle „Immer erlauben“.
-            """ + (teamSigned ? " OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr." : "")
-        alert.addButton(withTitle: "Weiter")
+            """, service) + (teamSigned ? L(" OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr.") : "")
+        alert.addButton(withTitle: L("Weiter"))
         NSApp.activate()
         alert.runModal()
     }
@@ -183,14 +184,14 @@ enum SafeStorage {
     private static func askToStartOver() -> Bool {
         let alert = NSAlert()
         alert.alertStyle = .critical
-        alert.messageText = "Der Schlüssel „\(service)“ fehlt im Schlüsselbund."
-        alert.informativeText = """
+        alert.messageText = L("Der Schlüssel „%@“ fehlt im Schlüsselbund.", service)
+        alert.informativeText = L("""
             Mit ihm sind deine gespeicherten Passwörter und Logins verschlüsselt. Wenn du ihn aus einem Backup \
             deines Schlüsselbunds zurückholen kannst, beende OpenArch und tu das zuerst. Mit einem neuen Schlüssel \
             lassen sich die bisherigen Passwörter und Logins nicht mehr lesen.
-            """
-        alert.addButton(withTitle: "Beenden")
-        let startOver = alert.addButton(withTitle: "Neuen Schlüssel anlegen")
+            """)
+        alert.addButton(withTitle: L("Beenden"))
+        let startOver = alert.addButton(withTitle: L("Neuen Schlüssel anlegen"))
         startOver.hasDestructiveAction = true
         NSApp.activate()
         return alert.runModal() == .alertSecondButtonReturn
@@ -199,13 +200,13 @@ enum SafeStorage {
     @MainActor
     private static func askToRetry() -> Bool {
         let alert = NSAlert()
-        alert.messageText = "OpenArch kann seinen Schlüssel nicht lesen."
-        alert.informativeText = """
-            Ohne den Schlüssel „\(service)“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und \
+        alert.messageText = L("OpenArch kann seinen Schlüssel nicht lesen.")
+        alert.informativeText = L("""
+            Ohne den Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und \
             Logins nicht öffnen. Versuch es noch einmal und wähle „Immer erlauben“, oder beende OpenArch.
-            """
-        alert.addButton(withTitle: "Erneut versuchen")
-        alert.addButton(withTitle: "Beenden")
+            """, service)
+        alert.addButton(withTitle: L("Erneut versuchen"))
+        alert.addButton(withTitle: L("Beenden"))
         NSApp.activate()
         return alert.runModal() == .alertFirstButtonReturn
     }

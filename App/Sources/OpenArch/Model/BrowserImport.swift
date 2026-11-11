@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import OpenArchLocalization
 import SQLite3
 
 // Moving over from other browsers: the Chromium family (Chrome and its
@@ -156,10 +157,10 @@ enum ImportReadError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unreadable: "Die Datei ließ sich nicht lesen."
-        case .notBookmarks: "Die Datei enthält keine Lesezeichen im HTML-Format."
-        case .notPasswords: "Die Datei ist keine Passwort-CSV: Es fehlen die Spalten für Adresse und Passwort."
-        case .tooLarge: "Die Datei ist zu groß."
+        case .unreadable: L("Die Datei ließ sich nicht lesen.")
+        case .notBookmarks: L("Die Datei enthält keine Lesezeichen im HTML-Format.")
+        case .notPasswords: L("Die Datei ist keine Passwort-CSV: Es fehlen die Spalten für Adresse und Passwort.")
+        case .tooLarge: L("Die Datei ist zu groß.")
         }
     }
 }
@@ -387,8 +388,8 @@ enum BrowserImporter {
         var builder = BookmarkBuilder(prefix: prefix)
         let items = BookmarksHTML.tree(root, firefox: kind == .firefox, &builder)
         guard builder.bookmarks > 0 || builder.folders > 0 else { throw ImportReadError.notBookmarks }
-        let name = kind.map { "\($0.name)-Lesezeichen" } ?? "Lesezeichen"
-        return ImportedProfile(sourceKey: prefix, browserName: kind?.name ?? "Lesezeichen-Datei", name: name,
+        let name = kind.map { L("%@-Lesezeichen", $0.name) } ?? L("Lesezeichen")
+        return ImportedProfile(sourceKey: prefix, browserName: kind?.name ?? L("Lesezeichen-Datei"), name: name,
                                color: (kind ?? .safari).color, icon: "bookmark.fill", items: items,
                                bookmarks: builder.bookmarks, folders: builder.folders, skips: builder.skips,
                                usesCurrentProfile: true)
@@ -525,7 +526,7 @@ enum ChromiumBookmarks {
             return nodes
         }
         var nodes = children(roots["bookmark_bar"] as? [String: Any] ?? [:], depth: 1)
-        for (key, fallback) in [("other", "Weitere Lesezeichen"), ("synced", "Mobile Lesezeichen")] {
+        for (key, fallback) in [("other", L("Weitere Lesezeichen")), ("synced", L("Mobile Lesezeichen"))] {
             let node = roots[key] as? [String: Any] ?? [:]
             let inner = children(node, depth: 1)
             guard !inner.isEmpty else { continue }
@@ -589,8 +590,8 @@ enum FirefoxPlaces {
             return result
         }
         var result = roots["toolbar_____"].map { nodes($0, depth: 1) } ?? []
-        for (guid, title) in [("menu________", "Lesezeichen-Menü"), ("unfiled_____", "Weitere Lesezeichen"),
-                              ("mobile______", "Mobile Lesezeichen")] {
+        for (guid, title) in [("menu________", L("Lesezeichen-Menü")), ("unfiled_____", L("Weitere Lesezeichen")),
+                              ("mobile______", L("Mobile Lesezeichen"))] {
             guard let id = roots[guid] else { continue }
             let inner = nodes(id, depth: 1)
             guard !inner.isEmpty else { continue }
@@ -655,8 +656,8 @@ enum SafariBookmarks {
                 let inner = nodes(entry["Children"] as? [Any] ?? [], depth: 1)
                 guard !inner.isEmpty else { continue }
                 let name = switch title {
-                case "BookmarksMenu": "Lesezeichenmenü"
-                case "com.apple.ReadingList": "Leseliste"
+                case "BookmarksMenu": L("Lesezeichenmenü")
+                case "com.apple.ReadingList": L("Leseliste")
                 default: title
                 }
                 result.append(builder.folder(id: id, title: name, children: inner))
@@ -858,7 +859,7 @@ enum BookmarksHTML {
         if !loose.isEmpty {
             let inner = nodes(loose, path: key("/loose"), depth: 1)
             if !inner.isEmpty {
-                folders.insert(builder.folder(id: "root:loose", title: firefox ? "Lesezeichen-Menü" : "Weitere Lesezeichen",
+                folders.insert(builder.folder(id: "root:loose", title: firefox ? L("Lesezeichen-Menü") : L("Weitere Lesezeichen"),
                                               children: inner), at: 0)
             }
         }

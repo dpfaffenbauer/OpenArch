@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 import Observation
 
 /// A Claude Code session on this Mac, as its transcript tells it (one JSON
@@ -11,11 +12,11 @@ struct ClaudeSession: Identifiable, Equatable, Sendable {
 
         var title: String {
             switch self {
-            case .working: "Arbeitet"
-            case .approval: "Wartet vielleicht auf Freigabe"
-            case .waiting: "Wartet auf dich"
-            case .open: "Offene Todos"
-            case .done: "Ruhend"
+            case .working: L("Arbeitet")
+            case .approval: L("Wartet vielleicht auf Freigabe")
+            case .waiting: L("Wartet auf dich")
+            case .open: L("Offene Todos")
+            case .done: L("Ruhend")
             }
         }
 
@@ -195,7 +196,7 @@ final class ClaudeSessions {
                     session.turn = .toolResult
                 } else if let prompt = prompt(in: content) {
                     if firstPrompt.isEmpty { firstPrompt = prompt }
-                    session.lastMessage = "Du: " + prompt
+                    session.lastMessage = L("Du: ") + prompt
                     session.turn = .prompt
                 }
             case "assistant":

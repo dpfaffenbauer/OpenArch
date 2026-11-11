@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// What an import from other browsers did, in numbers. Never a title, an
 /// address or a password.
@@ -37,24 +38,24 @@ struct BrowserImportReport: Equatable {
     /// The lines of the result view.
     var lines: [String] {
         var lines: [String] = []
-        if profiles > 0 || spaces > 0 { lines.append("\(spaces) neue Spaces, \(profiles) neue Profile") }
-        lines.append("\(bookmarks) Lesezeichen und \(folders) Ordner übernommen")
-        if alreadyThere > 0 { lines.append("\(alreadyThere) schon von einem früheren Import da, nicht doppelt angelegt") }
-        if history > 0 { lines.append("\(history) Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet") }
-        if passwords > 0 { lines.append("\(passwords) Passwörter") }
+        if profiles > 0 || spaces > 0 { lines.append(L("%lld neue Spaces, %lld neue Profile", spaces, profiles)) }
+        lines.append(L("%lld Lesezeichen und %lld Ordner übernommen", bookmarks, folders))
+        if alreadyThere > 0 { lines.append(L("%lld schon von einem früheren Import da, nicht doppelt angelegt", alreadyThere)) }
+        if history > 0 { lines.append(L("%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet", history)) }
+        if passwords > 0 { lines.append(L("%lld Passwörter", passwords)) }
         return lines
     }
 
     /// What was left out, and why.
     var skippedLines: [String] {
         var lines: [String] = []
-        if skips.bookmarklets > 0 { lines.append("\(skips.bookmarklets) Bookmarklets (javascript:-Links) ausgelassen") }
-        if skips.noAddress > 0 { lines.append("\(skips.noAddress) Lesezeichen ohne brauchbare Adresse ausgelassen") }
+        if skips.bookmarklets > 0 { lines.append(L("%lld Bookmarklets (javascript:-Links) ausgelassen", skips.bookmarklets)) }
+        if skips.noAddress > 0 { lines.append(L("%lld Lesezeichen ohne brauchbare Adresse ausgelassen", skips.noAddress)) }
         if skips.tooMany > 0 {
-            lines.append("\(skips.tooMany) Lesezeichen über \(BrowserImporter.maxBookmarks) pro Profil ausgelassen")
+            lines.append(L("%lld Lesezeichen über %lld pro Profil ausgelassen", skips.tooMany, BrowserImporter.maxBookmarks))
         }
-        if skips.tooDeep > 0 { lines.append("\(skips.tooDeep) Ordner tiefer als \(BrowserImporter.maxDepth) Ebenen abgeschnitten") }
-        for part in unreadable { lines.append("Nicht lesbar: \(part)") }
+        if skips.tooDeep > 0 { lines.append(L("%lld Ordner tiefer als %lld Ebenen abgeschnitten", skips.tooDeep, BrowserImporter.maxDepth)) }
+        for part in unreadable { lines.append(L("Nicht lesbar: %@", part)) }
         return lines + errors
     }
 }

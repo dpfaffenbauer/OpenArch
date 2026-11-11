@@ -1,5 +1,6 @@
 import AppKit
 import QuickLookThumbnailing
+import OpenArchLocalization
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -67,11 +68,11 @@ enum DownloadKind: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .images: "Bilder"
-        case .media: "Videos und Musik"
-        case .documents: "Dokumente"
-        case .archives: "Archive, Apps und Installer"
-        case .other: "Andere"
+        case .images: L("Bilder")
+        case .media: L("Videos und Musik")
+        case .documents: L("Dokumente")
+        case .archives: L("Archive, Apps und Installer")
+        case .other: L("Andere")
         }
     }
 
@@ -126,7 +127,7 @@ struct DownloadStackView: View {
                             .rising(risen, fromBelow: running.count - index)
                     }
                     if stack.isLoaded && shown.isEmpty && running.isEmpty {
-                        Text(files.count < stack.files.count ? "Keine passenden Downloads" : "Keine Downloads")
+                        Text(L(files.count < stack.files.count ? "Keine passenden Downloads" : "Keine Downloads"))
                             .font(.system(size: 12.5))
                             .foregroundStyle(theme.secondary)
                             .padding(.horizontal, 10)

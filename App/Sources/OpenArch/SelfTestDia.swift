@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 
 /// Checks for the features taken from Dia: "new doc" in the command bar,
@@ -24,10 +25,10 @@ extension SelfTest {
         browser.commandBar.show(mode: .newTab)
         model.query = "new doc"
         let first = model.results.first
-        expect(first?.title == "Neues Google-Dokument" && first?.badge == "Erstellen",
+        expect(first?.title == L("Neues Google-Dokument") && first?.badge == L("Erstellen"),
                "„new doc“ in the command bar offers a new Google doc first (\(first?.title ?? "nothing"))")
         model.query = "neue tabelle"
-        expect(model.results.first?.title == "Neue Google-Tabelle", "„neue tabelle“ offers a new sheet first")
+        expect(model.results.first?.title == L("Neue Google-Tabelle"), "„neue tabelle“ offers a new sheet first")
         model.query = "new"
         expect(!model.results.contains { $0.id.hasPrefix("create:") }, "„new“ alone offers no new documents")
         expect(QuickCreate.matching("new ticket") { "acme.atlassian.net" }.first?.url

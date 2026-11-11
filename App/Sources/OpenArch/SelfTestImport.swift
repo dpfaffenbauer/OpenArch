@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import CommonCrypto
 import SQLite3
 
@@ -168,7 +169,7 @@ extension SelfTest {
         let chromeSpace = created.first { $0.name == "Chrome" }
         let pinned = chromeSpace?.pinned.items ?? []
         let projects = pinned.first { $0.kind == .folder && $0.customTitle == "Projekte" }
-        let other = pinned.first { $0.kind == .folder && $0.customTitle == "Weitere Lesezeichen" }
+        let other = pinned.first { $0.kind == .folder && $0.customTitle == L("Weitere Lesezeichen") }
         expect(created.map(\.name) == ["Chrome", "Kunden", "Firefox"] && library.profiles.count == profilesBefore + 3
                && Set(created.map(\.profileID)).count == 3,
                "other browsers: each profile becomes a profile and a space with its name (\(created.map(\.name)))")
@@ -182,7 +183,7 @@ extension SelfTest {
         let firefoxSpace = created.first { $0.name == "Firefox" }
         let fxItems = firefoxSpace?.pinned.items ?? []
         expect(fxItems.first?.savedURL == "https://example.org/fx" && fxItems.dropFirst().first?.children.first?.savedURL == "https://example.org/fx-folder"
-               && fxItems.last?.customTitle == "Weitere Lesezeichen",
+               && fxItems.last?.customTitle == L("Weitere Lesezeichen"),
                "other browsers: Firefox's toolbar from places.sqlite, its folders, and „Weitere Lesezeichen“")
         expect(app.history.entry(for: "https://example.com/chrome-history")?.visitCount == 7
                && app.history.entry(for: "https://example.org/fx") != nil && app.history.entry(for: "chrome://settings") == nil,
@@ -229,9 +230,9 @@ extension SelfTest {
         let first = BrowserImportModel.shared.importBookmarksFile(file, app: app)
         let space = library.spaces.count > spacesBefore ? library.spaces.last : nil
         let items = space?.pinned.items ?? []
-        expect(space?.name == "Lesezeichen" && space?.profileID == browser.state.space.profileID
+        expect(space?.name == L("Lesezeichen") && space?.profileID == browser.state.space.profileID
                && items.first?.savedTitle == "Bar & mehr" && items.dropFirst().first?.children.count == 2
-               && items.last?.customTitle == "Weitere Lesezeichen" && first?.bookmarks == 4,
+               && items.last?.customTitle == L("Weitere Lesezeichen") && first?.bookmarks == 4,
                "bookmarks HTML: the toolbar folder becomes pinned tabs, folders stay folders, loose bookmarks a folder")
         let again = BrowserImportModel.shared.importBookmarksFile(file, app: app)
         expect(again?.bookmarks == 0 && library.spaces.count == spacesBefore + 1 && space?.pinned.allTabs.count == 4,

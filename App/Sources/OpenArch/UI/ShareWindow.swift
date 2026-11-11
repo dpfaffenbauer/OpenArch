@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 
@@ -8,14 +9,14 @@ enum ShareWindows {
     private static var windows: [String: NSWindow] = [:]
 
     static func share(_ target: ShareTarget, app: AppDelegate) {
-        show(key: "share-\(target.id)", title: target.kind == .space ? "Space teilen" : "Ordner teilen",
+        show(key: "share-\(target.id)", title: L(target.kind == .space ? "Space teilen" : "Ordner teilen"),
              view: ShareSheetView(app: app, target: target))
     }
 
     /// A share link that was opened (from another app, the command bar or
     /// the clipboard).
     static func open(_ link: ShareURL, app: AppDelegate) {
-        show(key: "import-\(link.fragment.hashValue)", title: "Geteilte Lesezeichen",
+        show(key: "import-\(link.fragment.hashValue)", title: L("Geteilte Lesezeichen"),
              view: ImportSheetView(app: app, link: link))
     }
 
@@ -58,20 +59,20 @@ enum ShareWindows {
             return
         }
         let alert = NSAlert()
-        alert.messageText = "Geteilten Link öffnen"
-        alert.informativeText = "Füge einen OpenArch-Link ein (https://openarch.app/s/#…)."
+        alert.messageText = L("Geteilten Link öffnen")
+        alert.informativeText = L("Füge einen OpenArch-Link ein (https://openarch.app/s/#…).")
         let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 24))
         field.placeholderString = "https://openarch.app/s/#…"
         alert.accessoryView = field
-        alert.addButton(withTitle: "Öffnen")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.addButton(withTitle: L("Öffnen"))
+        alert.addButton(withTitle: L("Abbrechen"))
         alert.window.initialFirstResponder = field
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         if let link = ShareURL(string: field.stringValue) {
             open(link, app: app)
         } else {
             let error = NSAlert()
-            error.messageText = "Das ist kein OpenArch-Link."
+            error.messageText = L("Das ist kein OpenArch-Link.")
             error.runModal()
         }
     }
@@ -123,7 +124,7 @@ private struct ShareSheetView: View {
                         .frame(width: 28)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(payload.name).font(.headline)
-                        Text(payload.allTabs.count == 1 ? "1 Lesezeichen" : "\(payload.allTabs.count) Lesezeichen")
+                        Text(Localization.count(payload.allTabs.count, one: "1 Lesezeichen", other: "%lld Lesezeichen"))
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -131,11 +132,11 @@ private struct ShareSheetView: View {
             if let owned {
                 LinkView(link: owned.link)
                 Section {
-                    LabeledContent("Stand", value: "Version \(owned.version)")
+                    LabeledContent(L("Stand"), value: L("Version %@", owned.version))
                     if let date = owned.publishedAt {
                         LabeledContent("Hochgeladen", value: date.formatted(date: .abbreviated, time: .shortened))
                     }
-                    LabeledContent("Passwort", value: owned.passwordSlot == nil ? "Nein" : "Ja")
+                    LabeledContent(L("Passwort"), value: L(owned.passwordSlot == nil ? "Nein" : "Ja"))
                     HStack {
                         Spacer()
                         Button("Teilen beenden …", role: .destructive) { end(owned) }.disabled(busy)
@@ -162,9 +163,9 @@ private struct ShareSheetView: View {
                         SecureField("Passwort (mindestens 4 Zeichen)", text: $password)
                     }
                 } footer: {
-                    Text(live
+                    Text(L(live
                          ? "Die Lesezeichen liegen verschlüsselt auf dem Teilen-Server; der Schlüssel steht nur im Link. Änderungen erscheinen bei allen mit dem Link."
-                         : "Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht.")
+                         : "Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht."))
                         .footerStyle()
                 }
                 HStack {
@@ -195,7 +196,7 @@ private struct ShareSheetView: View {
                     snapshot = try await Sharing.shared.snapshotLink(for: target, password: protection)
                 }
             } catch {
-                self.error = error.localizedDescription + (live ? " Ohne „Aktuell halten“ geht es ganz ohne Server." : "")
+                self.error = error.localizedDescription + (live ? L(" Ohne „Aktuell halten“ geht es ganz ohne Server.") : "")
             }
             busy = false
         }
@@ -203,10 +204,10 @@ private struct ShareSheetView: View {
 
     private func end(_ share: OwnedShare) {
         let alert = NSAlert()
-        alert.messageText = "Teilen von „\(share.name)“ beenden?"
-        alert.informativeText = "Der Link zeigt danach nichts mehr. Wer die Lesezeichen hinzugefügt hat, behält den letzten Stand."
-        alert.addButton(withTitle: "Beenden")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.messageText = L("Teilen von „%@“ beenden?", share.name)
+        alert.informativeText = L("Der Link zeigt danach nichts mehr. Wer die Lesezeichen hinzugefügt hat, behält den letzten Stand.")
+        alert.addButton(withTitle: L("Beenden"))
+        alert.addButton(withTitle: L("Abbrechen"))
         alert.buttons[0].hasDestructiveAction = true
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         busy = true
@@ -287,7 +288,7 @@ private struct ImportSheetView: View {
                             .foregroundStyle(Color(nsColor: NSColor(hex: payload.color ?? "") ?? .controlAccentColor))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(payload.name).font(.headline)
-                            Text("\(payload.kind == .space ? "Space" : "Ordner") · \(payload.allTabs.count) Lesezeichen · \(opened.version == nil ? "Momentaufnahme" : "aktuell gehalten")")
+                            Text(L("%@ · %lld Lesezeichen · %@", payload.kind == .space ? L("Space") : L("Ordner"), payload.allTabs.count, opened.version == nil ? L("Momentaufnahme") : L("aktuell gehalten")))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -309,7 +310,7 @@ private struct ImportSheetView: View {
                     }
                     HStack {
                         Spacer()
-                        Button(opened.version != nil ? "Als Kopie hinzufügen" : "Hinzufügen") { add(opened, follow: false) }
+                        Button(L(opened.version != nil ? "Als Kopie hinzufügen" : "Hinzufügen")) { add(opened, follow: false) }
                             .keyboardShortcut(opened.version == nil || ownShare ? KeyboardShortcut.defaultAction : nil)
                         if opened.version != nil && !ownShare {
                             Button("Hinzufügen und folgen") { add(opened, follow: true) }

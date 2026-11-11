@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 import SwiftUI
 
@@ -112,13 +113,17 @@ final class OnboardingModel {
     var countsLine: String {
         guard let preview else { return "" }
         let profiles = Set(preview.spaces.map(\.profileID)).count
-        var parts = ["\(summary.spaces) \(summary.spaces == 1 ? "Space" : "Spaces")",
-                     "\(profiles) \(profiles == 1 ? "Profil" : "Profile")"]
-        if summary.favorites > 0 { parts.append(summary.favorites == 1 ? "1 Favorit" : "\(summary.favorites) Favoriten") }
-        if summary.pinned > 0 {
-            parts.append(summary.pinned == 1 ? "1 angehefteter Tab" : "\(summary.pinned) angeheftete Tabs")
+        var parts = [Localization.count(summary.spaces, one: "1 Space", other: "%lld Spaces"),
+                     Localization.count(profiles, one: "1 Profil", other: "%lld Profile")]
+        if summary.favorites > 0 {
+            parts.append(Localization.count(summary.favorites, one: "1 Favorit", other: "%lld Favoriten"))
         }
-        if summary.today > 0 { parts.append(summary.today == 1 ? "1 offener Tab" : "\(summary.today) offene Tabs") }
+        if summary.pinned > 0 {
+            parts.append(Localization.count(summary.pinned, one: "1 angehefteter Tab", other: "%lld angeheftete Tabs"))
+        }
+        if summary.today > 0 {
+            parts.append(Localization.count(summary.today, one: "1 offener Tab", other: "%lld offene Tabs"))
+        }
         return parts.joined(separator: " · ")
     }
 
@@ -378,7 +383,7 @@ final class OnboardingController: NSObject {
         let target = AppPaths.chromiumData.appendingPathComponent(directory)
         let key = arc.key
         let model = model
-        model.progress = .init(label: "Logins aus Arc", value: 0.02)
+        model.progress = .init(label: L("Logins aus Arc"), value: 0.02)
         Task.detached {
             let result = Result {
                 try ArcProfileImport.run(into: target, from: source, key: key, progress: { value, label in

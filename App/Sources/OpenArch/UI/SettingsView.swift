@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 
@@ -54,14 +55,14 @@ enum SettingsPage: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .general: "Allgemein"
-        case .profiles: "Profile"
-        case .links: "Links"
-        case .sharing: "Teilen"
-        case .ai: "KI"
-        case .keyboard: "Tastatur"
-        case .importing: "Import"
-        case .about: "Info"
+        case .general: L("Allgemein")
+        case .profiles: L("Profile")
+        case .links: L("Links (Webseiten)")
+        case .sharing: L("Teilen")
+        case .ai: L("KI")
+        case .keyboard: L("Tastatur")
+        case .importing: L("Import")
+        case .about: L("Info")
         }
     }
 
@@ -111,12 +112,12 @@ private struct Section<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+            Text(L(title)).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
             VStack(spacing: 0) { content }
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)))
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
             if let footer {
-                Text(footer).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(L(footer)).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -129,6 +130,8 @@ private struct Row<Control: View>: View {
     let title: String
     var detail: String?
     var showsDivider = true
+    /// User data (a profile's or share's name) is not a localization key.
+    var localizes = true
     @ViewBuilder let control: Control
 
     var body: some View {
@@ -140,9 +143,9 @@ private struct Row<Control: View>: View {
                     .frame(width: 28, height: 28)
                     .background(RoundedRectangle(cornerRadius: 7).fill(color.gradient))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.system(size: 13, weight: .medium))
+                    Text(localizes ? L(title) : title).font(.system(size: 13, weight: .medium))
                     if let detail {
-                        Text(detail).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        Text(localizes ? L(detail) : detail).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 Spacer(minLength: 12)
@@ -203,6 +206,26 @@ private struct GeneralPage: View {
                 detail: "Die Schritte vom ersten Start noch einmal: Import aus Arc, Konten, Farben, Standardbrowser.",
                 showsDivider: false) {
                 Button("Erneut zeigen") { app.showOnboarding(nil) }
+            }
+        }
+        Section(title: "Sprache") {
+            Row(symbol: "globe", color: .blue, title: "Sprache",
+                detail: "Die Sprache von OpenArch. „System“ folgt macOS und nimmt Englisch, wenn macOS eine Sprache wählt, die OpenArch nicht hat. Die Änderung gilt nach einem Neustart.",
+                showsDivider: false) {
+                Picker("", selection: $library.settings.language) {
+                    ForEach(AppLanguage.selectable) { Text($0.endonym).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+                .onChange(of: library.settings.language) { _, language in
+                    Localization.setSelection(language)
+                    library.setNeedsSave()
+                    let alert = NSAlert()
+                    alert.messageText = L("Sprache geändert")
+                    alert.informativeText = L("OpenArch übernimmt die neue Sprache beim nächsten Start. Tabs und Fenster bleiben dabei erhalten.")
+                    alert.addButton(withTitle: L("Jetzt neu starten"))
+                    alert.addButton(withTitle: L("Später"))
+                    if alert.runModal() == .alertFirstButtonReturn { app.relaunch() }
+                }
             }
         }
         Section(title: "Suchen") {
@@ -473,7 +496,7 @@ private struct ProfilesPage: View {
                 footer: "Ein Profil hält Logins, Cookies, Verlauf, Passwörter und Extensions getrennt, etwa für ein zweites Google-Konto. Welches Profil ein Space nutzt, stellst du im Space ein (Doppelklick auf seinen Namen).") {
             ForEach(Array(library.profiles.enumerated()), id: \.element.id) { index, profile in
                 Row(symbol: "person.crop.circle", color: profileColor(index), title: profile.name,
-                    detail: spacesUsing(profile), showsDivider: index < library.profiles.count - 1) {
+                    detail: spacesUsing(profile), showsDivider: index < library.profiles.count - 1, localizes: false) {
                     TextField("Name", text: Binding(get: { profile.name }, set: { library.renameProfile(profile, to: $0) }))
                         .textFieldStyle(.roundedBorder).frame(width: 160)
                 }
@@ -665,7 +688,7 @@ private struct AgentChatsSection: View {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        panel.prompt = "Wählen"
+        panel.prompt = L("Wählen")
         panel.directoryURL = URL(fileURLWithPath: library.settings.agentFolderPath)
         if panel.runModal() == .OK, let url = panel.url {
             library.settings.agentFolder = url.path
@@ -744,7 +767,7 @@ private struct AIPage: View {
         if (enabled ? port : 0) != running {
             HStack {
                 Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(.orange)
-                Text(enabled ? "Wird nach einem Neustart von OpenArch aktiv." : "Wird nach einem Neustart abgeschaltet.")
+                Text(L(enabled ? "Wird nach einem Neustart von OpenArch aktiv." : "Wird nach einem Neustart abgeschaltet."))
                     .font(.system(size: 12))
                 Spacer()
                 Button("Jetzt neu starten") { app.relaunch() }
@@ -752,7 +775,7 @@ private struct AIPage: View {
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color.orange.opacity(0.1)))
         } else if running > 0 {
-            Label("Aktiv auf 127.0.0.1:\(running)", systemImage: "antenna.radiowaves.left.and.right")
+            Label(L("Aktiv auf 127.0.0.1:%lld", running), systemImage: "antenna.radiowaves.left.and.right")
                 .font(.system(size: 12, weight: .medium)).foregroundStyle(.orange)
         }
         Section(title: "Mit Claude Code verbinden",
@@ -763,7 +786,7 @@ private struct AIPage: View {
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                Button(copied ? "Kopiert" : "Kopieren") {
+                Button(L(copied ? "Kopiert" : "Kopieren")) {
                     copy(AIControl.claudeCommand(port: port))
                     copied = true
                 }
@@ -790,8 +813,8 @@ private struct SharingPage: View {
             ForEach(sharing.records.owned) { share in
                 let target = sharing.target(of: share)
                 Row(symbol: share.kind == .space ? "square.on.square" : "folder", color: .blue, title: share.name,
-                    detail: target == nil ? "Gelöscht; der Link zeigt noch den letzten Stand." : "Version \(share.version)\(share.passwordSlot == nil ? "" : " · mit Passwort")",
-                    showsDivider: share.id != sharing.records.owned.last?.id) {
+                    detail: target == nil ? L("Gelöscht; der Link zeigt noch den letzten Stand.") : L("Version %@", share.version) + (share.passwordSlot == nil ? "" : L(" · mit Passwort")),
+                    showsDivider: share.id != sharing.records.owned.last?.id, localizes: false) {
                     if let target {
                         Button("Link …") { ShareWindows.share(target, app: app) }
                     } else {
@@ -812,9 +835,9 @@ private struct SharingPage: View {
                 footer: "Geteilte Ordner und Spaces, denen du folgst, aktualisieren sich alle fünf Minuten. Was du daran änderst, überschreibt das nächste Update.") {
             ForEach(sharing.records.subscriptions) { subscription in
                 Row(symbol: "person.2", color: .green, title: subscription.name,
-                    detail: subscription.ended ? "Vom Besitzer beendet" : subscription.lastChecked.map {
-                        "Geprüft \($0.formatted(.relative(presentation: .named)))"
-                    } ?? "Noch nicht geprüft") {
+                    detail: subscription.ended ? L("Vom Besitzer beendet") : subscription.lastChecked.map {
+                        L("Geprüft %@", $0.formatted(.relative(presentation: .named)))
+                    } ?? L("Noch nicht geprüft"), localizes: false) {
                     Button("Nicht mehr folgen") { sharing.unsubscribe(subscription.target) }
                 }
             }
@@ -932,8 +955,8 @@ private struct BrowserImportRow: View {
                     Text(install.name).font(.system(size: 13, weight: .medium))
                     if install.needsAccess {
                         Text(install.kind == .safari
-                             ? "Safari schützt Lesezeichen und Verlauf. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal."
-                             : "macOS lässt OpenArch den Ordner von \(install.name) nicht lesen. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal.")
+                             ? L("Safari schützt Lesezeichen und Verlauf. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal.")
+                             : L("macOS lässt OpenArch den Ordner von %@ nicht lesen. Gib OpenArch unter Datenschutz & Sicherheit › Festplattenvollzugriff frei, starte OpenArch neu und öffne diese Seite dann noch einmal.", install.name))
                             .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -1006,7 +1029,7 @@ private struct ImportResultView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(report.errors.isEmpty ? "Import abgeschlossen" : "Import nicht möglich",
+            Label(L(report.errors.isEmpty ? "Import abgeschlossen" : "Import nicht möglich"),
                   systemImage: report.errors.isEmpty ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(report.errors.isEmpty ? .green : .orange)
@@ -1014,7 +1037,7 @@ private struct ImportResultView: View {
                 ForEach(report.lines, id: \.self) { Text($0).font(.system(size: 12)) }
             }
             if !report.pendingLogins.isEmpty {
-                Text("Logins und Passwörter aus \(report.pendingLogins.joined(separator: ", ")) kommen beim nächsten Start dazu.")
+                Text(L("Logins und Passwörter aus %@ kommen beim nächsten Start dazu.", report.pendingLogins.joined(separator: ", ")))
                     .font(.system(size: 12))
             }
             if !report.skippedLines.isEmpty {
@@ -1039,7 +1062,7 @@ private struct AboutPage: View {
                 .onTapGesture { AboutWindowController.shared.show() }
             VStack(alignment: .leading, spacing: 4) {
                 Text("OpenArch").font(.system(size: 22, weight: .bold))
-                Text("Version \(updater.versionDescription) · Chromium \(OACEngine.versionString)")
+                Text(L("Version %@ · Chromium %@", updater.versionDescription, OACEngine.versionString))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 Text("von Dominik Pfaffenbauer").font(.system(size: 12)).foregroundStyle(.secondary)
             }
@@ -1061,7 +1084,7 @@ private struct AboutPage: View {
                 detail: "Sucht beim Start und alle sechs Stunden nach einer neuen Version.") {
                 Toggle("", isOn: $updater.isEnabled).labelsHidden().toggleStyle(.switch)
             }
-            Row(symbol: "clock.arrow.circlepath", color: .gray, title: updateTitle, detail: updateDetail, showsDivider: false) {
+            Row(symbol: "clock.arrow.circlepath", color: .gray, title: updateTitle, detail: updateDetail, showsDivider: false, localizes: false) {
                 if case .ready = updater.phase {
                     Button("Neu starten") { updater.installAndRelaunch() }
                 } else {
@@ -1108,22 +1131,22 @@ private struct AboutPage: View {
 
     private var updateTitle: String {
         switch updater.phase {
-        case .idle: "Updates"
-        case .checking: "Suche nach Updates …"
-        case .upToDate: "OpenArch ist aktuell"
-        case .downloading(let progress): "Lade Update … \(Int(progress * 100)) %"
-        case .ready(let build): "\(updater.readyVersion ?? "Nightly \(build)") ist bereit"
-        case .failed: "Update nicht möglich"
+        case .idle: L("Updates")
+        case .checking: L("Suche nach Updates …")
+        case .upToDate: L("OpenArch ist aktuell")
+        case .downloading(let progress): L("Lade Update … %lld %%", Int(progress * 100))
+        case .ready(let build): L("%@ ist bereit", updater.readyVersion ?? L("Nightly %lld", build))
+        case .failed: L("Update nicht möglich")
         }
     }
 
     private var updateDetail: String? {
         switch updater.phase {
-        case .ready: "Wird beim Neustart oder beim nächsten Beenden installiert."
+        case .ready: L("Wird beim Neustart oder beim nächsten Beenden installiert.")
         case .failed(let message): message
         case .upToDate where updater.aheadOfChannel != nil:
-            "Deine Version ist neuer als die neueste auf \(updater.channel.title) (Build \(updater.aheadOfChannel ?? 0)). Sie bleibt, bis \(updater.channel.title) aufholt."
-        default: updater.lastCheck.map { "Zuletzt geprüft: \($0.formatted(date: .omitted, time: .shortened))" }
+            L("Deine Version ist neuer als die neueste auf %@ (Build %lld). Sie bleibt, bis %@ aufholt.", updater.channel.title, updater.aheadOfChannel ?? 0, updater.channel.title)
+        default: updater.lastCheck.map { L("Zuletzt geprüft: %@", $0.formatted(date: .omitted, time: .shortened)) }
         }
     }
 }
@@ -1140,7 +1163,7 @@ private struct BackupSection: View {
         Section(title: "Sicherung",
                 footer: "Jeden Tag ein Ordner mit Library.json (Spaces, Tabs, Link-Regeln), Boosts und Einstellungen; die letzten \(Backups.keep) bleiben. Logins, Passwörter und Verlauf sind nicht dabei.") {
             Row(symbol: "clock.arrow.2.circlepath", color: .teal, title: "Tägliche Sicherung",
-                detail: error ?? lastBackup.map { "Zuletzt: \($0.formatted(date: .abbreviated, time: .shortened))" }
+                detail: error ?? lastBackup.map { L("Zuletzt: %@", $0.formatted(date: .abbreviated, time: .shortened)) }
                     ?? "Noch keine Sicherung.") {
                 HStack {
                     Button("Jetzt sichern") {
@@ -1183,8 +1206,8 @@ private struct BackupSection: View {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.directoryURL = folder
-        panel.prompt = "Wählen"
-        panel.message = "Wohin sollen die täglichen Sicherungen? Ein Ordner in iCloud Drive geht auch."
+        panel.prompt = L("Wählen")
+        panel.message = L("Wohin sollen die täglichen Sicherungen? Ein Ordner in iCloud Drive geht auch.")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         Backups.shared.folder = url
         folder = Backups.shared.folder
