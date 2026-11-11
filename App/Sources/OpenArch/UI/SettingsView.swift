@@ -813,7 +813,7 @@ private struct SharingPage: View {
             ForEach(sharing.records.owned) { share in
                 let target = sharing.target(of: share)
                 Row(symbol: share.kind == .space ? "square.on.square" : "folder", color: .blue, title: share.name,
-                    detail: target == nil ? L("Gelöscht; der Link zeigt noch den letzten Stand.") : L("Version %@", share.version) + (share.passwordSlot == nil ? "" : L(" · mit Passwort")),
+                    detail: target == nil ? L("Gelöscht; der Link zeigt noch den letzten Stand.") : L("Version %@", String(share.version)) + (share.passwordSlot == nil ? "" : L(" · mit Passwort")),
                     showsDivider: share.id != sharing.records.owned.last?.id, localizes: false) {
                     if let target {
                         Button("Link …") { ShareWindows.share(target, app: app) }

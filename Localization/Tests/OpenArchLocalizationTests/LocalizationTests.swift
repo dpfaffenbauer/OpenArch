@@ -26,7 +26,29 @@ struct AppLanguageTests {
         let suite = UserDefaults(suiteName: "OpenArchLocalizationTests.\(UUID().uuidString)")!
         Localization.setSelection(.french, in: suite)
         #expect(Localization.selection(in: suite) == .french)
+        Localization.bootstrap(defaults: suite)
         #expect(Localization.current(in: suite) == .french)
+    }
+
+    @Test func languageChangesWaitForTheNextBootstrap() {
+        let name = "OpenArchLocalizationTests.\(UUID().uuidString)"
+        let suite = UserDefaults(suiteName: name)!
+        defer { suite.removePersistentDomain(forName: name) }
+        Localization.setSelection(.english, in: suite)
+        Localization.bootstrap(defaults: suite)
+
+        Localization.setSelection(.italian, in: suite)
+        #expect(Localization.selection(in: suite) == .italian)
+        #expect(Localization.current(in: suite) == .english)
+        #expect(suite.stringArray(forKey: "AppleLanguages") == ["en"])
+
+        #expect(Localization.bootstrap(defaults: suite) == .italian)
+        #expect(Localization.current(in: suite) == .italian)
+
+        Localization.setSelection(.system, in: suite)
+        #expect(Localization.current(in: suite) == .italian)
+        Localization.bootstrap(defaults: suite)
+        #expect(Localization.current(in: suite) == AppLanguage.resolved(from: Locale.preferredLanguages))
     }
 
     @Test func bootstrapWritesAppleLanguagesForExplicitChoices() {

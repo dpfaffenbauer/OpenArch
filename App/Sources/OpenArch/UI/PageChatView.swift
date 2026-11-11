@@ -125,7 +125,7 @@ private struct PageChatEmptyState: View {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(suggestions, id: \.self) { question in
                     let label = L(question)
-                    Button { ask(question) } label: {
+                    Button { ask(label) } label: {
                         Text(label)
                             .font(.system(size: 12.5))
                             .padding(.horizontal, 10)

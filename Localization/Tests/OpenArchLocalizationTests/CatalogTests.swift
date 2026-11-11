@@ -78,6 +78,25 @@ struct CatalogTests {
         #expect(AppLanguage.italian.endonym == "Italiano")
     }
 
+    @Test func lowercaseLabelsAndSemicolonCopyAreTranslated() throws {
+        let keys = [
+            "nie", "jetzt", "gestern", "einmal",
+            "Gelöscht; der Link zeigt noch den letzten Stand.",
+            "Die Lesezeichen liegen verschlüsselt auf dem Teilen-Server; der Schlüssel steht nur im Link. Änderungen erscheinen bei allen mit dem Link.",
+            "Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht.",
+        ]
+        for language in Self.languages {
+            let table = try Self.strings(language, "Localizable")
+            for key in keys {
+                #expect(table[key] != nil, "\(language) is missing \(key)")
+            }
+        }
+        #expect(try Self.strings("en", "Localizable")["nie"] == "never")
+        #expect(try Self.strings("fr", "Localizable")["nie"] == "jamais")
+        #expect(try Self.strings("es", "Localizable")["nie"] == "nunca")
+        #expect(try Self.strings("it", "Localizable")["nie"] == "mai")
+    }
+
     private static func placeholders(_ value: String) -> [String] {
         let pattern = try! NSRegularExpression(pattern: "%(?:\\d+\\$)?(?:@|lld|ld|d|s|f|\\.\\d+f|%)")
         return pattern.matches(in: value, range: NSRange(value.startIndex..., in: value)).map {

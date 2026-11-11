@@ -190,15 +190,16 @@ def is_ui_call(text: str, start: int) -> bool:
 
 
 def interesting(path: pathlib.Path, value: str, interpolated: bool, ui: bool) -> bool:
-    if not value.strip() or len(value) < 2 or interpolated:
+    if not value.strip() or len(value) < 2 or interpolated or not any(c.isalpha() for c in value):
         return False
+    # Explicit UI calls can contain lowercase labels, semicolons or templates.
+    if ui:
+        return True
     if SKIP.match(value):
         return False
     # Source code, scripts and injected CSS are never localization keys.
-    if re.search(r"[{};]|=>|\b(?:const|document|function|return|window)\b", value):
+    if re.search(r"[{}]|=>|\b(?:const|document|function|return|window)\b", value):
         return False
-    if ui:
-        return True
     if path.name.startswith("SelfTest"):
         return False
     if GERMAN.search(value):

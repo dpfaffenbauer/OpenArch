@@ -55,14 +55,9 @@ public enum Localization {
         return AppLanguage(rawValue: raw) ?? .system
     }
 
-    /// The language whose UI strings are shown now.
+    /// The language applied at launch, not a pending selection from Settings.
     public static func current(in defaults: UserDefaults = .standard) -> AppLanguage {
-        switch selection(in: defaults) {
-        case .system:
-            return AppLanguage.resolved(from: Locale.preferredLanguages)
-        case let language:
-            return language
-        }
+        AppLanguage.resolved(from: defaults.stringArray(forKey: appleLanguagesKey) ?? Locale.preferredLanguages)
     }
 
     /// Applies the saved choice to the bundle for this process. Call it at
@@ -72,15 +67,14 @@ public enum Localization {
     @discardableResult
     public static func bootstrap(defaults: UserDefaults = .standard) -> AppLanguage {
         let choice = selection(in: defaults)
-        let effective = current(in: defaults)
         if choice == .system {
             // Let macOS choose at launch: the app declares English as its
             // development language, so unsupported system languages get English.
             defaults.removeObject(forKey: appleLanguagesKey)
         } else {
-            defaults.set([effective.rawValue], forKey: appleLanguagesKey)
+            defaults.set([choice.rawValue], forKey: appleLanguagesKey)
         }
-        return effective
+        return current(in: defaults)
     }
 
     /// Remembers a new choice. The caller tells the user that OpenArch has

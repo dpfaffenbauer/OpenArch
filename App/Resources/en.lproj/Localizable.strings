@@ -5,6 +5,7 @@
 " %lld Werte ließen sich nicht entschlüsseln." = " %lld values could not be decrypted.";
 " Diese Browser hat OpenArch gefunden:" = " OpenArch found these browsers:";
 " Ohne „Aktuell halten“ geht es ganz ohne Server." = " Without “Keep up to date”, no server is needed at all.";
+" OpenArch beginnt mit einem leeren Space; Einstellungen › Import holt Arc später." = " OpenArch starts with an empty Space; Settings › Import lets you import Arc later.";
 " OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr." = " After that, OpenArch takes over the key, and updates won't ask again either.";
 " · mit Passwort" = " · with password";
 "#%02X%02X%02X" = "#%02X%02X%02X";
@@ -150,7 +151,9 @@
 "Archivieren" = "Archive";
 "Archiviert · %@" = "Archived · %@";
 "Archivierte Tabs erscheinen hier" = "Archived tabs appear here";
+"Arcs Sidebar, Spaces und Profilliste als ZIP-Datei in „Dokumente“. Arc wird am 22. Dezember 2026 eingestellt; aus der Sicherung lässt sich die Sidebar auch danach noch lesen." = "Arc's sidebar, Spaces, and profile list as a ZIP file in Documents. Arc will be discontinued on December 22, 2026; the backup will let you read the sidebar even after that.";
 "Arcs Sidebar-Datei konnte nicht gelesen werden." = "Arc's sidebar file could not be read.";
+"Auch durch Ziehen am inneren Rand der Sidebar; ganz an den Fensterrand gezogen, klappt sie zu." = "You can also drag the inner edge of the sidebar; dragging it all the way to the window's edge collapses it.";
 "Auch in: %@" = "Also in: %@";
 "Auf der Seite suchen" = "Find on Page";
 "Auf diese Seite anwenden" = "Apply to this page";
@@ -191,6 +194,7 @@
 "Befehl und Ausgabe zeigen" = "Show command and output";
 "Bei GitHub anmelden" = "Sign in to GitHub";
 "Bei Google anmelden · %@" = "Sign in to Google · %@";
+"Beim Folgen erscheinen Änderungen des Besitzers alle fünf Minuten von selbst; was du daran änderst, überschreibt das nächste Update." = "When following, the owner's changes appear automatically every five minutes; the next update overwrites any changes you make.";
 "Beitreten" = "Join";
 "Bericht senden …" = "Send Report…";
 "Bibliothek" = "Library";
@@ -227,6 +231,7 @@
 "Chrome-Toolbar ein-/ausblenden" = "Show/Hide Chrome Toolbar";
 "Chrome-Toolbar in Tabs" = "Chrome toolbar in tabs";
 "Chromium %@" = "Chromium %@";
+"Chromiums Widevine für Seiten, die es ohne Zertifizierung annehmen; Netflix und Spotify gehören nicht dazu. Gilt nach einem Neustart von OpenArch." = "Chromium's Widevine for sites that accept it without certification; Netflix and Spotify do not. Takes effect after restarting OpenArch.";
 "Claude" = "Claude";
 "Claude Code" = "Claude Code";
 "Claude Code ist nicht angemeldet." = "Claude Code is not signed in.";
@@ -234,6 +239,7 @@
 "Claude Code meldet einen Fehler. In der Befehlsleiste versucht „Morning Brief jetzt erstellen“ es noch einmal." = "Claude Code reported an error. To try again, use “Create Morning Brief Now” in the command bar.";
 "Claude Code nennt sie beim nächsten Lauf." = "Claude Code lists them on its next run.";
 "Claude Code schaut mit deinen Connectors (MCP-Servern) in Kalender, Mails, Chats und Aufgaben und schreibt daraus eine Seite. Sie öffnet als Tab „Morning Brief“ oben unter dem Strich, mit einem Punkt, bis du sie gelesen hast. Claude darf dabei nur lesen. Läuft mit dem Login von claude im Terminal, ohne API-Schlüssel." = "Using your connectors (MCP servers), Claude Code looks through your calendar, mail, chats, and tasks and writes a page from them. It opens as a “Morning Brief” tab at the top, below the line, with a dot until you've read it. Claude is only allowed to read. Runs with the login of claude in Terminal, no API key needed.";
+"Claude Code schaut mit deinen Connectors in Kalender, Mails, Chats und Aufgaben. Das dauert meist ein, zwei Minuten; die Seite lädt dann von selbst neu." = "Using your connectors, Claude Code looks through your calendar, mail, chats, and tasks. This usually takes a minute or two; the page then reloads automatically.";
 "Claude Code wurde auf diesem Mac nicht gefunden. Installiere es (claude.ai/code) und melde dich einmal im Terminal mit „claude“ an, dann noch einmal senden." = "Claude Code was not found on this Mac. Install it (claude.ai/code) and sign in once in Terminal with “claude”, then send again.";
 "Claude Code wurde auf diesem Mac nicht gefunden. Installiere es (claude.ai/code) und melde dich einmal im Terminal mit „claude“ an." = "Claude Code was not found on this Mac. Install it (claude.ai/code) and sign in once in Terminal with “claude”.";
 "Claude Code wurde nicht gefunden." = "Claude Code was not found.";
@@ -246,6 +252,7 @@
 "Connectors" = "Connectors";
 "Cookies und gespeicherte Daten dieser Website löschen?" = "Delete cookies and saved data for this website?";
 "DRM-Seiten mit Safaris Engine abspielen" = "Play DRM sites with Safari's engine";
+"Dafür startet OpenArch neu. Die Datei liest OpenArch beim Start noch einmal und lässt sie, wie sie ist; lösche sie danach selbst, denn sie enthält deine Passwörter im Klartext." = "OpenArch restarts for this. It reads the file again at launch and leaves it unchanged; delete it yourself afterward, because it contains your passwords in plain text.";
 "Damit Links aus Mail, Slack und anderen Apps in OpenArch öffnen." = "So that links from Mail, Slack, and other apps open in OpenArch.";
 "Dann öffnen Links aus Mail, Slack und anderen Apps in OpenArch, in Little OpenArch oder nach deinen Link-Regeln direkt im richtigen Space." = "Links from Mail, Slack, and other apps will then open in OpenArch, in Little OpenArch, or, following your link rules, directly in the right Space.";
 "Dann öffnen Links aus Mail, Slack und anderen Apps in OpenArch, nach deinen Link-Regeln im richtigen Space. macOS fragt gleich noch einmal nach." = "Links from Mail, Slack, and other apps will then open in OpenArch, in the right Space according to your link rules. macOS will ask once more to confirm.";
@@ -269,6 +276,7 @@
 "Deine Version ist neuer als die neueste auf %@ (Build %lld). Sie bleibt, bis %@ aufholt." = "Your version is newer than the latest on %@ (build %lld). It stays until %@ catches up.";
 "Deine gespeicherten Passwörter und Logins sind mit dem Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund verschlüsselt. Diese OpenArch-Version darf ihn noch nicht lesen, deshalb fragt macOS gleich nach deinem Mac-Passwort. Gib es ein und wähle „Immer erlauben“." = "Your saved passwords and logins are encrypted with the key “%@” from your login keychain. This version of OpenArch isn't allowed to read it yet, so macOS will ask for your Mac password in a moment. Enter it and choose “Always Allow”.";
 "Der Agent wird angehalten und der Chat entfernt." = "The agent will be stopped and the chat removed.";
+"Der Import ist fehlgeschlagen; es ist alles, wie es war. %@" = "The import failed; everything is as it was. %@";
 "Der Import läuft noch und ist gleich fertig." = "The import is still running and is almost done.";
 "Der Import läuft weiter, während du die nächsten Schritte machst." = "The import keeps running while you go through the next steps.";
 "Der Link zeigt danach nichts mehr. Wer die Lesezeichen hinzugefügt hat, behält den letzten Stand." = "After that, the link shows nothing. Anyone who added the bookmarks keeps the last version.";
@@ -279,6 +287,7 @@
 "Der Schlüssel „%@“ fehlt im Schlüsselbund." = "The key “%@” is missing from the keychain.";
 "Der Schlüssel „%@“ konnte nicht aus dem Schlüsselbund gelesen werden (%@). Ohne ihn lassen sich Logins und Passwörter nicht übernehmen." = "The key “%@” could not be read from the keychain (%@). Without it, logins and passwords cannot be imported.";
 "Der Schlüsselbund hat „%@“ nicht angenommen (%@). Starte OpenArch bitte noch einmal." = "The keychain did not accept “%@” (%@). Please restart OpenArch.";
+"Der Schreibtisch scheint durch das Fenster. Ab macOS 26 schwebt die Sidebar als Liquid Glass darüber, davor als Milchglas; die Seiten liegen als Karten daneben." = "The desktop shows through the window. On macOS 26 and later, the sidebar floats above it as Liquid Glass; on earlier versions, as frosted glass. Pages sit beside it as cards.";
 "Der Space hat keine Tabs." = "The Space has no tabs.";
 "Der letzte Space bleibt" = "The last Space stays";
 "Der vollständige Import ist fehlgeschlagen. %@" = "The full import failed. %@";
@@ -291,6 +300,8 @@
 "Die Datei ist keine Passwort-CSV: Es fehlen die Spalten für Adresse und Passwort." = "The file is not a password CSV: the address and password columns are missing.";
 "Die Datei ist zu groß." = "The file is too large.";
 "Die Datei ließ sich nicht lesen." = "The file could not be read.";
+"Die Lesezeichen liegen verschlüsselt auf dem Teilen-Server; der Schlüssel steht nur im Link. Änderungen erscheinen bei allen mit dem Link." = "The bookmarks are stored encrypted on the sharing server; the key is only in the link. Changes appear for everyone with the link.";
+"Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht." = "The bookmarks travel encrypted in the link itself; no server is involved. Later changes do not appear.";
 "Die Library.json dieser Sicherung lässt sich nicht lesen." = "This backup's Library.json cannot be read.";
 "Die Namen macht Apples Modell auf diesem Mac. Es bekommt nur den Titel ohne Zähler und E-Mail-Adressen und den Host der Seite, nie ihren Inhalt, den Verlauf oder den Rest der Adresse. Umbenannte Tabs, Favoriten, Ordner, Splits und private Fenster bleiben, wie sie sind. Ausschalten löscht die Namen." = "Apple's on-device model creates the names on this Mac. It only gets the title (without counters and email addresses) and the site's host, never its content, your history, or the rest of the address. Renamed tabs, favorites, folders, splits, and private windows stay as they are. Turning this off deletes the names.";
 "Die Schritte vom ersten Start noch einmal: Import aus Arc, Konten, Farben, Standardbrowser." = "The steps from the first launch again: import from Arc, accounts, colors, default browser.";
@@ -362,6 +373,7 @@
 "Erneut versuchen" = "Try Again";
 "Erneut zeigen" = "Show Again";
 "Erscheinungsbild" = "Appearance";
+"Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite." = "Create my Morning Brief for today, {{DATUM}}, as a standalone HTML page.";
 "Erstellen" = "Create";
 "Es gibt noch keine Stable-Version." = "There is no stable version yet.";
 "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden." = "Export from Chrome, Edge, Brave, Firefox, Safari (Passwords app), 1Password, or Bitwarden.";
@@ -390,6 +402,7 @@
 "Für Suchen aus der Befehlsleiste (⌘T)." = "For searches from the command bar (⌘T).";
 "Gefunden: " = "Found: ";
 "Geladen" = "Loaded";
+"Gelöscht; der Link zeigt noch den letzten Stand." = "Deleted; the link still shows the last version.";
 "Georgia" = "Georgia";
 "Geprüft %@" = "Checked %@";
 "Geschlossenen Tab wieder öffnen" = "Reopen Closed Tab";
@@ -503,10 +516,12 @@
 "Leertaste" = "Space bar";
 "Leseliste" = "Reading list";
 "Lesezeichen" = "Bookmarks";
+"Lesezeichen und Verlauf sind schon da. Für Logins, Cookies und Passwörter aus %@ startet OpenArch neu; %@ muss dafür beendet sein. macOS fragt dann einmal nach dem Zugriff auf %@ im Schlüsselbund: Mit diesem Schlüssel verschlüsselt der Browser seine Logins. OpenArch liest ihn nur, um sie mit dem eigenen Schlüssel neu zu verschlüsseln. Der andere Browser bleibt unverändert." = "Bookmarks and history are already imported. For logins, cookies, and passwords from %@, OpenArch restarts; %@ must be quit first. macOS then asks once for access to %@ in the keychain: the browser uses this key to encrypt its logins. OpenArch reads it only to re-encrypt them with its own key. The other browser stays unchanged.";
 "Lesezeichen-Datei" = "Bookmarks file";
 "Lesezeichen-Datei (HTML)" = "Bookmarks file (HTML)";
 "Lesezeichen-Menü" = "Bookmarks menu";
 "Lesezeichenmenü" = "Bookmarks menu";
+"Letzte Downloads; Bibliothek mit ⌥⌘B oder Rechtsklick" = "Recent downloads; open the Library with ⌥⌘B or a right-click";
 "Letzter Tab" = "Last Tab";
 "Liest" = "Reads";
 "Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser" = "Reads files; asks before changes, commands, and browser use";
@@ -525,6 +540,7 @@
 "Links aus angehefteten Tabs und Favoriten zu anderen Seiten und ⇧-Klicks auf Links öffnen als Vorschau über der Seite. ⌘Z oder ⇧⌘T öffnet eine gerade geschlossene Vorschau wieder." = "Links from pinned tabs and favorites to other sites, and ⇧-clicks on links, open as a preview above the page. ⌘Z or ⇧⌘T reopens a preview you just closed.";
 "Links in Tabs" = "Links in tabs";
 "Links von %@ immer in „%@“ öffnen" = "Always open links from %@ in “%@”";
+"Links wie in Arc, oder rechts. Gilt für alle Fenster; die Ampel bleibt oben links." = "On the left like in Arc, or on the right. Applies to all windows; the window controls stay at the top left.";
 "Little OpenArch" = "Little OpenArch";
 "Logins" = "Logins";
 "Logins aus Arc" = "Logins from Arc";
@@ -537,6 +553,7 @@
 "Lokal" = "Local";
 "Los geht’s" = "Let’s Go";
 "Lädt" = "Fetches";
+"Läuft einmal pro Seitenaufruf; Änderungen wirken nach dem Neuladen." = "Runs once per page load; changes take effect after reloading.";
 "Löschen" = "Delete";
 "Löschen …" = "Delete…";
 "Lösen" = "Unpin";
@@ -642,6 +659,7 @@
 "Nächstes Meeting in der Sidebar" = "Next meeting in the sidebar";
 "Offene Todos" = "Open to-dos";
 "Ohne Bild-in-Bild" = "Without Picture in Picture";
+"Ohne Konto: Der Link ist der Schlüssel. Ordner und Spaces teilst du über ihr Menü in der Seitenleiste, als Link oder QR-Code fürs iPhone. Live-Freigaben folgen deinen Änderungen; nur dieser Mac kann sie ändern." = "No account: the link is the key. Share folders and Spaces from their menu in the sidebar, as a link or QR code for iPhone. Live shares follow your changes; only this Mac can change them.";
 "Ohne Logins" = "Without Logins";
 "Ohne Ordner" = "No folder";
 "Ohne den Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und Logins nicht öffnen. Versuch es noch einmal und wähle „Immer erlauben“, oder beende OpenArch." = "Without the key “%@” from your login keychain, your passwords and logins can't be opened. Try again and choose “Always Allow”, or quit OpenArch.";
@@ -738,6 +756,7 @@
 "Seiten tauschen (⌃⇧S)" = "Swap panes (⌃⇧S)";
 "Seiten, deren Videos und Anrufe nie von selbst schweben, durch Kommas getrennt. Auch im Site Control Center (⌃⌘I)." = "Sites whose videos and calls never float on their own, separated by commas. Also in the Site Control Center (⌃⌘I).";
 "Seitensuche" = "Site search";
+"Selbst gebaute Versionen aktualisieren sich nicht; Updates gibt es für die Builds von GitHub." = "Self-built versions do not update themselves; updates are available for builds from GitHub.";
 "Senden (↩), neue Zeile mit ⌥↩" = "Send (↩), new line with ⌥↩";
 "Senden …" = "Send…";
 "Server für neue Live-Freigaben" = "Server for new live shares";
@@ -779,6 +798,7 @@
 "Split View mit aktuellem Tab" = "Split View with Current Tab";
 "Spotify" = "Spotify";
 "Spotify öffnen" = "Open Spotify";
+"Spotify, Netflix, Disney+, Prime Video und andere Streamingdienste spielen ihre Videos und Musik nur mit Apples FairPlay. Ihre Seiten öffnen deshalb mit Safaris Engine (WebKit), im selben Tab; Chrome-Erweiterungen laufen dort nicht. Pro Website änderst du das im Site Control Center." = "Spotify, Netflix, Disney+, Prime Video, and other streaming services only play their videos and music with Apple's FairPlay. Their pages therefore open with Safari's engine (WebKit), in the same tab; Chrome extensions do not run there. You can change this per website in the Site Control Center.";
 "Sprache" = "Language";
 "Sprache geändert" = "Language changed";
 "Später" = "Later";
@@ -947,17 +967,23 @@
 "Zurück zu %@" = "Back to %@";
 "Zurücksetzen" = "Reset";
 "Zwischenablage" = "Clipboard";
+"Zwölf Wege durch den Bogen; Tunnel ist OpenArchs eigenes. „Space-Farbe“ nimmt im Dock die Farbe des Space an, in dem du gerade bist, „Jeden Tag“ nimmt jeden Tag ein anderes. Im Finder bleibt es der Tunnel: Die App selbst wird nie verändert, damit ihre Signatur gültig bleibt." = "Twelve paths through the arch; Tunnel is OpenArch's own. “Space color” gives the Dock icon the color of your current Space, while “Every day” picks a different one each day. Finder keeps the Tunnel icon: the app itself is never modified, so its signature stays valid.";
 "aktuell gehalten" = "kept up to date";
 "an " = "to ";
 "auf diesem Mac abgeschaltet" = "turned off on this Mac";
+"chat.firma.de" = "chat.firma.de";
 "der Website" = "the website";
+"einmal" = "once";
 "gerade eben" = "just now";
+"gestern" = "yesterday";
+"github.com" = "github.com";
 "github.com/dpfaffenbauer/OpenArch" = "github.com/dpfaffenbauer/OpenArch";
 "https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard" = "https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard";
 "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F" = "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F";
 "https://github.com/dpfaffenbauer/OpenArch" = "https://github.com/dpfaffenbauer/OpenArch";
 "https://openarch.app/s/#…" = "https://openarch.app/s/#…";
 "https://…?q=%s" = "https://…?q=%s";
+"jetzt" = "now";
 "keinem Kürzel" = "no shortcut";
 "macOS fragt gleich nach dem Schlüssel von OpenArch" = "macOS will ask for OpenArch's key in a moment";
 "macOS hat die Änderung nicht übernommen. Du kannst OpenArch auch unter Systemeinstellungen › Schreibtisch & Dock › Standard-Webbrowser auswählen." = "macOS did not apply the change. You can also choose OpenArch in System Settings › Desktop & Dock › Default web browser.";
@@ -970,12 +996,18 @@
 "nach 30 Tagen" = "after 30 days";
 "nach 6 Stunden" = "after 6 hours";
 "nach 7 Tagen" = "after 7 days";
+"neu" = "new";
+"nie" = "never";
 "oder Emoji" = "or emoji";
+"openarch.app" = "openarch.app";
 "präsentation" = "presentation";
+"share.openarch.app" = "share.openarch.app";
+"von" = "by";
 "von Dominik Pfaffenbauer" = "by Dominik Pfaffenbauer";
 "vorübergehend abgeschaltet" = "temporarily turned off";
 "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles" = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles";
 "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars" = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars";
+"youtube.com" = "youtube.com";
 "Ändert" = "Edits";
 "Ändert Dateien ohne Rückfrage, fragt vor Befehlen" = "Edits files without asking; asks before commands";
 "Ändert Dateien und führt Befehle aus, ohne zu fragen" = "Edits files and runs commands without asking";

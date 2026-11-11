@@ -2590,6 +2590,7 @@ final class SelfTest {
         if let app = NSApp.delegate as? AppDelegate {
             await renderShare(ShareWindows.shareContent(.folder(folder), app: app), "share-window-live")
             await renderShare(ShareWindows.importContent(share.link, app: app), "import-window-live")
+            await renderShare(SettingsView(app: app, page: .sharing), "settings-sharing-live")
         }
 
         sharing.add(opened, asSpace: false, follow: true, in: space, browser: nil)

@@ -132,7 +132,7 @@ private struct ShareSheetView: View {
             if let owned {
                 LinkView(link: owned.link)
                 Section {
-                    LabeledContent(L("Stand"), value: L("Version %@", owned.version))
+                    LabeledContent(L("Stand"), value: L("Version %@", String(owned.version)))
                     if let date = owned.publishedAt {
                         LabeledContent("Hochgeladen", value: date.formatted(date: .abbreviated, time: .shortened))
                     }
