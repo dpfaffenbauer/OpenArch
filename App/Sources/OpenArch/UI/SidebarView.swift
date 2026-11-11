@@ -252,7 +252,7 @@ private struct MediaCard: View {
         }
     }
 
-    private var showHelp: String { tab == nil ? L("Spotify öffnen") : L("Zum Tab wechseln") }
+    private var showHelp: String { tab == nil ? "Spotify öffnen" : "Zum Tab wechseln" }
 
     private func show() {
         switch source {

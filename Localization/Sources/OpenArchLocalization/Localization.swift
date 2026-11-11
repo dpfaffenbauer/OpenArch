@@ -91,18 +91,18 @@ public enum Localization {
     /// A localized string from the selected language, then English, then the
     /// key itself. `key` is the German source string, so untranslated strings
     /// are still readable in the source.
-    public static func string(_ key: String, language: AppLanguage? = nil,
-                              bundle: Bundle = .main) -> String {
-        let wanted = language ?? current()
-        let code = wanted == .system ? current().rawValue : wanted.rawValue
-        if let value = lookup(key, code: code, bundle: bundle), value != key {
-            return value
-        }
-        if code != "en", let value = lookup(key, code: "en", bundle: bundle), value != key {
-            return value
-        }
-        return key
+public static func string(_ key: String, language: AppLanguage? = nil,
+                          bundle: Bundle = .main) -> String {
+    let wanted = language ?? current()
+    let code = wanted == .system ? current().rawValue : wanted.rawValue
+    if let value = lookup(key, code: code, bundle: bundle) {
+        return value
     }
+    if code != "en", let value = lookup(key, code: "en", bundle: bundle) {
+        return value
+    }
+    return key
+}
 
     /// A localized format string with arguments. Use this for strings with
     /// values (counts, names, addresses), which SwiftUI cannot localize by

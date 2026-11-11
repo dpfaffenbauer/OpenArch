@@ -131,7 +131,7 @@ def swift_strings(text: str):
                     line += 1
                 out.append(ch)
                 i += 1
-            yield start, i + 1, "".join(out), line, interpolated
+            yield start, i + 1, "".join(out), text.count("\n", 0, start) + 1, interpolated
             i += 1
             continue
         i += 1
