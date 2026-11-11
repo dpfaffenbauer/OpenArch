@@ -450,7 +450,7 @@ struct Settings: Codable, Equatable {
     var appearance = AppAppearance.system
     /// The UI language. Also mirrored to UserDefaults, so it can be applied
     /// before the first window opens (main.swift).
-    var language = AppLanguage.english
+    var language = AppLanguage.system
     /// Set on a first launch until the onboarding is finished. A library
     /// saved before there was an onboarding never has it, so whoever used
     /// OpenArch before never sees it.

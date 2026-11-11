@@ -16,10 +16,10 @@ struct AppLanguageTests {
         #expect(AppLanguage.resolved(from: []) == .english)
     }
 
-    @Test func defaultSelectionIsEnglish() {
+    @Test func defaultSelectionFollowsSystem() {
         let suite = UserDefaults(suiteName: "OpenArchLocalizationTests.\(UUID().uuidString)")!
-        #expect(Localization.selection(in: suite) == .english)
-        #expect(Localization.current(in: suite) == .english)
+        #expect(Localization.selection(in: suite) == .system)
+        #expect(Localization.current(in: suite) == AppLanguage.resolved(from: Locale.preferredLanguages))
     }
 
     @Test func explicitSelectionBeatsSystem() {
@@ -45,5 +45,25 @@ struct AppLanguageTests {
         // The standard domain can still see the host's global AppleLanguages;
         // what matters is that the app's own domain no longer overrides it.
         #expect(suite.persistentDomain(forName: name)?["AppleLanguages"] == nil)
+    }
+
+    @Test func missingKeysFallBackToEnglishThenTheKey() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("OpenArchLocalizationTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        func table(_ code: String, _ body: String) throws {
+            let folder = root.appendingPathComponent("\(code).lproj")
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try body.write(to: folder.appendingPathComponent("Localizable.strings"), atomically: true, encoding: .utf8)
+        }
+        try table("en", #""Tab" = "Tab"; "Nur Englisch" = "English only";"#)
+        try table("de", #""Tab" = "Tab";"#)
+        try table("fr", #""Tab" = "Onglet";"#)
+        let bundle = try #require(Bundle(path: root.path))
+        // German maps keys to themselves; that is a translation, not a gap.
+        #expect(Localization.string("Tab", language: .german, bundle: bundle) == "Tab")
+        #expect(Localization.string("Tab", language: .french, bundle: bundle) == "Onglet")
+        #expect(Localization.string("Nur Englisch", language: .french, bundle: bundle) == "English only")
+        #expect(Localization.string("Unbekannt", language: .french, bundle: bundle) == "Unbekannt")
     }
 }

@@ -41,17 +41,18 @@ public enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
-/// OpenArch's language choice. English is the default, in the app and in
-/// every lookup that has no translation. The selection lives in the app's
-/// preferences, so it can be applied before the first window opens.
+/// OpenArch's language choice. By default OpenArch follows macOS; English is
+/// the fallback for languages without a translation and for every lookup
+/// that has none. The selection lives in the app's preferences, so it can be
+/// applied before the first window opens.
 public enum Localization {
     public static let selectionKey = "OpenArchLanguage"
     private static let appleLanguagesKey = "AppleLanguages"
 
-    /// The saved choice; English unless the user chose another language.
+    /// The saved choice; the system's language unless the user chose one.
     public static func selection(in defaults: UserDefaults = .standard) -> AppLanguage {
-        guard let raw = defaults.string(forKey: selectionKey) else { return .english }
-        return AppLanguage(rawValue: raw) ?? .english
+        guard let raw = defaults.string(forKey: selectionKey) else { return .system }
+        return AppLanguage(rawValue: raw) ?? .system
     }
 
     /// The language whose UI strings are shown now.
@@ -91,18 +92,18 @@ public enum Localization {
     /// A localized string from the selected language, then English, then the
     /// key itself. `key` is the German source string, so untranslated strings
     /// are still readable in the source.
-public static func string(_ key: String, language: AppLanguage? = nil,
-                          bundle: Bundle = .main) -> String {
-    let wanted = language ?? current()
-    let code = wanted == .system ? current().rawValue : wanted.rawValue
-    if let value = lookup(key, code: code, bundle: bundle) {
-        return value
+    public static func string(_ key: String, language: AppLanguage? = nil,
+                              bundle: Bundle = .main) -> String {
+        let code = resolvedCode(language)
+        if let value = lookup(key, code: code, bundle: bundle) {
+            return value
+        }
+        if code != AppLanguage.english.rawValue,
+           let value = lookup(key, code: AppLanguage.english.rawValue, bundle: bundle) {
+            return value
+        }
+        return key
     }
-    if code != "en", let value = lookup(key, code: "en", bundle: bundle) {
-        return value
-    }
-    return key
-}
 
     /// A localized format string with arguments. Use this for strings with
     /// values (counts, names, addresses), which SwiftUI cannot localize by
@@ -111,9 +112,7 @@ public static func string(_ key: String, language: AppLanguage? = nil,
                               bundle: Bundle = .main, arguments: [CVarArg]) -> String {
         let format = string(key, language: language, bundle: bundle)
         guard !arguments.isEmpty else { return format }
-        let wanted = language ?? current()
-        let code = wanted == .system ? current().rawValue : wanted.rawValue
-        return String(format: format, locale: Locale(identifier: code), arguments: arguments)
+        return String(format: format, locale: Locale(identifier: resolvedCode(language)), arguments: arguments)
     }
 
     /// One or another string for a count. English, German, French, Spanish
@@ -124,11 +123,20 @@ public static func string(_ key: String, language: AppLanguage? = nil,
         return format(key, arguments: [count] + args)
     }
 
+    private static func resolvedCode(_ language: AppLanguage?) -> String {
+        let wanted = language ?? current()
+        return (wanted == .system ? current() : wanted).rawValue
+    }
+
+    /// Never returned by a table, so a missing key is told apart from a
+    /// translation that happens to equal its key (German maps key to key).
+    private static let missing = "\u{1}OpenArchMissing\u{1}"
+
     private static func lookup(_ key: String, code: String, bundle: Bundle) -> String? {
         guard let path = bundle.path(forResource: code, ofType: "lproj"),
               let languageBundle = Bundle(path: path) else { return nil }
-        let value = languageBundle.localizedString(forKey: key, value: nil, table: nil)
-        return value
+        let value = languageBundle.localizedString(forKey: key, value: missing, table: nil)
+        return value == missing ? nil : value
     }
 }
 
