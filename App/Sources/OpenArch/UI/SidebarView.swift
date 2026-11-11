@@ -745,7 +745,7 @@ private struct AddressPill: View {
             if let url, url.scheme == "https" {
                 Image(systemName: "lock.fill").font(.system(size: 9)).opacity(0.5)
             }
-            Text(url.map(displayHost) ?? "Suchen oder URL eingeben")
+            Text(url.map(displayHost) ?? L("Suchen oder URL eingeben"))
                 .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
                 .opacity(url == nil ? 0.55 : 0.9)

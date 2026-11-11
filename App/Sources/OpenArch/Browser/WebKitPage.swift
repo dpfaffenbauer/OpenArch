@@ -802,7 +802,7 @@ final class WebKitFindBar: NSView, NSSearchFieldDelegate {
     }
 
     func show(matches: Int, active: Int, empty: Bool) {
-        count.stringValue = empty ? "" : matches == 0 ? "Keine Treffer" : "\(active) von \(matches)"
+        count.stringValue = empty ? "" : matches == 0 ? L("Keine Treffer") : L("%lld von %lld", active, matches)
     }
 
     @objc private func changed() { onSearch?(field.stringValue, true, false) }

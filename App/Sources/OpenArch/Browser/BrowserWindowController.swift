@@ -1268,7 +1268,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     @discardableResult
-    func newFolder(in parent: Item? = nil, name: String = "Neuer Ordner") -> Item {
+    func newFolder(in parent: Item? = nil, name: String = L("Neuer Ordner")) -> Item {
         let folder = Item.folder(name)
         state.space.pinned.insert(folder, into: parent, at: 0)
         state.renamingItemID = folder.id

@@ -143,16 +143,24 @@ def context_before(text: str, start: int, length: int = 60) -> str:
 
 def is_ui_call(text: str, start: int) -> bool:
     before = context_before(text, start, 80).rstrip()
-    if re.search(r"(?:\bL|Localization\.(?:format|count)|one:|other:)\s*\(\s*$", before):
+    if re.search(r"\bL\s*\(\s*$|\bLocalization\.(?:format|count)\s*\(\s*$", before):
         return True
-    if re.search(r"(?:\bText|Button|Label|Section|Picker|Toggle|TextField|SecureField|Link|Menu)\s*\(\s*$", before):
+    # SwiftUI views and the local helpers that build menus or buttons
+    # (item and submenu are MainMenu's own constructors).
+    if re.search(r"(?:\bText|\bButton|\bLabel|\bSection|\bPicker|\bToggle|\bTextField|\bSecureField|\bLink|\bMenu|\bitem|\bsubmenu)\s*\(\s*$", before):
         return True
     if re.search(r"\.(?:help|navigationTitle|alert|confirmationDialog|accessibilityLabel)\s*\(\s*$", before):
         return True
     # NSMenuItem(title: "…", NSMenu(title: "…", alert.messageText = "…",
     if re.search(r"(?:NSMenuItem|NSMenu)\(\s*title:\s*$|(?:messageText|informativeText|placeholderString|toolTip)\s*=\s*$", before):
         return True
-    if re.search(r"(?:title|detail|footer|label|defaultTitle|messageText|informativeText)\s*:\s*$", before):
+    # Call-site parameters whose strings are shown (help tooltips, counts,
+    # onboarding tuples, and other labelled fields). Each alternative is
+    # word-anchored, so e.g. "alreadyDone" never reads as "one".
+    if re.search(r"(?:\btitle|\bdetail|\bfooter|\blabel|\bdefaultTitle|\bmessageText|\binformativeText|\bhelp|\btext|\bnote|\bmessage|\bplaceholder|\baccessibilityLabel|\bskipTitle|\bone|\bother)\s*:\s*$", before):
+        return True
+    # Tuple titles such as primary: ("Weiter", ...).
+    if re.search(r"(?:\bprimary|\bsecondary)\s*:\s*\(\s*$", before):
         return True
     return False
 

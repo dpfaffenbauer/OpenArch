@@ -843,7 +843,7 @@ enum MainMenu {
             .separator(),
         ]
         for index in 0..<9 {
-            let entry = item(index == 8 ? "Letzter Tab" : "Tab \(index + 1)", #selector(AppDelegate.selectTab(_:)),
+            let entry = item(index == 8 ? L("Letzter Tab") : L("Tab %lld", index + 1), #selector(AppDelegate.selectTab(_:)),
                              "\(index + 1)", tag: index == 8 ? -1 : index)
             entry.allowsKeyEquivalentWhenHidden = true
             tabItems.append(entry)

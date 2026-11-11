@@ -198,11 +198,11 @@ final class CommandBarModel {
     }
 
     var placeholder: String {
-        if let site { return "\(site.name) durchsuchen …" }
+        if let site { return L("%@ durchsuchen", site.name) }
         return switch mode {
-        case .newTab: "Suchen oder URL eingeben …"
-        case .editURL: "URL bearbeiten …"
-        case .newSplit: "Neben dem aktuellen Tab öffnen …"
+        case .newTab: L("Suchen oder URL eingeben …")
+        case .editURL: L("URL bearbeiten …")
+        case .newSplit: L("Neben dem aktuellen Tab öffnen …")
         }
     }
 

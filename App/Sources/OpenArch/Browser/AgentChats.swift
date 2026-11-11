@@ -47,7 +47,7 @@ extension BrowserWindowController {
             alert.messageText = L("„%@“ arbeitet noch.", item.displayTitle)
             alert.informativeText = L("Der Agent wird angehalten und der Chat entfernt.")
             alert.addButton(withTitle: L("Entfernen"))
-            alert.addButton(withTitle: "Abbrechen")
+            alert.addButton(withTitle: L("Abbrechen"))
             alert.buttons[0].hasDestructiveAction = true
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }

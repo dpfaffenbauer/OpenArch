@@ -229,7 +229,7 @@ extension BrowserWindowController {
     func addSpace() {
         let used = Set(library.spaces.map(\.colorHex))
         let color = spaceColorPresets.first { !used.contains($0) } ?? spaceColorPresets[library.spaces.count % spaceColorPresets.count]
-        let space = library.addSpace(name: "Neuer Space", icon: "star.fill", colorHex: color, profileID: state.space.profileID)
+        let space = library.addSpace(name: L("Neuer Space"), icon: "star.fill", colorHex: color, profileID: state.space.profileID)
         switchSpace(to: space)
         state.editingSpaceID = space.id
     }

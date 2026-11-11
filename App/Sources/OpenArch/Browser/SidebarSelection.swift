@@ -128,7 +128,7 @@ extension BrowserWindowController {
     func newFolderWithSelection() -> Item? {
         let rows = selectionRoots
         guard !rows.isEmpty, !isStandalone else { return nil }
-        let folder = Item.folder("Neuer Ordner")
+        let folder = Item.folder(L("Neuer Ordner"))
         let pinned = state.space.pinned
         if let first = rows.first, first.container === pinned {
             pinned.insert(folder, into: first.parent, at: first.indexInParent)
