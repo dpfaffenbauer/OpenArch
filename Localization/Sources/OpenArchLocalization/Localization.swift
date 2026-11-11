@@ -12,16 +12,8 @@ public enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    /// The languages offered in Settings › General.
-    public static let selectable: [AppLanguage] = [.system, .english, .german, .french, .spanish, .italian]
-
     /// All languages with a translation table, including English.
     public static let supported: [AppLanguage] = [.english, .german, .french, .spanish, .italian]
-
-    /// The `.lproj` name, or nil for `system` (the bundle then decides).
-    public var localizationCode: String? {
-        self == .system ? nil : rawValue
-    }
 
     /// The language's own name, as language pickers show it.
     public var endonym: String {

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 import pathlib
 import re
 import sys
@@ -26,16 +25,6 @@ RESOURCES = ROOT / "App" / "Resources"
 LOCALIZATION = ROOT / "App" / "Localization"
 TRANSLATIONS = LOCALIZATION / "translations.tsv"
 LANGS = ["en", "de", "fr", "es", "it"]
-
-# SwiftUI and AppKit entry points whose first string arguesment is UI text.
-UI_CALLS = re.compile(
-    r"""(?x)
-    (?:
-      \b(?:Text|Button|Label|Section|Picker|Toggle|TextField|SecureField|Link|Menu)
-      | \.help | \.navigationTitle | \.alert | \.confirmationDialog | \.accessibilityLabel
-      | \bNSAlert\b
-    )\s*\(\s*$
-    """, re.VERBOSE)
 
 UI_FILE_HINTS = ("/UI/", "/Onboarding/")
 GERMAN = re.compile(

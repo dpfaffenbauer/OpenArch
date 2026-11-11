@@ -213,7 +213,7 @@ private struct GeneralPage: View {
                 detail: "Die Sprache von OpenArch. „System“ folgt macOS und nimmt Englisch, wenn macOS eine Sprache wählt, die OpenArch nicht hat. Die Änderung gilt nach einem Neustart.",
                 showsDivider: false) {
                 Picker("", selection: $library.settings.language) {
-                    ForEach(AppLanguage.selectable) { Text($0.endonym).tag($0) }
+                    ForEach(AppLanguage.allCases) { Text($0.endonym).tag($0) }
                 }
                 .labelsHidden().fixedSize()
                 .onChange(of: library.settings.language) { _, language in
