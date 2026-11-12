@@ -704,6 +704,15 @@ class PaneClient : public CefClient,
       return;
     }
     std::string url = browser->GetMainFrame()->GetURL().ToString();
+    // View (frame) source: the frame loads the page itself, only the
+    // navigation entry says view-source:.
+    if (CefRefPtr<CefNavigationEntry> entry =
+            browser->GetHost()->GetVisibleNavigationEntry()) {
+      const std::string shown = entry->GetDisplayURL().ToString();
+      if (shown.rfind("view-source:", 0) == 0) {
+        url = shown;
+      }
+    }
     if (url == "about:blank" && OACRemoteDebuggingEnabled()) {
       // A blank page from a DevTools client (AI control): leave it in its
       // own window so the client keeps its handle on it.
