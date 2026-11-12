@@ -166,16 +166,15 @@ struct ShortcutsPage: View {
                 .font(.system(size: 11)).foregroundStyle(note == nil ? .secondary : Color.orange)
             ForEach(menus, id: \.self) { menu in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(L(menu)).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                    Text(L(menu)).font(.system(size: 13, weight: .semibold)).padding(.horizontal, 10)
                     VStack(spacing: 0) {
                         let rows = shown.filter { $0.menu == menu }
                         ForEach(rows) { command in
                             row(command)
-                            if command != rows.last { Divider().padding(.leading, 14).opacity(0.6) }
+                            if command != rows.last { Divider().padding(.horizontal, 14).opacity(0.5) }
                         }
                     }
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)))
-                    .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.035)))
                 }
             }
         }

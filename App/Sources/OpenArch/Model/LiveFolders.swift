@@ -73,7 +73,7 @@ final class LiveFolders {
         if folder.children.isEmpty { folder.liveStatus = .loading }
         Task {
             let headers = ["Accept": "application/json", "X-Requested-With": "XMLHttpRequest"]
-            let (data, status) = await ChromiumFetch.get(source.searchURL, profile: profile, headers: headers)
+            let (data, status) = await WebFetch.get(source.searchURL, profile: profile, headers: headers)
             guard let data, status == 200, let result = Self.results(from: data, kind: source.kind) else {
                 folder.liveStatus = .failed
                 return
@@ -100,10 +100,10 @@ final class LiveFolders {
         guard let path = Self.pullPath(item.savedURL),
               let commitsURL = URL(string: "https://github.com\(path)/commits") else { return }
         let headers = ["Accept": "application/json", "X-Requested-With": "XMLHttpRequest"]
-        let (data, status) = await ChromiumFetch.get(commitsURL, profile: profile, headers: headers)
+        let (data, status) = await WebFetch.get(commitsURL, profile: profile, headers: headers)
         guard status == 200, let data, let sha = Self.headSHA(fromCommits: data),
               let iconURL = URL(string: "https://github.com\(path)/partials/commit_status_icon?oid=\(sha)") else { return }
-        let (icon, iconStatus) = await ChromiumFetch.get(iconURL, profile: profile, headers: ["X-Requested-With": "XMLHttpRequest"])
+        let (icon, iconStatus) = await WebFetch.get(iconURL, profile: profile, headers: ["X-Requested-With": "XMLHttpRequest"])
         guard iconStatus == 200, let icon else { return }
         item.checks = Self.checks(fromStatusIcon: String(decoding: icon, as: UTF8.self))
     }

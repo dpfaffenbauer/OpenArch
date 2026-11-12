@@ -27,7 +27,7 @@ final class ArtworkStore {
             if address.hasPrefix("data:") {
                 data = Self.decode(dataURL: address)
             } else if let url = URL(string: address) {
-                let (body, status) = await ChromiumFetch.get(url, profile: profile)
+                let (body, status) = await WebFetch.get(url, profile: profile)
                 data = status == 200 ? body : nil
             }
             guard let data, let image = NSImage(data: data), image.isValid, image.size.width > 0 else { return }

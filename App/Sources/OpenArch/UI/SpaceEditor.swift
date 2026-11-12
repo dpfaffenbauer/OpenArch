@@ -1,3 +1,4 @@
+import OpenArchLocalization
 import SwiftUI
 
 /// Popover for a space: name, icon, theme and profile.

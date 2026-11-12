@@ -4,48 +4,264 @@ import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 
-/// Settings in Arc's style: a tab bar with icons, options in rounded cards.
+/// A native-material sidebar beside the settings pages, like System Settings.
 struct SettingsView: View {
     let app: AppDelegate
-    @State private var page: SettingsPage
+    @State private var navigation: SettingsNavigation
+    @State private var query = ""
+    @State private var searchTarget: String?
+    @FocusState private var searchFocused: Bool
 
-    init(app: AppDelegate, page: SettingsPage = .general) {
+    private var page: SettingsPage { navigation.page }
+
+    init(app: AppDelegate, page: SettingsPage = .general, query: String = "") {
         self.app = app
-        _page = State(initialValue: page)
+        _navigation = State(initialValue: SettingsNavigation(page: page))
+        _query = State(initialValue: query)
+    }
+
+    private func open(_ page: SettingsPage, target: String? = nil) {
+        navigation.visit(page)
+        searchTarget = target
+        query = ""
+        searchFocused = false
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 4) {
-                ForEach(SettingsPage.allCases) { item in
-                    SettingsTab(page: item, isSelected: page == item) { page = item }
+        HStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                searchField
+                    .padding(.top, 64)
+                    .padding(.horizontal, 10)
+                    .padding(.bottom, 12)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            ForEach(SettingsPage.allCases) { item in
+                                SettingsSidebarRow(page: item, isSelected: page == item) { open(item) }
+                            }
+                        } else {
+                            let results = SettingsSearchResult.matching(query)
+                            if results.isEmpty {
+                                Text(L("Keine Treffer"))
+                                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                                    .padding(12)
+                            }
+                            ForEach(results) { result in
+                                SettingsSidebarRow(page: result.page, isSelected: false,
+                                                   title: result.title, subtitle: result.page.title) {
+                                    open(result.page, target: result.target)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 12)
                 }
             }
-            // Just under the window buttons: the view runs under the
-            // transparent title bar instead of starting below it.
-            .padding(.top, 38)
-            .padding(.bottom, 12)
-            Divider().opacity(0.5)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    switch page {
-                    case .general: GeneralPage(app: app, library: app.library)
-                    case .profiles: ProfilesPage(app: app, library: app.library)
-                    case .links: LinksPage(app: app, library: app.library)
-                    case .sharing: SharingPage(app: app, library: app.library)
-                    case .ai: AIPage(app: app)
-                    case .keyboard: ShortcutsPage(app: app, library: app.library)
-                    case .importing: ImportPage(app: app)
-                    case .about: AboutPage(app: app)
+            .frame(width: 230)
+            .background(SettingsSidebarMaterial())
+            .overlay(alignment: .top) {
+                if searchFocused && query.isEmpty {
+                    VStack(spacing: 2) {
+                        ForEach(navigation.recentPages) { item in
+                            SettingsSidebarRow(page: item, isSelected: false) { open(item) }
+                        }
+                    }
+                    .padding(6)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.primary.opacity(0.12)))
+                    .shadow(color: .black.opacity(0.18), radius: 12, y: 6)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 104)
+                }
+            }
+            Divider()
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            switch page {
+                            case .general: GeneralPage(app: app, library: app.library)
+                            case .profiles: ProfilesPage(app: app, library: app.library)
+                            case .links: LinksPage(app: app, library: app.library)
+                            case .sharing: SharingPage(app: app, library: app.library)
+                            case .ai: AIPage(app: app)
+                            case .keyboard: ShortcutsPage(app: app, library: app.library)
+                            case .importing: ImportPage(app: app)
+                            case .about: AboutPage(app: app)
+                            }
+                        }
+                        .padding(20)
+                        .frame(maxWidth: 760, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                        .id(page)
+                    }
+                    .task(id: page.rawValue + (searchTarget ?? "")) {
+                        await Task.yield()
+                        guard !Task.isCancelled else { return }
+                        if let searchTarget { proxy.scrollTo(searchTarget, anchor: .top) }
+                        else { proxy.scrollTo(page, anchor: .top) }
                     }
                 }
-                .padding(24)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .windowBackgroundColor))
         }
         .ignoresSafeArea(.container, edges: .top)
-        .frame(width: 640, height: 580)
-        .background(.background)
+        .frame(minWidth: 820, minHeight: 600)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(L("Suchen"), text: $query)
+                .textFieldStyle(.plain)
+                .focused($searchFocused)
+                .accessibilityLabel(L("Suchen"))
+                .onSubmit {
+                    if let first = SettingsSearchResult.matching(query).first {
+                        open(first.page, target: first.target)
+                    }
+                }
+                .onExitCommand { query = ""; searchFocused = false }
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("Zurücksetzen"))
+            }
+        }
+        .font(.system(size: 13))
+        .padding(.horizontal, 10)
+        .frame(height: 30)
+        .background(.thinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.primary.opacity(searchFocused ? 0.4 : 0.14), lineWidth: searchFocused ? 2 : 1))
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 0) {
+                Button {
+                    navigation.back()
+                    searchTarget = nil
+                } label: {
+                    Image(systemName: "chevron.left").frame(width: 34, height: 34)
+                }
+                .disabled(!navigation.canGoBack)
+                .help(L("Zurück"))
+                .accessibilityLabel(L("Zurück"))
+                Rectangle().fill(.primary.opacity(0.16)).frame(width: 1, height: 20)
+                Button {
+                    navigation.forward()
+                    searchTarget = nil
+                } label: {
+                    Image(systemName: "chevron.right").frame(width: 34, height: 34)
+                }
+                .disabled(!navigation.canGoForward)
+                .help(L("Vorwärts"))
+                .accessibilityLabel(L("Vorwärts"))
+            }
+            .font(.system(size: 15, weight: .medium))
+            .buttonStyle(.plain)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(.primary.opacity(0.08)))
+            Text(page.title).font(.system(size: 16, weight: .semibold))
+                .lineLimit(1)
+                .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 64)
+    }
+}
+
+private struct SettingsSidebarMaterial: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+}
+
+struct SettingsNavigation {
+    private(set) var history: [SettingsPage]
+    private(set) var index = 0
+    var page: SettingsPage { history[index] }
+    var canGoBack: Bool { index > 0 }
+    var canGoForward: Bool { index + 1 < history.count }
+    var recentPages: [SettingsPage] {
+        history.reversed().reduce(into: [SettingsPage]()) { pages, page in
+            if !pages.contains(page) { pages.append(page) }
+        }
+    }
+
+    init(page: SettingsPage) { history = [page] }
+
+    mutating func visit(_ page: SettingsPage) {
+        guard page != self.page else { return }
+        history = Array(history.prefix(index + 1)) + [page]
+        index = history.count - 1
+    }
+
+    mutating func back() { if canGoBack { index -= 1 } }
+    mutating func forward() { if canGoForward { index += 1 } }
+}
+
+private struct SettingsSidebarRow: View {
+    let page: SettingsPage
+    let isSelected: Bool
+    var title: String?
+    var subtitle: String?
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                SettingsIcon(symbol: page.symbol)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title ?? page.title)
+                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    if let subtitle {
+                        Text(subtitle).font(.system(size: 12)).foregroundStyle(.secondary)
+                    }
+                }
+                .lineLimit(2)
+                Spacer(minLength: 4)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, subtitle == nil ? 5 : 9)
+            .frame(minHeight: 32)
+            .background(RoundedRectangle(cornerRadius: 8).fill(
+                isSelected ? Color.primary.opacity(0.18) : (hovering ? Color.primary.opacity(0.06) : .clear)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .onHover { hovering = $0 }
+    }
+}
+
+private struct SettingsIcon: View {
+    let symbol: String
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 14, weight: .regular))
+            .foregroundStyle(Color(red: 0.82, green: 0.77, blue: 0.94))
+            .frame(width: 23, height: 23)
+            .background(LinearGradient(colors: [Color(white: 0.22), Color(white: 0.08)],
+                                       startPoint: .top, endPoint: .bottom),
+                        in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.white.opacity(0.15), lineWidth: 0.5))
+            .accessibilityHidden(true)
     }
 }
 
@@ -78,28 +294,38 @@ enum SettingsPage: String, CaseIterable, Identifiable {
         case .about: "info.circle"
         }
     }
+
+    /// Search destinations use the same keys as the rendered rows and sections.
+    var searchTargets: [String] {
+        switch self {
+        case .general:
+            ["Standardbrowser", "Erscheinungsbild", "Einführung", "Sprache", "Suchmaschine", "Suchvorschläge",
+             "Tabs", "Sidebar", "Kalender", "Sicherheit", "Nur HTTPS", "App-Symbol", "Seitensuche"]
+        case .profiles: []
+        case .links: ["Peek", "Link-Regeln", "Links aus anderen Apps", "In Little OpenArch öffnen"]
+        case .sharing: ["Von diesem Mac geteilt", "Mit dir geteilt", "Teilen-Server"]
+        case .ai: ["Tab-Titel kürzen", "Fragen in der Befehlsleiste", "Agent-Chats", "Morning Brief", "KI-Steuerung"]
+        case .keyboard: []
+        case .importing: ["Aus Arc", "Aus anderen Browsern", "Aus Dateien", "Lesezeichen-Datei (HTML)", "Passwörter (CSV)"]
+        case .about: ["Updates", "Update-Kanal", "Automatisch aktualisieren", "Daten", "Sicherung", "Absturzberichte", "Projekt"]
+        }
+    }
 }
 
-private struct SettingsTab: View {
+struct SettingsSearchResult: Identifiable {
     let page: SettingsPage
-    let isSelected: Bool
-    let action: () -> Void
-    @State private var hovering = false
+    let target: String?
+    var title: String { target.map { L($0) } ?? page.title }
+    var id: String { page.rawValue + ":" + (target ?? "") }
 
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: page.symbol).font(.system(size: 17, weight: .medium)).frame(height: 20)
-                Text(page.title).font(.system(size: 11, weight: .medium))
-            }
-            .frame(width: 72, height: 50)
-            .background(RoundedRectangle(cornerRadius: 9).fill(
-                isSelected ? Color.accentColor.opacity(0.16) : (hovering ? Color.primary.opacity(0.06) : .clear)))
-            .foregroundStyle(isSelected ? Color.accentColor : .primary.opacity(0.75))
-            .contentShape(Rectangle())
+    static func matching(_ query: String) -> [Self] {
+        let words = query.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard !words.isEmpty else { return [] }
+        return SettingsPage.allCases.flatMap { page in
+            [Self(page: page, target: nil)] + page.searchTargets.map { Self(page: page, target: $0) }
+        }.filter { result in
+            words.allSatisfy { (result.title + " " + result.page.title).localizedStandardContains($0) }
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
     }
 }
 
@@ -112,18 +338,22 @@ private struct Section<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(L(title)).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+            Text(L(title)).font(.system(size: 13, weight: .semibold))
+                .padding(.horizontal, 10)
+                .accessibilityAddTraits(.isHeader)
             VStack(spacing: 0) { content }
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.04)))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.primary.opacity(0.07)))
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.035)))
             if let footer {
-                Text(L(footer)).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(L(footer)).font(.system(size: 11)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 10)
             }
         }
+        .id(title)
     }
 }
 
-/// One setting: colored icon, title, explanation, control on the right.
+/// Text-led preference rows; personal items retain their identifying icon.
 private struct Row<Control: View>: View {
     let symbol: String
     let color: Color
@@ -137,13 +367,14 @@ private struct Row<Control: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(RoundedRectangle(cornerRadius: 7).fill(color.gradient))
+                if !localizes {
+                    Image(systemName: symbol)
+                        .font(.system(size: 15))
+                        .foregroundStyle(color)
+                        .frame(width: 24, height: 24)
+                }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(localizes ? L(title) : title).font(.system(size: 13, weight: .medium))
+                    Text(localizes ? L(title) : title).font(.system(size: 13))
                     if let detail {
                         Text(localizes ? L(detail) : detail).font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
@@ -151,12 +382,14 @@ private struct Row<Control: View>: View {
                 Spacer(minLength: 12)
                 control
             }
+            .frame(minHeight: 24)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             if showsDivider {
-                Divider().padding(.leading, 54).opacity(0.6)
+                Divider().padding(.horizontal, 14).opacity(0.5)
             }
         }
+        .id(title)
     }
 }
 
@@ -291,9 +524,6 @@ private struct GeneralPage: View {
                     get: { library.settings.showChromeToolbar },
                     set: { if $0 != library.settings.showChromeToolbar { app.browser?.toggleChromeToolbar() } }))
                     .labelsHidden().toggleStyle(.switch)
-            }
-            Row(symbol: "character.textbox", color: .gray, title: "Adresse oben in der Sidebar", showsDivider: false) {
-                Toggle("", isOn: $library.settings.showSidebarAddress).labelsHidden().toggleStyle(.switch)
             }
         }
         MeetingSection(library: library)
@@ -741,57 +971,18 @@ private struct MorningBriefSection: View {
 
 private struct AIPage: View {
     let app: AppDelegate
-    @State private var enabled = AIControl.isEnabled
-    @State private var port = AIControl.configuredPort
-    @State private var copied = false
 
     var body: some View {
-        let running = OACEngine.remoteDebuggingPort
         TabTitlesSection(library: app.library)
         AskAISection(library: app.library)
         AgentChatsSection(library: app.library)
         MorningBriefSection(app: app, library: app.library)
         Section(title: "KI-Steuerung",
-                footer: "OpenArch öffnet dafür Chromes DevTools-Protokoll auf 127.0.0.1. Solange das an ist, kann jedes Programm auf diesem Mac den Browser steuern, auch eingeloggte Tabs. Schalte es nur ein, wenn du es brauchst.") {
-            Row(symbol: "sparkles", color: .orange, title: "KI-Steuerung erlauben",
-                detail: "Für Claude Code, Playwright oder Puppeteer: Seiten öffnen, klicken, Formulare ausfüllen, Screenshots, Konsole und Netzwerk.") {
-                Toggle("", isOn: $enabled).labelsHidden().toggleStyle(.switch)
-                    .onChange(of: enabled) { AIControl.isEnabled = enabled }
+                footer: "Auf WebKit gibt es kein DevTools-Protokoll, darum entfällt die externe Steuerung (chrome-devtools-mcp, Playwright, Puppeteer). Die Agent-Chats in der Seitenleiste bedienen die Tabs weiter mit OpenArchs eigenen Werkzeugen.") {
+            Row(symbol: "sparkles", color: .gray, title: "Externe Steuerung",
+                detail: "In dieser Version nicht verfügbar (WebKit).", showsDivider: false) {
+                EmptyView()
             }
-            Row(symbol: "number", color: .gray, title: "Port", showsDivider: false) {
-                TextField("9222", value: $port, format: .number.grouping(.never))
-                    .textFieldStyle(.roundedBorder).frame(width: 80)
-                    .onChange(of: port) { AIControl.configuredPort = port }
-            }
-        }
-        if (enabled ? port : 0) != running {
-            HStack {
-                Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(.orange)
-                Text(L(enabled ? "Wird nach einem Neustart von OpenArch aktiv." : "Wird nach einem Neustart abgeschaltet."))
-                    .font(.system(size: 12))
-                Spacer()
-                Button("Jetzt neu starten") { app.relaunch() }
-            }
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.orange.opacity(0.1)))
-        } else if running > 0 {
-            Label(L("Aktiv auf 127.0.0.1:%lld", running), systemImage: "antenna.radiowaves.left.and.right")
-                .font(.system(size: 12, weight: .medium)).foregroundStyle(.orange)
-        }
-        Section(title: "Mit Claude Code verbinden",
-                footer: "Einmal im Terminal ausführen. Danach kann Claude in jedem Projekt OpenArch steuern, etwa um eine lokale Seite zu testen. Nutzt Googles MCP-Server chrome-devtools-mcp.") {
-            HStack(alignment: .top) {
-                Text(AIControl.claudeCommand(port: port))
-                    .font(.system(size: 11.5, design: .monospaced))
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer()
-                Button(L(copied ? "Kopiert" : "Kopieren")) {
-                    copy(AIControl.claudeCommand(port: port))
-                    copied = true
-                }
-            }
-            .padding(14)
         }
     }
 }
@@ -1062,7 +1253,7 @@ private struct AboutPage: View {
                 .onTapGesture { AboutWindowController.shared.show() }
             VStack(alignment: .leading, spacing: 4) {
                 Text("OpenArch").font(.system(size: 22, weight: .bold))
-                Text(L("Version %@ · Chromium %@", updater.versionDescription, OACEngine.versionString))
+                Text(L("Version %@ · WebKit", updater.versionDescription))
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                 Text("von Dominik Pfaffenbauer").font(.system(size: 12)).foregroundStyle(.secondary)
             }

@@ -78,22 +78,16 @@ struct ProtectedMediaSites: Equatable {
             .filter { !removed.contains($0) && seen.insert($0).inserted }
     }
 
-    /// The engine a page OpenArch opens at |url| gets.
-    func engine(for url: String) -> OACPageEngine {
-        entry(for: url) == nil ? .chromium : .webKit
-    }
+    /// The engine a page OpenArch opens at |url| gets. WebKit only: the
+    /// browser no longer ships Chromium.
+    func engine(for url: String) -> OACPageEngine { .webKit }
 
-    /// An address field's pick for a page now in |current|: the rules, but a
-    /// sign-in host stays where it is.
-    func engine(forAddress url: String, current: OACPageEngine) -> OACPageEngine {
-        Self.isSignInHost(url) ? current : engine(for: url)
-    }
+    /// An address field's pick: always WebKit, no engine switch remains.
+    func engine(forAddress url: String, current: OACPageEngine) -> OACPageEngine { .webKit }
 
-    /// A navigation a page started itself: whether it has to move to WebKit.
-    /// Only Chromium pages move, only for a GET, only to a listed site.
-    func handsOff(from current: OACPageEngine, to url: String, method: String) -> Bool {
-        current == .chromium && method.uppercased() == "GET" && engine(for: url) == .webKit
-    }
+    /// A navigation a page started itself: never moves engines; there is
+    /// only one.
+    func handsOff(from current: OACPageEngine, to url: String, method: String) -> Bool { false }
 
     /// The listed entry |url| falls under (nil while off, for a sign-in host
     /// and for anything but http and https).
@@ -268,42 +262,26 @@ enum ProtectedMedia {
     /// Chromium, as if the setting were off.
     private static var switchedOff: Bool { !FeatureSwitches.shared.isOn(.drmWebKit) }
 
-    static func engine(for url: String) -> OACPageEngine { switchedOff ? .chromium : sites.engine(for: url) }
+    static func engine(for url: String) -> OACPageEngine { .webKit }
 
-    /// A page for |url| in the engine the rules pick: every page OpenArch
-    /// opens itself comes from here.
+    /// A page for |url|: every page OpenArch opens comes from here, WebKit
+    /// only.
     static func makePage(url: String, profile: OACProfile) -> any OACPage {
-        makePage(url: url, profile: profile, engine: engine(for: url))
+        WebKitPage(profile: profile, url: url, serviceName: sites.serviceName(for: url) ?? "")
     }
 
     static func makePage(url: String, profile: OACProfile, engine: OACPageEngine) -> any OACPage {
-        switch engine {
-        case .webKit:
-            return WebKitPage(profile: profile, url: url, serviceName: sites.serviceName(for: url) ?? "")
-        default:
-            return OACPane(profile: profile, url: url)
-        }
+        WebKitPage(profile: profile, url: url, serviceName: sites.serviceName(for: url) ?? "")
     }
 
-    /// An address field's pick for a page now in |current|'s engine (a
-    /// sign-in host stays where it is).
-    static func engine(forAddress url: String, current: OACPageEngine) -> OACPageEngine {
-        switchedOff ? .chromium : sites.engine(forAddress: url, current: current)
-    }
+    /// An address field's pick: always WebKit.
+    static func engine(forAddress url: String, current: OACPageEngine) -> OACPageEngine { .webKit }
 
-    /// Whether a page's own navigation has to move to WebKit.
-    static func handsOff(from current: OACPageEngine, to url: String, method: String) -> Bool {
-        !switchedOff && sites.handsOff(from: current, to: url, method: method)
-    }
+    /// No second engine remains, so no navigation moves.
+    static func handsOff(from current: OACPageEngine, to url: String, method: String) -> Bool { false }
 
-    /// The person's choice for |url|'s site (Site Controls).
-    static func choose(_ engine: OACPageEngine, for url: String) {
-        let result = ProtectedMediaSites.choosing(engine, for: url, added: choices.added, removed: choices.removed,
-                                                  listed: testHosts)
-        choices.added = result.added
-        choices.removed = result.removed
-        save()
-    }
+    /// Kept for Site Controls compatibility; there is no second engine.
+    static func choose(_ engine: OACPageEngine, for url: String) {}
 
     /// Whether |service|'s toast was shown already.
     static func wasTold(_ service: String) -> Bool { choices.told.contains(service) }

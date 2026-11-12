@@ -149,8 +149,9 @@ extension SelfTest {
         }
     }
 
-    /// The built-in extension names every page; a call reporting a shared
-    /// tab shows which one, and the card goes when it stops.
+    /// A call reporting a shared tab shows which one, and the card goes when
+    /// it stops. WebKit has no capture handles, so pages name themselves no
+    /// longer: the share shows its sharer without a named tab.
     private func screenShareTest(then done: @escaping () -> Void) {
         guard let shared = browser.state.space.today.allTabs.first(where: { $0.pane != nil }) else {
             expect(false, "a loaded tab to share")
@@ -158,17 +159,16 @@ extension SelfTest {
         }
         let call = browser.openInNewTab("https://example.com/share-call", select: false)
         browser.select(call, focus: false)
-        eventually({ shared.captureHandle != nil && call.pane != nil }, timeout: 5) { named in
-            self.expect(named, "the built-in extension names each page for a tab sharing it (\(shared.captureHandle ?? "none"))")
+        eventually({ call.pane != nil }, timeout: 5) { loaded in
+            self.expect(loaded && shared.captureHandle == nil,
+                        "WebKit names no page for tab sharing (\(shared.captureHandle ?? "none"))")
             guard let pane = call.pane else { return done() }
-            let handle = shared.captureHandle ?? "openarch-tab:selftest"
-            shared.captureHandle = handle
-            self.browser.pane(pane, consoleMessage: #"__openarch_capture__ {"surface":"browser","handle":"\#(handle)"}"#,
+            self.browser.pane(pane, consoleMessage: #"__openarch_capture__ {"surface":"browser","handle":""}"#,
                               source: "", line: 0)
             let share = self.browser.screenShare
-            self.expect(call.screenShare?.surface == "browser" && share?.sharer === call && share?.shared === shared
-                        && self.browser.isBeingShared(shared),
-                        "a call sharing a tab shows which tab it shares")
+            self.expect(call.screenShare?.surface == "browser" && share?.sharer === call && share?.shared == nil
+                        && !self.browser.isBeingShared(shared),
+                        "a call sharing shows its sharer (WebKit names no shared tab)")
             // A picture of the sidebar with the sharing and meeting cards.
             Meetings.shared.testMeeting = Meetings.Meeting(id: "picture", title: "Weekly", start: Date().addingTimeInterval(240),
                                                            end: Date().addingTimeInterval(3600), joinURL: "https://example.com/weekly")

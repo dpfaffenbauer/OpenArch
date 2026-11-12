@@ -40,6 +40,7 @@ struct LibraryView: View {
                     SearchField(text: $query, placeholder: "\(state.librarySection.title) durchsuchen …", theme: theme)
                     Group {
                         switch state.librarySection {
+                        case .history: HistorySection(browser: browser, query: query, theme: theme)
                         case .media: MediaSection(browser: browser, files: files, query: query, theme: theme)
                         case .downloads: DownloadsSection(browser: browser, files: files, query: query, theme: theme)
                         case .spaces: SpacesSection(browser: browser, query: query, theme: theme)
@@ -149,6 +150,40 @@ final class LibraryFiles {
     }
 }
 
+/// OpenArch's own history (History.sqlite), replacing chrome://history.
+private struct HistorySection: View {
+    let browser: BrowserWindowController
+    let query: String
+    let theme: SpaceTheme
+
+    var body: some View {
+        let entries = query.isEmpty ? browser.history.recent(limit: 200) : browser.history.search(query, limit: 200)
+        ScrollView {
+            LazyVStack(spacing: 2) {
+                ForEach(entries, id: \.url) { entry in
+                    LibraryEntrance {
+                        Button {
+                            browser.open(entry.url, inNewTab: false)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.title.isEmpty ? entry.url : entry.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                                Text(entry.url).font(.system(size: 11)).lineLimit(1).opacity(0.65)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.vertical, 4)
+                        .help(entry.url)
+                    }
+                }
+            }
+        }
+        .scrollIndicators(.never)
+        .overlay { EmptyHint(isEmpty: entries.isEmpty, text: query.isEmpty ? "Noch kein Verlauf" : "Keine Treffer") }
+    }
+}
+
 private func matches(_ query: String, _ text: String) -> Bool {
     let words = query.lowercased().split(separator: " ")
     let haystack = text.lowercased()
@@ -166,15 +201,17 @@ private struct MediaSection: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
                 ForEach(items) { file in
-                    FileThumbnail(url: file.url)
-                        .frame(height: 110)
-                        .frame(maxWidth: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(theme.tile))
-                        .contentShape(Rectangle())
-                        .onTapGesture { NSWorkspace.shared.open(file.url) }
-                        .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
-                        .contextMenu { FileMenu(browser: browser, file: file) { Task { await files.reload() } } }
-                        .help(file.url.lastPathComponent)
+                    LibraryEntrance {
+                        FileThumbnail(url: file.url)
+                            .frame(height: 110)
+                            .frame(maxWidth: .infinity)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(theme.tile))
+                            .contentShape(Rectangle())
+                            .onTapGesture { NSWorkspace.shared.open(file.url) }
+                            .onDrag { NSItemProvider(contentsOf: file.url) ?? NSItemProvider() }
+                            .contextMenu { FileMenu(browser: browser, file: file) { Task { await files.reload() } } }
+                            .help(file.url.lastPathComponent)
+                    }
                 }
             }
         }
@@ -460,6 +497,26 @@ private struct ArchivedFavicon: View {
     }
 }
 
+/// One library row enters as a whole: icon or preview, title and text
+/// fade and rise together, instead of the icon fading while the text rises.
+private struct LibraryEntrance<Content: View>: View {
+    @ViewBuilder let content: Content
+    @State private var on = false
+
+    var body: some View {
+        content
+            .opacity(on ? 1 : 0)
+            .offset(y: on ? 0 : 6)
+            .onAppear {
+                if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+                    on = true
+                } else {
+                    withAnimation(.easeOut(duration: 0.25)) { on = true }
+                }
+            }
+    }
+}
+
 private struct LibraryRow<Content: View>: View {
     let theme: SpaceTheme
     var isSelected = false
@@ -467,9 +524,11 @@ private struct LibraryRow<Content: View>: View {
     @State private var hovering = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            content
-            Spacer(minLength: 0)
+        LibraryEntrance {
+            HStack(spacing: 10) {
+                content
+                Spacer(minLength: 0)
+            }
         }
         .padding(.horizontal, 8)
         .frame(minHeight: 44)

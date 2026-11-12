@@ -4,7 +4,7 @@ import OpenArchLocalization
 import SwiftUI
 
 /// Arc's Site Control Center: what the site in front may do, its zoom, its
-/// data and its boost. Opens from the sidebar's top bar.
+/// data and its boost. Opens beside Copy URL in the sidebar's address bar.
 struct SiteControls: View {
     let browser: BrowserWindowController
     let item: Item

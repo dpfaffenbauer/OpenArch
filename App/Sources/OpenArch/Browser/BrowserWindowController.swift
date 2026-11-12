@@ -5,7 +5,7 @@ import SwiftUI
 
 /// One browser window: the sidebar on the left (or on the right, Settings ›
 /// Allgemein › Sidebar) and, beside it, the content area where the active
-/// tab's Chrome pane (or the panes of a split view) sit as child windows.
+/// tab's WebKit page (or the pages of a split view) live as subviews.
 @MainActor
 final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPaneDelegate {
     let library: Library
@@ -453,7 +453,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Whether the sidebar's address field shows the page's loading; the line
     /// above the page does otherwise.
     var addressFieldShowsLoading: Bool {
-        state.sidebarVisible && library.settings.showSidebarAddress
+        state.sidebarVisible && !state.libraryVisible && !state.agentsVisible
     }
 
     /// |position| is where the divider goes: an x side by side, a y stacked.
@@ -864,9 +864,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         page.offersAskAboutSelection = !isPrivate
     }
 
-    /// Shows |tab| in the other engine at |url|, in its place: the same
-    /// tab, the same side of a split, the focus where it was. A streaming
-    /// service's page moves to WebKit, or back to Chromium.
+    /// Reloads |tab| at |url| in its place: the same tab, the same side of
+    /// a split, the focus where it was. WebKit only.
     func replacePage(of tab: Item, with url: String, engine: OACPageEngine) {
         guard let old = tab.pane, old.delegate === self else { return }
         let wasShown = visibleTabs.contains { $0 === tab }
@@ -877,9 +876,11 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         old.close()
         tab.pane = nil
         tab.media = nil
+        // chrome:// has no tab: open natively instead.
+        if openChromePageIfInternal(url) { return }
         tab.liveURL = url
         let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
-        let page = ProtectedMedia.makePage(url: url, profile: profile, engine: engine)
+        let page = ProtectedMedia.makePage(url: url, profile: profile, engine: .webKit)
         configure(page)
         tab.pane = page
         tab.loadedAt = Date()
@@ -1030,7 +1031,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Opens |url| in a new today tab, at the top or right after |source|.
     @discardableResult
     func openInNewTab(_ url: String, after source: Item? = nil, select shouldSelect: Bool = true) -> Item {
-        let item = Item.tab(url: InternalURL.resolve(url))
+        var resolved = InternalURL.resolve(url)
+        if library.settings.httpsOnly, resolved.hasPrefix("http://") {
+            resolved = "https" + resolved.dropFirst(4)
+        }
+        // chrome:// has no tab: open natively, keep caller with a blank tab.
+        let target = openChromePageIfInternal(resolved) ? "about:blank" : resolved
+        let item = Item.tab(url: target)
         let today = state.space.today
         if let source, source.role == .today, source.container === today {
             let anchor = source.split ?? source
@@ -1056,15 +1063,16 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func navigate(_ item: Item, to url: String) {
-        let url = InternalURL.resolve(url)
+        var url = InternalURL.resolve(url)
+        // Nur HTTPS: an http:// page goes to https:// first.
+        if library.settings.httpsOnly, url.hasPrefix("http://") {
+            url = "https" + url.dropFirst(4)
+        }
+        // chrome:// pages have no WebKit tab: they open natively.
+        if openChromePageIfInternal(url) { return }
         if let pane = item.pane {
-            // OpenArch's own navigations pick the engine again.
-            let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
-            if engine != pane.engine {
-                replacePage(of: item, with: url, engine: engine)
-            } else {
-                pane.loadURL(url)
-            }
+            // WebKit is the only engine; just navigate.
+            pane.loadURL(url)
         } else {
             item.liveURL = url
             select(item)
@@ -1384,6 +1392,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     private var splitDropOverlay: SplitDropOverlay?
     private var dragWatch: Timer?
+    private var tabDragWatch: Timer?
 
     /// Called when a tab starts being dragged out of the sidebar: shows drop
     /// zones over the page until the drag ends.
@@ -1393,6 +1402,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func beginTabDrag(_ item: Item) {
         guard item.kind == .tab, let window else { return }
         Self.tabDropHandled = false
+        noteTabDragBegan()
         if !visibleTabs.isEmpty {
             let overlay = splitDropOverlay ?? SplitDropOverlay(browser: self)
             splitDropOverlay = overlay
@@ -1404,6 +1414,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             MainActor.assumeIsolated {
                 guard let self, NSEvent.pressedMouseButtons == 0 else { return }
                 self.dragWatch?.invalidate()
+                self.state.tabDragActive = false
                 self.splitDropOverlay?.hide()
                 // Dropped where no OpenArch window took it (the desktop, the
                 // other screen): the tab opens there in a window of its own.
@@ -1411,6 +1422,20 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 if !Self.tabDropHandled, !Self.isOverOpenArchWindow(point) {
                     self.openInSeparateWindow(item, at: point)
                 }
+            }
+        }
+    }
+
+    /// A sidebar drag started (tab, folder, split or agent): empty favorites
+    /// and pinned expand their drop placeholders until the mouse goes up.
+    func noteTabDragBegan() {
+        state.tabDragActive = true
+        tabDragWatch?.invalidate()
+        tabDragWatch = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard NSEvent.pressedMouseButtons == 0 else { return }
+                self?.tabDragWatch?.invalidate()
+                self?.state.tabDragActive = false
             }
         }
     }
@@ -1660,7 +1685,38 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func openChromePage(_ url: String) {
-        openInNewTab(url)
+        _ = openChromePageIfInternal(url)
+    }
+
+    /// Chromium's internal pages have no WebKit equivalent: they open
+    /// OpenArch's native UI instead. Returns true when handled.
+    @discardableResult
+    func openChromePageIfInternal(_ url: String) -> Bool {
+        guard url.hasPrefix("chrome://") || url.hasPrefix("chrome-extension://") else { return false }
+        let path = url.dropFirst("chrome://".count).split(separator: "?")[0].lowercased()
+        if path.hasPrefix("settings") {
+            (NSApp.delegate as? AppDelegate)?.showSettings(nil)
+        } else if path.hasPrefix("history") {
+            showLibrary(.history)
+        } else if path.hasPrefix("downloads") {
+            showLibrary(.downloads)
+        } else if path.hasPrefix("password-manager") || path.hasPrefix("passwords") || path.hasPrefix("settings/passwords") {
+            // No Chrome password manager: macOS Passwords holds the logins.
+            if let passwords = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "passwords://")!) {
+                NSWorkspace.shared.openApplication(at: passwords, configuration: NSWorkspace.OpenConfiguration()) { _, _ in }
+            } else {
+                showToast(L("Passwörter stehen in der App „Passwörter“"), symbol: "key")
+            }
+        } else if path == "help" || path == "about" || path.hasPrefix("help/") || path.hasPrefix("about/") {
+            (NSApp.delegate as? AppDelegate)?.showAbout(nil)
+        } else if path.hasPrefix("extensions") || path.hasPrefix("chrome-webstore") {
+            showToast(L("Erweiterungen gibt es in dieser Version nicht"), symbol: "puzzlepiece.extension")
+        } else if path.hasPrefix("bookmarks") {
+            showLibrary(.spaces)
+        } else {
+            showToast(L("Diese Seite gibt es in OpenArch nicht"), symbol: "exclamationmark.circle.fill")
+        }
+        return true
     }
 
     // MARK: OACPaneDelegate
@@ -1723,17 +1779,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
     }
 
-    /// A Chromium page going to a streaming service: the tab moves to
-    /// WebKit at that address, in its place (a POST stays).
+    /// No second engine remains, so no navigation moves engines.
     func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
-        guard let item = item(for: pane), ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
-        DispatchQueue.main.async {
-            MainActor.assumeIsolated { [weak self] in
-                guard let self, item.pane === pane else { return }
-                self.replacePage(of: item, with: url, engine: .webKit)
-            }
-        }
-        return true
+        false
     }
 
     func pane(_ pane: any OACPage, shouldInterceptNavigationToURL url: String) -> Bool {
@@ -1821,15 +1869,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         case .options:
             (NSApp.delegate as? AppDelegate)?.showSettings(nil)
         case .showHistory:
-            openChromePage("chrome://history")
+            showLibrary(.history)
         case .showDownloads:
-            openChromePage("chrome://downloads")
+            showLibrary(.downloads)
         case .manageExtensions:
-            openChromePage("chrome://extensions")
+            showToast(L("Erweiterungen gibt es in dieser Version nicht"), symbol: "puzzlepiece.extension")
         case .showBookmarkManager:
-            openChromePage("chrome://bookmarks")
+            showLibrary(.spaces)
         case .clearBrowsingData:
-            openChromePage("chrome://settings/clearBrowserData")
+            showLibrary(.history)
         case .newWindow:
             (NSApp.delegate as? AppDelegate)?.openWindow(isPrivate: false)
         case .newIncognitoWindow:
@@ -1923,6 +1971,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             if media?.playing == true, item.media?.playing != true { item.mediaDismissed = false }
             if media?.pip == true, item.media?.pip != true { PictureInPictureWindows.shared.expect() }
             item.media = media
+            // No Chrome tab audible signal on WebKit: media state is the
+            // speaker's source of truth. Audible means playing (muted tabs
+            // keep the speaker, as Chrome's tab signal did).
+            if pane.engine == .webKit, let media {
+                item.isAudible = media.playing
+            }
             return
         }
         let prefix = "__openarch_audio__ "

@@ -45,18 +45,18 @@ final class GoogleAccounts {
         guard !AppPaths.isSelfTest else { return }
         fetchedAt[profileID] = Date()
         if states[profileID] == nil { states[profileID] = .loading }
-        OACProfile(directoryName: profileID).fetchURL(Self.listAccountsURL) { [weak self] data, status in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                let text = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-                if status == 200, let accounts = Self.accounts(fromListAccounts: text) {
-                    self.states[profileID] = .accounts(accounts)
-                    for account in accounts { self.loadPhoto(account.photoURL, profileID: profileID) }
-                } else {
-                    self.states[profileID] = .unknown
-                    // Offline: ask again the next time.
-                    self.fetchedAt[profileID] = nil
-                }
+        guard let url = URL(string: Self.listAccountsURL) else { states[profileID] = .unknown; return }
+        Task { [weak self] in
+            let (data, status) = await WebFetch.get(url, profile: OACProfile(directoryName: profileID))
+            guard let self else { return }
+            let text = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+            if status == 200, let accounts = Self.accounts(fromListAccounts: text) {
+                self.states[profileID] = .accounts(accounts)
+                for account in accounts { self.loadPhoto(account.photoURL, profileID: profileID) }
+            } else {
+                self.states[profileID] = .unknown
+                // Offline: ask again the next time.
+                self.fetchedAt[profileID] = nil
             }
         }
     }
@@ -68,12 +68,11 @@ final class GoogleAccounts {
     }
 
     private func loadPhoto(_ address: String?, profileID: String) {
-        guard let address, photos[address] == nil, address.hasPrefix("https://") else { return }
-        OACProfile(directoryName: profileID).fetchURL(address) { [weak self] data, status in
-            MainActor.assumeIsolated {
-                if status == 200, let image = data.flatMap(NSImage.init(data:)) {
-                    self?.photos[address] = image
-                }
+        guard let address, photos[address] == nil, address.hasPrefix("https://"), let url = URL(string: address) else { return }
+        Task { [weak self] in
+            let (data, status) = await WebFetch.get(url, profile: OACProfile(directoryName: profileID))
+            if status == 200, let image = data.flatMap(NSImage.init(data:)) {
+                self?.photos[address] = image
             }
         }
     }
