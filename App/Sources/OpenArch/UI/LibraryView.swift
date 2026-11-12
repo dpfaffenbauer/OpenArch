@@ -37,7 +37,7 @@ struct LibraryView: View {
                 .frame(width: 78)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    SearchField(text: $query, placeholder: "\(state.librarySection.title) durchsuchen …", theme: theme)
+                    SearchField(text: $query, placeholder: L("%@ durchsuchen …", state.librarySection.title), theme: theme)
                     Group {
                         switch state.librarySection {
                         case .history: HistorySection(browser: browser, query: query, theme: theme)
