@@ -1296,11 +1296,24 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 // Dropped where no OpenArch window took it (the desktop, the
                 // other screen): the tab opens there in a window of its own.
                 let point = NSEvent.mouseLocation
-                if !Self.tabDropHandled, !Self.isOverOpenArchWindow(point) {
+                guard !Self.tabDropHandled else { return }
+                if let other = Self.browser(at: point) {
+                    // On another window's page, which does not take the drop.
+                    if other !== self { other.takeDroppedOnPage(item) }
+                } else if !Self.isOverOpenArchWindow(point) {
                     self.openInSeparateWindow(item, at: point)
                 }
             }
         }
+    }
+
+    /// The browser window frontmost at |point| (a page's window counts as
+    /// its browser's), if one is.
+    static func browser(at point: NSPoint) -> BrowserWindowController? {
+        let number = NSWindow.windowNumber(at: point, belowWindowWithWindowNumber: 0)
+        guard var window = NSApp.window(withWindowNumber: number) else { return nil }
+        while let parent = window.parent { window = parent }
+        return (NSApp.delegate as? AppDelegate)?.browsers.first { $0.window === window }
     }
 
     static func isOverOpenArchWindow(_ point: NSPoint) -> Bool {
