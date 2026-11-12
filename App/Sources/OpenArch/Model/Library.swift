@@ -521,6 +521,7 @@ extension Settings {
     /// The settings that Chromium and every tab apply themselves.
     @MainActor func applyToChromium() {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
+        WebKitPage.httpsOnly = httpsOnly
         OACPane.devToolsDock = devToolsDock.dock
         ProtectedMedia.isEnabled = protectedMediaWebKit
         appearance.apply()

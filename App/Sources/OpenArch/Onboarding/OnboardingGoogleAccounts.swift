@@ -27,14 +27,11 @@ enum OnboardingGoogleAccounts {
             after(0.2) { completion(answer) }
             return
         }
-        let chromium = profile.chromium
-        chromium.whenReady {
-            chromium.fetchURL(listURL) { data, status in
-                MainActor.assumeIsolated {
-                    let text = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-                    completion(status == 200 ? parse(text) : nil)
-                }
-            }
+        guard let url = URL(string: listURL) else { return completion(nil) }
+        Task {
+            let (data, status) = await WebFetch.get(url, profile: profile.chromium)
+            let text = data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+            completion(status == 200 ? parse(text) : nil)
         }
     }
 
@@ -64,7 +61,7 @@ enum OnboardingGoogleAccounts {
         guard let address, let url = URL(string: address), url.scheme == "https" else { return completion(nil) }
         if let image = photos[address] { return completion(image) }
         Task {
-            let (data, status) = await ChromiumFetch.get(url)
+            let (data, status) = await WebFetch.get(url)
             let image = status == 200 ? data.flatMap(NSImage.init(data:)) : nil
             if let image { photos[address] = image }
             completion(image)
@@ -80,14 +77,14 @@ final class GoogleSignInWindow: NSObject, NSWindowDelegate, OACPaneDelegate {
     static let signInURL = "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmyaccount.google.com%2F"
 
     private let window: NSWindow
-    private let pane: OACPane
+    private let pane: any OACPage
     private var closed = false
     var onClose: (() -> Void)?
 
     init(profile: Profile, over parent: NSWindow) {
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 640),
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        pane = OACPane(profile: profile.chromium, url: Self.signInURL)
+        pane = ProtectedMedia.makePage(url: Self.signInURL, profile: profile.chromium)
         super.init()
         window.title = L("Bei Google anmelden · %@", profile.name)
         window.isReleasedWhenClosed = false
@@ -115,12 +112,12 @@ final class GoogleSignInWindow: NSObject, NSWindowDelegate, OACPaneDelegate {
         onClose?()
     }
 
-    func pane(_ pane: OACPane, addressDidChange url: String) {
+    func pane(_ pane: any OACPage, addressDidChange url: String) {
         if URL(string: url)?.host == "myaccount.google.com" { close() }
     }
 
     // Google's own pop-ups (passkeys, another account) stay in this window.
-    func pane(_ pane: OACPane, wantsNewTabWithURL url: String, background: Bool) {
+    func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         pane.loadURL(url)
     }
 }

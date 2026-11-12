@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchCore
 import SwiftUI
 
 /// Arc's ⌃Tab switcher: holding ⌃ and pressing Tab shows the recently used
@@ -112,14 +113,35 @@ enum TabSnapshots {
 
     static func capture(_ item: Item) {
         guard let pane = item.pane, !item.isAsleep else { return }
+        // WKWebView renders snapshots only in a window: a hidden page
+        // joins the window for the capture, then leaves again.
+        let page = pane as? WebKitPage
+        let window = (pane.delegate as? BrowserWindowController)?.window
+        if let page, !pane.isVisible, let window {
+            let frame = (pane.delegate as? BrowserWindowController)?.contentRect ?? NSRect(x: 0, y: 0, width: 960, height: 600)
+            page.beginOffscreenSnapshot(in: window, frame: frame)
+            finishCapture(item: item, pane: pane) { page.endOffscreenSnapshot() }
+        } else {
+            finishCapture(item: item, pane: pane) {}
+        }
+    }
+
+    private static func finishCapture(item: Item, pane: any OACPage, done: @escaping () -> Void, retries: Int = 1) {
         pane.callDevToolsMethod("Page.getLayoutMetrics", params: [:]) { metrics in
             guard let viewport = metrics?["cssVisualViewport"] as? [String: Any],
                   let pageWidth = viewport["clientWidth"] as? Double, let pageHeight = viewport["clientHeight"] as? Double,
-                  pageWidth > 0, pageHeight > 0 else { return }
+                  pageWidth > 0, pageHeight > 0 else {
+                // A just-attached view may need a layout pass first.
+                if retries > 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { finishCapture(item: item, pane: pane, done: done, retries: retries - 1) }
+                } else { done() }
+                return
+            }
             let clip: [String: Any] = ["x": viewport["pageX"] ?? 0, "y": viewport["pageY"] ?? 0,
                                        "width": pageWidth, "height": pageHeight, "scale": width / pageWidth]
             let params: [String: Any] = ["format": "jpeg", "quality": 75, "clip": clip, "optimizeForSpeed": true]
             pane.callDevToolsMethod("Page.captureScreenshot", params: params) { result in
+                defer { done() }
                 guard let base64 = result?["data"] as? String, let data = Data(base64Encoded: base64),
                       let image = NSImage(data: data) else { return }
                 MainActor.assumeIsolated { item.snapshot = image }

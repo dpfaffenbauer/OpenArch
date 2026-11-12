@@ -23,6 +23,7 @@ extension SelfTest {
         bookmarksFileImport()
         passwordFiles()
         loginMerge()
+        historyBulkTest()
         arcBackupTest()
         if CommandLine.arguments.contains("--import-test") {
             importThroughModel(home: home, then: done)
@@ -356,6 +357,28 @@ extension SelfTest {
         expect(count(source.appendingPathComponent("Login Data"), "SELECT count(*) FROM logins") == 1
                && storedPassword(source.appendingPathComponent("Login Data")) == nil,
                "browser logins: the other browser's database stays as it was")
+    }
+
+    /// The library's history bulk actions: deleting selected pages and
+    /// clearing, on a throwaway index.
+    private func historyBulkTest() {
+        let url = Self.importFixtures.appendingPathComponent("bulk-history.sqlite")
+        try? FileManager.default.removeItem(at: url)
+        let history = History(url: url)
+        history.recordVisit(url: "https://example.com/a", title: "A")
+        history.recordVisit(url: "https://example.com/b", title: "B")
+        history.recordVisit(url: "https://example.org/c", title: "C")
+        expect(history.urls(onHost: "example.com").count == 2 && history.urls(onHost: "EXAMPLE.com").count == 2,
+               "history bulk: pages are found by their website, whatever the case")
+        history.remove(urls: ["https://example.com/a"])
+        expect(history.entry(for: "https://example.com/a") == nil && history.entry(for: "https://example.com/b") != nil,
+               "history bulk: deleting selected pages removes only them")
+        history.remove(urls: [])
+        expect(history.recent(limit: 10).count == 2, "history bulk: deleting nothing keeps the rest")
+        history.remove(urls: history.urls(onHost: "example.org"))
+        expect(history.entry(for: "https://example.org/c") == nil, "history bulk: a whole website goes at once")
+        history.clear()
+        expect(history.recent(limit: 10).isEmpty, "history bulk: clearing removes everything")
     }
 
     private func arcBackupTest() {

@@ -26,6 +26,7 @@ final class CommandBarController: NSObject, NSWindowDelegate {
     }
 
     var isVisible: Bool { panel?.isVisible == true }
+    var frame: NSRect? { panel?.frame }
 
     /// The space's theme, for the bar's card and its selected row.
     var theme: SpaceTheme { browser.theme }
@@ -38,14 +39,12 @@ final class CommandBarController: NSObject, NSWindowDelegate {
         // Light or dark like the space's theme, whose colors it takes.
         panel.appearance = browser.theme.appearance
         let width: CGFloat = min(720, max(480, window.frame.width - 160))
-        let content = window.convertToScreen(browser.contentRect)
-        let x = content.midX - width / 2
+        let x = window.frame.midX - width / 2
         let top = window.frame.maxY - max(90, window.frame.height * 0.18)
         panel.setFrame(NSRect(x: x, y: top - CommandBarModel.maxHeight, width: width, height: CommandBarModel.maxHeight),
                        display: false)
+        if panel.parent == nil { window.addChildWindow(panel, ordered: .above) }
         if AppPaths.isSelfTest {
-            panel.level = .normal
-            if panel.parent == nil { window.addChildWindow(panel, ordered: .above) }
             panel.order(.above, relativeTo: window.windowNumber)
         } else {
             panel.makeKeyAndOrderFront(nil)
@@ -64,7 +63,7 @@ final class CommandBarController: NSObject, NSWindowDelegate {
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
-        panel.level = .floating
+        panel.level = .normal
         panel.isReleasedWhenClosed = false
         // The self-test runs in the background; keep the panel up for screenshots.
         panel.hidesOnDeactivate = !AppPaths.isSelfTest
@@ -655,7 +654,7 @@ final class CommandBarModel {
         suggestionTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(120))
             guard !Task.isCancelled,
-                  case (let data?, 200) = await ChromiumFetch.get(endpoint),
+                  case (let data?, 200) = await WebFetch.get(endpoint),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [Any],
                   json.count > 1, let list = json[1] as? [String],
                   !Task.isCancelled, let self, self.query.trimmingCharacters(in: .whitespaces) == text
@@ -735,6 +734,7 @@ struct CommandBarView: View {
     let model: CommandBarModel
     unowned let controller: CommandBarController
     @Environment(\.colorScheme) private var colorScheme
+    @State private var shown = false
 
     var body: some View {
         let theme = controller.theme
@@ -782,19 +782,33 @@ struct CommandBarView: View {
                     }
                 }
             }
-            .foregroundStyle(theme.surfaceText)
+            .foregroundStyle(.primary)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(.regularMaterial)
-                    .overlay(RoundedRectangle(cornerRadius: 14).fill(theme.surface.opacity(0.9)))
-                    .shadow(color: .black.opacity(0.35), radius: 24, y: 10))
-            .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.12)))
+                    .fill(.ultraThinMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.55)))
+                    .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.18), radius: 24, y: 10))
+            .overlay(RoundedRectangle(cornerRadius: 14)
+                .strokeBorder((colorScheme == .dark ? Color.white : Color.black).opacity(0.14)))
             .clipShape(RoundedRectangle(cornerRadius: 14))
-            .environment(\.colorScheme, theme.colorScheme)
-            .tint(theme.accent)
+            // Looks only: a 0.2 s settle (slight blur, drop, fade). The
+            // field is focused and results work from the first frame.
+            .blur(radius: shown ? 0 : 5)
+            .opacity(shown ? 1 : 0)
+            .offset(y: shown ? 0 : -8)
+            .animation(.easeOut(duration: 0.2), value: shown)
+            .animation(.easeOut(duration: 0.2), value: model.results.count)
+            .environment(\.colorScheme, colorScheme)
+            .tint(.primary)
             .padding(.horizontal, 24)
             .padding(.top, 4)
             .padding(.bottom, 40)
+            .onAppear {
+                shown = false
+                withAnimation(.easeOut(duration: 0.2)) { shown = true }
+            }
+            .onDisappear { shown = false }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

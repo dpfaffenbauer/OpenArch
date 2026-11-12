@@ -66,16 +66,14 @@ struct SidebarView: View {
         let space = state.space
         return VStack(alignment: .leading, spacing: 0) {
             SidebarTopBar(browser: browser, theme: theme, floating: floating)
-            if browser.library.settings.showSidebarAddress {
-                AddressPill(browser: browser, theme: theme)
-                    .padding(.bottom, 8)
-            }
+            AddressPill(browser: browser, theme: theme)
+                .padding(.bottom, 4)
             if state.agentsVisible {
                 AgentsList(browser: browser, theme: theme)
                     .frame(maxHeight: .infinity, alignment: .top)
             } else {
                 ScrollView(.vertical) {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
                         if browser.isPrivate {
                             PrivateHeader(theme: theme)
                         } else if !browser.isSeparate {
@@ -651,10 +649,8 @@ private struct SidebarTopBar: View {
         // sidebar, which SwiftUI centered and so pushed under the window
         // buttons.
         let room = browser.sidebarWidth - 16 - browser.sidebarButtonRoom(floating: floating) - 4 * IconButton.width
-        let siteControls = active?.kind == .tab && !floating
-        let siteButton = siteControls && room >= IconButton.width
         // Without room the antenna is a dot on the toggle.
-        let antenna = remote && room - (siteButton ? IconButton.width : 0) >= Self.antennaWidth
+        let antenna = remote && room >= Self.antennaWidth
         HStack(spacing: 0) {
             // Room for the window buttons, which a floating sidebar sits below.
             Spacer().frame(width: browser.sidebarButtonRoom(floating: floating))
@@ -676,14 +672,6 @@ private struct SidebarTopBar: View {
                     .help(remoteHelp)
             }
             Spacer(minLength: 0)
-            if siteButton, let active {
-                IconButton(symbol: "slider.horizontal.3", help: "Website-Einstellungen: Berechtigungen, Zoom, Daten") {
-                    browser.state.siteControlsVisible.toggle()
-                }
-                .popover(isPresented: siteControlsShown, arrowEdge: .bottom) {
-                    SiteControls(browser: browser, item: active)
-                }
-            }
             IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.goBack() }
                 .disabled(!(active?.canGoBack ?? false))
             IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.goForward() }
@@ -693,18 +681,8 @@ private struct SidebarTopBar: View {
             }
             .disabled(active == nil)
         }
-        // Without its button, ⌃⌘I shows the site controls under the bar.
-        .popover(isPresented: siteControls && !siteButton ? siteControlsShown : .constant(false), arrowEdge: .bottom) {
-            if let active {
-                SiteControls(browser: browser, item: active)
-            }
-        }
         .frame(height: 30)
         .padding(.bottom, 6)
-    }
-
-    private var siteControlsShown: Binding<Bool> {
-        Binding(get: { browser.state.siteControlsVisible }, set: { browser.state.siteControlsVisible = $0 })
     }
 }
 
@@ -733,50 +711,90 @@ struct IconButton: View {
     }
 }
 
-private struct AddressPill: View {
+// MARK: - Current website
+
+/// The address text while its page loads: a band of light sweeping over it.
+private struct LoadingShimmer: ViewModifier {
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if active && !reduceMotion {
+                TimelineView(.animation) { timeline in
+                    let phase = (timeline.date.timeIntervalSinceReferenceDate / 1.6).truncatingRemainder(dividingBy: 1) * 1.8 - 0.4
+                    LinearGradient(stops: [.init(color: .clear, location: 0),
+                                           .init(color: .white.opacity(0.65), location: 0.5),
+                                           .init(color: .clear, location: 1)],
+                                   startPoint: UnitPoint(x: phase - 0.3, y: 0.5),
+                                   endPoint: UnitPoint(x: phase + 0.3, y: 0.5))
+                }
+                .mask(content)
+            }
+        }
+    }
+}
+
+struct AddressPill: View {
     let browser: BrowserWindowController
     let theme: SpaceTheme
-    @State private var hovering = false
+
+    private var siteControlsShown: Binding<Bool> {
+        Binding(get: {
+            Self.websiteURL(for: browser.state.activeItem) != nil && browser.state.siteControlsVisible
+        }, set: { browser.state.siteControlsVisible = $0 })
+    }
+
+    static func websiteURL(for item: Item?) -> URL? {
+        guard let item, item.kind == .tab, let url = URL(string: item.currentURL),
+              let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+              let host = url.host(), !host.isEmpty else { return nil }
+        return url
+    }
 
     var body: some View {
         let active = browser.state.activeItem
-        let url = active.flatMap { URL(string: $0.currentURL) }
+        let url = Self.websiteURL(for: active)
         HStack(spacing: 6) {
-            if let url, url.scheme == "https" {
-                Image(systemName: "lock.fill").font(.system(size: 9)).opacity(0.5)
-            }
-            Text(url.map(displayHost) ?? L("Suchen oder URL eingeben"))
-                .font(.system(size: 12.5, weight: .medium))
-                .lineLimit(1)
-                .opacity(url == nil ? 0.55 : 0.9)
-            Spacer(minLength: 4)
-            if hovering, active != nil {
-                Button { browser.copyURL() } label: {
-                    Image(systemName: "link").font(.system(size: 11, weight: .semibold))
+            Button { browser.commandBar.show(mode: .editURL) } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: url?.scheme?.lowercased() == "https" ? "lock.fill" : "globe")
+                        .font(.system(size: 11)).opacity(0.6)
+                    Text(url.map { CommandBarModel.shortURL($0.absoluteString) } ?? L("URL bearbeiten …"))
+                        .font(.system(size: 12.5, weight: .medium))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .modifier(LoadingShimmer(active: url != nil && active?.isLoading == true))
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.plain)
-                .opacity(0.7)
-                .help("URL kopieren (⌘⇧C)")
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(L("URL bearbeiten (⌘L)"))
+            .help(L("URL bearbeiten (⌘L)"))
+            HStack(spacing: 0) {
+                IconButton(symbol: "link", help: "URL kopieren (⌘⇧C)", size: 11) {
+                    browser.copyURL()
+                }
+                .accessibilityLabel(L("URL kopieren (⌘⇧C)"))
+                IconButton(symbol: "ellipsis.circle", help: "Website-Einstellungen: Berechtigungen, Zoom, Daten") {
+                    browser.state.siteControlsVisible.toggle()
+                }
+                .accessibilityLabel(L("Website-Einstellungen …"))
+                .popover(isPresented: siteControlsShown, arrowEdge: .bottom) {
+                    if let active {
+                        SiteControls(browser: browser, item: active)
+                    }
+                }
             }
         }
         .padding(.horizontal, 10)
         .frame(height: 32)
-        .background {
-            // Fills up while the page loads, like Arc's.
-            LoadingProgressBar(item: active, color: theme.foreground.opacity(theme.isDark ? 0.16 : 0.09))
-                .background(theme.tile)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { browser.commandBar.show(mode: .editURL) }
-        .onHover { hovering = $0 }
-        .help("URL bearbeiten (⌘L)")
-    }
-
-    private func displayHost(_ url: URL) -> String {
-        if url.scheme == "chrome" { return InternalURL.display(url.absoluteString) }
-        let host = url.host() ?? url.absoluteString
-        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        .background(RoundedRectangle(cornerRadius: 9).fill(theme.tile))
+        .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.18), radius: 6, y: 2)
+        .disabled(url == nil)
+        .opacity(url == nil ? 0.45 : 1)
     }
 }
 
@@ -790,25 +808,51 @@ private struct FavoritesGrid: View {
     var body: some View {
         let favorites = browser.library.profile(id: browser.state.space.profileID).favorites
         let columns = Array(repeating: GridItem(.flexible(), spacing: 9), count: favorites.items.count > 9 ? 4 : 3)
+        // Collapsed to a thin strip when empty and idle; expands to a
+        // dashed placeholder while a tab is dragged (or hovered).
+        let expanded = !favorites.items.isEmpty || browser.state.tabDragActive || dropTargeted
         Group {
             if favorites.items.isEmpty {
-                Text("Tabs hierher ziehen, um sie als Favoriten oben zu halten")
-                    .font(.system(size: 11))
-                    .opacity(0.5)
-                    .frame(maxWidth: .infinity, minHeight: 36)
-                    .background(RoundedRectangle(cornerRadius: 10).strokeBorder(theme.tile, style: StrokeStyle(lineWidth: 1, dash: [4])))
+                if expanded {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star").font(.system(size: 11, weight: .semibold)).opacity(0.5)
+                        Text(L("Tabs hierher ziehen, um sie als Favoriten oben zu halten"))
+                            .font(.system(size: 11))
+                            .opacity(0.5)
+                    }
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(theme.foreground.opacity(dropTargeted ? 0.55 : 0.28),
+                                          style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                .fill(dropTargeted ? theme.hover : theme.tile.opacity(0.4)))
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                        browser.handleDrop(providers, target: .end(favorites))
+                    }
+                } else {
+                    Color.clear.frame(height: 1)
+                        .transition(.opacity)
+                        .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                            browser.handleDrop(providers, target: .end(favorites))
+                        }
+                }
             } else {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(favorites.items) { item in
                         FavoriteTile(browser: browser, item: item, theme: theme)
                     }
                 }
+                .background(RoundedRectangle(cornerRadius: 10).fill(dropTargeted ? theme.hover : .clear))
+                .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                    browser.handleDrop(providers, target: .end(favorites))
+                }
             }
         }
-        .background(RoundedRectangle(cornerRadius: 10).fill(dropTargeted ? theme.hover : .clear))
-        .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
-            browser.handleDrop(providers, target: .end(favorites))
-        }
+        .animation(.spring(duration: 0.35, bounce: 0.15), value: expanded)
     }
 }
 
@@ -943,7 +987,6 @@ private struct SpaceHeader: View {
         .padding(.leading, 10)
         .padding(.trailing, 6)
         .frame(height: 30)
-        .padding(.top, 6)
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .onTapGesture(count: 2) { editing.wrappedValue = true }
@@ -962,21 +1005,51 @@ private struct PinnedSection: View {
     @State private var dropTargeted = false
 
     var body: some View {
+        let trulyEmpty = space.pinned.items.isEmpty
+        // Collapsed to a thin strip when nothing is pinned and idle;
+        // expands to a dashed placeholder while a tab is dragged.
+        let expanded = !trulyEmpty || browser.state.tabDragActive || dropTargeted
         VStack(alignment: .leading, spacing: 5) {
             ForEach(space.pinned.items) { item in
                 SidebarNode(browser: browser, item: item, theme: theme, depth: 0)
             }
-            Color.clear.frame(height: space.pinned.items.isEmpty ? 30 : 8)
-                .overlay {
-                    if space.pinned.items.isEmpty {
-                        Text("Tabs hierher ziehen zum Anheften").font(.system(size: 11)).opacity(0.45)
+            if trulyEmpty {
+                if expanded {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pin").font(.system(size: 11, weight: .semibold)).opacity(0.5)
+                        Text(L("Tabs hierher ziehen zum Anheften"))
+                            .font(.system(size: 11))
+                            .opacity(0.5)
                     }
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background {
+                        RoundedRectangle(cornerRadius: 10)
+                            .strokeBorder(theme.foreground.opacity(dropTargeted ? 0.55 : 0.28),
+                                          style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+                            .background(RoundedRectangle(cornerRadius: 10)
+                                .fill(dropTargeted ? theme.hover : theme.tile.opacity(0.4)))
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                        browser.handleDrop(providers, target: .end(space.pinned))
+                    }
+                } else {
+                    Color.clear.frame(height: 1)
+                        .transition(.opacity)
+                        .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                            browser.handleDrop(providers, target: .end(space.pinned))
+                        }
                 }
-                .background(RoundedRectangle(cornerRadius: 8).fill(dropTargeted ? theme.hover : .clear))
-                .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
-                    browser.handleDrop(providers, target: .end(space.pinned))
-                }
+            } else {
+                Color.clear.frame(height: 8)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(dropTargeted ? theme.hover : .clear))
+                    .onDrop(of: UTType.sidebarDrops, isTargeted: $dropTargeted) { providers in
+                        browser.handleDrop(providers, target: .end(space.pinned))
+                    }
+            }
         }
+        .animation(.spring(duration: 0.35, bounce: 0.15), value: expanded)
     }
 }
 
@@ -1167,8 +1240,6 @@ private struct TabRow: View {
                 } else if item.role == .pinned {
                     SmallButton(symbol: "xmark", help: "Lösen: zu den Tabs unter dem Strich") { browser.togglePin(item) }
                 }
-            } else if item.isLoading {
-                ProgressView().controlSize(.mini).opacity(0.6)
             } else if let unread = item.unreadCount {
                 UnreadDot(count: unread, theme: theme).padding(.trailing, 6)
             } else if item.isUnread {
@@ -1178,7 +1249,7 @@ private struct TabRow: View {
             }
         }
         .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone,
-                  isSelected: browser.isSelected(item))
+                  isSelected: browser.isSelected(item), loadingItem: item)
         .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0 }
         .onTapGesture {
             browser.tabPreview.hide()
@@ -1824,7 +1895,7 @@ enum DropZone {
 
 extension View {
     func rowStyle(depth: Int, isActive: Bool, hovering: Bool, theme: SpaceTheme, dropZone: DropZone?,
-                  horizontalPadding: CGFloat = 10, isSelected: Bool = false) -> some View {
+                  horizontalPadding: CGFloat = 10, isSelected: Bool = false, loadingItem: Item? = nil) -> some View {
         self
             .padding(.leading, horizontalPadding + CGFloat(depth) * 16)
             .padding(.trailing, horizontalPadding - 4)
@@ -1834,7 +1905,15 @@ extension View {
                     .fill(isActive ? theme.selection
                           : (isSelected ? theme.tileHover
                              : (hovering || dropZone == .into || dropZone == .split ? theme.hover : .clear)))
-                    .shadow(color: .black.opacity(isActive && !theme.isDark ? 0.08 : 0), radius: 1, y: 0.5))
+                    .shadow(color: .black.opacity(isActive && !theme.isDark ? 0.08 : 0), radius: 1, y: 0.5)
+                    .overlay {
+                        // The tab's own page loading: a band filling from the
+                        // left, like Arc's address field did.
+                        if let loadingItem {
+                            LoadingProgressBar(item: loadingItem, color: theme.foreground.opacity(theme.isDark ? 0.16 : 0.09))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                    })
             // Rows selected with ⇧- or ⌘⇧-click.
             .overlay {
                 if isSelected {

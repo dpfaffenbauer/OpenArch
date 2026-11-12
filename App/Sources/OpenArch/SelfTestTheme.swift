@@ -213,8 +213,10 @@ extension SelfTest {
             expect(false, "the sidebar's inner edge takes the drag")
         }
         browser.resizeSidebar(to: width - 4)
-        let lights = window.standardWindowButton(.closeButton).map { $0.convert($0.bounds, to: nil) } ?? .zero
-        expect(lights.minX < 40 && lights.maxY > bounds.height - 30, "the window buttons stay at the top left (\(lights))")
+        expect(window.standardWindowButton(.closeButton)?.isHidden == false
+               && window.standardWindowButton(.miniaturizeButton)?.isHidden == false
+               && window.standardWindowButton(.zoomButton)?.isHidden == false,
+               "the system window buttons are the window's own")
         // The library button, where downloads fly, is in the sidebar.
         after(0.3) {
             let library = self.browser.libraryButtonCenter

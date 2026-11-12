@@ -7,6 +7,7 @@ import OpenArchCore
 /// `--selftest --sidebar-test` runs only these.
 extension SelfTest {
     func sidebarDetails(then done: @escaping () -> Void) {
+        websiteAddressTest()
         unreadTest()
         selectionTest()
         profileIndicatorTest()
@@ -16,6 +17,29 @@ extension SelfTest {
                 self.peekShiftClickTest(then: done)
             }
         }
+    }
+
+    private func websiteAddressTest() {
+        let tab = Item.tab(url: "https://example.com/saved")
+        tab.liveURL = "https://example.org/current"
+        expect(AddressPill.websiteURL(for: tab)?.absoluteString == tab.liveURL,
+               "the sidebar address follows the current page, not its saved bookmark")
+        expect(AddressPill.websiteURL(for: nil) == nil
+               && AddressPill.websiteURL(for: Item.tab(url: "about:blank")) == nil
+               && AddressPill.websiteURL(for: Item(kind: .agent)) == nil
+               && AddressPill.websiteURL(for: Item.tab(url: "https://")) == nil,
+               "the sidebar address is disabled without a website, including blank pages and chats")
+        expect(AddressPill.websiteURL(for: Item.tab(url: "http://localhost:8080")) != nil,
+               "local HTTP sites still have an editable address")
+        let shown = browser.state.activeItem
+        browser.commandBar.show(mode: .newTab)
+        expect(browser.commandBar.frame?.midX == browser.window?.frame.midX,
+               "the main address field is centered over the whole browser window")
+        expect(browser.commandBar.model.query.isEmpty, "⌘T starts a new address or search")
+        browser.commandBar.show(mode: .editURL)
+        expect(browser.commandBar.model.query == shown.map { InternalURL.display($0.currentURL) },
+               "⌘L edits the current page address")
+        browser.commandBar.hide()
     }
 
     /// Gmail, X and Slack count what is unread in their titles; a dot shows

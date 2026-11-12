@@ -12,6 +12,7 @@
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nThe folder stays as long as the chat is running: Claude Code can only resume the session there.";
 "%@ angeheftet" = "%@ pinned";
 "%@ angeheftet (in %@)" = "%@ pinned (in %@)";
+"%@ auswählen" = "Select %@";
 "%@ beenden" = "Quit %@";
 "%@ beenden?" = "Quit %@?";
 "%@ durchsuchen" = "Search %@";
@@ -54,6 +55,7 @@
 "%lld Profile" = "%lld profiles";
 "%lld Profilen" = "%lld profiles";
 "%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet" = "%lld pages from history that the command bar can now find";
+"%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden." = "%lld pages will be removed from history. This cannot be undone.";
 "%lld Spaces" = "%lld Spaces";
 "%lld Std." = "%lld hr";
 "%lld Tabs" = "%lld tabs";
@@ -61,6 +63,7 @@
 "%lld Zeilen ausgewählt" = "%lld rows selected";
 "%lld Zeilen ohne Adresse oder Passwort werden ausgelassen." = "%lld rows without an address or password will be skipped.";
 "%lld angeheftete Tabs" = "%lld pinned tabs";
+"%lld ausgewählt" = "%lld selected";
 "%lld doppelte Einträge werden ausgelassen." = "%lld duplicate entries will be skipped.";
 "%lld neue Spaces, %lld neue Profile" = "%lld new Spaces, %lld new profiles";
 "%lld offene Tabs" = "%lld open tabs";
@@ -85,6 +88,7 @@
 "1 Tab archiviert" = "1 tab archived";
 "1 Zeile ausgewählt" = "1 row selected";
 "1 angehefteter Tab" = "1 pinned tab";
+"1 ausgewählt" = "1 selected";
 "1 offener Tab" = "1 open tab";
 "1 ungelesen" = "1 unread";
 "Abbrechen" = "Cancel";
@@ -112,8 +116,10 @@
 "Aktuelle URL speichern" = "Save Current URL";
 "Alle Downloads" = "All Downloads";
 "Alle Tabs unter dem Strich archivieren" = "Archive all tabs below the line";
+"Alle auswählen" = "Select all";
 "Alle einblenden" = "Show All";
 "Alle nach vorne bringen" = "Bring All to Front";
+"Alle von dieser Website löschen" = "Delete all from this website";
 "Alle zurücksetzen" = "Reset All";
 "Alle öffnen" = "Open All";
 "Alles auswählen" = "Select All";
@@ -868,6 +874,8 @@
 "Tippt" = "Types";
 "Ton" = "Sound";
 "Ton einschalten" = "Unmute";
+"Treffer löschen?" = "Delete matches?";
+"Treffer löschen…" = "Delete matches…";
 "Tägliche Sicherung" = "Daily backup";
 "Tönung" = "Tint";
 "URL als Markdown kopieren" = "Copy URL as Markdown";
@@ -891,6 +899,8 @@
 "Verkleinern" = "Zoom Out";
 "Verlauf" = "History";
 "Verlauf anzeigen" = "Show History";
+"Verlauf löschen?" = "Clear history?";
+"Verlauf löschen…" = "Clear history…";
 "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich." = "If you leave a call (camera or microphone in use), it keeps floating at the bottom right: Google Meet in its own window, other services with the videos and buttons for microphone, camera, and hanging up. It closes when you return to the tab.";
 "Version %@" = "Version %@";
 "Version %@ · Chromium %@" = "Version %@ · Chromium %@";

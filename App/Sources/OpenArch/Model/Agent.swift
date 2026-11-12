@@ -292,7 +292,6 @@ final class AgentSession {
             arguments += ["--resume", session]
         }
         var allowed = config.allowedTools
-        let port = OACEngine.remoteDebuggingPort
         var browser = false
         if isPageChat {
             // Page chats get OpenArch's own tools: reading at once, the rest
@@ -302,11 +301,9 @@ final class AgentSession {
                 allowed += BrowserTools.readingTools.filter { !allowed.contains($0) }
                 browser = true
             }
-        } else if port > 0 {
-            // With AI control on, the agent can work in this browser's tabs.
-            arguments += ["--mcp-config", AIControl.mcpConfig(port: port)]
-            browser = true
         }
+        // External DevTools control (chrome-devtools-mcp) is unavailable on
+        // WebKit; only in-app BrowserTools drive tabs.
         if !allowed.isEmpty {
             arguments += ["--allowedTools", allowed.joined(separator: ",")]
         }

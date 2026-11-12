@@ -12,6 +12,7 @@
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort.";
 "%@ angeheftet" = "%@ angeheftet";
 "%@ angeheftet (in %@)" = "%@ angeheftet (in %@)";
+"%@ auswählen" = "%@ auswählen";
 "%@ beenden" = "%@ beenden";
 "%@ beenden?" = "%@ beenden?";
 "%@ durchsuchen" = "%@ durchsuchen";
@@ -54,6 +55,7 @@
 "%lld Profile" = "%lld Profile";
 "%lld Profilen" = "%lld Profilen";
 "%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet" = "%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet";
+"%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden." = "%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden.";
 "%lld Spaces" = "%lld Spaces";
 "%lld Std." = "%lld Std.";
 "%lld Tabs" = "%lld Tabs";
@@ -61,6 +63,7 @@
 "%lld Zeilen ausgewählt" = "%lld Zeilen ausgewählt";
 "%lld Zeilen ohne Adresse oder Passwort werden ausgelassen." = "%lld Zeilen ohne Adresse oder Passwort werden ausgelassen.";
 "%lld angeheftete Tabs" = "%lld angeheftete Tabs";
+"%lld ausgewählt" = "%lld ausgewählt";
 "%lld doppelte Einträge werden ausgelassen." = "%lld doppelte Einträge werden ausgelassen.";
 "%lld neue Spaces, %lld neue Profile" = "%lld neue Spaces, %lld neue Profile";
 "%lld offene Tabs" = "%lld offene Tabs";
@@ -85,6 +88,7 @@
 "1 Tab archiviert" = "1 Tab archiviert";
 "1 Zeile ausgewählt" = "1 Zeile ausgewählt";
 "1 angehefteter Tab" = "1 angehefteter Tab";
+"1 ausgewählt" = "1 ausgewählt";
 "1 offener Tab" = "1 offener Tab";
 "1 ungelesen" = "1 ungelesen";
 "Abbrechen" = "Abbrechen";
@@ -112,8 +116,10 @@
 "Aktuelle URL speichern" = "Aktuelle URL speichern";
 "Alle Downloads" = "Alle Downloads";
 "Alle Tabs unter dem Strich archivieren" = "Alle Tabs unter dem Strich archivieren";
+"Alle auswählen" = "Alle auswählen";
 "Alle einblenden" = "Alle einblenden";
 "Alle nach vorne bringen" = "Alle nach vorne bringen";
+"Alle von dieser Website löschen" = "Alle von dieser Website löschen";
 "Alle zurücksetzen" = "Alle zurücksetzen";
 "Alle öffnen" = "Alle öffnen";
 "Alles auswählen" = "Alles auswählen";
@@ -868,6 +874,8 @@
 "Tippt" = "Tippt";
 "Ton" = "Ton";
 "Ton einschalten" = "Ton einschalten";
+"Treffer löschen?" = "Treffer löschen?";
+"Treffer löschen…" = "Treffer löschen…";
 "Tägliche Sicherung" = "Tägliche Sicherung";
 "Tönung" = "Tönung";
 "URL als Markdown kopieren" = "URL als Markdown kopieren";
@@ -891,6 +899,8 @@
 "Verkleinern" = "Verkleinern";
 "Verlauf" = "Verlauf";
 "Verlauf anzeigen" = "Verlauf anzeigen";
+"Verlauf löschen?" = "Verlauf löschen?";
+"Verlauf löschen…" = "Verlauf löschen…";
 "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich." = "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich.";
 "Version %@" = "Version %@";
 "Version %@ · Chromium %@" = "Version %@ · Chromium %@";

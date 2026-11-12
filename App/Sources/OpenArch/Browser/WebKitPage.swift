@@ -10,14 +10,16 @@ import CryptoKit
 import OpenArchCore
 import WebKit
 
-/// A tab's page drawn by the Mac's WebKit, for streaming services that play
-/// only with FairPlay (ProtectedMedia). It is a page like OACPane: its own
-/// borderless window attached over OpenArch's content area, the same
-/// delegate, the same commands, so the sidebar, splits, Peek, Little
-/// OpenArch, previews, the media player and sleeping tabs need nothing of
-/// their own for it.
+/// A tab's page drawn by the Mac's WebKit. It is the browser's only
+/// engine: the web view lives as a subview inside OpenArch's own
+/// window, laid out like any other view, so the sidebar, splits, Peek,
+/// Little OpenArch, previews, the media player and sleeping tabs need
+/// nothing of their own for it.
 @MainActor
 final class WebKitPage: NSObject, OACPage {
+    /// Settings › Allgemein › „Nur HTTPS“: http:// navigations go to
+    /// https:// first (set by the library).
+    static var httpsOnly = false
     weak var delegate: (any OACPaneDelegate)?
     let profile: OACProfile
     var engine: OACPageEngine { .webKit }
@@ -33,7 +35,8 @@ final class WebKitPage: NSObject, OACPage {
     private(set) var isVisible = false
     var isFullScreen: Bool { webView.map { $0.fullscreenState != .notInFullscreen } ?? false }
     var isLoaded: Bool { webView != nil }
-    var window: NSWindow? { hostWindow }
+    // The browser window this page lives in (its container's superview).
+    var window: NSWindow? { parent }
 
     var toolbarVisible = false
     var activatesOnShow = true
@@ -43,7 +46,6 @@ final class WebKitPage: NSObject, OACPage {
     var offersAskAboutSelection = false
     var zoomPercent: Int { Int(((webView?.pageZoom ?? 1) * 100).rounded()) }
 
-    private var hostWindow: WebKitPageWindow?
     private var container: WebKitContainerView?
     private(set) var webView: WebKitPageView?
     private weak var parent: NSWindow?
@@ -73,7 +75,11 @@ final class WebKitPage: NSObject, OACPage {
         let content = WKUserContentController()
         for script in Self.userScripts { content.addUserScript(script) }
         let messages = WebKitMessages(page: self)
+        // Reports from the page itself (Boosts, self-test probes, media)
+        // come through the page world's console; scripts in OpenArch's
+        // own world use the same handler name in that world.
         content.add(messages, contentWorld: Self.world, name: "openarch")
+        content.add(messages, contentWorld: .page, name: "openarch")
         self.messages = messages
         configuration.userContentController = content
         configuration.preferences.isElementFullscreenEnabled = true
@@ -84,13 +90,11 @@ final class WebKitPage: NSObject, OACPage {
         }
         configuration.applicationNameForUserAgent = Self.safariProduct
 
-        let window = WebKitPageWindow()
         let container = WebKitContainerView(frame: NSRect(origin: .zero, size: frame.size))
         container.wantsLayer = true
         container.layer?.cornerRadius = cornerRadius
         container.layer?.masksToBounds = true
         container.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        window.contentView = container
         let web = WebKitPageView(frame: container.bounds, configuration: configuration)
         web.page = self
         web.navigationDelegate = self
@@ -100,10 +104,8 @@ final class WebKitPage: NSObject, OACPage {
         web.isInspectable = true
         container.webView = web
         container.addSubview(web)
-        hostWindow = window
         self.container = container
         webView = web
-        WebKitPage.pages.setObject(self, forKey: window)
         observe(web)
         if popupConfiguration == nil, let target = URL(string: url) {
             web.load(URLRequest(url: target))
@@ -166,52 +168,59 @@ final class WebKitPage: NSObject, OACPage {
         create()
     }
 
+    // No background preload: a detached WKWebView loads and titles on
+    // its own, as it did in a child window.
+
     func show(in window: NSWindow, frame: NSRect) {
         parent = window
         self.frame = frame
         guard !closed else { return }
         create()
-        guard let hostWindow else { return }
-        hostWindow.setFrame(window.convertToScreen(frame), display: false)
-        if hostWindow.parent !== window {
-            hostWindow.parent?.removeChildWindow(hostWindow)
-            window.addChildWindow(hostWindow, ordered: .above)
+        guard let container, let contentView = window.contentView else { return }
+        if container.superview !== contentView {
+            container.removeFromSuperview()
+            contentView.addSubview(container)
         }
+        container.isHidden = false
+        container.frame = frame
         if !isVisible {
-            hostWindow.order(.above, relativeTo: window.windowNumber)
             isVisible = true
         }
     }
 
     func setFrame(_ frame: NSRect) {
         self.frame = frame
-        guard isVisible, let parent, let hostWindow else { return }
-        hostWindow.setFrame(parent.convertToScreen(frame), display: true)
-        // Hiding the parent window detaches its child windows; attach again.
-        if hostWindow.parent !== parent, parent.isVisible {
-            parent.addChildWindow(hostWindow, ordered: .above)
-            hostWindow.order(.above, relativeTo: parent.windowNumber)
-        }
+        guard isVisible, container?.superview != nil else { return }
+        container?.frame = frame
     }
 
     func hide() {
-        guard isVisible, let hostWindow else { return }
+        guard isVisible, let container else { return }
         isVisible = false
-        hostWindow.parent?.removeChildWindow(hostWindow)
-        hostWindow.orderOut(nil)
+        container.removeFromSuperview()
     }
 
     func focus() {
-        guard let hostWindow, let webView, isVisible else { return }
+        guard let container, let webView, isVisible, container.superview != nil else { return }
         if activatesOnShow { NSApp.activate() }
-        hostWindow.makeKey()
-        hostWindow.makeFirstResponder(webView)
+        container.window?.makeFirstResponder(webView)
+    }
+
+    /// Whether the window's keyboard is inside this page's container.
+    var hasFocus: Bool {
+        guard let container, let window = container.window else { return false }
+        var responder: NSResponder? = window.firstResponder
+        while let current = responder {
+            if current === container { return true }
+            if let view = current as? NSView, view.isDescendant(of: container) { return true }
+            responder = (current as? NSView)?.superview
+        }
+        return false
     }
 
     func orderFront() {
-        guard let hostWindow, let parent = hostWindow.parent else { return }
-        parent.removeChildWindow(hostWindow)
-        parent.addChildWindow(hostWindow, ordered: .above)
+        guard let container, let superview = container.superview else { return }
+        superview.addSubview(container)
     }
 
     func close() {
@@ -233,8 +242,7 @@ final class WebKitPage: NSObject, OACPage {
         }
         webView = nil
         hide()
-        hostWindow?.contentView = nil
-        hostWindow = nil
+        container = nil
         // As with Chromium, the delegate hears of it a moment later.
         DispatchQueue.main.async { [self] in
             MainActor.assumeIsolated { delegate?.paneDidClose?(self) }
@@ -469,8 +477,30 @@ final class WebKitPage: NSObject, OACPage {
     /// Whether the find bar shows (self-test).
     var isFindBarVisible: Bool { container?.isFindBarVisible ?? false }
 
+    /// The container's frame in the hosting window (self-test).
+    var containerFrame: NSRect? { container?.frame }
+
+    /// Puts the container into |window| for a snapshot, without showing
+    /// the page (`isVisible` stays as it is).
+    func beginOffscreenSnapshot(in window: NSWindow, frame: NSRect) {
+        if parent == nil { parent = window }
+        create()
+        guard let container, let contentView = window.contentView else { return }
+        if container.superview !== contentView {
+            container.removeFromSuperview()
+            contentView.addSubview(container)
+        }
+        container.isHidden = false
+        container.frame = frame
+    }
+
+    /// Takes a snapshot offscreen container out again.
+    func endOffscreenSnapshot() {
+        container?.removeFromSuperview()
+    }
+
     private func print() {
-        guard let web = webView, let window = hostWindow?.parent ?? hostWindow else { return }
+        guard let web = webView, let window = parent else { return }
         let operation = web.printOperation(with: NSPrintInfo.shared)
         operation.view?.frame = web.bounds
         operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
@@ -519,6 +549,15 @@ final class WebKitPage: NSObject, OACPage {
                 if (text.startsWith('__openarch_')) window.webkit.messageHandlers.openarch.postMessage(text); else debug(...args); };
             })();
             """
+        // Same bridge in the page world: Boost scripts and page probes run
+        // there, not in `world`.
+        let pageConsole = """
+            (() => { if (!window.webkit || !window.webkit.messageHandlers) return;
+              const debug = console.debug.bind(console);
+              console.debug = (...args) => { const text = args.map(String).join(' ');
+                if (text.startsWith('__openarch_') || text.startsWith('__selftest_')) window.webkit.messageHandlers.openarch.postMessage(text); else debug(...args); };
+            })();
+            """
         // Pages that ask before they are left stay awake (sleeping tabs).
         let beforeUnload = """
             (() => { const add = EventTarget.prototype.addEventListener;
@@ -528,9 +567,14 @@ final class WebKitPage: NSObject, OACPage {
                 return Reflect.apply(target, self, args); } });
             })();
             """
+        // capture.js and call.js live in the page's world in the Chrome
+        // extension too (manifest); WebKit keeps handles Chromium-only,
+        // but share states and call states still report.
         return [
-            WKUserScript(source: beforeUnload + file("media-session.js"), injectionTime: .atDocumentStart,
-                         forMainFrameOnly: true, in: .page),
+            WKUserScript(source: pageConsole + beforeUnload + file("media-session.js"),
+                         injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page),
+            WKUserScript(source: pageConsole + file("capture.js") + file("call.js"),
+                         injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .page),
             WKUserScript(source: console + file("media.js"), injectionTime: .atDocumentStart,
                          forMainFrameOnly: true, in: world),
         ]
@@ -551,15 +595,12 @@ final class WebKitPage: NSObject, OACPage {
         return "Version/\(parts.prefix(2).joined(separator: ".")) Safari/605.1.15"
     }()
 
-    /// The page whose window this is.
-    static func page(for window: NSWindow) -> WebKitPage? { pages.object(forKey: window) }
-    private static let pages = NSMapTable<NSWindow, WebKitPage>.weakToWeakObjects()
+    // No per-page window remains; pages are looked up by their tab,
+    // not by window.
 
     // MARK: Favicon
 
-    /// The page's icon (the largest it declares, else /favicon.ico), fetched
-    /// through Chromium's network stack: URLSession is unreliable in a
-    /// process that runs Chromium.
+    /// The page's icon (the largest it declares, else /favicon.ico).
     private func loadFavicon() {
         let script = """
             (() => { const links = [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')];
@@ -569,8 +610,9 @@ final class WebKitPage: NSObject, OACPage {
               return (plain[0] || links[0])?.href || new URL('/favicon.ico', location.href).href; })()
             """
         webView?.evaluateJavaScript(script, in: nil, in: Self.world) { [weak self] result in
-            guard let self, let href = (try? result.get()) as? String, href.hasPrefix("http") else { return }
-            self.profile.fetchURL(href) { [weak self] data, _ in
+            guard let self, let href = (try? result.get()) as? String, href.hasPrefix("http"), let url = URL(string: href) else { return }
+            Task { @MainActor [weak self] in
+                let (data, _) = await WebFetch.get(url, profile: self?.profile)
                 guard let self, !self.closed, let data, let image = NSImage(data: data), image.size.width > 0 else { return }
                 image.size = NSSize(width: 16, height: 16)
                 self.favicon = image
@@ -589,6 +631,11 @@ extension WebKitPage: WKNavigationDelegate {
         guard let url = action.request.url else { return decisionHandler(.allow, preferences) }
         let scheme = url.scheme?.lowercased() ?? ""
         if scheme == "file" { return decisionHandler(.cancel, preferences) }
+        // Nur HTTPS: an http:// navigation goes to https:// first.
+        if scheme == "http", Self.httpsOnly, let upgraded = URL(string: "https" + url.absoluteString.dropFirst(4)) {
+            webView.load(URLRequest(url: upgraded))
+            return decisionHandler(.cancel, preferences)
+        }
         if !["http", "https", "about", "blob", "data"].contains(scheme) {
             // spotify:, zoommtg: … belong to an app on the Mac.
             delegate?.pane?(self, wantsToOpenExternalURL: url.absoluteString)
@@ -690,7 +737,7 @@ extension WebKitPage: WKUIDelegate {
         alert.informativeText = message
         for button in buttons { alert.addButton(withTitle: L(button)) }
         alert.accessoryView = accessory
-        guard let window = hostWindow?.parent ?? hostWindow else { return done(.alertSecondButtonReturn) }
+        guard let window = parent else { return done(.alertSecondButtonReturn) }
         alert.beginSheetModal(for: window, completionHandler: done)
     }
 
@@ -699,7 +746,7 @@ extension WebKitPage: WKUIDelegate {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = parameters.allowsMultipleSelection
         panel.canChooseDirectories = parameters.allowsDirectories
-        guard let window = hostWindow?.parent ?? hostWindow else { return completionHandler(nil) }
+        guard let window = parent else { return completionHandler(nil) }
         panel.beginSheetModal(for: window) { completionHandler($0 == .OK ? panel.urls : nil) }
     }
 
@@ -711,24 +758,7 @@ extension WebKitPage: WKUIDelegate {
     }
 }
 
-// MARK: - Views and windows
-
-/// The page's window: it takes the keyboard but never becomes main, so
-/// OpenArch's window keeps its active window buttons (as Chrome's do).
-final class WebKitPageWindow: NSWindow {
-    init() {
-        super.init(contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.borderless],
-                   backing: .buffered, defer: false)
-        isReleasedWhenClosed = false
-        isOpaque = false
-        backgroundColor = .clear
-        hasShadow = false
-        collectionBehavior = [.fullScreenAuxiliary]
-    }
-
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-}
+// MARK: - Views
 
 /// Holds the web view and, while it shows, the find bar above it.
 final class WebKitContainerView: NSView {

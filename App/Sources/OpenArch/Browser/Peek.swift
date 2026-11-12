@@ -10,7 +10,7 @@ import SwiftUI
 @MainActor
 final class PeekController: NSObject, OACPaneDelegate {
     private unowned let browser: BrowserWindowController
-    private var backdrop: PeekBackdropWindow?
+    private var backdrop: PeekBackdrop?
     private(set) var pane: (any OACPage)?
     private var source: Item?
     private var keyMonitor: Any?
@@ -66,21 +66,27 @@ final class PeekController: NSObject, OACPaneDelegate {
         model.url = url
         model.title = ""
 
-        let backdrop = self.backdrop ?? PeekBackdropWindow(controller: self)
+        let backdrop = self.backdrop ?? PeekBackdrop(controller: self)
         self.backdrop = backdrop
-        backdrop.setFrame(window.convertToScreen(browser.contentRect), display: false)
-        backdrop.cardFrame = window.convertToScreen(cardFrame)
-        window.addChildWindow(backdrop, ordered: .above)
-        backdrop.order(.above, relativeTo: window.windowNumber)
+        // Backdrop first, card over it (both subviews of the window now).
+        backdrop.frame = browser.contentRect
+        backdrop.cardFrame = cardFrame.offsetBy(dx: -browser.contentRect.minX, dy: -browser.contentRect.minY)
+        if backdrop.superview !== window.contentView {
+            backdrop.removeFromSuperview()
+            window.contentView?.addSubview(backdrop)
+        }
         pane.show(in: window, frame: cardFrame)
         pane.focus()
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             let handled = MainActor.assumeIsolated { () -> Bool in
-                guard let self, event.keyCode == 53, event.modifierFlags.intersection([.command, .control, .option]).isEmpty,
-                      let key = NSApp.keyWindow, key === self.pane?.window || key === self.backdrop else { return false }
-                self.close()
-                return true
+                guard let self, event.keyCode == 53, event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return false }
+                // Escape closes the card while the keyboard is inside it.
+                if let page = self.pane as? WebKitPage, page.hasFocus { self.close(); return true }
+                if let window = self.browser.window, NSApp.keyWindow === window, (self.pane as? WebKitPage)?.hasFocus != true {
+                    return false
+                }
+                return false
             }
             return handled ? nil : event
         }
@@ -102,10 +108,7 @@ final class PeekController: NSObject, OACPaneDelegate {
     }
 
     private func hideBackdrop() {
-        if let backdrop {
-            backdrop.parent?.removeChildWindow(backdrop)
-            backdrop.orderOut(nil)
-        }
+        backdrop?.removeFromSuperview()
     }
 
     // MARK: Opening again
@@ -187,10 +190,8 @@ final class PeekController: NSObject, OACPaneDelegate {
     /// Keeps the card above the window's panes after they were re-added.
     func layout() {
         guard isOpen, let window = browser.window, let backdrop, let pane else { return }
-        backdrop.setFrame(window.convertToScreen(browser.contentRect), display: true)
-        backdrop.cardFrame = window.convertToScreen(cardFrame)
-        window.removeChildWindow(backdrop)
-        window.addChildWindow(backdrop, ordered: .above)
+        backdrop.frame = browser.contentRect
+        backdrop.cardFrame = cardFrame.offsetBy(dx: -browser.contentRect.minX, dy: -browser.contentRect.minY)
         pane.setFrame(cardFrame)
         pane.orderFront()
     }
@@ -246,28 +247,29 @@ final class PeekModel {
     var title = ""
 }
 
-/// Dims the page around the card and holds the card's buttons.
-final class PeekBackdropWindow: NSWindow {
+/// Dims the page around the card and holds the card's buttons. A subview
+/// of the browser window, under the card.
+final class PeekBackdrop: NSView {
     private let hosting: NSHostingView<PeekBackdropView>
     var cardFrame: NSRect = .zero {
-        didSet { hosting.rootView.card = convertFromScreen(cardFrame) }
+        didSet { hosting.rootView.card = cardFrame }
     }
 
     @MainActor
     init(controller: PeekController) {
         hosting = NSHostingView(rootView: PeekBackdropView(controller: controller, model: controller.model, card: .zero))
-        super.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
-        isOpaque = false
-        backgroundColor = .clear
-        hasShadow = false
-        isReleasedWhenClosed = false
-        collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
+        super.init(frame: .zero)
+        wantsLayer = true
         hosting.sizingOptions = []
-        contentView = hosting
+        addSubview(hosting)
     }
 
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
+    override func layout() {
+        super.layout()
+        hosting.frame = bounds
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
 }
 
 struct PeekBackdropView: View {

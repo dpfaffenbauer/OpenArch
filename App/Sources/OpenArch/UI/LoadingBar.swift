@@ -45,14 +45,13 @@ struct LoadingProgressBar: View {
     }
 }
 
-/// The line just above the page, when the sidebar has no address field
-/// showing the loading.
+/// The line just above the page, when no tab in the sidebar shows the loading.
 struct PageLoadingLine: View {
     let browser: BrowserWindowController
 
     var body: some View {
         let theme = browser.theme
-        if !browser.addressFieldShowsLoading {
+        if !browser.sidebarShowsLoading {
             // In the middle of the strip above the page.
             LoadingProgressBar(item: browser.state.activeItem, color: theme.foreground.opacity(0.55))
                 .frame(height: 2)

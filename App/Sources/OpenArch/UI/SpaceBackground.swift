@@ -73,8 +73,9 @@ final class SpaceBackgroundView: NSView {
         }
         underlay.layer?.backgroundColor = theme.underlay.nsColor.cgColor
         // Arc lets a little of the desktop through while the window is in
-        // front, and none once it is not.
-        underlayOpacity = glass ? 0 : (active && !reduced ? (theme.isDark ? 0.8 : 0.86) : 1)
+        // front, and none once it is not. Slightly more here, so the
+        // window itself feels a touch translucent by default.
+        underlayOpacity = glass ? 0 : (active && !reduced ? (theme.isDark ? 0.74 : 0.79) : 1)
         underlay.alphaValue = underlayOpacity
         blur.isHidden = (!glass && underlayOpacity >= 1) || glassSheet.map { !$0.isHidden } == true
         colorOpacity = glassTint ?? theme.layerOpacity

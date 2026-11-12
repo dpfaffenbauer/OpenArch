@@ -1,9 +1,10 @@
 import Foundation
 
-/// AI control: OpenArch opens Chrome's DevTools protocol on localhost so an
-/// agent (Claude Code with chrome-devtools-mcp, Playwright, Puppeteer) can
-/// drive the real browser. Off by default: any program on this Mac could
-/// then control the browser, including logged-in tabs.
+/// AI control: opening Chrome's DevTools protocol on localhost so an
+/// external agent (Claude Code with chrome-devtools-mcp, Playwright,
+/// Puppeteer) can drive the real browser. WebKit has no DevTools
+/// protocol, so external control is unavailable; the browser's own
+/// agent tools (BrowserTools) keep working in-app.
 enum AIControl {
     private static let enabledKey = "aiControlEnabled"
     private static let portKey = "aiControlPort"
@@ -21,10 +22,9 @@ enum AIControl {
         set { UserDefaults.standard.set(newValue, forKey: portKey) }
     }
 
-    /// The port to open at launch, 0 when AI control is off.
-    static var port: Int {
-        isEnabled ? configuredPort : 0
-    }
+    /// The port to open at launch: always 0 (no DevTools protocol on
+    /// WebKit). Stored settings stay readable for an older value.
+    static var port: Int { 0 }
 
     /// For Claude Code: adds Google's DevTools MCP server, pointed at
     /// OpenArch.

@@ -193,7 +193,7 @@ final class SpotifyPlayer {
         if covers.count > 500 { covers.removeAll() }
         covers[trackID] = ""
         Task {
-            let (data, status) = await ChromiumFetch.get(url)
+            let (data, status) = await WebFetch.get(url)
             guard status == 200, let data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let cover = json["thumbnail_url"] as? String, cover.hasPrefix("https://")

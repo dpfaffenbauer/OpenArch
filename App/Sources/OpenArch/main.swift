@@ -114,11 +114,12 @@ if AppPaths.isSelfTest {
 // OpenArch decides what a first launch shows (the onboarding); Chrome's own
 // first-run pages and its default browser question never appear.
 settings.extraSwitches += ["no-first-run", "no-default-browser-check"]
+// No DevTools protocol on WebKit: the port stays closed (AIControl set the
+// value; it is 0 there). The flag below only helps local debugging.
 if let index = arguments.firstIndex(of: "--remote-debugging-port"), index + 1 < arguments.count {
-    settings.remoteDebuggingPort = Int(arguments[index + 1]) ?? 0
-} else if !AppPaths.isSelfTest {
-    // Settings › KI-Steuerung: the DevTools protocol for AI agents.
-    settings.remoteDebuggingPort = AIControl.port
+    settings.remoteDebuggingPort = AppPaths.isSelfTest ? (Int(arguments[index + 1]) ?? 0) : 0
+} else {
+    settings.remoteDebuggingPort = 0
 }
 guard OACEngine.start(with: settings) else {
     // Usually another OpenArch (say, a second copy of the app) already uses

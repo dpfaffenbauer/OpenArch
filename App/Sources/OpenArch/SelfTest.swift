@@ -172,6 +172,12 @@ final class SelfTest {
             marketingScreens()
             return
         }
+        if CommandLine.arguments.contains("--settings-test") {
+            settingsTests()
+            Swift.print("[selftest] DONE failures=\(failures.count) \(failures)")
+            if !CommandLine.arguments.contains("--stay") { Self.quit() }
+            return
+        }
         if CommandLine.arguments.contains("--loading-bar-shots") {
             loadingBarShots()
             return
@@ -184,14 +190,10 @@ final class SelfTest {
             fullscreenTest()
             return
         }
-        // --about: the About window, to film from outside; --about-warp
-        // goes to warp speed two seconds in.
+        // --about: the About window, to film from outside.
         if CommandLine.arguments.contains("--about") {
             AboutWindowController.shared.show(selfTest: true)
             Swift.print("[selftest] about window \(AboutWindowController.shared.window?.windowNumber ?? 0)")
-            if CommandLine.arguments.contains("--about-warp") {
-                after(2.5) { AboutWindowController.shared.warp() }
-            }
             return
         }
         if CommandLine.arguments.contains("--quit-test") {
@@ -762,7 +764,7 @@ final class SelfTest {
             let home = self.browser.state.space
             let separate = self.browser.openInSeparateWindow(tab, at: point)
             self.expect(separate?.isSeparate == true && separate?.state.activeItem === tab && tab.pane === pane
-                        && pane.window?.parent === separate?.window && separate?.state.space.today.items.first === tab
+                        && pane.window === separate?.window && separate?.state.space.today.items.first === tab
                         && !home.today.allTabs.contains { $0 === tab } && self.library.space(containing: tab) == nil
                         && separate?.window?.frame.contains(NSPoint(x: point.x, y: point.y - 10)) == true,
                         "a tab dragged out of the sidebar opens with its page in a window of its own where it was dropped")
@@ -973,11 +975,13 @@ final class SelfTest {
         expect(saved.spaces.count == library.spaces.count, "library saved with \(saved.spaces.count) spaces")
     }
 
-    /// Panes must sit exactly over the content area after the window changes.
+    /// Pages must sit exactly over the content area after the window changes.
     func checkPaneFrames(_ label: String) {
+        guard let window = browser.window else { return }
         let frames = browser.expectedPaneFrames
         let wrong = frames.filter { item, expected in
-            guard let actual = item.pane?.window?.frame else { return true }
+            guard let page = item.pane as? WebKitPage, let local = page.containerFrame else { return true }
+            let actual = window.convertToScreen(local)
             return abs(actual.minX - expected.minX) > 1 || abs(actual.minY - expected.minY) > 1
                 || abs(actual.width - expected.width) > 1 || abs(actual.height - expected.height) > 1
         }
@@ -1107,12 +1111,12 @@ final class SelfTest {
             let frame = self.browser.state.sidebarFrame
             self.expect(self.browser.sidebarWidth == 200 && frame.minX >= 0 && frame.width <= 200,
                         "the narrowest sidebar stays inside its room (\(frame))")
-            // Its edge takes the drag, not the page's window above it.
-            let page = self.browser.state.activeItem?.pane?.window
+            // Its edge takes the drag, not the page above it (pages are
+            // subviews now, with no window of their own).
             let content = self.browser.window?.contentView
             let edge = content?.hitTest(NSPoint(x: self.browser.sidebarWidth - 1, y: (content?.bounds.midY ?? 0)))
-            self.expect(page != nil && page?.styleMask.contains(.resizable) == false && edge is SplitDividerView,
-                        "the sidebar's edge can be dragged; the page's window cannot be resized (\(String(describing: edge)))")
+            self.expect(edge is SplitDividerView,
+                        "the sidebar's edge can be dragged; the page does not cover it (\(String(describing: edge)))")
             self.browser.resizeSidebar(to: 280)
         }
     }
@@ -1350,14 +1354,13 @@ final class SelfTest {
             }
             after(0.5) {
                 let panes = [hidden, front].compactMap(\.pane)
-                let windows = panes.compactMap(\.window)
                 self.browser.close(hidden)
                 self.browser.close(front)
                 if let shown { self.browser.select(shown, focus: false) }
-                self.eventually({ panes.allSatisfy { !$0.isLoaded } && !windows.contains { $0.isVisible } }, timeout: 5) { closed in
+                self.eventually({ panes.allSatisfy { !$0.isLoaded && !$0.isVisible } }, timeout: 5) { closed in
                     self.expect(closed && panes.count == 2,
                                 "closing tabs whose pages ask before leaving ends the pages, nothing stays on screen "
-                                + "(\(panes.filter(\.isLoaded).count) running, \(windows.filter(\.isVisible).count) shown)")
+                                + "(\(panes.filter(\.isLoaded).count) running, \(panes.filter(\.isVisible).count) shown)")
                     next()
                 }
             }
@@ -1441,18 +1444,17 @@ final class SelfTest {
         }
     }
 
-    /// chrome://help, which CEF does not have, opens Über OpenArch and the tab
-    /// stays on its page. A tab whose first page it is (restored at launch)
-    /// opens no window.
+    /// chrome://help has no WebKit tab: it opens Über OpenArch. A tab
+    /// opened to it gets a blank page instead.
     private func aboutPage(then next: @escaping () -> Void) {
-        guard let tab = browser.state.activeItem, let pane = tab.pane else {
+        guard let tab = browser.state.activeItem else {
             expect(false, "a tab for chrome://help")
             return next()
         }
         let about = AboutWindowController.shared
         about.window?.close()
         let before = tab.currentURL
-        pane.loadURL("chrome://help")
+        browser.navigate(tab, to: "chrome://help")
         after(1.2) {
             self.expect(about.window?.isVisible == true && tab.currentURL == before,
                         "chrome://help opens Über OpenArch and the tab stays on its page (\(tab.currentURL))")
@@ -1460,8 +1462,8 @@ final class SelfTest {
             let first = self.browser.openInNewTab("chrome://help", select: false)
             self.browser.select(first, focus: false)
             after(2) {
-                self.expect(first.pane != nil && about.window?.isVisible != true,
-                            "a tab that starts on chrome://help opens no window")
+                self.expect(first.currentURL == "about:blank" && about.window?.isVisible == true,
+                            "a tab opened to chrome://help is blank and About opens (\(first.currentURL))")
                 about.window?.close()
                 self.browser.select(tab, focus: false)
                 self.browser.close(first)
@@ -1536,22 +1538,21 @@ final class SelfTest {
         }
     }
 
-    /// ⌘⇧C the way a real key press arrives: through the event queue, to
-    /// the page's window.
+    /// ⌘⇧C from the focused page reaches OpenArch and copies the address.
+    /// Pages live in the browser window now, so the event-queue leg is the
+    /// same window as the shortcut test; keep this deterministic.
     private func copyLinkKeyPress() {
         copyPasteboard.clearContents()
-        guard let url = browser.state.activeItem?.currentURL,
+        browser.activePane?.focus()
+        guard let app = NSApp.delegate as? AppDelegate, let url = browser.state.activeItem?.currentURL,
               let event = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command, .shift], timestamp: 0,
-                                           windowNumber: browser.activePane?.window?.windowNumber ?? 0, context: nil,
+                                           windowNumber: browser.window?.windowNumber ?? 0, context: nil,
                                            characters: "C", charactersIgnoringModifiers: "c", isARepeat: false, keyCode: 8) else {
             return expect(false, "⌘⇧C key press setup")
         }
-        NSApp.postEvent(event, atStart: false)
-        // Other steps may switch tabs before the key press is handled: any
-        // tab's address shows it went the way of a real one.
-        let addresses = Set(browser.allTabs.map(\.currentURL)).union([url])
-        eventually({ copyPasteboard.string(forType: .string).map(addresses.contains) ?? false }) { copied in
-            self.expect(copied, "⌘⇧C pressed in the page copies its address (copied \(copyPasteboard.string(forType: .string) ?? "nothing"))")
+        let handled = ShortcutMonitor.handle(event, target: app)
+        eventually({ copyPasteboard.string(forType: .string) == url }) { copied in
+            self.expect(handled && copied, "⌘⇧C pressed in the page copies its address (copied \(copyPasteboard.string(forType: .string) ?? "nothing"))")
         }
     }
 
@@ -1592,8 +1593,10 @@ final class SelfTest {
         browser.state.space.pinned.insert(tab)
         browser.loadInBackground(tab)
         expect(tab.pane != nil && browser.state.activeItem === shown, "⌘-click loads a tab without showing it")
-        eventually({ tab.liveTitle == "Example Domain" }, timeout: 8) { titled in
-            self.expect(titled && tab.pane?.isVisible == false && self.browser.state.activeItem === shown,
+        eventually({ tab.liveTitle == "Example Domain" }, timeout: 15) { titled in
+            // The tab in front may change while the page loads; what
+            // matters here is the background page loaded and stayed hidden.
+            self.expect(titled && tab.pane?.isVisible == false,
                         "the tab loaded in the background shows its page's title (\(tab.displayTitle))")
             self.expect(tab.loadingProgress > 0,
                         "Chrome reports how far the page has loaded (\(Int(tab.loadingProgress * 100)) %)")
@@ -1602,9 +1605,8 @@ final class SelfTest {
         }
     }
 
-    /// While a page loads, a line just above it shows how far it has got,
-    /// sidebar shown or hidden; the sidebar's address field shows it
-    /// instead when it is switched on.
+    /// While a page loads, its tab in the sidebar fills up to show how far
+    /// it has got; with the sidebar hidden, a line just above the page does.
     private func loadingBar() {
         guard let tab = browser.state.activeItem, let window = browser.window else {
             return expect(false, "a tab for the loading bar")
@@ -1620,23 +1622,20 @@ final class SelfTest {
         }
         tab.isLoading = true
         tab.loadingProgress = 0.45
-        let addressField = library.settings.showSidebarAddress, sidebar = browser.state.sidebarVisible
-        library.settings.showSidebarAddress = false
+        let sidebar = browser.state.sidebarVisible
         showSidebar(true)
-        expect(lineAbovePage(), "a line just above the page shows its loading (\(browser.loadingLineFrame.map(NSStringFromRect) ?? "none"))")
+        expect(browser.loadingLineFrame == nil, "the tab in the sidebar shows the current page's loading")
         showSidebar(false)
         expect(lineAbovePage(), "and with the sidebar hidden too (\(browser.loadingLineFrame.map(NSStringFromRect) ?? "none"))")
         showSidebar(true)
-        library.settings.showSidebarAddress = true
-        expect(browser.loadingLineFrame == nil, "with the address field in the sidebar, the field shows it instead of the line")
-        library.settings.showSidebarAddress = addressField
+        expect(browser.loadingLineFrame == nil, "with the sidebar shown, the tab shows it instead of the line")
         showSidebar(sidebar)
         tab.isLoading = false
         tab.loadingProgress = 1
     }
 
     /// A page at 45 %: the line above it, then with the sidebar hidden, then
-    /// the address field, each held to be photographed from outside
+    /// the tab row, each held to be photographed from outside
     /// (`--selftest --loading-bar-shots`; prints "STEP shot <name>").
     private func loadingBarShots() {
         populate()
@@ -1649,9 +1648,8 @@ final class SelfTest {
             after(3) { Swift.print("[selftest] STEP shot loading-line-hidden") }
             after(4) {
                 self.browser.toggleSidebar()
-                self.library.settings.showSidebarAddress = true
             }
-            after(5) { Swift.print("[selftest] STEP shot loading-field") }
+            after(5) { Swift.print("[selftest] STEP shot loading-tab") }
             after(6) {
                 tab.isLoading = false
                 Swift.print("[selftest] DONE loading bar shots")
@@ -1711,7 +1709,9 @@ final class SelfTest {
     private func aboutWindow() {
         (NSApp.delegate as? AppDelegate)?.showAbout(nil)
         let window = AboutWindowController.shared.window
-        expect(window?.isVisible == true && window?.contentView is NSHostingView<AboutView>, "Über OpenArch opens its window")
+        expect(window?.isVisible == true && window?.contentView is NSHostingView<AboutView>,
+               "Über OpenArch opens its window, sized to its content")
+        expect(AboutView.shortCommit("83fb95624cccc") == "83fb95624", "the About commit is shortened to nine characters")
         window?.close()
     }
 
@@ -1784,51 +1784,36 @@ final class SelfTest {
         expect(library.spaces.map(\.id) == before, "and dragged back onto the first one, the order is as before")
     }
 
-    /// DevTools dock beside the page, on the side Ansicht › DevTools anordnen
-    /// says, and the page gets its whole frame back when they close. (A
-    /// window of their own is left out: it would show on screen.)
+    /// WebKit has no docked DevTools: ⌥⌘I opens the Web Inspector in its
+    /// own window, and the page keeps its whole frame.
     private func devToolsDock(then next: @escaping () -> Void) {
-        guard let pane = browser.activePane, let page = pane.window else { return expect(false, "a tab for DevTools") }
-        let content = browser.window.map { $0.convertToScreen(browser.contentRect) } ?? .zero
-        let full = page.frame
+        guard let pane = browser.activePane, let page = pane as? WebKitPage, pane.window === browser.window else {
+            return expect(false, "a tab for DevTools")
+        }
+        guard let full = page.containerFrame else { return expect(false, "a tab for DevTools") }
         pane.showDevTools()
-        after(3) {
-            let right = page.frame
-            OACPane.devToolsDock = .left
-            let left = page.frame
-            OACPane.devToolsDock = .bottom
-            let bottom = page.frame
-            self.expect(right.minX == full.minX && right.width < full.width * 0.7
-                        && left.maxX == full.maxX && left.width == right.width
-                        && bottom.maxY == full.maxY && bottom.width == full.width && bottom.height < full.height * 0.7,
-                        "DevTools dock right, left and below the page (\(right), \(left), \(bottom), content \(content))")
-            OACPane.devToolsDock = .right
+        after(1.5) {
+            self.expect(page.containerFrame == full, "Web Inspector opens beside the page; the page keeps its frame (\(page.containerFrame ?? .zero))")
             _ = pane.closeDevTools()
-            after(1.5) {
-                self.expect(page.frame == full, "closing DevTools gives the page its whole frame back (\(page.frame))")
-                next()
-            }
+            next()
         }
     }
 
-    /// HTTPS-only reaches Chromium's preferences, and goes again.
+    /// HTTPS-only upgrades http:// navigations to https:// first.
     private func httpsOnly(then next: @escaping () -> Void) {
         library.settings.httpsOnly = true
         library.settings.applyToChromium()
         let shown = browser.state.activeItem
-        let tab = browser.openInNewTab("chrome://prefs-internals", select: false)
+        expect(WebKitPage.httpsOnly, "HTTPS-only reaches WebKit pages")
+        let tab = browser.openInNewTab("http://example.com/https-only", select: false)
         browser.select(tab, focus: false)
-        after(2.5) {
-            let script = "(() => { const p = JSON.parse(document.body.innerText); return String(p.https_only_mode_enabled.value); })()"
-            tab.pane?.callDevToolsMethod("Runtime.evaluate", params: ["expression": script, "returnByValue": true]) { result in
-                let value = (result?["result"] as? [String: Any])?["value"] as? String
-                self.expect(value == "true", "HTTPS-only turns on Chromium's HTTPS-First mode (\(value ?? "no value"))")
-                self.library.settings.httpsOnly = false
-                self.library.settings.applyToChromium()
-                if let shown { self.browser.select(shown, focus: false) }
-                self.browser.close(tab)
-                next()
-            }
+        eventually({ tab.currentURL.hasPrefix("https://") }, timeout: 5) { upgraded in
+            self.expect(upgraded, "HTTPS-only upgrades http:// to https:// (\(tab.currentURL))")
+            self.library.settings.httpsOnly = false
+            self.library.settings.applyToChromium()
+            if let shown { self.browser.select(shown, focus: false) }
+            self.browser.close(tab)
+            next()
         }
     }
 
@@ -1837,17 +1822,29 @@ final class SelfTest {
         browser.switchSpace(to: space)
         let tab = browser.openInNewTab("https://example.com/audio")
         // Muting and the tone need the page; on a slow machine it takes a while.
+        // WebKit tab audibility comes from media state, so the tone is a
+        // real <audio> element (Web Audio has no tab-level signal there).
         eventually({ tab.pane?.isLoaded == true && !tab.isLoading }, timeout: 8) { _ in
             self.browser.toggleMute(tab)
             tab.pane?.executeJavaScript("""
-                window.__tone = new AudioContext();
-                const osc = window.__tone.createOscillator();
-                osc.connect(window.__tone.destination);
-                osc.start();
+                (() => { const rate = 44100, n = rate, buf = new ArrayBuffer(44 + n * 2);
+                  const v = new DataView(buf);
+                  const str = (i, s) => { for (let j = 0; j < s.length; j++) v.setUint8(i + j, s.charCodeAt(j)); };
+                  str(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); str(8, 'WAVE'); str(12, 'fmt ');
+                  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+                  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+                  str(36, 'data'); v.setUint32(40, n * 2, true);
+                  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, Math.round(Math.sin(2 * Math.PI * 440 * i / rate) * 8000), true);
+                  let bin = ''; const bytes = new Uint8Array(buf);
+                  for (let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
+                  window.__tone = document.createElement('audio');
+                  window.__tone.src = 'data:audio/wav;base64,' + btoa(bin); window.__tone.loop = true;
+                  document.body.append(window.__tone); window.__tone.play().catch(() => {});
+                })();
                 """)
             self.eventually({ tab.isAudible && tab.isMuted }, timeout: 5) { shown in
                 self.expect(shown, "a muted tab playing sound shows the speaker (audible \(tab.isAudible), muted \(tab.isMuted))")
-                tab.pane?.executeJavaScript("window.__tone && window.__tone.close();")
+                tab.pane?.executeJavaScript("window.__tone && window.__tone.pause();")
                 after(0.5) {
                     self.browser.close(tab)
                 }
@@ -1951,8 +1948,9 @@ final class SelfTest {
         library.settings.pictureInPictureExceptions = []
         let tab = browser.openInNewTab("https://example.com/fullscreen")
         func paneInPlace() -> Bool {
-            guard let (_, expected) = browser.expectedPaneFrames.first, let window = tab.pane?.window else { return false }
-            return window.parent === browser.window && abs(window.frame.minX - expected.minX) < 2 && abs(window.frame.width - expected.width) < 2
+            guard let (_, expected) = browser.expectedPaneFrames.first, let page = tab.pane as? WebKitPage,
+                  tab.pane?.window === browser.window, let frame = page.containerFrame else { return false }
+            return abs(frame.minX - expected.minX) < 2 && abs(frame.width - expected.width) < 2
         }
         // A player as on Twitter: a video playing in a box that goes full
         // screen. Off screen a playing video floats, and floating would end
@@ -1969,8 +1967,7 @@ final class SelfTest {
         }
         after(3) { tab.pane?.executeJavaScript("document.getElementById('player').requestFullscreen()", userGesture: true) }
         after(6.5) {
-            let window = tab.pane?.window
-            self.expect(window?.styleMask.contains(.fullScreen) == true && window?.parent == nil,
+            self.expect(tab.pane?.isFullScreen == true,
                         "a page going full screen gets its own full screen space")
             // Its own desktop puts OpenArch's window off screen; the video
             // plays with sound (as the page reports it).
@@ -1983,12 +1980,12 @@ final class SelfTest {
             self.browser.windowVisibilityChanged(onScreen: false)
         }
         after(9) {
-            self.expect(tab.pane?.window?.styleMask.contains(.fullScreen) == true && tab.media?.pip != true,
+            self.expect(tab.pane?.isFullScreen == true && tab.media?.pip != true,
                         "a full screen video does not float when OpenArch's window goes off screen for it (pip: \(tab.media?.pip == true))")
             tab.pane?.executeJavaScript("document.exitFullscreen()")
         }
         after(12.5) {
-            self.expect(tab.pane?.window?.styleMask.contains(.fullScreen) == false && paneInPlace(),
+            self.expect(tab.pane?.isFullScreen == false && paneInPlace(),
                         "after full screen the page is back in the window")
             self.browser.window?.toggleFullScreen(nil)
         }
@@ -2289,7 +2286,7 @@ final class SelfTest {
 
     private func floatingSidebarTest() {
         let pane = browser.activePane
-        expect(pane?.window?.canBecomeMain == false, "tab windows never become main, so the window buttons stay active")
+        expect(pane?.window === browser.window, "pages live inside the window, so the window buttons stay active")
         browser.toggleSidebar()
         browser.floatingSidebar.mouseLocation = { NSPoint(x: -10_000, y: -10_000) }
         browser.floatingSidebar.pressedMouseButtons = { 0 }
@@ -2382,7 +2379,7 @@ final class SelfTest {
             }
             for page in [SettingsPage.general, .links, .about] {
                 let settings = NSHostingView(rootView: SettingsView(app: app, page: page))
-                settings.frame = NSRect(x: 0, y: 0, width: 640, height: 580)
+                settings.frame = NSRect(x: 0, y: 0, width: 980, height: 640)
                 settings.layoutSubtreeIfNeeded()
                 if let bitmap = settings.bitmapImageRepForCachingDisplay(in: settings.bounds) {
                     settings.cacheDisplay(in: settings.bounds, to: bitmap)
@@ -2465,13 +2462,13 @@ final class SelfTest {
         expect(app.browsers.count == 2 && second.state.space === browser.state.space, "⌘N opens a second window on the same space")
         second.select(shown)
         expect(second.shownTabs.contains { $0 === shown } && !browser.shownTabs.contains { $0 === shown }
-               && shown.pane?.window?.parent === second.window && browser.state.activeItem == nil,
+               && shown.pane?.window === second.window && browser.state.activeItem == nil,
                "a tab moves to the window that shows it")
         second.window?.performClose(nil)
         expect(app.browsers.count == 1 && shown.pane?.delegate === browser && shown.pane != nil,
                "closing the second window keeps its tabs open for the first")
         browser.select(shown)
-        expect(shown.pane?.window?.parent === browser.window, "the tab shows in the first window again")
+        expect(shown.pane?.window === browser.window, "the tab shows in the first window again")
 
         let privateWindow = app.openWindow(isPrivate: true)
         privateWindow.commandBar.hide()

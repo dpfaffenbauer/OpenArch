@@ -12,6 +12,7 @@
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nLe dossier reste fixe tant que la discussion existe : Claude Code ne peut poursuivre la session que là.";
 "%@ angeheftet" = "%@ épinglé(s)";
 "%@ angeheftet (in %@)" = "%@ épinglé(s) (dans %@)";
+"%@ auswählen" = "Sélectionner %@";
 "%@ beenden" = "Quitter %@";
 "%@ beenden?" = "Quitter %@ ?";
 "%@ durchsuchen" = "Rechercher sur %@";
@@ -54,6 +55,7 @@
 "%lld Profile" = "%lld profils";
 "%lld Profilen" = "%lld profils";
 "%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet" = "%lld pages de l’historique, désormais trouvables dans la barre de commandes";
+"%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden." = "%lld pages seront supprimées de l’historique. Cette action est irréversible.";
 "%lld Spaces" = "%lld Spaces";
 "%lld Std." = "%lld h";
 "%lld Tabs" = "%lld onglets";
@@ -61,6 +63,7 @@
 "%lld Zeilen ausgewählt" = "%lld lignes sélectionnées";
 "%lld Zeilen ohne Adresse oder Passwort werden ausgelassen." = "%lld lignes sans adresse ni mot de passe seront ignorées.";
 "%lld angeheftete Tabs" = "%lld onglets épinglés";
+"%lld ausgewählt" = "%lld sélectionnés";
 "%lld doppelte Einträge werden ausgelassen." = "%lld les entrées en double sont omises.";
 "%lld neue Spaces, %lld neue Profile" = "%lld nouveaux Spaces, %lld nouveaux profils";
 "%lld offene Tabs" = "%lld onglets ouverts";
@@ -85,6 +88,7 @@
 "1 Tab archiviert" = "1 onglet archivé";
 "1 Zeile ausgewählt" = "1 ligne sélectionnée";
 "1 angehefteter Tab" = "1 onglet épinglé";
+"1 ausgewählt" = "1 élément sélectionné";
 "1 offener Tab" = "1 onglet ouvert";
 "1 ungelesen" = "1 non lu";
 "Abbrechen" = "Annuler";
@@ -112,8 +116,10 @@
 "Aktuelle URL speichern" = "Enregistrer l’URL actuelle";
 "Alle Downloads" = "Tous les téléchargements";
 "Alle Tabs unter dem Strich archivieren" = "Archiver tous les onglets sous la ligne";
+"Alle auswählen" = "Tout sélectionner";
 "Alle einblenden" = "Tout afficher";
 "Alle nach vorne bringen" = "Tout mettre au premier plan";
+"Alle von dieser Website löschen" = "Tout supprimer de ce site web";
 "Alle zurücksetzen" = "Tout réinitialiser";
 "Alle öffnen" = "Tout ouvrir";
 "Alles auswählen" = "Tout sélectionner";
@@ -868,6 +874,8 @@
 "Tippt" = "Saisit du texte";
 "Ton" = "Son";
 "Ton einschalten" = "Activer le son";
+"Treffer löschen?" = "Supprimer les résultats ?";
+"Treffer löschen…" = "Supprimer les résultats…";
 "Tägliche Sicherung" = "Sauvegarde quotidienne";
 "Tönung" = "Teinte";
 "URL als Markdown kopieren" = "Copier l’URL en tant que Markdown";
@@ -891,6 +899,8 @@
 "Verkleinern" = "Zoom arrière";
 "Verlauf" = "Historique";
 "Verlauf anzeigen" = "Afficher l’historique";
+"Verlauf löschen?" = "Effacer l’historique ?";
+"Verlauf löschen…" = "Effacer l’historique…";
 "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich." = "Si vous quittez un appel (caméra ou micro en cours d’utilisation), il continue de flotter en bas à droite : Google Meet dans sa propre fenêtre, les autres services avec les vidéos et des boutons pour le micro, la caméra et raccrocher. Il se ferme quand vous revenez dans l’onglet.";
 "Version %@" = "Version %@";
 "Version %@ · Chromium %@" = "Version %@ · Chromium %@";

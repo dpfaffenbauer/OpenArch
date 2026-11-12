@@ -24,6 +24,9 @@ final class BrowserState {
     var siteControlsVisible = false
     /// The space icon being dragged to another place in the space bar.
     var draggingSpaceID: UUID?
+    /// A sidebar tab is being dragged: empty favorites and pinned expand
+    /// their drop placeholders until the drag ends.
+    var tabDragActive = false
     /// Agents (⌃0) take the sidebar's place, like a space of their own.
     var agentsVisible = false
     /// The library (media, downloads, spaces, archive) replaces the sidebar.
@@ -52,11 +55,12 @@ final class BrowserState {
 }
 
 enum LibrarySection: String, CaseIterable, Identifiable {
-    case media, downloads, spaces, archive
+    case history, media, downloads, spaces, archive
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .history: L("Verlauf")
         case .media: L("Medien")
         case .downloads: L("Downloads")
         case .spaces: L("Spaces")
@@ -66,6 +70,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
+        case .history: "clock"
         case .media: "photo.on.rectangle"
         case .downloads: "arrow.down.circle"
         case .spaces: "square.on.square"

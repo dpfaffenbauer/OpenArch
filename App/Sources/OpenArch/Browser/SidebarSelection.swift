@@ -176,6 +176,7 @@ extension BrowserWindowController {
     /// What dragging |item| carries: its id, or the ids of all selected rows
     /// (one per line) when it is one of them.
     func dragProvider(for item: Item) -> NSItemProvider {
+        noteTabDragBegan()
         guard actsOnSelection(item) else { return tabDragProvider(item) }
         return tabDragProvider(ids: selectionRoots.map(\.id))
     }
