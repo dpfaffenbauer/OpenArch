@@ -16,6 +16,7 @@
 "%@ beenden" = "Quit %@";
 "%@ beenden?" = "Quit %@?";
 "%@ durchsuchen" = "Search %@";
+"%@ durchsuchen …" = "Search %@…";
 "%@ fragen" = "Ask %@";
 "%@ gehörte zu „%@“ und gilt jetzt hier." = "%@ belonged to “%@” and now applies here.";
 "%@ in %@. Dein Browserfenster wartet." = "%@ in %@. Your browser window is waiting.";
@@ -266,12 +267,14 @@
 "Darin zeigen" = "Show";
 "Das Arc-Profil konnte nicht kopiert werden: %@" = "The Arc profile could not be copied: %@";
 "Das Modell von Apple Intelligence wird noch geladen. Versuch es später noch einmal." = "The Apple Intelligence model is still loading. Try again later.";
+"Das Passwort stimmt nicht." = "The password is incorrect.";
 "Das Profil „%@“ mit seinen Logins und Cookies bleibt." = "The profile “%@” and its logins and cookies are kept.";
 "Das Update enthält keine passende OpenArch-App." = "The update doesn't contain a matching OpenArch app.";
 "Das Update ist nicht mit OpenArchs Developer ID signiert." = "The update is not signed with OpenArch's Developer ID.";
 "Das Update kommt nicht aus OpenArchs Releases auf GitHub." = "The update does not come from OpenArch's releases on GitHub.";
 "Das ist eine Freigabe dieses Macs." = "This is a share from this Mac.";
 "Das ist kein OpenArch-Link." = "This is not an OpenArch link.";
+"Das ist kein gültiger OpenArch-Link." = "This is not a valid OpenArch link.";
 "Datei wählen …" = "Choose File…";
 "Dateien bearbeiten" = "Edit Files";
 "Daten" = "Data";
@@ -281,6 +284,7 @@
 "Deine Sidebar aus Arc ist da. Ein neuer Import ersetzt sie wieder." = "Your sidebar from Arc is here. A new import will replace it.";
 "Deine Version ist neuer als die neueste auf %@ (Build %lld). Sie bleibt, bis %@ aufholt." = "Your version is newer than the latest on %@ (build %lld). It stays until %@ catches up.";
 "Deine gespeicherten Passwörter und Logins sind mit dem Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund verschlüsselt. Diese OpenArch-Version darf ihn noch nicht lesen, deshalb fragt macOS gleich nach deinem Mac-Passwort. Gib es ein und wähle „Immer erlauben“." = "Your saved passwords and logins are encrypted with the key “%@” from your login keychain. This version of OpenArch isn't allowed to read it yet, so macOS will ask for your Mac password in a moment. Enter it and choose “Always Allow”.";
+"Den Ordner %@ gibt es nicht mehr." = "The folder %@ no longer exists.";
 "Der Agent wird angehalten und der Chat entfernt." = "The agent will be stopped and the chat removed.";
 "Der Import ist fehlgeschlagen; es ist alles, wie es war. %@" = "The import failed; everything is as it was. %@";
 "Der Import läuft noch und ist gleich fertig." = "The import is still running and is almost done.";
@@ -294,7 +298,10 @@
 "Der Schlüssel „%@“ konnte nicht aus dem Schlüsselbund gelesen werden (%@). Ohne ihn lassen sich Logins und Passwörter nicht übernehmen." = "The key “%@” could not be read from the keychain (%@). Without it, logins and passwords cannot be imported.";
 "Der Schlüsselbund hat „%@“ nicht angenommen (%@). Starte OpenArch bitte noch einmal." = "The keychain did not accept “%@” (%@). Please restart OpenArch.";
 "Der Schreibtisch scheint durch das Fenster. Ab macOS 26 schwebt die Sidebar als Liquid Glass darüber, davor als Milchglas; die Seiten liegen als Karten daneben." = "The desktop shows through the window. On macOS 26 and later, the sidebar floats above it as Liquid Glass; on earlier versions, as frosted glass. Pages sit beside it as cards.";
+"Der Server lieferte einen älteren Stand als bekannt." = "The server returned an older version than the one already known.";
 "Der Space hat keine Tabs." = "The Space has no tabs.";
+"Der Teilen-Server antwortete mit Fehler %lld." = "The sharing server responded with error %lld.";
+"Der Teilen-Server ist nicht erreichbar." = "The sharing server cannot be reached.";
 "Der letzte Space bleibt" = "The last Space stays";
 "Der vollständige Import ist fehlgeschlagen. %@" = "The full import failed. %@";
 "Desktop" = "Desktop";
@@ -306,6 +313,7 @@
 "Die Datei ist keine Passwort-CSV: Es fehlen die Spalten für Adresse und Passwort." = "The file is not a password CSV: the address and password columns are missing.";
 "Die Datei ist zu groß." = "The file is too large.";
 "Die Datei ließ sich nicht lesen." = "The file could not be read.";
+"Die Freigabe wurde beendet." = "Sharing has ended.";
 "Die Lesezeichen liegen verschlüsselt auf dem Teilen-Server; der Schlüssel steht nur im Link. Änderungen erscheinen bei allen mit dem Link." = "The bookmarks are stored encrypted on the sharing server; the key is only in the link. Changes appear for everyone with the link.";
 "Die Lesezeichen reisen verschlüsselt im Link selbst; kein Server ist beteiligt. Spätere Änderungen erscheinen nicht." = "The bookmarks travel encrypted in the link itself; no server is involved. Later changes do not appear.";
 "Die Library.json dieser Sicherung lässt sich nicht lesen." = "This backup's Library.json cannot be read.";
@@ -316,11 +324,15 @@
 "Die Stable-Version %@ lässt sich nicht automatisch installieren." = "The stable version %@ cannot be installed automatically.";
 "Die Werte werden auf diesem Mac entschlüsselt und mit OpenArchs Schlüssel neu verschlüsselt. Nichts verlässt den Mac." = "The values are decrypted on this Mac and re-encrypted with OpenArch's key. Nothing leaves your Mac.";
 "Die ZIP-Datei konnte nicht geschrieben werden." = "The ZIP file could not be written.";
+"Die geteilten Daten sind beschädigt oder wurden verändert." = "The shared data is damaged or has been altered.";
 "Die heruntergeladene Datei stimmt nicht mit der Prüfsumme überein." = "The downloaded file does not match the checksum.";
+"Diese Freigabe gibt es nicht (mehr)." = "This share does not exist (anymore).";
 "Diese Lesezeichen sind mit einem Passwort geschützt." = "These bookmarks are password-protected.";
 "Diese Seite" = "This page";
 "Diese Seite meldet" = "This page says";
 "Diese Session läuft noch in einem Terminal. Was du hier schreibst, setzt sie getrennt davon fort." = "This session is still running in a terminal. Anything you write here continues it separately.";
+"Dieser Link ist mit einem Passwort geschützt." = "This link is password protected.";
+"Dieser Link stammt aus einer neueren OpenArch-Version." = "This link comes from a newer version of OpenArch.";
 "Dieser Mac unterstützt Apple Intelligence nicht." = "This Mac does not support Apple Intelligence.";
 "Dokumente" = "Documents";
 "Dominik Pfaffenbauer" = "Dominik Pfaffenbauer";
@@ -478,6 +490,7 @@
 "Ja" = "Yes";
 "JavaScript" = "JavaScript";
 "JavaScript-Konsole" = "JavaScript Console";
+"Jeden Tag ein Ordner mit Library.json (Spaces, Tabs, Link-Regeln), Boosts und Einstellungen; die letzten %lld bleiben. Logins, Passwörter und Verlauf sind nicht dabei." = "A folder every day with Library.json (Spaces, tabs, link rules), Boosts, and settings; the last %lld are kept. Logins, passwords, and history are not included.";
 "Jeden Tag zur gewählten Zeit, oder beim ersten Start von OpenArch danach." = "Every day at the chosen time, or at OpenArch's first launch after that.";
 "Jedes Profil hat eigene Logins, Cookies und Extensions. Hier siehst du, welche Google-Konten in welchem Profil angemeldet sind." = "Each profile has its own logins, cookies, and extensions. Here you can see which Google accounts are signed in to which profile.";
 "Jedes Profil hat eigene Logins, Cookies, Verlauf und Extensions. Spaces können sich ein Profil teilen." = "Each profile has its own logins, cookies, history, and extensions. Spaces can share a profile.";
@@ -954,6 +967,7 @@
 "Zu Favoriten hinzufügen" = "Add to Favorites";
 "Zu Space „%@“ wechseln" = "Switch to Space “%@”";
 "Zu Tab wechseln" = "Switch to Tab";
+"Zu viele Lesezeichen für eine Freigabe." = "Too many bookmarks for one share.";
 "Zu viele Lesezeichen für einen QR-Code. Sende den Link stattdessen." = "Too many bookmarks for one QR code. Send the link instead.";
 "Zu wenige Tabs zum Aufräumen" = "Too few tabs to tidy up";
 "Zugriff erlauben …" = "Allow Access…";

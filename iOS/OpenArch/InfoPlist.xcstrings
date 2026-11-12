@@ -20,6 +20,24 @@
             "state": "translated",
             "value": "To scan share codes from other devices."
           }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para escanear códigos para compartir de otros dispositivos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pour scanner les codes de partage d’autres appareils."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per scansionare i codici di condivisione di altri dispositivi."
+          }
         }
       }
     }

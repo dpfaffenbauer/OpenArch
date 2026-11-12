@@ -1040,3 +1040,74 @@ e643282e54	Delete matches…	Supprimer les résultats…	Eliminar los resultados
 0d14f9389c	%lld pages will be removed from history. This cannot be undone.	%lld pages seront supprimées de l’historique. Cette action est irréversible.	Se eliminarán %lld páginas del historial. Esta acción no se puede deshacer.	%lld pagine verranno rimosse dalla cronologia. Questa azione non può essere annullata.
 0074ee1a74	Delete all from this website	Tout supprimer de ce site web	Eliminar todo de este sitio web	Elimina tutto da questo sito web
 cf50b39c12	Select %@	Sélectionner %@	Seleccionar %@	Seleziona %@
+0442d15c45	Search %@…	Rechercher sur %@…	Buscar en %@…	Cerca in %@…
+522e146679	Address	Adresse	Dirección	Indirizzo
+293e512572	Pin	Épingler	Fijar	Fissa
+ef0b939e06	Archive empty	Archives vides	Archivo vacío	Archivio vuoto
+f7c8259fb3	Ended	Terminé	Finalizado	Terminata
+d3b9a86572	When you follow, the owner's changes appear automatically; the next update overwrites any changes you make.	Lorsque vous suivez le partage, les modifications du propriétaire apparaissent automatiquement ; la prochaine mise à jour écrase vos propres modifications.	Al seguir el contenido compartido, los cambios del propietario aparecen automáticamente; la siguiente actualización sobrescribe los cambios que hagas.	Se segui la condivisione, le modifiche del proprietario appaiono automaticamente; il prossimo aggiornamento sovrascrive le tue modifiche.
+ab7e53c6eb	Scan Code	Scanner un code	Escanear código	Scansiona codice
+152561cfd9	The password is incorrect.	Le mot de passe est incorrect.	La contraseña no es correcta.	La password non è corretta.
+69b09156d6	This is your own share.	C’est votre propre partage.	Este es tu propio contenido compartido.	Questa è la tua condivisione.
+7673e5196d	This is not a valid OpenArch link.	Ce n’est pas un lien OpenArch valide.	No es un enlace de OpenArch válido.	Non è un link OpenArch valido.
+e0caa28d7c	The folder %@ no longer exists.	Le dossier %@ n’existe plus.	La carpeta %@ ya no existe.	La cartella %@ non esiste più.
+50661ce3c6	The server returned an older version than the one already known.	Le serveur a renvoyé une version plus ancienne que celle déjà connue.	El servidor devolvió una versión más antigua que la ya conocida.	Il server ha restituito una versione più vecchia di quella già nota.
+f26009114a	The sharing server responded with error %lld.	Le serveur de partage a répondu avec l’erreur %lld.	El servidor para compartir respondió con el error %lld.	Il server di condivisione ha risposto con l’errore %lld.
+d8027f8b15	The sharing server cannot be reached.	Le serveur de partage est injoignable.	No se puede acceder al servidor para compartir.	Il server di condivisione non è raggiungibile.
+addb9a16f3	Sharing has ended.	Le partage a été arrêté.	Se ha dejado de compartir.	La condivisione è stata interrotta.
+1d5e086f05	The shared data is damaged or has been altered.	Les données partagées sont endommagées ou ont été modifiées.	Los datos compartidos están dañados o se han modificado.	I dati condivisi sono danneggiati o sono stati modificati.
+3b94e95970	Save This Address	Enregistrer cette adresse	Guardar esta dirección	Salva questo indirizzo
+9640988a96	This share does not exist (anymore).	Ce partage n’existe pas (ou plus).	Este contenido compartido no existe (o ya no existe).	Questa condivisione non esiste (più).
+0cae47b4ca	This link is password protected.	Ce lien est protégé par un mot de passe.	Este enlace está protegido con contraseña.	Questo link è protetto da password.
+3d150cce85	This link comes from a newer version of OpenArch.	Ce lien provient d’une version plus récente d’OpenArch.	Este enlace procede de una versión más reciente de OpenArch.	Questo link proviene da una versione più recente di OpenArch.
+4b47b2f8bc	A snapshot: the link contains the bookmarks themselves, encrypted, and no longer changes.	Un instantané : le lien contient les signets eux-mêmes, chiffrés, et ne change plus.	Una instantánea: el enlace contiene los propios marcadores, cifrados, y ya no cambia.	Un’istantanea: il link contiene i segnalibri stessi, cifrati, e non cambia più.
+3e5af3d1b0	Settings	Réglages	Ajustes	Impostazioni
+7cff0e1795	Allow OpenArch to use the camera in Settings, or open the link on this device.	Autorisez OpenArch à utiliser l’appareil photo dans Réglages, ou ouvrez le lien sur cet appareil.	Permite que OpenArch use la cámara en Ajustes o abre el enlace en este dispositivo.	Consenti a OpenArch di usare la fotocamera in Impostazioni, oppure apri il link su questo dispositivo.
+81bfff2538	For new live shares. Leave empty for share.openarch.app; your own server must run relay/ from OpenArch's source code and use https.	Pour les nouveaux partages en direct. Laissez vide pour share.openarch.app ; un serveur personnel doit exécuter relay/ du code source d’OpenArch et utiliser https.	Para nuevos contenidos compartidos en directo. Déjalo vacío para usar share.openarch.app; un servidor propio debe ejecutar relay/ del código fuente de OpenArch y usar https.	Per le nuove condivisioni live. Lascia vuoto per share.openarch.app; un server personale deve eseguire relay/ dal codice sorgente di OpenArch e usare https.
+f0ace241e5	Deleted	Supprimé	Eliminado	Eliminato
+e90dc82bf1	Paste Shared Link	Coller un lien partagé	Pegar enlace compartido	Incolla link condiviso
+46984dd139	Touch and hold a tab and choose “Pin” to keep it here.	Maintenez le doigt sur un onglet et choisissez « Épingler » pour qu’il reste ici.	Mantén pulsada una pestaña y elige «Fijar» para que se quede aquí.	Tieni premuta una scheda e scegli “Fissa” perché resti qui.
+1ab33097cd	Today	Aujourd’hui	Hoy	Oggi
+bb9234195c	A folder every day with Library.json (Spaces, tabs, link rules), Boosts, and settings; the last %lld are kept. Logins, passwords, and history are not included.	Chaque jour, un dossier avec Library.json (Spaces, onglets, règles de liens), les Boosts et les réglages ; les %lld derniers sont conservés. Les connexions, mots de passe et l’historique n’en font pas partie.	Cada día, una carpeta con Library.json (Spaces, pestañas, reglas de enlaces), Boosts y ajustes; se conservan las últimas %lld. Los inicios de sesión, las contraseñas y el historial no se incluyen.	Ogni giorno una cartella con Library.json (Space, schede, regole per i link), Boost e impostazioni; si conservano le ultime %lld. Login, password e cronologia non sono inclusi.
+1d27f02473	No link in this code	Aucun lien dans ce code	Este código no contiene ningún enlace	Nessun link in questo codice
+2284fd3940	No OpenArch link on the clipboard	Aucun lien OpenArch dans le presse-papiers	No hay ningún enlace de OpenArch en el portapapeles	Nessun link OpenArch negli appunti
+7bb209425a	Empty	Vider	Vaciar	Svuota
+1e0d391c6b	Show Toolbar	Afficher la barre	Mostrar barra	Mostra barra
+803a11fd9e	Send Link…	Envoyer le lien…	Enviar enlace…	Invia link…
+dfc8541c93	More	Plus	Más	Altro
+1fbd201a1a	After 12 Hours	Après 12 heures	Después de 12 horas	Dopo 12 ore
+8c2d300e9d	After 24 Hours	Après 24 heures	Después de 24 horas	Dopo 24 ore
+9409eedce5	After 7 Days	Après 7 jours	Después de 7 días	Dopo 7 giorni
+4725aa56c9	Create New Link	Créer un nouveau lien	Crear enlace nuevo	Crea nuovo link
+16926ab779	Never	Jamais	Nunca	Mai
+2ab111eb2b	Top Level	Niveau supérieur	Nivel superior	Livello principale
+d5fce36137	Or an emoji	Ou un emoji	O un emoji	Oppure un’emoji
+97c8bcc730	Without “Keep up to date”, no server is needed at all.	Sans « Maintenir à jour », aucun serveur n’est nécessaire.	Sin «Mantener actualizado» no se necesita ningún servidor.	Senza “Mantieni aggiornato” non serve alcun server.
+054af49647	OpenArch on GitHub	OpenArch sur GitHub	OpenArch en GitHub	OpenArch su GitHub
+7725268d75	Delete Folder	Supprimer le dossier	Eliminar carpeta	Elimina cartella
+767b0401eb	Share Folder…	Partager le dossier…	Compartir carpeta…	Condividi cartella…
+00980e1434	Share folders and Spaces from their menu. No account: the link is the key, and the server only sees encrypted data. Shared folders and Spaces you follow update every five minutes while OpenArch is open.	Partagez des dossiers et des Spaces depuis leur menu. Sans compte : le lien est la clé, et le serveur ne voit que des données chiffrées. Les dossiers et Spaces partagés que vous suivez se mettent à jour toutes les cinq minutes tant qu’OpenArch est ouvert.	Comparte carpetas y Spaces desde su menú. Sin cuenta: el enlace es la clave y el servidor solo ve datos cifrados. Las carpetas y los Spaces compartidos que sigues se actualizan cada cinco minutos mientras OpenArch está abierto.	Condividi cartelle e Space dal loro menu. Senza account: il link è la chiave e il server vede solo dati cifrati. Le cartelle e gli Space condivisi che segui si aggiornano ogni cinque minuti finché OpenArch è aperto.
+9c4970dee8	Folder · %lld bookmarks · Snapshot	Dossier · %lld signets · Instantané	Carpeta · %lld marcadores · Instantánea	Cartella · %lld segnalibri · Istantanea
+ccd64a04df	Folder · %lld bookmarks · kept up to date	Dossier · %lld signets · maintenu à jour	Carpeta · %lld marcadores · se mantiene actualizada	Cartella · %lld segnalibri · mantenuta aggiornata
+2c33c36064	Scan the code with OpenArch on your iPhone or Mac (Scan Code), or open the link there. The key comes after the # and never reaches a server.	Scannez le code avec OpenArch sur l’iPhone ou le Mac (Scanner un code), ou ouvrez-y le lien. La clé se trouve après le # et n’atteint jamais aucun serveur.	Escanea el código con OpenArch en el iPhone o el Mac (Escanear código) o abre allí el enlace. La clave va detrás del # y nunca llega a un servidor.	Scansiona il codice con OpenArch su iPhone o Mac (Scansiona codice), oppure apri lì il link. La chiave si trova dopo il # e non raggiunge mai un server.
+567f069600	Can't Scan	Impossible de scanner	No se puede escanear	Impossibile scansionare
+58d332a342	Close Page	Fermer la page	Cerrar página	Chiudi pagina
+06f69f2650	Share Page…	Partager la page…	Compartir página…	Condividi pagina…
+efd3d5bffa	Sidebar	Barre latérale	Barra lateral	Barra laterale
+d71e0c098f	Delete Space	Supprimer le Space	Eliminar Space	Elimina Space
+e04a22df2b	Space · %lld bookmarks · Snapshot	Space · %lld signets · Instantané	Space · %lld marcadores · Instantánea	Space · %lld segnalibri · Istantanea
+c51c78509f	Space · %lld bookmarks · kept up to date	Space · %lld signets · maintenu à jour	Space · %lld marcadores · se mantiene actualizado	Space · %lld segnalibri · mantenuto aggiornato
+fd28158869	Search	Recherche	Búsqueda	Ricerca
+7c4f787769	Search or address	Rechercher ou adresse	Buscar o dirección	Cerca o indirizzo
+f7960037c8	Search or enter address	Rechercher ou saisir une adresse	Buscar o introducir dirección	Cerca o inserisci indirizzo
+101ad2bf23	Tabs below the line that you haven't looked at for this long go to the archive, as on the Mac.	Les onglets sous la ligne que vous n’avez pas consultés depuis ce délai vont dans les archives, comme sur le Mac.	Las pestañas debajo de la línea que no has mirado durante este tiempo pasan al archivo, como en el Mac.	Le schede sotto la linea che non guardi da questo tempo finiscono nell’archivio, come sul Mac.
+3c3065a0f8	Stop Sharing?	Arrêter le partage ?	¿Dejar de compartir?	Interrompere la condivisione?
+2da600bf94	Version	Version	Versión	Versione
+9cd27ee349	Version %lld	Version %lld	Versión %lld	Versione %lld
+f39d1c8639	Add to Favorites	Ajouter aux favoris	Añadir a favoritos	Aggiungi ai preferiti
+edc5a9f0dc	Too many bookmarks for one share.	Trop de signets pour un seul partage.	Demasiados marcadores para compartir.	Troppi segnalibri per una condivisione.
+34fd5f9e36	Go to Saved Address	Aller à l’adresse enregistrée	Ir a la dirección guardada	Vai all’indirizzo salvato
+03982570f0	Changes appear for everyone who added the link. Only this device can change the share. Anyone who already has it keeps it when you stop sharing.	Les modifications apparaissent chez toutes les personnes qui ont ajouté le lien. Seul cet appareil peut modifier le partage. Ceux qui l’ont déjà le conservent si vous arrêtez le partage.	Los cambios aparecen para todos los que han añadido el enlace. Solo este dispositivo puede modificar el contenido compartido. Quien ya lo tenga lo conservará cuando dejes de compartir.	Le modifiche appaiono a tutti quelli che hanno aggiunto il link. Solo questo dispositivo può modificare la condivisione. Chi ce l’ha già la conserva quando interrompi la condivisione.
+425863cbb1	“%@” added	« %@ » ajouté	«%@» añadido	“%@” aggiunto
+897fe4eff7	“%@” added, following changes	« %@ » ajouté, suit les modifications	«%@» añadido; sigue los cambios	“%@” aggiunto, segue le modifiche
+d18473360d	“%@”: %@	« %@ » : %@	«%@»: %@	“%@”: %@

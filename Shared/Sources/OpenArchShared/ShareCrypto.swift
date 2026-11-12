@@ -28,7 +28,8 @@ public enum ShareError: Error, Equatable, LocalizedError, Sendable {
         case .outdated: String(localized: "Der Server lieferte einen älteren Stand als bekannt.", bundle: .main)
         case .tooLarge: String(localized: "Zu viele Lesezeichen für eine Freigabe.", bundle: .main)
         case .unreachable: String(localized: "Der Teilen-Server ist nicht erreichbar.", bundle: .main)
-        case .server(let status): String(localized: "Der Teilen-Server antwortete mit Fehler \(status).", bundle: .main)
+        case .server(let status):
+            String(format: Bundle.main.localizedString(forKey: "Der Teilen-Server antwortete mit Fehler %lld.", value: nil, table: nil), status)
         }
     }
 }
