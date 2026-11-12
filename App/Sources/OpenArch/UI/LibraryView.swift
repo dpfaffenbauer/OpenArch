@@ -151,36 +151,220 @@ final class LibraryFiles {
 }
 
 /// OpenArch's own history (History.sqlite), replacing chrome://history.
+/// Checkboxes select pages for bulk actions; ⇧-click extends the
+/// selection, ⌘-click opens in a new tab.
 private struct HistorySection: View {
     let browser: BrowserWindowController
     let query: String
     let theme: SpaceTheme
+    @State private var selection: Set<String> = []
+    @State private var anchor: String?
+    /// Bumped after deleting, so the list reads the index again.
+    @State private var version = 0
 
     var body: some View {
+        let _ = version
         let entries = query.isEmpty ? browser.history.recent(limit: 200) : browser.history.search(query, limit: 200)
-        ScrollView {
-            LazyVStack(spacing: 2) {
-                ForEach(entries, id: \.url) { entry in
-                    LibraryEntrance {
-                        Button {
-                            browser.open(entry.url, inNewTab: false)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.title.isEmpty ? entry.url : entry.title).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                                Text(entry.url).font(.system(size: 11)).lineLimit(1).opacity(0.65)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.vertical, 4)
-                        .help(entry.url)
+        let visible = Set(entries.map(\.url))
+        let ordered = entries.filter { selection.contains($0.url) }
+        VStack(spacing: 6) {
+            if !entries.isEmpty {
+                toolbar(entries: entries, visible: visible, ordered: ordered)
+            }
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(entries, id: \.url) { entry in
+                        HistoryRow(browser: browser, entry: entry, theme: theme,
+                                   isSelected: selection.contains(entry.url),
+                                   onToggle: { toggle(entry.url, in: entries) },
+                                   onExtend: { extend(to: entry.url, in: entries) },
+                                   onDeleted: { deleted($0) })
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .overlay { EmptyHint(isEmpty: entries.isEmpty, text: query.isEmpty ? "Noch kein Verlauf" : "Keine Treffer") }
+        }
+    }
+
+    private func toolbar(entries: [History.Entry], visible: Set<String>, ordered: [History.Entry]) -> some View {
+        let allSelected = ordered.count == entries.count
+        return HStack(spacing: 2) {
+            IconButton(symbol: allSelected ? "checkmark.square.fill" : "square",
+                       help: "Alle auswählen", size: 14) {
+                if allSelected {
+                    selection.subtract(visible)
+                    anchor = nil
+                } else {
+                    selection.formUnion(visible)
+                    anchor = entries.first?.url
+                }
+            }
+            if ordered.isEmpty {
+                Spacer(minLength: 0)
+                Button(query.isEmpty ? L("Verlauf löschen…") : L("Treffer löschen…")) {
+                    confirmClear()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 11, weight: .medium))
+                .opacity(0.6)
+            } else {
+                Text(Localization.count(ordered.count, one: "1 ausgewählt", other: "%lld ausgewählt"))
+                    .font(.system(size: 11, weight: .medium))
+                    .opacity(0.7)
+                Spacer(minLength: 0)
+                IconButton(symbol: "arrow.up.right.square", help: "In neuem Tab öffnen") {
+                    openSelected(ordered)
+                }
+                IconButton(symbol: "link", help: "URL kopieren", size: 11) {
+                    copy(ordered.map(\.url).joined(separator: "\n"))
+                }
+                IconButton(symbol: "trash", help: "Löschen") {
+                    deleteSelected(ordered)
+                }
+            }
+        }
+    }
+
+    private func toggle(_ url: String, in entries: [History.Entry]) {
+        if NSEvent.modifierFlags.contains(.shift) {
+            extend(to: url, in: entries)
+        } else if selection.contains(url) {
+            selection.remove(url)
+            if anchor == url { anchor = nil }
+        } else {
+            selection.insert(url)
+            anchor = url
+        }
+    }
+
+    private func extend(to url: String, in entries: [History.Entry]) {
+        guard let anchor, let a = entries.firstIndex(where: { $0.url == anchor }),
+              let b = entries.firstIndex(where: { $0.url == url }) else {
+            selection.insert(url)
+            anchor = url
+            return
+        }
+        selection.formUnion(entries[min(a, b)...max(a, b)].map(\.url))
+    }
+
+    private func openSelected(_ ordered: [History.Entry]) {
+        let urls = ordered.map(\.url)
+        guard let first = urls.first else { return }
+        // Inserted at the top one by one, so the first stays first.
+        for url in urls.reversed() {
+            browser.openInNewTab(url, select: url == first)
+        }
+    }
+
+    private func deleteSelected(_ ordered: [History.Entry]) {
+        deleted(ordered.map(\.url))
+    }
+
+    /// After the model deleted |urls|: prunes the selection and rereads.
+    private func deleted(_ urls: [String]) {
+        browser.history.remove(urls: urls)
+        selection.subtract(urls)
+        if let anchor, !selection.contains(anchor) { self.anchor = nil }
+        version += 1
+    }
+
+    /// Clears everything (or every match while filtering), after asking.
+    private func confirmClear() {
+        let filtered = !query.isEmpty
+        let urls = filtered ? browser.history.search(query, limit: 100_000).map(\.url)
+            : browser.history.recent(limit: 100_000).map(\.url)
+        guard !urls.isEmpty else { return }
+        let alert = NSAlert()
+        alert.messageText = L(filtered ? "Treffer löschen?" : "Verlauf löschen?")
+        alert.informativeText = L("%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden.", urls.count)
+        alert.addButton(withTitle: L("Löschen"))
+        alert.addButton(withTitle: L("Abbrechen"))
+        alert.buttons.first?.hasDestructiveAction = true
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        if filtered {
+            browser.history.remove(urls: urls)
+        } else {
+            browser.history.clear()
+        }
+        selection.removeAll()
+        anchor = nil
+        version += 1
+    }
+}
+
+/// One history page: a checkbox beside its icon, title, address and
+/// visit. The checkbox is a sibling of the tappable row, so checking
+/// never opens the page along with it.
+private struct HistoryRow: View {
+    let browser: BrowserWindowController
+    let entry: History.Entry
+    let theme: SpaceTheme
+    let isSelected: Bool
+    let onToggle: () -> Void
+    let onExtend: () -> Void
+    let onDeleted: ([String]) -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        LibraryEntrance {
+            HStack(spacing: 2) {
+                Button(action: onToggle) {
+                    Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 14))
+                        .frame(width: 26, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(isSelected ? theme.foreground : theme.secondary)
+                .opacity(isSelected || hovering ? 1 : 0.45)
+                .accessibilityLabel(L("%@ auswählen", entry.title.isEmpty ? entry.url : entry.title))
+                HStack(spacing: 10) {
+                    ArchivedFavicon(url: entry.url)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(entry.title.isEmpty ? entry.url : entry.title)
+                            .font(.system(size: 13)).lineLimit(1)
+                        Text("\(CommandBarModel.shortURL(entry.url)) · \(entry.lastVisit.formatted(.relative(presentation: .named)))")
+                            .font(.system(size: 11)).opacity(0.6).lineLimit(1)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    let modifiers = NSEvent.modifierFlags
+                    if modifiers.contains(.shift) {
+                        onExtend()
+                    } else if modifiers.contains(.command) {
+                        browser.openInNewTab(entry.url, select: false)
+                    } else {
+                        browser.open(entry.url, inNewTab: false)
                     }
                 }
             }
         }
-        .scrollIndicators(.never)
-        .overlay { EmptyHint(isEmpty: entries.isEmpty, text: query.isEmpty ? "Noch kein Verlauf" : "Keine Treffer") }
+        .padding(.trailing, 8)
+        .frame(minHeight: 44)
+        .background(RoundedRectangle(cornerRadius: 10).fill(isSelected ? theme.selection : (hovering ? theme.hover : .clear)))
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .contextMenu {
+            Button("Öffnen") { browser.open(entry.url, inNewTab: false) }
+            Button("In neuem Tab öffnen") { browser.openInNewTab(entry.url) }
+            Button("URL kopieren") { copy(entry.url) }
+            Divider()
+            Button("Löschen") { deleteThis() }
+            Button("Alle von dieser Website löschen") { deleteSite() }
+        }
+        .help(entry.url)
+    }
+
+    private func deleteThis() {
+        onDeleted([entry.url])
+    }
+
+    private func deleteSite() {
+        guard let host = URL(string: entry.url)?.host() else { return }
+        onDeleted(browser.history.urls(onHost: host))
     }
 }
 

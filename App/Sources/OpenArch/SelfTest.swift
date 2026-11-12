@@ -1605,9 +1605,8 @@ final class SelfTest {
         }
     }
 
-    /// While a page loads, a line just above it shows how far it has got,
-    /// sidebar shown or hidden; the sidebar's address field shows it
-    /// instead when it is switched on.
+    /// While a page loads, its tab in the sidebar fills up to show how far
+    /// it has got; with the sidebar hidden, a line just above the page does.
     private func loadingBar() {
         guard let tab = browser.state.activeItem, let window = browser.window else {
             return expect(false, "a tab for the loading bar")
@@ -1625,18 +1624,18 @@ final class SelfTest {
         tab.loadingProgress = 0.45
         let sidebar = browser.state.sidebarVisible
         showSidebar(true)
-        expect(browser.loadingLineFrame == nil, "the sidebar address shows the current page's loading")
+        expect(browser.loadingLineFrame == nil, "the tab in the sidebar shows the current page's loading")
         showSidebar(false)
         expect(lineAbovePage(), "and with the sidebar hidden too (\(browser.loadingLineFrame.map(NSStringFromRect) ?? "none"))")
         showSidebar(true)
-        expect(browser.loadingLineFrame == nil, "with the address field in the sidebar, the field shows it instead of the line")
+        expect(browser.loadingLineFrame == nil, "with the sidebar shown, the tab shows it instead of the line")
         showSidebar(sidebar)
         tab.isLoading = false
         tab.loadingProgress = 1
     }
 
     /// A page at 45 %: the line above it, then with the sidebar hidden, then
-    /// the address field, each held to be photographed from outside
+    /// the tab row, each held to be photographed from outside
     /// (`--selftest --loading-bar-shots`; prints "STEP shot <name>").
     private func loadingBarShots() {
         populate()
@@ -1650,7 +1649,7 @@ final class SelfTest {
             after(4) {
                 self.browser.toggleSidebar()
             }
-            after(5) { Swift.print("[selftest] STEP shot loading-field") }
+            after(5) { Swift.print("[selftest] STEP shot loading-tab") }
             after(6) {
                 tab.isLoading = false
                 Swift.print("[selftest] DONE loading bar shots")

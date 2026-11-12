@@ -168,6 +168,26 @@ final class History {
         fetch("SELECT url, title, visit_count, last_visit FROM visits WHERE url = ?1", [url]).first
     }
 
+    /// Deletes the given pages from the index. Deleting nothing is fine.
+    func remove(urls: [String]) {
+        guard !urls.isEmpty else { return }
+        let placeholders = urls.map { _ in "?" }.joined(separator: ",")
+        run("DELETE FROM visits WHERE url IN (\(placeholders))", urls)
+    }
+
+    /// Every page whose host is |host| (case-insensitive), newest first.
+    func urls(onHost host: String) -> [String] {
+        let wanted = host.lowercased()
+        return fetch("SELECT url, title, visit_count, last_visit FROM visits ORDER BY last_visit DESC", [])
+            .filter { URL(string: $0.url)?.host()?.lowercased() == wanted }
+            .map(\.url)
+    }
+
+    /// Deletes everything in the index.
+    func clear() {
+        exec("DELETE FROM visits")
+    }
+
     static func isRecordable(_ url: String) -> Bool {
         url.hasPrefix("http://") || url.hasPrefix("https://")
     }

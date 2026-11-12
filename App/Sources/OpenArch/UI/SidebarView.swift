@@ -713,6 +713,28 @@ struct IconButton: View {
 
 // MARK: - Current website
 
+/// The address text while its page loads: a band of light sweeping over it.
+private struct LoadingShimmer: ViewModifier {
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if active && !reduceMotion {
+                TimelineView(.animation) { timeline in
+                    let phase = (timeline.date.timeIntervalSinceReferenceDate / 1.6).truncatingRemainder(dividingBy: 1) * 1.8 - 0.4
+                    LinearGradient(stops: [.init(color: .clear, location: 0),
+                                           .init(color: .white.opacity(0.65), location: 0.5),
+                                           .init(color: .clear, location: 1)],
+                                   startPoint: UnitPoint(x: phase - 0.3, y: 0.5),
+                                   endPoint: UnitPoint(x: phase + 0.3, y: 0.5))
+                }
+                .mask(content)
+            }
+        }
+    }
+}
+
 struct AddressPill: View {
     let browser: BrowserWindowController
     let theme: SpaceTheme
@@ -742,6 +764,7 @@ struct AddressPill: View {
                         .font(.system(size: 12.5, weight: .medium))
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .modifier(LoadingShimmer(active: url != nil && active?.isLoading == true))
                     Spacer(minLength: 0)
                 }
                 .frame(maxHeight: .infinity)
@@ -768,12 +791,7 @@ struct AddressPill: View {
         }
         .padding(.horizontal, 10)
         .frame(height: 32)
-        .background {
-            // Fills up while the page loads, like Arc's.
-            LoadingProgressBar(item: url == nil ? nil : active, color: theme.foreground.opacity(theme.isDark ? 0.16 : 0.09))
-                .background(theme.tile)
-                .clipShape(RoundedRectangle(cornerRadius: 9))
-        }
+        .background(RoundedRectangle(cornerRadius: 9).fill(theme.tile))
         .shadow(color: .black.opacity(theme.isDark ? 0.4 : 0.18), radius: 6, y: 2)
         .disabled(url == nil)
         .opacity(url == nil ? 0.45 : 1)
@@ -1222,8 +1240,6 @@ private struct TabRow: View {
                 } else if item.role == .pinned {
                     SmallButton(symbol: "xmark", help: "Lösen: zu den Tabs unter dem Strich") { browser.togglePin(item) }
                 }
-            } else if item.isLoading {
-                ProgressView().controlSize(.mini).opacity(0.6)
             } else if let unread = item.unreadCount {
                 UnreadDot(count: unread, theme: theme).padding(.trailing, 6)
             } else if item.isUnread {
@@ -1233,7 +1249,7 @@ private struct TabRow: View {
             }
         }
         .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone,
-                  isSelected: browser.isSelected(item))
+                  isSelected: browser.isSelected(item), loadingItem: item)
         .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0 }
         .onTapGesture {
             browser.tabPreview.hide()
@@ -1879,7 +1895,7 @@ enum DropZone {
 
 extension View {
     func rowStyle(depth: Int, isActive: Bool, hovering: Bool, theme: SpaceTheme, dropZone: DropZone?,
-                  horizontalPadding: CGFloat = 10, isSelected: Bool = false) -> some View {
+                  horizontalPadding: CGFloat = 10, isSelected: Bool = false, loadingItem: Item? = nil) -> some View {
         self
             .padding(.leading, horizontalPadding + CGFloat(depth) * 16)
             .padding(.trailing, horizontalPadding - 4)
@@ -1889,7 +1905,15 @@ extension View {
                     .fill(isActive ? theme.selection
                           : (isSelected ? theme.tileHover
                              : (hovering || dropZone == .into || dropZone == .split ? theme.hover : .clear)))
-                    .shadow(color: .black.opacity(isActive && !theme.isDark ? 0.08 : 0), radius: 1, y: 0.5))
+                    .shadow(color: .black.opacity(isActive && !theme.isDark ? 0.08 : 0), radius: 1, y: 0.5)
+                    .overlay {
+                        // The tab's own page loading: a band filling from the
+                        // left, like Arc's address field did.
+                        if let loadingItem {
+                            LoadingProgressBar(item: loadingItem, color: theme.foreground.opacity(theme.isDark ? 0.16 : 0.09))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                    })
             // Rows selected with ⇧- or ⌘⇧-click.
             .overlay {
                 if isSelected {

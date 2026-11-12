@@ -439,7 +439,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     /// A line just above the page in front shows how far it has loaded. Its
     /// view is the whole strip above the page (SwiftUI draws nothing in one
-    /// only 2 points high); it draws itself when no address field shows it.
+    /// only 2 points high); it draws itself when no tab in the sidebar shows it.
     private func layoutLoadingLine(frames: [NSRect]) {
         let index = state.activeItem.flatMap { active in visibleTabs.firstIndex { $0 === active } }
         guard let index, frames.indices.contains(index) else {
@@ -450,9 +450,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         loadingLine.frame = NSRect(x: frame.minX + 10, y: frame.maxY, width: max(0, frame.width - 20), height: Self.contentInset)
     }
 
-    /// Whether the sidebar's address field shows the page's loading; the line
+    /// Whether a tab in the sidebar shows the page's loading; the line
     /// above the page does otherwise.
-    var addressFieldShowsLoading: Bool {
+    var sidebarShowsLoading: Bool {
         state.sidebarVisible && !state.libraryVisible && !state.agentsVisible
     }
 
@@ -611,7 +611,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Where the loading line above the page is, in window coordinates, if
     /// it is shown (self-test).
     var loadingLineFrame: NSRect? {
-        addressFieldShowsLoading || loadingLine.frame.isEmpty ? nil : loadingLine.frame
+        sidebarShowsLoading || loadingLine.frame.isEmpty ? nil : loadingLine.frame
     }
 
     /// Where each visible pane should be, in screen coordinates (self-test).

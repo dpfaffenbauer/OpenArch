@@ -12,6 +12,7 @@
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nLa cartella rimane finché la chat è in corso: Claude Code continua la sessione solo lì.";
 "%@ angeheftet" = "%@ fissata/e";
 "%@ angeheftet (in %@)" = "%@ fissata/e (in %@)";
+"%@ auswählen" = "Seleziona %@";
 "%@ beenden" = "Esci da %@";
 "%@ beenden?" = "Uscire da %@?";
 "%@ durchsuchen" = "Cerca in %@";
@@ -53,6 +54,7 @@
 "%lld Profile" = "%lld profili";
 "%lld Profilen" = "%lld profili";
 "%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet" = "%lld pagine della cronologia che la barra dei comandi ora trova";
+"%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden." = "%lld pagine verranno rimosse dalla cronologia. Questa azione non può essere annullata.";
 "%lld Spaces" = "%lld Space";
 "%lld Std." = "%lld h";
 "%lld Tabs" = "%lld schede";
@@ -60,6 +62,7 @@
 "%lld Zeilen ausgewählt" = "%lld righe selezionate";
 "%lld Zeilen ohne Adresse oder Passwort werden ausgelassen." = "%lld righe senza indirizzo o password vengono omesse.";
 "%lld angeheftete Tabs" = "%lld schede fissate";
+"%lld ausgewählt" = "%lld selezionati";
 "%lld doppelte Einträge werden ausgelassen." = "%lld voci duplicate vengono omesse.";
 "%lld neue Spaces, %lld neue Profile" = "%lld nuovi Space, %lld nuovi profili";
 "%lld offene Tabs" = "%lld schede aperte";
@@ -84,6 +87,7 @@
 "1 Tab archiviert" = "1 scheda archiviata";
 "1 Zeile ausgewählt" = "1 riga selezionata";
 "1 angehefteter Tab" = "1 scheda fissata";
+"1 ausgewählt" = "1 selezionato";
 "1 offener Tab" = "1 scheda aperta";
 "1 ungelesen" = "1 non letto";
 "Abbrechen" = "Annulla";
@@ -111,8 +115,10 @@
 "Aktuelle URL speichern" = "Salva l'URL corrente";
 "Alle Downloads" = "Tutti i download";
 "Alle Tabs unter dem Strich archivieren" = "Archivia tutte le schede sotto la linea";
+"Alle auswählen" = "Seleziona tutto";
 "Alle einblenden" = "Mostra tutte";
 "Alle nach vorne bringen" = "Porta tutto in primo piano";
+"Alle von dieser Website löschen" = "Elimina tutto da questo sito web";
 "Alle zurücksetzen" = "Reimposta tutto";
 "Alle öffnen" = "Apri tutto";
 "Alles auswählen" = "Seleziona tutto";
@@ -855,6 +861,8 @@
 "Tippt" = "Digita";
 "Ton" = "Audio";
 "Ton einschalten" = "Attiva l'audio";
+"Treffer löschen?" = "Eliminare i risultati?";
+"Treffer löschen…" = "Elimina i risultati…";
 "Tägliche Sicherung" = "Backup giornaliero";
 "Tönung" = "Tinta";
 "URL als Markdown kopieren" = "Copia URL come Markdown";
@@ -878,6 +886,8 @@
 "Verkleinern" = "Riduci";
 "Verlauf" = "Cronologia";
 "Verlauf anzeigen" = "Mostra cronologia";
+"Verlauf löschen?" = "Cancellare la cronologia?";
+"Verlauf löschen…" = "Cancella la cronologia…";
 "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich." = "Se lasci una chiamata (fotocamera o microfono in uso), resta sospesa in basso a destra: Google Meet con la sua finestra, gli altri servizi con i video e i pulsanti per microfono, fotocamera e riaggancio. Quando torni alla scheda si chiude.";
 "Version %@" = "Versione %@";
 "Version %@ · Chromium %@" = "Versione %@ · Chromium %@";

@@ -12,6 +12,7 @@
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nLa carpeta se mantiene mientras el chat esté activo: Claude Code solo puede continuar la sesión allí.";
 "%@ angeheftet" = "%@ fijada(s)";
 "%@ angeheftet (in %@)" = "%@ fijada(s) (en %@)";
+"%@ auswählen" = "Seleccionar %@";
 "%@ beenden" = "Salir de %@";
 "%@ beenden?" = "¿Salir de %@?";
 "%@ durchsuchen" = "Buscar %@";
@@ -53,6 +54,7 @@
 "%lld Profile" = "%lld perfiles";
 "%lld Profilen" = "%lld perfiles";
 "%lld Seiten aus dem Verlauf, die die Befehlsleiste jetzt findet" = "%lld páginas del historial que la barra de comandos ya puede encontrar";
+"%lld Seiten werden aus dem Verlauf entfernt. Dies kann nicht rückgängig gemacht werden." = "Se eliminarán %lld páginas del historial. Esta acción no se puede deshacer.";
 "%lld Spaces" = "%lld Spaces";
 "%lld Std." = "%lld h";
 "%lld Tabs" = "%lld pestañas";
@@ -60,6 +62,7 @@
 "%lld Zeilen ausgewählt" = "%lld filas seleccionadas";
 "%lld Zeilen ohne Adresse oder Passwort werden ausgelassen." = "Se omitirán %lld filas sin dirección o contraseña.";
 "%lld angeheftete Tabs" = "%lld pestañas fijadas";
+"%lld ausgewählt" = "%lld seleccionados";
 "%lld doppelte Einträge werden ausgelassen." = "Se omitirán %lld entradas duplicadas.";
 "%lld neue Spaces, %lld neue Profile" = "%lld Spaces nuevos, %lld perfiles nuevos";
 "%lld offene Tabs" = "%lld pestañas abiertas";
@@ -84,6 +87,7 @@
 "1 Tab archiviert" = "1 pestaña archivada";
 "1 Zeile ausgewählt" = "1 fila seleccionada";
 "1 angehefteter Tab" = "1 pestaña fijada";
+"1 ausgewählt" = "1 seleccionado";
 "1 offener Tab" = "1 pestaña abierta";
 "1 ungelesen" = "1 sin leer";
 "Abbrechen" = "Cancelar";
@@ -111,8 +115,10 @@
 "Aktuelle URL speichern" = "Guardar URL actual";
 "Alle Downloads" = "Todas las descargas";
 "Alle Tabs unter dem Strich archivieren" = "Archivar todas las pestañas debajo de la línea";
+"Alle auswählen" = "Seleccionar todo";
 "Alle einblenden" = "Mostrar todo";
 "Alle nach vorne bringen" = "Traer todo al frente";
+"Alle von dieser Website löschen" = "Eliminar todo de este sitio web";
 "Alle zurücksetzen" = "Restablecer todo";
 "Alle öffnen" = "Abrir todo";
 "Alles auswählen" = "Seleccionar todo";
@@ -855,6 +861,8 @@
 "Tippt" = "Escribe";
 "Ton" = "Sonido";
 "Ton einschalten" = "Activar sonido";
+"Treffer löschen?" = "¿Eliminar los resultados?";
+"Treffer löschen…" = "Eliminar los resultados…";
 "Tägliche Sicherung" = "Copia de seguridad diaria";
 "Tönung" = "Tinte";
 "URL als Markdown kopieren" = "Copiar URL como Markdown";
@@ -878,6 +886,8 @@
 "Verkleinern" = "Reducir";
 "Verlauf" = "Historial";
 "Verlauf anzeigen" = "Mostrar historial";
+"Verlauf löschen?" = "¿Borrar el historial?";
+"Verlauf löschen…" = "Borrar el historial…";
 "Verlässt du einen Anruf (Kamera oder Mikrofon in Benutzung), schwebt er unten rechts weiter: Google Meet mit seinem eigenen Fenster, andere Dienste mit den Videos und Knöpfen für Mikrofon, Kamera und Auflegen. Zurück im Tab schließt es sich." = "Si sales de una llamada (con la cámara o el micrófono en uso), sigue flotando abajo a la derecha: Google Meet con su propia ventana y otros servicios con los vídeos y los botones de micrófono, cámara y colgar. Al volver a la pestaña, se cierra.";
 "Version %@" = "Versión %@";
 "Version %@ · Chromium %@" = "Versión %@ · Chromium %@";
