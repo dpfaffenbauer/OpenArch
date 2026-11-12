@@ -8,3 +8,4 @@ xcuserdata/
 /relay/.wrangler/
 /website/.wrangler/
 /relay/node_modules/
+__pycache__/
