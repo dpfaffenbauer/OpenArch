@@ -17,11 +17,16 @@ extension BrowserWindowController {
             }
             if let id = UUID(uuidString: string), let item = self.ownItem(id: id) {
                 self.move(item, to: target)
-            } else if let id = UUID(uuidString: string), let (item, owner) = self.separateWindowItem(id: id) {
-                // Back from a separate window: into this space, and shown here.
-                owner.moveToSpace(item, self.state.space)
-                self.move(item, to: target)
-                self.select(item)
+            } else if let id = UUID(uuidString: string), let (item, owner) = self.foreignItem(id: id) {
+                if self.isSeparate {
+                    // From the main window or another separate window: in here.
+                    self.takeIn(item, from: owner, at: target)
+                } else {
+                    // Back from a separate window: into this space, and shown here.
+                    owner.moveToSpace(item, self.state.space)
+                    self.move(item, to: target)
+                    self.select(item)
+                }
             } else if let url = Self.droppedLink(string) {
                 let item = Item.tab(url: url)
                 self.state.space.today.insert(item, at: 0)
@@ -45,7 +50,7 @@ extension BrowserWindowController {
         }
         if let id = UUID(uuidString: string), let item = ownItem(id: id) {
             moveToSpace(item, space)
-        } else if let id = UUID(uuidString: string), let (item, owner) = separateWindowItem(id: id) {
+        } else if !isStandalone, let id = UUID(uuidString: string), let (item, owner) = foreignItem(id: id) {
             owner.moveToSpace(item, space)
             select(item)
         } else if let url = Self.droppedLink(string) {
@@ -60,13 +65,70 @@ extension BrowserWindowController {
         isStandalone ? state.space.today.find(id: id) : library.item(id: id)
     }
 
-    /// A tab dragged out of a separate window, which a library window takes.
-    private func separateWindowItem(id: UUID) -> (Item, BrowserWindowController)? {
-        guard !isStandalone, let app = NSApp.delegate as? AppDelegate else { return nil }
-        for browser in app.browsers where browser.isSeparate {
+    /// A tab dragged in from another window, and the window it comes from:
+    /// a library window takes a separate window's tabs, a separate window
+    /// also the library's and those of other separate windows. Private
+    /// windows take none.
+    func foreignItem(id: UUID) -> (Item, BrowserWindowController)? {
+        guard !isPrivate, let app = NSApp.delegate as? AppDelegate else { return nil }
+        for browser in app.browsers where browser !== self && browser.isSeparate {
             if let item = browser.state.space.today.find(id: id) { return (item, browser) }
         }
-        return nil
+        guard isSeparate, let item = library.item(id: id) else { return nil }
+        // The library window showing it, else the main window.
+        if let owner = item.pane?.delegate as? BrowserWindowController, !owner.isStandalone {
+            return (item, owner)
+        }
+        return app.mainBrowser.map { (item, $0) }
+    }
+
+    /// A separate window takes |item| from |owner| and shows it, at |target|
+    /// in its sidebar (else on top). A tab under the line moves here with its
+    /// page, like dragging it out of the sidebar; a pinned tab or favorite
+    /// stays and opens a copy here.
+    func takeIn(_ item: Item, from owner: BrowserWindowController, at target: DropTarget? = nil) {
+        guard isSeparate, let homeSpace, item.kind == .tab else { return }
+        if item.role == .pinned || item.role == .favorites {
+            let copy = openInNewTab(item.currentURL, select: false)
+            if let target { move(copy, to: target) }
+            select(copy)
+            return
+        }
+        let wasActive = owner.state.activeItem === item
+        let next = wasActive ? owner.neighbor(forClosing: item) : nil
+        if library.profile(for: item, in: owner.state.space).id != homeSpace.profileID {
+            // Another profile: the page loads again, with this one's cookies.
+            item.savedURL = item.currentURL
+            unload(item)
+        }
+        if let target {
+            // At the end first, so the place it moves to stays where it was.
+            state.space.today.insert(item)
+            move(item, to: target)
+        } else {
+            state.space.today.insert(item, at: 0)
+        }
+        // Its page moves over as it is (see claim).
+        select(item)
+        if wasActive {
+            if let next { owner.select(next) } else { owner.showNothing() }
+        } else {
+            owner.layoutContent()
+        }
+        library.setNeedsSave()
+    }
+
+    /// A tab dropped on another OpenArch window's page rather than its
+    /// sidebar (the page does not take tabs itself): it moves there, as if
+    /// dropped on top of that window's tabs.
+    func takeDroppedOnPage(_ item: Item) {
+        guard let (item, owner) = foreignItem(id: item.id) else { return }
+        if isSeparate {
+            takeIn(item, from: owner)
+        } else {
+            owner.moveToSpace(item, state.space)
+            select(item)
+        }
     }
 
     /// A dropped string worth a tab: a web or file address, or one without

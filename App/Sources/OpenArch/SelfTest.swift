@@ -787,6 +787,20 @@ final class SelfTest {
                             && second.pane?.delegate === self.browser && separate?.state.activeItem === tab,
                             "a tab moved back to its space shows in the main window")
             }
+            // Another tab dragged from the main window onto the window's
+            // tabs, and one dropped on its page: both move in with their page.
+            let third = self.browser.openInNewTab("https://example.com/drag-in")
+            let fourth = self.browser.openInNewTab("https://example.com/drag-onto-page")
+            if let separate, let (item, owner) = separate.foreignItem(id: third.id) {
+                separate.takeIn(item, from: owner, at: .before(tab))
+                separate.takeDroppedOnPage(fourth)
+            }
+            self.expect(separate?.state.space.today.items.map(\.id) == [fourth, third, tab].map(\.id)
+                        && separate?.state.activeItem === fourth && fourth.pane?.delegate === separate
+                        && third.pane?.delegate === separate
+                        && self.library.space(containing: third) == nil && self.library.space(containing: fourth) == nil
+                        && self.browser.state.activeItem !== third && self.browser.state.activeItem !== fourth,
+                        "a tab dragged from the main window onto the window's tabs or page moves in")
             let url = tab.currentURL
             separate?.window?.performClose(nil)
             self.expect(app.browsers.count == 1 && tab.pane == nil && self.library.archive.first?.url == url
