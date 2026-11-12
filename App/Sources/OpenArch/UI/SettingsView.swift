@@ -1161,7 +1161,7 @@ private struct BackupSection: View {
 
     var body: some View {
         Section(title: "Sicherung",
-                footer: "Jeden Tag ein Ordner mit Library.json (Spaces, Tabs, Link-Regeln), Boosts und Einstellungen; die letzten \(Backups.keep) bleiben. Logins, Passwörter und Verlauf sind nicht dabei.") {
+                footer: L("Jeden Tag ein Ordner mit Library.json (Spaces, Tabs, Link-Regeln), Boosts und Einstellungen; die letzten %lld bleiben. Logins, Passwörter und Verlauf sind nicht dabei.", Backups.keep)) {
             Row(symbol: "clock.arrow.2.circlepath", color: .teal, title: "Tägliche Sicherung",
                 detail: error ?? lastBackup.map { L("Zuletzt: %@", $0.formatted(date: .abbreviated, time: .shortened)) }
                     ?? "Noch keine Sicherung.") {

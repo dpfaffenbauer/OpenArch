@@ -72,15 +72,21 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b > /dev/null
           xcrun simctl install "$udid" build/ios/Build/Products/Debug-iphonesimulator/OpenArch.app
+          echo "Booted and installed after ${SECONDS}s"
           # relay.js on a plain server: wrangler dev stalled requests here now and then.
           node relay/test/serve.mjs 8787 > relay.log 2>&1 &
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:8787/ && break; sleep 1; done
           curl -sf -o /dev/null http://localhost:8787/ || { tail -30 relay.log; exit 1; }
-          # The app quits when it is done; four minutes at most.
+          # The app quits when it is done; eight minutes at most. A cold
+          # simulator on a busy runner needed more than four now and then.
           xcrun simctl launch --console-pty "$udid" at.pfaffenbauer.openarch -selftest -relay http://localhost:8787 > selftest.log 2>&1 &
           pid=$!
-          for i in $(seq 1 240); do kill -0 $pid 2>/dev/null || break; sleep 1; done
-          kill $pid 2>/dev/null || true
+          started=$SECONDS
+          for i in $(seq 1 480); do kill -0 $pid 2>/dev/null || break; sleep 1; done
+          if kill $pid 2>/dev/null; then
+            echo "::warning::The self-test did not finish in 480s and was stopped"
+          fi
+          echo "Self-test ran $((SECONDS - started))s"
           grep -E "\[selftest\]|\[share relay\]" selftest.log || tail -50 selftest.log
           mkdir -p screenshots
           cp -R "$(xcrun simctl get_app_container "$udid" at.pfaffenbauer.openarch data)/Documents/selftest/." screenshots/ || true

@@ -3,25 +3,30 @@
 
 Source strings are the German UI text, so the existing SwiftUI literals keep
 working as localization keys. `App/Localization/translations.tsv` holds the
-translations; this script writes App/Resources/<code>.lproj/Localizable.strings
-and InfoPlist.strings.
+translations for the Mac and the iPhone app alike (a German text has one
+translation).
+
+Mac: this script extracts the keys from the sources and writes
+App/Resources/<code>.lproj/Localizable.strings and InfoPlist.strings.
+iPhone and iPad: Xcode keeps the keys in iOS/OpenArch/Localizable.xcstrings
+(it adds new ones when it builds); this script fills in the languages there
+and in InfoPlist.xcstrings. English already in the catalog stays as it is.
 
 Usage:
   scripts/localize.py --list           # all keys, with hashes
   scripts/localize.py --missing        # keys without translations
-  scripts/localize.py --write          # write the .strings files
+  scripts/localize.py --write          # write the .strings files and catalogs
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import pathlib
 import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SOURCES = ROOT / "App" / "Sources" / "OpenArch"
-RESOURCES = ROOT / "App" / "Resources"
 LOCALIZATION = ROOT / "App" / "Localization"
 TRANSLATIONS = LOCALIZATION / "translations.tsv"
 LANGS = ["en", "de", "fr", "es", "it"]
@@ -46,6 +51,7 @@ SKIP = re.compile(
       |\#[0-9A-Fa-f]{6}               # colors
       |[^A-Za-zÄÖÜäöüß]*              # no letters: separators, numbers
       |[a-z]+(?:[A-Z][a-z0-9]*)+$     # camelCase identifiers
+      |[A-Z]{2,}[a-z]+(?:[A-Z][a-z]*)+  # prefixed identifiers (CFBundleName)
     )$""",
     re.VERBOSE,
 )
@@ -175,6 +181,8 @@ def is_ui_call(text: str, start: int) -> bool:
         return True
     if re.search(r"\.(?:help|navigationTitle|alert|confirmationDialog|accessibilityLabel)\s*\(\s*$", before):
         return True
+    if re.search(r"(?:\bLabeledContent|\bNavigationLink|\bContentUnavailableView)\s*\(\s*$|\bString\(\s*localized:\s*$|\blocalizedString\(\s*forKey:\s*$", before):
+        return True
     # NSMenuItem(title: "…", NSMenu(title: "…", alert.messageText = "…",
     if re.search(r"(?:NSMenuItem|NSMenu)\(\s*title:\s*$|(?:messageText|informativeText|placeholderString|toolTip)\s*=\s*$", before):
         return True
@@ -212,16 +220,69 @@ def interesting(path: pathlib.Path, value: str, interpolated: bool, ui: bool) ->
     return False
 
 
-def extract():
+# The shared package's messages (ShareCrypto) are looked up in the app's
+# main bundle, so the Mac's tables carry them too.
+SOURCES = (ROOT / "App" / "Sources" / "OpenArch", ROOT / "Shared" / "Sources")
+RESOURCES = ROOT / "App" / "Resources"
+IOS = ROOT / "iOS" / "OpenArch"
+TRANSLATED = ["en", "fr", "es", "it"]
+
+
+def swift_files():
+    for folder in SOURCES:
+        for path in sorted(folder.rglob("*.swift")):
+            if not path.name.startswith("SelfTest"):
+                yield path
+
+
+def interpolated_ui(text: str, start: int, value: str, interpolated: bool) -> bool:
+    """A shown literal with \\(…) and words: SwiftUI or String(localized:)
+    would look for a key this script cannot know, so it needs L("… %@ …")."""
+    if not interpolated or not is_ui_call(text, start):
+        return False
+    words = re.sub(r"\\\([^)]*\)", "", value)
+    return bool(re.search(r"[A-Za-zÄÖÜäöüß]{2,}", words))
+
+
+def extract(problems: list[str] | None = None):
     keys: dict[str, str] = {}
-    for path in sorted(SOURCES.rglob("*.swift")):
-        if path.name.startswith("SelfTest"):
-            continue
+    for path in swift_files():
         text = path.read_text()
         for start, end, value, line, interpolated in swift_strings(text):
+            where = f"{path.relative_to(ROOT)}:{line}"
             if interesting(path, value, interpolated, is_ui_call(text, start)):
-                keys.setdefault(value, f"{path.relative_to(ROOT)}:{line}")
+                keys.setdefault(value, where)
+            elif problems is not None and interpolated_ui(text, start, value, interpolated):
+                problems.append(f"{where}: interpolated text, use L(\"… %@ …\", …): {value!r}")
     return keys
+
+
+def read_catalog(name: str):
+    return json.loads((IOS / name).read_text())
+
+
+def write_catalog(name: str, catalog) -> None:
+    # The layout the catalogs have: two-space indent, no final newline.
+    text = json.dumps(catalog, ensure_ascii=False, indent=2, separators=(",", ": "))
+    (IOS / name).write_text(text)
+
+
+def catalog_keys(catalog):
+    """The catalog's keys that are translated (not the shouldTranslate=false ones)."""
+    return [key for key, entry in catalog["strings"].items() if entry.get("shouldTranslate") is not False]
+
+
+def fill_catalog(catalog, values) -> None:
+    """Sets the languages from |values| (key -> {lang: value}); keeps what the
+    catalog already says for English."""
+    for key in catalog_keys(catalog):
+        localizations = catalog["strings"][key].setdefault("localizations", {})
+        for lang in TRANSLATED:
+            if lang == "en" and "en" in localizations:
+                continue
+            localizations[lang] = {"stringUnit": {"state": "translated", "value": values[key][lang]}}
+        # Languages in alphabetical order, as Xcode writes them.
+        catalog["strings"][key]["localizations"] = dict(sorted(localizations.items()))
 
 
 def digest(key: str) -> str:
@@ -316,13 +377,28 @@ INFO_PLIST = {
 }
 
 
+INFO_PLIST_IOS = {
+    "NSCameraUsageDescription": {
+        "en": "To scan share codes from other devices.",
+        "fr": "Pour scanner les codes de partage d’autres appareils.",
+        "es": "Para escanear códigos para compartir de otros dispositivos.",
+        "it": "Per scansionare i codici di condivisione di altri dispositivi.",
+    },
+}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--missing", action="store_true")
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
-    keys = extract()
+    problems: list[str] = []
+    mac_keys = extract(problems)
+    catalog = read_catalog("Localizable.xcstrings")
+    keys = dict(mac_keys)
+    for key in catalog_keys(catalog):
+        keys.setdefault(key, "iOS/OpenArch/Localizable.xcstrings")
     translations = read_translations()
     if args.list:
         for key in sorted(keys, key=lambda k: (keys[k], k)):
@@ -337,18 +413,19 @@ def main():
     if args.missing:
         for key in sorted(missing):
             print(f"{digest(key)}\t{keys[key]}\t{key}")
-        print(f"-- {len(missing)} missing of {len(keys)}", file=sys.stderr)
+        for problem in problems:
+            print(problem)
+        print(f"-- {len(missing)} missing of {len(keys)}, {len(problems)} problems", file=sys.stderr)
         return
     if not args.write:
         parser.error("choose --list, --missing or --write")
-    problems = []
     for key in keys:
         row = translations.get(digest(key))
         if not row:
             problems.append(f"missing translation: {key!r}")
             continue
         want = placeholders(key)
-        for lang in ["en", "fr", "es", "it"]:
+        for lang in TRANSLATED:
             if not row.get(lang):
                 problems.append(f"missing {lang}: {key!r}")
             elif placeholders(row[lang]) != want:
@@ -361,7 +438,7 @@ def main():
         folder = RESOURCES / f"{lang}.lproj"
         folder.mkdir(parents=True, exist_ok=True)
         lines = ["/* Generated by scripts/localize.py. Do not edit by hand. */", ""]
-        for key in sorted(keys):
+        for key in sorted(mac_keys):
             value = GERMAN_VALUES.get(key, key) if lang == "de" else translations[digest(key)][lang]
             lines.append(f'"{strings_escape(key)}" = "{strings_escape(value)}";')
         (folder / "Localizable.strings").write_text("\n".join(lines) + "\n")
@@ -369,7 +446,14 @@ def main():
         for key, table in INFO_PLIST.items():
             info_lines.append(f'"{strings_escape(key)}" = "{strings_escape(table[lang])}";')
         (folder / "InfoPlist.strings").write_text("\n".join(info_lines) + "\n")
-    print(f"Wrote {len(keys)} keys to {', '.join(LANGS)}")
+    print(f"Wrote {len(mac_keys)} keys to App/Resources ({', '.join(LANGS)})")
+
+    fill_catalog(catalog, {key: translations[digest(key)] for key in catalog_keys(catalog)})
+    write_catalog("Localizable.xcstrings", catalog)
+    info = read_catalog("InfoPlist.xcstrings")
+    fill_catalog(info, INFO_PLIST_IOS)
+    write_catalog("InfoPlist.xcstrings", info)
+    print(f"Filled {len(catalog_keys(catalog))} keys in iOS/OpenArch/Localizable.xcstrings ({', '.join(TRANSLATED)})")
 
 
 if __name__ == "__main__":

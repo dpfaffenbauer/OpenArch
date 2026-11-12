@@ -266,7 +266,7 @@ final class AgentSession {
         }
         var isFolder: ObjCBool = false
         guard FileManager.default.fileExists(atPath: config.folder, isDirectory: &isFolder), isFolder.boolValue else {
-            messages.append(AgentMessage(role: .error, text: "Den Ordner \(config.folder) gibt es nicht mehr."))
+            messages.append(AgentMessage(role: .error, text: L("Den Ordner %@ gibt es nicht mehr.", config.folder)))
             return finish()
         }
         let process = AgentProcess(executable: claude, arguments: arguments(for: config),
