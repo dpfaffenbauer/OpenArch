@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OpenArchLocalization
 
 /// The onboarding window's content: a card with large corners, the steps
 /// sliding through it, dots on top, the import's progress at the bottom.
@@ -92,7 +93,7 @@ private struct ProgressPill: View {
     var body: some View {
         HStack(spacing: 8) {
             ProgressView(value: progress.value).progressViewStyle(.circular).controlSize(.mini)
-            Text("Import: \(progress.label) · \(Int(progress.value * 100)) %")
+            Text(L("Import: %@ · %lld %%", progress.label, Int(progress.value * 100)))
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
         }
@@ -109,29 +110,29 @@ private struct StepLayout<Content: View, Side: View>: View {
     var primary: (String, () -> Void)?
     var secondary: (String, () -> Void)?
     var skip: (() -> Void)?
-    var skipTitle = "Überspringen"
+    var skipTitle = L("Überspringen")
     @ViewBuilder let content: Content
     @ViewBuilder let side: Side
 
     var body: some View {
         HStack(alignment: .top, spacing: 28) {
             VStack(alignment: .leading, spacing: 14) {
-                Text(title).font(.system(size: 26, weight: .bold)).fixedSize(horizontal: false, vertical: true)
-                Text(text).font(.system(size: 13)).foregroundStyle(.secondary)
+                Text(L(title)).font(.system(size: 26, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+                Text(L(text)).font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 content
                 Spacer(minLength: 0)
                 HStack(spacing: 10) {
                     if let primary {
-                        Button(action: primary.1) { Text(primary.0).frame(minWidth: 110) }
+                        Button(action: primary.1) { Text(L(primary.0)).frame(minWidth: 110) }
                             .buttonStyle(.borderedProminent).controlSize(.large).keyboardShortcut(.defaultAction)
                     }
                     if let secondary {
-                        Button(secondary.0, action: secondary.1).controlSize(.large)
+                        Button(L(secondary.0), action: secondary.1).controlSize(.large)
                     }
                     Spacer()
                     if let skip {
-                        Button(skipTitle, action: skip).buttonStyle(.link).foregroundStyle(.secondary)
+                        Button(L(skipTitle), action: skip).buttonStyle(.link).foregroundStyle(.secondary)
                     }
                 }
             }
@@ -163,7 +164,7 @@ private struct WelcomeStep: View {
             Spacer()
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 112, height: 112)
                 .shadow(color: .black.opacity(0.18), radius: 14, y: 6)
-            Text(model.isRerun ? "OpenArch einrichten" : "Willkommen bei OpenArch")
+            Text(L(model.isRerun ? "OpenArch einrichten" : "Willkommen bei OpenArch"))
                 .font(.system(size: 34, weight: .bold))
             Text("Ein Browser im Geist von Arc: Spaces mit eigenen Profilen, eine Sidebar statt Tab-Leiste, echte Chrome-Extensions. In zwei Minuten eingerichtet, jeder Schritt lässt sich überspringen.")
                 .font(.system(size: 14)).foregroundStyle(.secondary).multilineTextAlignment(.center)
@@ -590,11 +591,11 @@ private struct DoneStep: View {
                         .overlay(SpaceIcon(icon: space.icon, size: 15).foregroundStyle(.white))
                 }
             }
-            Text("Alles bereit").font(.system(size: 32, weight: .bold))
+            Text(L("Alles bereit")).font(.system(size: 32, weight: .bold))
             Text(summary).font(.system(size: 13)).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .frame(maxWidth: 500)
             if let result = model.loginsResult {
-                Text("Aus Arc übernommen: \(result)").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(L("Aus Arc übernommen: %@", result)).font(.system(size: 11)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).frame(maxWidth: 520)
             } else if model.importRunning {
                 Text("Der Import läuft noch und ist gleich fertig.").font(.system(size: 11)).foregroundStyle(.secondary)
@@ -613,6 +614,8 @@ private struct DoneStep: View {
     private var summary: String {
         let spaces = library.spaces.count
         let profiles = Set(library.spaces.map(\.profileID)).count
-        return "\(spaces) \(spaces == 1 ? "Space" : "Spaces") in \(profiles) \(profiles == 1 ? "Profil" : "Profilen"). Dein Browserfenster wartet."
+        let spaceText = Localization.count(spaces, one: "1 Space", other: "%lld Spaces")
+        let profileText = Localization.count(profiles, one: "1 Profil", other: "%lld Profilen")
+        return L("%@ in %@. Dein Browserfenster wartet.", spaceText, profileText)
     }
 }

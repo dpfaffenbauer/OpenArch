@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 
 /// Everything the user keeps: profiles, spaces, favorites, pinned folders and
@@ -209,8 +210,8 @@ final class Library {
            let data = try? decoder.decode(LibraryData.self, from: raw), !data.spaces.isEmpty {
             library.apply(data)
         } else {
-            library.profiles = [Profile(id: "Default", name: "Persönlich")]
-            library.spaces = [Space(name: "Persönlich", icon: "person.fill", colorHex: "#7B6CF6", profileID: "Default")]
+            library.profiles = [Profile(id: "Default", name: L("Persönlich"))]
+            library.spaces = [Space(name: L("Persönlich"), icon: "person.fill", colorHex: "#7B6CF6", profileID: "Default")]
             // The very first launch: no Library.json yet (a file that does
             // not decode is not a first launch).
             library.settings.onboardingPending = !FileManager.default.fileExists(atPath: library.fileURL.path)
@@ -225,7 +226,7 @@ final class Library {
             return profile
         }
         if profiles.isEmpty {
-            profiles = [Profile(id: "Default", name: "Persönlich")]
+            profiles = [Profile(id: "Default", name: L("Persönlich"))]
         }
         settings = data.settings ?? Settings()
         // Before themes, grain was one setting for every space.
@@ -447,6 +448,9 @@ struct Settings: Codable, Equatable {
     var tidyTitles = false
     /// Light or dark for pages, chats and settings, or as macOS has it.
     var appearance = AppAppearance.system
+    /// The UI language. Also mirrored to UserDefaults, so it can be applied
+    /// before the first window opens (main.swift).
+    var language = AppLanguage.system
     /// Set on a first launch until the onboarding is finished. A library
     /// saved before there was an onboarding never has it, so whoever used
     /// OpenArch before never sees it.
@@ -500,6 +504,7 @@ struct Settings: Codable, Equatable {
         morningBriefMinutes = try container.decodeIfPresent(Int.self, forKey: .morningBriefMinutes) ?? defaults.morningBriefMinutes
         tidyTitles = try container.decodeIfPresent(Bool.self, forKey: .tidyTitles) ?? defaults.tidyTitles
         appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? defaults.appearance
+        language = try container.decodeIfPresent(AppLanguage.self, forKey: .language) ?? defaults.language
         onboardingPending = try container.decodeIfPresent(Bool.self, forKey: .onboardingPending) ?? defaults.onboardingPending
         arcDefaultProfile = try container.decodeIfPresent(String.self, forKey: .arcDefaultProfile)
         // 260 was the first default; Arc's rows need a bit more room.
@@ -540,9 +545,9 @@ enum AppAppearance: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .system: "Wie macOS"
-        case .light: "Hell"
-        case .dark: "Dunkel"
+        case .system: L("Wie macOS")
+        case .light: L("Hell")
+        case .dark: L("Dunkel")
         }
     }
 
@@ -560,10 +565,10 @@ enum DevToolsDock: String, Codable, CaseIterable {
 
     var title: String {
         switch self {
-        case .right: "Rechts"
-        case .left: "Links"
-        case .bottom: "Unten"
-        case .window: "Eigenes Fenster"
+        case .right: L("Rechts")
+        case .left: L("Links")
+        case .bottom: L("Unten")
+        case .window: L("Eigenes Fenster")
         }
     }
 
@@ -619,7 +624,7 @@ enum AIChat: String, Codable, CaseIterable, Identifiable {
 
     var name: String {
         switch self {
-        case .off: "Aus"
+        case .off: L("Aus")
         case .claude: "Claude"
         case .chatGPT: "ChatGPT"
         }

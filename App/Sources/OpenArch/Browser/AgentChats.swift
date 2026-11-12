@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 
 /// Agent chats in the sidebar: Claude Code next to the tabs, shown in the
 /// content area where a page would be (see AgentSession).
@@ -43,10 +44,10 @@ extension BrowserWindowController {
         guard item.kind == .agent else { return }
         if item.agentSession?.isRunning == true {
             let alert = NSAlert()
-            alert.messageText = "„\(item.displayTitle)“ arbeitet noch."
-            alert.informativeText = "Der Agent wird angehalten und der Chat entfernt."
-            alert.addButton(withTitle: "Entfernen")
-            alert.addButton(withTitle: "Abbrechen")
+            alert.messageText = L("„%@“ arbeitet noch.", item.displayTitle)
+            alert.informativeText = L("Der Agent wird angehalten und der Chat entfernt.")
+            alert.addButton(withTitle: L("Entfernen"))
+            alert.addButton(withTitle: L("Abbrechen"))
             alert.buttons[0].hasDestructiveAction = true
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
@@ -100,7 +101,7 @@ extension BrowserWindowController {
         item.agent = config
         var messages = ClaudeSessions.messages(in: session.file)
         if session.status == .working || session.status == .waiting || session.status == .approval {
-            messages.append(AgentMessage(role: .note, text: "Diese Session läuft noch in einem Terminal. Was du hier schreibst, setzt sie getrennt davon fort."))
+            messages.append(AgentMessage(role: .note, text: L("Diese Session läuft noch in einem Terminal. Was du hier schreibst, setzt sie getrennt davon fort.")))
         }
         AgentSession.writeTranscript(messages, for: item.id)
         state.space.today.insert(item, at: 0)

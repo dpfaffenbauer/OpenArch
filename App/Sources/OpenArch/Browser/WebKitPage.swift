@@ -5,6 +5,7 @@
 // Victor Kildahl. See NOTICE.
 
 import AppKit
+import OpenArchLocalization
 import CryptoKit
 import OpenArchCore
 import WebKit
@@ -685,9 +686,9 @@ extension WebKitPage: WKUIDelegate {
                           done: @escaping (NSApplication.ModalResponse) -> Void) {
         let alert = NSAlert()
         let host = frame.securityOrigin.host
-        alert.messageText = host.isEmpty ? "Diese Seite meldet" : "\(host) meldet"
+        alert.messageText = host.isEmpty ? L("Diese Seite meldet") : L("%@ meldet", host)
         alert.informativeText = message
-        for button in buttons { alert.addButton(withTitle: button) }
+        for button in buttons { alert.addButton(withTitle: L(button)) }
         alert.accessoryView = accessory
         guard let window = hostWindow?.parent ?? hostWindow else { return done(.alertSecondButtonReturn) }
         alert.beginSheetModal(for: window, completionHandler: done)
@@ -767,7 +768,7 @@ final class WebKitFindBar: NSView, NSSearchFieldDelegate {
         super.init(frame: NSRect(x: 0, y: 0, width: 400, height: Self.height))
         wantsLayer = true
         layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        field.placeholderString = "Auf der Seite suchen"
+        field.placeholderString = L("Auf der Seite suchen")
         field.delegate = self
         field.sendsSearchStringImmediately = true
         field.target = self
@@ -776,9 +777,9 @@ final class WebKitFindBar: NSView, NSSearchFieldDelegate {
         count.textColor = .secondaryLabelColor
         let previous = NSButton(image: NSImage(systemSymbolName: "chevron.up", accessibilityDescription: "Vorheriger Treffer")!,
                                 target: self, action: #selector(previous(_:)))
-        let next = NSButton(image: NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "Nächster Treffer")!,
+        let next = NSButton(image: NSImage(systemSymbolName: "chevron.down", accessibilityDescription: L("Nächster Treffer"))!,
                             target: self, action: #selector(next(_:)))
-        let done = NSButton(title: "Fertig", target: self, action: #selector(close(_:)))
+        let done = NSButton(title: L("Fertig"), target: self, action: #selector(close(_:)))
         for button in [previous, next] { button.bezelStyle = .accessoryBarAction; button.isBordered = false }
         done.bezelStyle = .accessoryBarAction
         let stack = NSStackView(views: [field, count, previous, next, done])
@@ -801,7 +802,7 @@ final class WebKitFindBar: NSView, NSSearchFieldDelegate {
     }
 
     func show(matches: Int, active: Int, empty: Bool) {
-        count.stringValue = empty ? "" : matches == 0 ? "Keine Treffer" : "\(active) von \(matches)"
+        count.stringValue = empty ? "" : matches == 0 ? L("Keine Treffer") : L("%lld von %lld", active, matches)
     }
 
     @objc private func changed() { onSearch?(field.stringValue, true, false) }
@@ -838,9 +839,9 @@ final class WebKitPageView: WKWebView {
         super.willOpenMenu(menu, with: event)
         for item in menu.items {
             switch item.identifier?.rawValue {
-            case "WKMenuItemIdentifierOpenLinkInNewWindow": item.title = "Link in neuem Tab öffnen"
-            case "WKMenuItemIdentifierOpenImageInNewWindow": item.title = "Bild in neuem Tab öffnen"
-            case "WKMenuItemIdentifierOpenMediaInNewWindow": item.title = "Video in neuem Tab öffnen"
+            case "WKMenuItemIdentifierOpenLinkInNewWindow": item.title = L("Link in neuem Tab öffnen")
+            case "WKMenuItemIdentifierOpenImageInNewWindow": item.title = L("Bild in neuem Tab öffnen")
+            case "WKMenuItemIdentifierOpenMediaInNewWindow": item.title = L("Video in neuem Tab öffnen")
             default: break
             }
         }

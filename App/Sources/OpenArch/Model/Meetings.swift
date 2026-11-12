@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import EventKit
 import Observation
 
@@ -117,10 +118,10 @@ final class Meetings {
         let seconds = meeting.start.timeIntervalSince(now)
         if seconds > 90 {
             let minutes = Int((seconds / 60).rounded(.up))
-            return minutes >= 60 ? "in 1 Std." : "in \(minutes) Min."
+            return minutes >= 60 ? L("in 1 Std.") : L("in %lld Min.", minutes)
         }
-        if seconds > -60 { return "beginnt jetzt" }
+        if seconds > -60 { return L("beginnt jetzt") }
         let left = Int((meeting.end.timeIntervalSince(now) / 60).rounded(.up))
-        return "läuft, noch \(left) Min."
+        return L("läuft, noch %lld Min.", left)
     }
 }

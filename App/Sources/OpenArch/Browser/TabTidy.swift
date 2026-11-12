@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import OpenArchLocalization
 
 /// "Tabs mit KI aufräumen": Claude sorts the current space's today tabs
 /// into folders with short names and gives tabs shorter titles. Only their
@@ -200,10 +201,10 @@ final class TabTidy {
         undo.browser?.window?.undoManager?.registerUndo(withTarget: undo) { undo in
             MainActor.assumeIsolated { _ = TabTidy.undoLast(undo) }
         }
-        undo.browser?.window?.undoManager?.setActionName("Tabs aufräumen")
+        undo.browser?.window?.undoManager?.setActionName(L("Tabs aufräumen"))
         let folders = undo.created.count
-        undo.browser?.showToast(folders == 1 ? "1 Ordner angelegt" : "\(folders) Ordner angelegt", symbol: "sparkles",
-                                action: ToastAction(title: "Rückgängig") { _ = TabTidy.undoLast() })
+        undo.browser?.showToast(Localization.count(folders, one: "1 Ordner angelegt", other: "%lld Ordner angelegt"), symbol: "sparkles",
+                                action: ToastAction(title: L("Rückgängig")) { _ = TabTidy.undoLast() })
         // ⌘Z also from the page, which would otherwise take it.
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -337,7 +338,7 @@ private struct TabTidyView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Tabs aufräumen", systemImage: "sparkles").font(.system(size: 15, weight: .semibold))
-                Text("Vorschlag von Claude für die Tabs unter dem Strich in „\(tidy.space.name)“. Claude bekommt nur Titel und Adressen, angeheftete Tabs und Favoriten bleiben, wie sie sind.")
+                Text(L("Vorschlag von Claude für die Tabs unter dem Strich in „%@“. Claude bekommt nur Titel und Adressen, angeheftete Tabs und Favoriten bleiben, wie sie sind.", tidy.space.name))
                     .font(.system(size: 11.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20)
@@ -348,8 +349,8 @@ private struct TabTidyView: View {
             Divider()
             HStack {
                 Spacer()
-                Button("Abbrechen") { tidy.close() }.keyboardShortcut(.cancelAction)
-                Button("Übernehmen") { tidy.apply() }
+                Button(L("Abbrechen")) { tidy.close() }.keyboardShortcut(.cancelAction)
+                Button(L("Übernehmen")) { tidy.apply() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(tidy.phase != .ready)
             }
@@ -363,7 +364,7 @@ private struct TabTidyView: View {
         case .working:
             VStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text("Claude sortiert \(tidy.tabs.count) Tabs …").font(.system(size: 12.5)).foregroundStyle(.secondary)
+                Text(L("Claude sortiert %lld Tabs …", tidy.tabs.count)).font(.system(size: 12.5)).foregroundStyle(.secondary)
             }
         case .failed(let message):
             Label {

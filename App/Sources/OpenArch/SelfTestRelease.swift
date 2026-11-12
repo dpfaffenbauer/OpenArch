@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 
 /// Checks for what keeps releases safe: the update channels (and that
@@ -117,7 +118,7 @@ extension SelfTest {
                         let lonely = self.testUpdater(build: 500, channel: .stable, folder: folder, list: noStable, nightly: nightly)
                         lonely.check()
                         after(1.5) {
-                            if case .failed(let message) = lonely.phase, message.contains("keine Stable") {
+                            if case .failed(let message) = lonely.phase, message.contains(L("Es gibt noch keine Stable-Version.")) {
                                 self.expect(true, "without a Stable release, Stable says so and installs nothing")
                             } else {
                                 self.expect(false, "without a Stable release, Stable says so (\(lonely.phase))")
@@ -145,7 +146,7 @@ extension SelfTest {
             ]}
             """
         let parsed = FeatureSwitches.parse(Data(file.utf8), build: 150, chromium: chromium)
-        expect(parsed == [.peek: "kaputt", .agentChats: "vorübergehend abgeschaltet"],
+        expect(parsed == [.peek: "kaputt", .agentChats: L("vorübergehend abgeschaltet")],
                "the remote list switches off by feature, build range and Chromium version (\(parsed))")
         expect(FeatureSwitches.parse(Data("<html>not json".utf8), build: 150, chromium: chromium).isEmpty,
                "a remote list that does not parse switches nothing off")

@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import SwiftUI
 
 /// The content area while an agent chat is shown: the chat, as a card where
@@ -114,7 +115,7 @@ private struct AgentHeader: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
             .help(config.sessionID == nil ? config.folder
-                  : "\(config.folder)\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort.")
+                  : L("%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort.", config.folder))
             Menu {
                 Picker("Darf", selection: Binding(
                     get: { item.agent?.permissions ?? .ask },
@@ -123,7 +124,7 @@ private struct AgentHeader: View {
                         browser.library.setNeedsSave()
                     })) {
                     ForEach(AgentPermissions.allCases) { permissions in
-                        Text("\(permissions.title) – \(permissions.detail)").tag(permissions)
+                        Text(L("%@ – %@", permissions.title, permissions.detail)).tag(permissions)
                     }
                 }
                 .pickerStyle(.inline)
@@ -132,12 +133,12 @@ private struct AgentHeader: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help("Was der Agent ohne Rückfrage darf")
+            .help(L("Was der Agent ohne Rückfrage darf"))
             Button { showsInspector.toggle() } label: {
                 Image(systemName: "sidebar.right").font(.system(size: 13))
             }
             .buttonStyle(.borderless)
-            .help(showsInspector ? "Infos ausblenden" : "Infos einblenden: Umgebung, Kontext, Connectors, Änderungen, Ausgabe")
+            .help(L(showsInspector ? "Infos ausblenden" : "Infos einblenden: Umgebung, Kontext, Connectors, Änderungen, Ausgabe"))
         }
         .font(.system(size: 12))
         .padding(.horizontal, 16)
@@ -150,8 +151,8 @@ private struct AgentHeader: View {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        panel.prompt = "Wählen"
-        panel.message = "In welchem Ordner soll der Agent arbeiten?"
+        panel.prompt = L("Wählen")
+        panel.message = L("In welchem Ordner soll der Agent arbeiten?")
         if let folder = item.agent?.folder { panel.directoryURL = URL(fileURLWithPath: folder) }
         guard panel.runModal() == .OK, let url = panel.url else { return }
         item.agent?.folder = url.path
@@ -238,8 +239,8 @@ private struct AgentInspector: View {
     }
 
     private var changesTitle: String {
-        guard let count = workspace?.changes.count, count > 0 else { return "Änderungen" }
-        return "Änderungen · \(count)"
+        guard let count = workspace?.changes.count, count > 0 else { return L("Änderungen") }
+        return L("Änderungen · %lld", count)
     }
 
     @ViewBuilder private var context: some View {
@@ -249,7 +250,7 @@ private struct AgentInspector: View {
             VStack(alignment: .leading, spacing: 6) {
                 ProgressView(value: fraction)
                     .tint(fraction > 0.85 ? Color.orange : Color.accentColor)
-                Text("\(Int((fraction * 100).rounded())) % · \(used / 1000)k von \(window / 1000)k Tokens")
+                Text(L("%lld %% · %lldk von %lldk Tokens", Int((fraction * 100).rounded()), used / 1000, window / 1000))
                     .font(.system(size: 11.5))
                     .foregroundStyle(.secondary)
             }
@@ -295,7 +296,7 @@ private struct AgentInspector: View {
 
     private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(.secondary)
+            Text(L(title)).font(.system(size: 11.5, weight: .semibold)).foregroundStyle(.secondary)
             content()
         }
     }
@@ -308,7 +309,7 @@ private struct AgentInspector: View {
     }
 
     private func note(_ text: String) -> some View {
-        Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+        Text(L(text)).font(.system(size: 12)).foregroundStyle(.secondary)
     }
 }
 
@@ -387,9 +388,9 @@ private struct AgentEmptyState: View {
     private var explanation: String {
         let folder = (item.agent?.folder).map { ($0 as NSString).abbreviatingWithTildeInPath } ?? "~"
         let browser = OACEngine.remoteDebuggingPort > 0
-            ? "Mit der KI-Steuerung kann er auch deine Tabs bedienen."
-            : "Mit der KI-Steuerung (Einstellungen › KI) kann er auch deine Tabs bedienen."
-        return "Arbeitet in \(folder) mit deinem Claude-Login, ohne API-Schlüssel. \(browser)"
+            ? L("Mit der KI-Steuerung kann er auch deine Tabs bedienen.")
+            : L("Mit der KI-Steuerung (Einstellungen › KI) kann er auch deine Tabs bedienen.")
+        return L("Arbeitet in %@ mit deinem Claude-Login, ohne API-Schlüssel. %@", folder, browser)
     }
 }
 
@@ -582,7 +583,7 @@ private struct AgentDeniedRow: View {
         HStack(spacing: 10) {
             Image(systemName: "hand.raised.fill").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(AgentTool.ruleTitle(rule)) nicht erlaubt").fontWeight(.medium)
+                Text(L("%@ nicht erlaubt", AgentTool.ruleTitle(rule))).fontWeight(.medium)
                 if !message.text.isEmpty {
                     Text(message.text).foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
                 }
@@ -593,7 +594,7 @@ private struct AgentDeniedRow: View {
             } else {
                 Button("Erlauben und weiter") { session.allow(message) }
                     .disabled(session.isRunning)
-                    .help("Erlaubt \(rule) in diesem Chat")
+                    .help(L("Erlaubt %@ in diesem Chat", rule))
             }
         }
         .font(.system(size: 12.5))
@@ -609,7 +610,7 @@ private struct AgentInput: View {
 
     var body: some View {
         let empty = session.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let placeholder: String = session.isRunning ? "Claude arbeitet …" : "Schreib dem Agent …"
+        let placeholder: String = session.isRunning ? L("Claude arbeitet …") : L("Schreib dem Agent …")
         HStack(alignment: .bottom, spacing: 8) {
             TextField(placeholder, text: $session.draft, axis: .vertical)
                 .textFieldStyle(.plain)

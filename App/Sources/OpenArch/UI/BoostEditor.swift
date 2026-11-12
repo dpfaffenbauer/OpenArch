@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import SwiftUI
+import OpenArchLocalization
 
 /// The Boost editor: a small panel next to the page that changes the site
 /// live.
@@ -35,7 +36,7 @@ final class BoostPanelController: NSObject, NSWindowDelegate {
         current?.close()
         let controller = BoostPanelController(model: BoostEditorModel(boost: boost, item: item, browser: browser))
         current = controller
-        controller.panel.title = "Boost · \(boost.host)"
+        controller.panel.title = L("Boost · %@", boost.host)
         if let window = browser.window {
             let content = window.convertToScreen(browser.contentRect)
             controller.panel.setFrameTopLeftPoint(NSPoint(x: content.maxX - 360, y: content.maxY - 20))
@@ -129,14 +130,14 @@ struct BoostEditorView: View {
                 group("Schrift") {
                     Picker("", selection: $model.boost.font) {
                         ForEach(Self.fonts, id: \.self) { font in
-                            Text(font.isEmpty ? "Wie die Seite" : font).tag(font)
+                            Text(font.isEmpty ? L("Wie die Seite") : font).tag(font)
                         }
                     }
                     .labelsHidden()
                 }
 
                 group("Elemente ausblenden") {
-                    Button(model.isZapping ? "Fertig" : "Zap: Elemente anklicken …") {
+                    Button(L(model.isZapping ? "Fertig" : "Zap: Elemente anklicken …")) {
                         model.isZapping ? model.stopZap() : model.startZap()
                     }
                     if model.isZapping {
@@ -176,10 +177,10 @@ struct BoostEditorView: View {
 
     private func group<Content: View>(_ title: String, note: String? = nil, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            Text(L(title)).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
             content()
             if let note {
-                Text(note).font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(L(note)).font(.system(size: 11)).foregroundStyle(.secondary)
             }
         }
     }

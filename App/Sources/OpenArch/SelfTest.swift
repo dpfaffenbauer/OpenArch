@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import CommonCrypto
 import SQLite3
 import SwiftUI
@@ -617,14 +618,15 @@ final class SelfTest {
         browser.commandBar.model.query = "exam"
         let titles = browser.commandBar.model.results.prefix(5).map(\.title)
         expect(browser.commandBar.model.results.count >= 3, "command bar finds tabs for 'exam': \(titles)")
-        expect(browser.commandBar.model.results.contains { $0.badge == "Zu Tab wechseln" }, "command bar offers 'Zu Tab wechseln'")
+        expect(browser.commandBar.model.results.contains { $0.badge == L("Zu Tab wechseln") }, "command bar offers 'Zu Tab wechseln'")
         after(2) {
-            let searches = self.browser.commandBar.model.results.filter { $0.subtitle?.hasSuffix("-Suche") == true }
+            let searches = self.browser.commandBar.model.results.filter { $0.id.hasPrefix("search:") }
             self.expect(searches.count > 1, "search suggestions arrive (\(searches.count - 1))")
             self.expect(FaviconStore.shared.image(forURL: "https://www.iana.org/") != nil, "favicons load for pages that are not open")
             // A command's badge is its menu shortcut: the toolbar is ⇧⌘D, not
             // the library's ⇧⌘L.
-            let badges = ["Chrome-Toolbar ein-/ausblenden", "Heute aufräumen"].map { title in
+            let badges = ["Chrome-Toolbar ein-/ausblenden", "Heute aufräumen"].map { key in
+                let title = L(key)
                 self.browser.commandBar.model.query = title
                 return self.browser.commandBar.model.results.first { $0.id == "command:\(title)" }?.badge ?? "-"
             }
@@ -2139,7 +2141,8 @@ final class SelfTest {
             self.expect(good.phase == .ready(999), "the updater downloads, verifies and unpacks a newer build (\(good.phase))")
             let bad = fakeUpdate("tampered.json", sha: String(repeating: "0", count: 64))
             after(3) {
-                refuses(bad, because: "Prüfsumme", "the updater refuses a download with the wrong checksum")
+                refuses(bad, because: L("Die heruntergeladene Datei stimmt nicht mit der Prüfsumme überein."),
+                        "the updater refuses a download with the wrong checksum")
                 let unsigned = fakeUpdate("unsigned.json", sha: sha, signed: true)
                 after(3) {
                     refuses(unsigned, because: "Developer ID", "the updater refuses a build without OpenArch's Developer ID")
@@ -2148,7 +2151,8 @@ final class SelfTest {
                     elsewhere.manifestURL = manifest("elsewhere.json", sha: sha)
                     elsewhere.check()
                     after(3) {
-                        refuses(elsewhere, because: "Releases", "the updater refuses a download from anywhere but OpenArch's releases")
+                        refuses(elsewhere, because: L("Das Update kommt nicht aus OpenArchs Releases auf GitHub."),
+                                "the updater refuses a download from anywhere but OpenArch's releases")
                         try? FileManager.default.removeItem(at: folder)
                     }
                 }
@@ -2231,11 +2235,11 @@ final class SelfTest {
         let model = browser.commandBar.model
         model.reset(mode: .newTab)
         model.query = "yt"
-        let offered = model.results.contains { $0.title == "YouTube durchsuchen" }
+        let offered = model.results.contains { $0.title == L("%@ durchsuchen", "YouTube") }
         let entered = model.tab()
         model.query = "lofi beats"
         let url = model.results.first?.subtitle
-        expect(offered && entered && model.site?.name == "YouTube" && url == "YouTube durchsuchen",
+        expect(offered && entered && model.site?.name == "YouTube" && url == L("%@ durchsuchen", "YouTube"),
                "the command bar searches YouTube after yt + Tab")
         model.query = ""
         expect(model.leaveSite() && model.site == nil, "Backspace leaves the site search")
@@ -2248,10 +2252,10 @@ final class SelfTest {
         let saved = library.settings.askAI
         library.settings.askAI = .claude
         model.query = "haben gestern may day geschaut, guter film, gib mir alternativen dazu"
-        expect(model.results.first?.subtitle == "Claude fragen" && model.results.dropFirst().first?.id.hasPrefix("search:") == true,
+        expect(model.results.first?.subtitle == L("%@ fragen", "Claude") && model.results.dropFirst().first?.id.hasPrefix("search:") == true,
                "a sentence in the command bar asks Claude first")
         model.query = "may day film"
-        expect(model.results.first?.id.hasPrefix("search:") == true && model.results.dropFirst().first?.subtitle == "Claude fragen",
+        expect(model.results.first?.id.hasPrefix("search:") == true && model.results.dropFirst().first?.subtitle == L("%@ fragen", "Claude"),
                "a few words stay a search, with Claude one row down")
         expect(AIChat.claude.url(for: "gib mir alternativen?") == "https://claude.ai/new?q=gib%20mir%20alternativen%3F"
                && AIChat.chatGPT.url(for: "a & b") == "https://chatgpt.com/?q=a%20%26%20b",
@@ -2586,6 +2590,7 @@ final class SelfTest {
         if let app = NSApp.delegate as? AppDelegate {
             await renderShare(ShareWindows.shareContent(.folder(folder), app: app), "share-window-live")
             await renderShare(ShareWindows.importContent(share.link, app: app), "import-window-live")
+            await renderShare(SettingsView(app: app, page: .sharing), "settings-sharing-live")
         }
 
         sharing.add(opened, asSpace: false, follow: true, in: space, browser: nil)

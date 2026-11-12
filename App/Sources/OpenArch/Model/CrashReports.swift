@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import Darwin
 import OpenArchCore
 
@@ -239,12 +240,12 @@ final class CrashReports {
         discardPending()
         let alert = NSAlert()
         alert.messageText = events.contains { $0.process == "App" }
-            ? "OpenArch ist abgestürzt" : "Ein Teil von OpenArch ist abgestürzt"
-        alert.informativeText = """
-            Seit dem letzten Start hat sich OpenArch oder einer seiner Prozesse \(events.count == 1 ? "einmal" : "\(events.count)-mal") \
+            ? L("OpenArch ist abgestürzt") : L("Ein Teil von OpenArch ist abgestürzt")
+        alert.informativeText = L("""
+            Seit dem letzten Start hat sich OpenArch oder einer seiner Prozesse %@ \
             unerwartet beendet. Ein Bericht hilft, den Fehler zu finden. Er enthält nur Versionen und die Stelle im Code, \
             keine Adressen, Titel oder Seiteninhalte, und öffnet sich als Issue auf GitHub, wo du ihn vor dem Senden siehst.
-            """
+            """, events.count == 1 ? L("einmal") : L("%lld-mal", events.count))
         let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 420, height: 160))
         text.string = reportText(events)
         text.isEditable = false
@@ -254,10 +255,10 @@ final class CrashReports {
         scroll.hasVerticalScroller = true
         scroll.borderType = .bezelBorder
         alert.accessoryView = scroll
-        alert.addButton(withTitle: "Bericht senden …")
-        alert.addButton(withTitle: "Nicht senden")
+        alert.addButton(withTitle: L("Bericht senden …"))
+        alert.addButton(withTitle: L("Nicht senden"))
         alert.showsSuppressionButton = true
-        alert.suppressionButton?.title = "Nicht mehr nach Abstürzen fragen"
+        alert.suppressionButton?.title = L("Nicht mehr nach Abstürzen fragen")
         let answer = alert.runModal()
         if alert.suppressionButton?.state == .on { isEnabled = false }
         if answer == .alertFirstButtonReturn, let url = issueURL(for: events) { open(url) }

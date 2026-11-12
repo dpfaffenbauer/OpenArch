@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import UniformTypeIdentifiers
 
 /// Sidebar actions: drag and drop, spaces, tidying up.
@@ -228,7 +229,7 @@ extension BrowserWindowController {
     func addSpace() {
         let used = Set(library.spaces.map(\.colorHex))
         let color = spaceColorPresets.first { !used.contains($0) } ?? spaceColorPresets[library.spaces.count % spaceColorPresets.count]
-        let space = library.addSpace(name: "Neuer Space", icon: "star.fill", colorHex: color, profileID: state.space.profileID)
+        let space = library.addSpace(name: L("Neuer Space"), icon: "star.fill", colorHex: color, profileID: state.space.profileID)
         switchSpace(to: space)
         state.editingSpaceID = space.id
     }
@@ -236,10 +237,10 @@ extension BrowserWindowController {
     func deleteSpace(_ space: Space) {
         guard library.spaces.count > 1 else { return }
         let alert = NSAlert()
-        alert.messageText = "Space „\(space.name)“ löschen?"
+        alert.messageText = L("Space „%@“ löschen?", space.name)
         alert.informativeText = deleteSpaceMessage(space)
-        alert.addButton(withTitle: "Löschen")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.addButton(withTitle: L("Löschen"))
+        alert.addButton(withTitle: L("Abbrechen"))
         alert.buttons[0].hasDestructiveAction = true
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         removeSpace(space)
@@ -250,19 +251,27 @@ extension BrowserWindowController {
         let pinned = space.pinned.allTabs.count, open = space.today.allTabs.count
         let folders = space.pinned.allItems.filter { $0.kind == .folder }.count
         let chats = (space.pinned.allItems + space.today.allItems).filter { $0.kind == .agent }.count
-        func tabs(_ count: Int) -> String { count == 1 ? "1 Tab" : "\(count) Tabs" }
+        func tabs(_ count: Int) -> String { Localization.count(count, one: "1 Tab", other: "%lld Tabs") }
         var parts: [String] = []
         if pinned + open == 0 {
-            parts.append("Der Space hat keine Tabs.")
+            parts.append(L("Der Space hat keine Tabs."))
         } else {
             var what: [String] = []
-            if pinned > 0 { what.append("\(tabs(pinned)) angeheftet" + (folders > 0 ? " (in \(folders == 1 ? "1 Ordner" : "\(folders) Ordnern"))" : "")) }
-            if open > 0 { what.append("\(tabs(open)) offen") }
-            parts.append("\(what.joined(separator: ", ")): sie kommen ins Archiv (Bibliothek › Archiv, ⇧⌘T), von wo du sie wieder öffnen kannst. Die Ordner gehen verloren.")
+            if pinned > 0 {
+                let folderText = folders == 1 ? L("1 Ordner") : L("%lld Ordnern", folders)
+                what.append(folders > 0 ? L("%@ angeheftet (in %@)", tabs(pinned), folderText)
+                                        : L("%@ angeheftet", tabs(pinned)))
+            }
+            if open > 0 { what.append(L("%@ offen", tabs(open))) }
+            parts.append(L("%@: sie kommen ins Archiv (Bibliothek › Archiv, ⇧⌘T), von wo du sie wieder öffnen kannst. Die Ordner gehen verloren.",
+                           what.joined(separator: L(", "))))
         }
-        if chats > 0 { parts.append(chats == 1 ? "1 Agent-Chat wird gelöscht." : "\(chats) Agent-Chats werden gelöscht.") }
+        if chats > 0 {
+            parts.append(Localization.count(chats, one: "1 Agent-Chat wird gelöscht.",
+                                            other: "%lld Agent-Chats werden gelöscht."))
+        }
         let profile = library.profile(id: space.profileID).name
-        parts.append("Das Profil „\(profile)“ mit seinen Logins und Cookies bleibt.")
+        parts.append(L("Das Profil „%@“ mit seinen Logins und Cookies bleibt.", profile))
         return parts.joined(separator: " ")
     }
 

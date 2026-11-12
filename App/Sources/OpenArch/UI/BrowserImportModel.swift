@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import Observation
 import UniformTypeIdentifiers
 
@@ -14,9 +15,9 @@ final class BrowserImportModel {
 
         var title: String {
             switch self {
-            case .bookmarks: "Lesezeichen"
-            case .history: "Verlauf"
-            case .logins: "Logins und Passwörter"
+            case .bookmarks: L("Lesezeichen")
+            case .history: L("Verlauf")
+            case .logins: L("Logins und Passwörter")
             }
         }
     }
@@ -129,15 +130,15 @@ final class BrowserImportModel {
         let names = installs.map(\.name).joined(separator: ", ")
         let services = Set(installs.compactMap(\.safeStorage)).sorted().map { "„\($0)“" }.joined(separator: ", ")
         let alert = NSAlert()
-        alert.messageText = "Logins und Passwörter übernehmen?"
-        alert.informativeText = """
-            Lesezeichen und Verlauf sind schon da. Für Logins, Cookies und Passwörter aus \(names) startet OpenArch neu; \
-            \(names) muss dafür beendet sein. macOS fragt dann einmal nach dem Zugriff auf \(services) im Schlüsselbund: \
+        alert.messageText = L("Logins und Passwörter übernehmen?")
+        alert.informativeText = L("""
+            Lesezeichen und Verlauf sind schon da. Für Logins, Cookies und Passwörter aus %@ startet OpenArch neu; \
+            %@ muss dafür beendet sein. macOS fragt dann einmal nach dem Zugriff auf %@ im Schlüsselbund: \
             Mit diesem Schlüssel verschlüsselt der Browser seine Logins. OpenArch liest ihn nur, um sie mit dem eigenen \
             Schlüssel neu zu verschlüsseln. Der andere Browser bleibt unverändert.
-            """
-        alert.addButton(withTitle: "Neu starten und übernehmen")
-        alert.addButton(withTitle: "Ohne Logins")
+            """, names, names, services)
+        alert.addButton(withTitle: L("Neu starten und übernehmen"))
+        alert.addButton(withTitle: L("Ohne Logins"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         for install in installs where !app.quitAppIfNeeded(bundleIDs: install.bundleIDs, name: install.name) {
             return
@@ -150,7 +151,7 @@ final class BrowserImportModel {
     /// A bookmarks HTML file, into a space of its own on the current space's profile.
     func importBookmarksFile(app: AppDelegate) {
         let panel = NSOpenPanel()
-        panel.message = "Wähle eine Lesezeichen-Datei (HTML), wie Safari, Chrome, Firefox oder Edge sie exportieren."
+        panel.message = L("Wähle eine Lesezeichen-Datei (HTML), wie Safari, Chrome, Firefox oder Edge sie exportieren.")
         panel.allowedContentTypes = [.html]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -178,7 +179,7 @@ final class BrowserImportModel {
     /// next launch, before Chromium starts.
     func importPasswordFile(app: AppDelegate, profileID: String) {
         let panel = NSOpenPanel()
-        panel.message = "Wähle die exportierte Passwort-Datei (CSV) aus Chrome, Firefox, Safari, 1Password oder Bitwarden."
+        panel.message = L("Wähle die exportierte Passwort-Datei (CSV) aus Chrome, Firefox, Safari, 1Password oder Bitwarden.")
         panel.allowedContentTypes = [.commaSeparatedText, .plainText]
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -191,15 +192,15 @@ final class BrowserImportModel {
         }
         let profileName = app.library.profiles.first { $0.id == profileID }?.name ?? profileID
         let alert = NSAlert()
-        alert.messageText = "\(file.logins.count) Passwörter übernehmen?"
-        var details = ["Erkannt: Export aus \(file.format.rawValue). Ziel: Profil „\(profileName)“."]
-        if file.duplicates > 0 { details.append("\(file.duplicates) doppelte Einträge werden ausgelassen.") }
-        if file.incomplete > 0 { details.append("\(file.incomplete) Zeilen ohne Adresse oder Passwort werden ausgelassen.") }
-        if file.notWebsite > 0 { details.append("\(file.notWebsite) Einträge sind keine Website-Logins und werden ausgelassen.") }
-        details.append("Dafür startet OpenArch neu. Die Datei liest OpenArch beim Start noch einmal und lässt sie, wie sie ist; lösche sie danach selbst, denn sie enthält deine Passwörter im Klartext.")
+        alert.messageText = L("%lld Passwörter übernehmen?", file.logins.count)
+        var details = [L("Erkannt: Export aus %@. Ziel: Profil „%@“.", file.format.rawValue, profileName)]
+        if file.duplicates > 0 { details.append(L("%lld doppelte Einträge werden ausgelassen.", file.duplicates)) }
+        if file.incomplete > 0 { details.append(L("%lld Zeilen ohne Adresse oder Passwort werden ausgelassen.", file.incomplete)) }
+        if file.notWebsite > 0 { details.append(L("%lld Einträge sind keine Website-Logins und werden ausgelassen.", file.notWebsite)) }
+        details.append(L("Dafür startet OpenArch neu. Die Datei liest OpenArch beim Start noch einmal und lässt sie, wie sie ist; lösche sie danach selbst, denn sie enthält deine Passwörter im Klartext."))
         alert.informativeText = details.joined(separator: "\n")
-        alert.addButton(withTitle: "Neu starten und übernehmen")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.addButton(withTitle: L("Neu starten und übernehmen"))
+        alert.addButton(withTitle: L("Abbrechen"))
         guard !file.logins.isEmpty, alert.runModal() == .alertFirstButtonReturn else { return }
         CredentialImport.scheduleAndRelaunch([CredentialImport.Job(kind: .passwordFile, source: url.path, safeStorage: nil,
                                                                    name: url.lastPathComponent, targetProfile: profileID)])

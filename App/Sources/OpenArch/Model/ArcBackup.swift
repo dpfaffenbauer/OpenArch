@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// "Arc-Daten sichern": Arc's own JSON files (the sidebar, spaces, settings)
 /// and its `Local State` (profiles) as one zip file in ~/Documents. Arc ends

@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 import UniformTypeIdentifiers
@@ -196,7 +197,7 @@ private struct MediaCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(showHelp)
+            .help(L(showHelp))
             if expanded {
                 if let tab, media.video {
                     IconButton(symbol: media.pip ? "pip.exit" : "pip.enter", help: "Bild-in-Bild", size: 12) {
@@ -221,7 +222,7 @@ private struct MediaCard: View {
 
     private func controls(_ media: MediaState) -> some View {
         HStack(spacing: 0) {
-            IconButton(symbol: "arrow.up.right", help: showHelp, size: 11) {
+            IconButton(symbol: "arrow.up.right", help: L(showHelp), size: 11) {
                 show()
             }
             Spacer(minLength: 0)
@@ -380,7 +381,7 @@ private struct PlayPauseButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(playing ? "Pause" : "Abspielen")
+        .help(L(playing ? "Pause" : "Abspielen"))
     }
 }
 
@@ -484,11 +485,11 @@ private struct ScreenShareCard: View {
     @State private var hovering = false
 
     private var what: String {
-        if let shared { return "Du teilst „\(shared.displayTitle)“" }
+        if let shared { return L("Du teilst „%@“", shared.displayTitle) }
         switch sharer.screenShare?.surface {
-        case "browser": return "Du teilst einen Tab"
-        case "window": return "Du teilst ein Fenster"
-        default: return "Du teilst deinen Bildschirm"
+        case "browser": return L("Du teilst einen Tab")
+        case "window": return L("Du teilst ein Fenster")
+        default: return L("Du teilst deinen Bildschirm")
         }
     }
 
@@ -511,11 +512,11 @@ private struct ScreenShareCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(shared != nil ? "Zum geteilten Tab" : "Zum Tab, der teilt")
+            .help(L(shared != nil ? "Zum geteilten Tab" : "Zum Tab, der teilt"))
             if shared != nil, browser.state.activeItem !== sharer {
-                IconButton(symbol: "video.fill", help: "Zum Tab, der teilt") { browser.select(sharer) }
+                IconButton(symbol: "video.fill", help: L("Zum Tab, der teilt")) { browser.select(sharer) }
             }
-            IconButton(symbol: "stop.fill", help: "Teilen beenden") { browser.stopScreenShare(sharer) }
+            IconButton(symbol: "stop.fill", help: L("Teilen beenden")) { browser.stopScreenShare(sharer) }
         }
         .padding(.leading, 10)
         .padding(.trailing, 4)
@@ -581,7 +582,7 @@ private struct ChecksMark: View {
             }
         }
         .font(.system(size: 11, weight: .semibold))
-        .help(checks.label.isEmpty ? "Checks" : checks.label)
+        .help(checks.label.isEmpty ? L("Checks") : L(checks.label))
     }
 }
 
@@ -728,7 +729,7 @@ struct IconButton: View {
         .buttonStyle(.plain)
         .opacity(isEnabled ? 0.75 : 0.3)
         .onHover { hovering = $0 }
-        .help(help)
+        .help(L(help))
     }
 }
 
@@ -744,7 +745,7 @@ private struct AddressPill: View {
             if let url, url.scheme == "https" {
                 Image(systemName: "lock.fill").font(.system(size: 9)).opacity(0.5)
             }
-            Text(url.map(displayHost) ?? "Suchen oder URL eingeben")
+            Text(url.map(displayHost) ?? L("Suchen oder URL eingeben"))
                 .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
                 .opacity(url == nil ? 0.55 : 0.9)
@@ -1026,7 +1027,7 @@ private struct FolderRow: View {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 9, weight: .semibold))
                     .opacity(0.55)
-                    .help(Sharing.shared.subscription(item.id) != nil ? "Geteilt mit dir" : "Geteilt")
+                    .help(L(Sharing.shared.subscription(item.id) != nil ? "Geteilt mit dir" : "Geteilt"))
             }
             if item.liveStatus == .loading {
                 ProgressView().controlSize(.mini).opacity(0.6)
@@ -1108,7 +1109,7 @@ private struct LiveFolderStatus: View {
             EmptyView()
         case nil:
             if folder.children.isEmpty {
-                Text(folder.live?.kind == .issues ? "Keine offenen Issues" : "Keine offenen Pull Requests")
+                Text(L(folder.live?.kind == .issues ? "Keine offenen Issues" : "Keine offenen Pull Requests"))
                     .font(.system(size: 12.5))
                     .opacity(0.5)
                     .padding(.leading, 10 + CGFloat(depth) * 16)
@@ -1120,7 +1121,7 @@ private struct LiveFolderStatus: View {
     private func row(symbol: String, text: String, action: @escaping () -> Void) -> some View {
         HStack(spacing: 10) {
             Image(systemName: symbol).font(.system(size: 13)).frame(width: 16)
-            Text(text).font(.system(size: 13))
+            Text(L(text)).font(.system(size: 13))
             Spacer(minLength: 2)
         }
         .opacity(0.75)
@@ -1145,7 +1146,7 @@ private struct TabRow: View {
         HStack(spacing: 10) {
             FaviconView(item: item, size: 16)
                 .opacity(item.isAsleep ? 0.5 : 1)
-                .help(item.isAsleep ? "Schläft: lädt neu, wenn du den Tab öffnest" : "")
+                .help(L(item.isAsleep ? "Schläft: lädt neu, wenn du den Tab öffnest" : ""))
             AudioButton(browser: browser, item: item)
             ScreenShareMark(browser: browser, item: item)
             if item.hasNavigatedAway {
@@ -1313,9 +1314,9 @@ private struct SelectionContextMenu: View {
     var body: some View {
         let items = browser.selectedItems
         let tabs = browser.selectedTabs.count
-        Text(items.count == 1 ? "1 Zeile ausgewählt" : "\(items.count) Zeilen ausgewählt")
+        Text(Localization.count(items.count, one: "1 Zeile ausgewählt", other: "%lld Zeilen ausgewählt"))
         if !browser.isStandalone {
-            Button(tabs == 1 ? "Neuer Ordner mit 1 Tab" : "Neuer Ordner mit \(tabs) Tabs") { browser.newFolderWithSelection() }
+            Button(Localization.count(tabs, one: "Neuer Ordner mit 1 Tab", other: "Neuer Ordner mit %lld Tabs")) { browser.newFolderWithSelection() }
         }
         Button("URLs kopieren (⇧⌘C)") { browser.copySelectedURLs() }.disabled(tabs == 0)
         if !browser.isStandalone {
@@ -1339,7 +1340,7 @@ private struct TabContextMenu: View {
     var body: some View {
         Button("Neu laden") { item.pane?.reload() }.disabled(item.pane == nil)
         if item.isAudible || item.isMuted {
-            Button(item.isMuted ? "Ton einschalten" : "Stummschalten") { browser.toggleMute(item) }
+            Button(L(item.isMuted ? "Ton einschalten" : "Stummschalten")) { browser.toggleMute(item) }
         }
         Button("Duplizieren") { browser.duplicate(item) }
         Button("Umbenennen") { browser.state.renamingItemID = item.id }
@@ -1367,7 +1368,7 @@ private struct TabContextMenu: View {
         if let split = item.split {
             Button("Split View aufheben") { browser.unsplit(item) }
             Button("Seiten tauschen (⌃⇧S)") { browser.swapSplit(split) }
-            Button(split.splitStacked ? "Nebeneinander anzeigen" : "Übereinander anzeigen") {
+            Button(L(split.splitStacked ? "Nebeneinander anzeigen" : "Übereinander anzeigen")) {
                 browser.setSplitStacked(split, !split.splitStacked)
             }
         } else {
@@ -1390,7 +1391,7 @@ private struct TabContextMenu: View {
             }
         }
         Divider()
-        Button(item.role == .today ? "Schließen" : "Entladen") { browser.close(item) }
+        Button(L(item.role == .today ? "Schließen" : "Entladen")) { browser.close(item) }
             .disabled(item.role != .today && item.pane == nil)
         if item.role == .pinned {
             Button("Löschen") { browser.deletePinned(item) }
@@ -1516,7 +1517,7 @@ private struct SpaceBar: View {
                 }
                 Menu("GitHub-Live-Ordner") {
                     Button("Meine Pull Requests") { browser.newLiveFolder(.myPullRequests, name: "Meine Pull Requests") }
-                    Button("Reviews für mich") { browser.newLiveFolder(.reviewRequests, name: "Reviews für mich") }
+                    Button("Reviews für mich") { browser.newLiveFolder(.reviewRequests, name: L("Reviews für mich")) }
                     Button("Meine Issues") { browser.newLiveFolder(.myIssues, name: "Meine Issues") }
                 }
                 Divider()
@@ -1590,7 +1591,7 @@ private struct AgentsSpaceButton: View {
             .contentShape(Circle())
             .onTapGesture { browser.toggleAgents() }
             .onHover { hovering = $0 }
-            .help(waiting > 0 ? "Agents (⌃0): \(waiting) warten auf dich" : "Agents (⌃0)")
+            .help(waiting > 0 ? L("Agents (⌃0): %lld warten auf dich", waiting) : L("Agents (⌃0)"))
     }
 }
 
@@ -1660,8 +1661,8 @@ private struct UnreadDot: View {
     var body: some View {
         Circle().fill(theme.foreground)
             .frame(width: 7, height: 7)
-            .help(count == 1 ? "1 ungelesen" : "\(count) ungelesen")
-            .accessibilityLabel("\(count) ungelesen")
+            .help(Localization.count(count, one: "1 ungelesen", other: "%lld ungelesen"))
+            .accessibilityLabel(Localization.count(count, one: "1 ungelesen", other: "%lld ungelesen"))
     }
 }
 
@@ -1733,7 +1734,7 @@ private struct SmallButton: View {
         .buttonStyle(.plain)
         .opacity(0.7)
         .onHover { hovering = $0 }
-        .help(help)
+        .help(L(help))
     }
 }
 
@@ -1803,7 +1804,7 @@ private struct AudioButton: View {
             }
             .buttonStyle(.plain)
             .onHover { hovering = $0 }
-            .help(item.isMuted ? "Ton einschalten" : "Stummschalten")
+            .help(L(item.isMuted ? "Ton einschalten" : "Stummschalten"))
         }
     }
 }

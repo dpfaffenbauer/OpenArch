@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import CommonCrypto
 import Foundation
 import SQLite3
@@ -217,17 +218,16 @@ enum CredentialImport {
                     guard let service = job.safeStorage else { continue }
                     let key = try ArcProfileImport.keychainKey(service: service)
                     let summary = mergeProfile(from: URL(fileURLWithPath: job.source), key: key, into: target, template: template)
-                    lines.append("""
-                        \(job.name): \(summary.cookies) Cookies (Logins) und \(summary.passwords) Passwörter übernommen.\
-                        \(summary.undecryptable > 0 ? " \(summary.undecryptable) Werte ließen sich nicht entschlüsseln." : "")
-                        """)
+                    lines.append(L("%@: %lld Cookies (Logins) und %lld Passwörter übernommen.%@", job.name, summary.cookies,
+                                summary.passwords,
+                                summary.undecryptable > 0 ? L(" %lld Werte ließen sich nicht entschlüsseln.", summary.undecryptable) : ""))
                 case .passwordFile:
                     let file = try PasswordFile.read(URL(fileURLWithPath: job.source))
                     let (added, existing) = insertLogins(file.logins, into: target, template: template)
-                    lines.append("\(job.name): \(added) Passwörter übernommen\(existing > 0 ? ", \(existing) waren schon gespeichert" : "").")
+                    lines.append(L("%@: %lld Passwörter übernommen%@.", job.name, added, existing > 0 ? L(", %lld waren schon gespeichert", existing) : ""))
                 }
             } catch {
-                lines.append("\(job.name): \(error.localizedDescription)")
+                lines.append(L("%@: %@", job.name, error.localizedDescription))
             }
         }
         UserDefaults.standard.set(lines.joined(separator: "\n"), forKey: resultKey)

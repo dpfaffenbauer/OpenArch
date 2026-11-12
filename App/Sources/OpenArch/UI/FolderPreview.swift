@@ -1,3 +1,4 @@
+import OpenArchLocalization
 import SwiftUI
 
 /// Resting the pointer on a closed folder shows its tabs beside it, as in
@@ -69,7 +70,7 @@ struct FolderPreviewView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").font(.system(size: 11, weight: .medium)).opacity(0.5)
-                TextField("\(folder.displayTitle) durchsuchen", text: $query)
+                TextField(L("%@ durchsuchen", folder.displayTitle), text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12.5))
                     .focused($searchFocused)
@@ -81,7 +82,7 @@ struct FolderPreviewView: View {
             .frame(height: 32)
             Divider()
             if shown.isEmpty {
-                Text(entries.isEmpty ? "Der Ordner ist leer" : "Nichts gefunden")
+                Text(L(entries.isEmpty ? "Der Ordner ist leer" : "Nichts gefunden"))
                     .font(.system(size: 12))
                     .opacity(0.5)
                     .frame(maxWidth: .infinity, minHeight: 44)

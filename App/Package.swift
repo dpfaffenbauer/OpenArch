@@ -19,6 +19,7 @@ let package = Package(
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(path: "../Shared"),
+        .package(path: "../Localization"),
     ],
     targets: [
         .target(
@@ -32,7 +33,9 @@ let package = Package(
         ),
         .executableTarget(
             name: "OpenArch",
-            dependencies: ["OpenArchCore", .product(name: "OpenArchShared", package: "Shared")],
+            dependencies: ["OpenArchCore",
+                           .product(name: "OpenArchLocalization", package: "Localization"),
+                           .product(name: "OpenArchShared", package: "Shared")],
             linkerSettings: [
                 .linkedLibrary("sqlite3"),
                 // Apple's on-device model (macOS 26 and later); OpenArch still starts on macOS 15.

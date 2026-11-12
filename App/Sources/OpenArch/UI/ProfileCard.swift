@@ -1,3 +1,4 @@
+import OpenArchLocalization
 import SwiftUI
 
 /// Over a space's name: the profile it uses and the Google account signed
@@ -13,11 +14,11 @@ struct ProfileCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Circle().fill(Color(nsColor: library.color(for: profile))).frame(width: 10, height: 10)
-                Text("Profil: \(profile.name)").font(.system(size: 13, weight: .semibold))
+                Text(L("Profil: %@", profile.name)).font(.system(size: 13, weight: .semibold))
             }
             account(GoogleAccounts.shared.state(for: profile.id))
             if !others.isEmpty {
-                Text("Auch in: \(others.joined(separator: ", "))")
+                Text(L("Auch in: %@", others.joined(separator: ", ")))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }
         }

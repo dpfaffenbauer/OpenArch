@@ -1,7 +1,13 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 
 setvbuf(stdout, nil, _IOLBF, 0)
+
+// Before AppKit or SwiftUI reads a localized string: apply the saved
+// language choice to the bundle. A change in Settings takes effect on the
+// next launch, which Settings explains.
+Localization.bootstrap()
 
 let arguments = CommandLine.arguments
 AppPaths.isSelfTest = arguments.contains("--selftest")

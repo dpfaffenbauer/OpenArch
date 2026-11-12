@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 import SwiftUI
 
@@ -323,6 +324,6 @@ private struct PeekButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(help)
+        .help(L(help))
     }
 }

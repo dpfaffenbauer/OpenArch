@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 
 /// A Google account signed in to a profile. It stays on this Mac.
@@ -88,7 +89,7 @@ final class GoogleSignInWindow: NSObject, NSWindowDelegate, OACPaneDelegate {
                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
         pane = OACPane(profile: profile.chromium, url: Self.signInURL)
         super.init()
-        window.title = "Bei Google anmelden · \(profile.name)"
+        window.title = L("Bei Google anmelden · %@", profile.name)
         window.isReleasedWhenClosed = false
         window.delegate = self
         window.level = parent.level

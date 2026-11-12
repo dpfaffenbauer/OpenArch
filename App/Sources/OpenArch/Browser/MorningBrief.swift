@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 
 /// The morning brief (Settings › KI): once a day at the chosen time, or at
 /// the first launch after it, Claude Code writes a page about the day
@@ -80,8 +81,8 @@ final class MorningBrief {
         isRunning = true
         Self.lastDay = Self.day(now)
         if manual {
-            try? Self.statusPage("Dein Morning Brief entsteht …",
-                                 "Claude Code schaut mit deinen Connectors in Kalender, Mails, Chats und Aufgaben. Das dauert meist ein, zwei Minuten; die Seite lädt dann von selbst neu.",
+            try? Self.statusPage(L("Dein Morning Brief entsteht …"),
+                                 L("Claude Code schaut mit deinen Connectors in Kalender, Mails, Chats und Aufgaben. Das dauert meist ein, zwei Minuten; die Seite lädt dann von selbst neu."),
                                  working: true)
                 .write(to: file, atomically: true, encoding: .utf8)
             show(file, in: space, of: browser, select: true)
@@ -158,17 +159,17 @@ final class MorningBrief {
 
     private static func problemPage(_ outcome: ClaudeRun.Outcome) -> String? {
         if outcome.isMissing {
-            return statusPage("Claude Code wurde nicht gefunden.",
-                              "Der Morning Brief braucht Claude Code auf diesem Mac. Installiere es (claude.ai/code) und melde dich einmal im Terminal mit „claude“ an. Danach in der Befehlsleiste: „Morning Brief jetzt erstellen“.")
+            return statusPage(L("Claude Code wurde nicht gefunden."),
+                              L("Der Morning Brief braucht Claude Code auf diesem Mac. Installiere es (claude.ai/code) und melde dich einmal im Terminal mit „claude“ an. Danach in der Befehlsleiste: „Morning Brief jetzt erstellen“."))
         }
         guard let error = outcome.error else { return nil }
         if outcome.needsLogin {
-            return statusPage("Claude Code ist nicht angemeldet.",
-                              "Öffne das Terminal, starte „claude“ und melde dich an. Danach in der Befehlsleiste: „Morning Brief jetzt erstellen“.",
+            return statusPage(L("Claude Code ist nicht angemeldet."),
+                              L("Öffne das Terminal, starte „claude“ und melde dich an. Danach in der Befehlsleiste: „Morning Brief jetzt erstellen“."),
                               detail: error)
         }
-        return statusPage("Der Morning Brief ließ sich nicht erstellen.",
-                          "Claude Code meldet einen Fehler. In der Befehlsleiste versucht „Morning Brief jetzt erstellen“ es noch einmal.",
+        return statusPage(L("Der Morning Brief ließ sich nicht erstellen."),
+                          L("Claude Code meldet einen Fehler. In der Befehlsleiste versucht „Morning Brief jetzt erstellen“ es noch einmal."),
                           detail: error)
     }
 
@@ -231,7 +232,7 @@ final class MorningBrief {
     static func prompt(now: Date) -> String {
         let template = (try? String(contentsOf: promptFile, encoding: .utf8))
             ?? Bundle.main.url(forResource: "MorningBrief", withExtension: "md").flatMap { try? String(contentsOf: $0, encoding: .utf8) }
-            ?? "Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite."
+            ?? L("Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite.")
         let date = DateFormatter()
         date.locale = Locale(identifier: "de_DE")
         date.dateFormat = "EEEE, d. MMMM yyyy"

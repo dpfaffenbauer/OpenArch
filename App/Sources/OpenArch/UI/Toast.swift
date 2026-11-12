@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import SwiftUI
 
 /// A button in a toast ("Rückgängig"): the toast then stays a while longer.
@@ -84,9 +85,9 @@ private struct ToastView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Label(text, systemImage: symbol)
+            Label(L(text), systemImage: symbol)
             if let action {
-                Button(action.title) { action.handler() }
+                Button(L(action.title)) { action.handler() }
                     .buttonStyle(.plain)
                     .padding(.horizontal, 10)
                     .frame(height: 24)
@@ -99,7 +100,7 @@ private struct ToastView: View {
                         .background(Circle().fill(Color.white.opacity(0.2)))
                 }
                 .buttonStyle(.plain)
-                .help("Schließen")
+                .help(L("Schließen"))
             }
         }
         .font(.system(size: 13, weight: .semibold))

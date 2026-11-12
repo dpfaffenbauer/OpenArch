@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import SwiftUI
 
 /// Arc's Site Control Center: what the site in front may do, its zoom, its
@@ -54,7 +55,7 @@ struct SiteControls: View {
                 Text(URL(string: item.currentURL)?.host() ?? item.displayTitle)
                     .font(.system(size: 14, weight: .semibold)).lineLimit(1)
                 if web {
-                    Label(secure ? "Verbindung ist sicher" : "Verbindung ist nicht sicher",
+                    Label(L(secure ? "Verbindung ist sicher" : "Verbindung ist nicht sicher"),
                           systemImage: secure ? "lock.fill" : "exclamationmark.triangle.fill")
                         .font(.system(size: 11.5))
                         .foregroundStyle(secure ? Color.secondary : Color.orange)
@@ -103,7 +104,7 @@ struct SiteControls: View {
             .frame(height: 26)
             if isWebKit {
                 let service = (item.pane as? WebKitPage)?.serviceName ?? ""
-                Text("\(service.isEmpty ? "Diese Seite" : service) spielt geschützte Videos und Musik nur mit Apples FairPlay, darum läuft sie mit Safaris Engine. Chrome-Erweiterungen und Chromes DevTools gibt es hier nicht (⌥⌘I öffnet den Web Inspector), und Logins aus Chromium gelten hier nicht: Du meldest dich einmal neu an.")
+                Text(L("%@ spielt geschützte Videos und Musik nur mit Apples FairPlay, darum läuft sie mit Safaris Engine. Chrome-Erweiterungen und Chromes DevTools gibt es hier nicht (⌥⌘I öffnet den Web Inspector), und Logins aus Chromium gelten hier nicht: Du meldest dich einmal neu an.", service.isEmpty ? L("Diese Seite") : service))
                     .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -153,7 +154,7 @@ struct SiteControls: View {
             .confirmationDialog("Cookies und gespeicherte Daten dieser Website löschen?", isPresented: $confirmingClear) {
                 Button("Löschen", role: .destructive, action: clearData)
             } message: {
-                Text("Du wirst auf \(URL(string: item.currentURL)?.host() ?? "der Website") abgemeldet. Die Seite lädt danach neu.")
+                Text(L("Du wirst auf %@ abgemeldet. Die Seite lädt danach neu.", URL(string: item.currentURL)?.host() ?? L("der Website")))
             }
         }
     }
@@ -210,15 +211,15 @@ struct SitePermission: Identifiable {
     var id: Int { kind.rawValue }
 
     static let all: [SitePermission] = [
-        SitePermission(kind: .camera, title: "Kamera", symbol: "camera", defaultTitle: "Fragen"),
-        SitePermission(kind: .microphone, title: "Mikrofon", symbol: "mic", defaultTitle: "Fragen"),
-        SitePermission(kind: .location, title: "Standort", symbol: "location", defaultTitle: "Fragen"),
-        SitePermission(kind: .notifications, title: "Mitteilungen", symbol: "bell", defaultTitle: "Fragen"),
-        SitePermission(kind: .popups, title: "Pop-ups", symbol: "macwindow.on.rectangle", defaultTitle: "Blockieren", canAsk: false),
-        SitePermission(kind: .sound, title: "Ton", symbol: "speaker.wave.2", defaultTitle: "Erlauben", canAsk: false),
-        SitePermission(kind: .automaticDownloads, title: "Mehrere Downloads", symbol: "arrow.down.circle", defaultTitle: "Fragen"),
-        SitePermission(kind: .clipboard, title: "Zwischenablage", symbol: "doc.on.clipboard", defaultTitle: "Fragen"),
-        SitePermission(kind: .javaScript, title: "JavaScript", symbol: "curlybraces", defaultTitle: "Erlauben", canAsk: false),
+        SitePermission(kind: .camera, title: L("Kamera"), symbol: "camera", defaultTitle: L("Fragen")),
+        SitePermission(kind: .microphone, title: L("Mikrofon"), symbol: "mic", defaultTitle: L("Fragen")),
+        SitePermission(kind: .location, title: L("Standort"), symbol: "location", defaultTitle: L("Fragen")),
+        SitePermission(kind: .notifications, title: L("Mitteilungen"), symbol: "bell", defaultTitle: L("Fragen")),
+        SitePermission(kind: .popups, title: L("Pop-ups"), symbol: "macwindow.on.rectangle", defaultTitle: L("Blockieren"), canAsk: false),
+        SitePermission(kind: .sound, title: L("Ton"), symbol: "speaker.wave.2", defaultTitle: L("Erlauben"), canAsk: false),
+        SitePermission(kind: .automaticDownloads, title: L("Mehrere Downloads"), symbol: "arrow.down.circle", defaultTitle: L("Fragen")),
+        SitePermission(kind: .clipboard, title: L("Zwischenablage"), symbol: "doc.on.clipboard", defaultTitle: L("Fragen")),
+        SitePermission(kind: .javaScript, title: L("JavaScript"), symbol: "curlybraces", defaultTitle: L("Erlauben"), canAsk: false),
     ]
 }
 
@@ -232,7 +233,7 @@ private struct PermissionRow: View {
             Text(permission.title).font(.system(size: 13))
             Spacer()
             Picker("", selection: $value) {
-                Text("Standard (\(permission.defaultTitle))").tag(OACPermissionValue.default)
+                Text(L("Standard (%@)", permission.defaultTitle)).tag(OACPermissionValue.default)
                 Divider()
                 if permission.canAsk { Text("Fragen").tag(OACPermissionValue.ask) }
                 Text("Erlauben").tag(OACPermissionValue.allow)
@@ -258,7 +259,7 @@ private struct ActionRow: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: symbol).frame(width: 20)
-                Text(title).font(.system(size: 13))
+                Text(L(title)).font(.system(size: 13))
                 Spacer()
             }
             .foregroundStyle(isDestructive ? Color.red : Color.primary)

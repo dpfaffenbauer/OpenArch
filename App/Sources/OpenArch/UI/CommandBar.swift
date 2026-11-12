@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 
@@ -197,11 +198,11 @@ final class CommandBarModel {
     }
 
     var placeholder: String {
-        if let site { return "\(site.name) durchsuchen …" }
+        if let site { return L("%@ durchsuchen", site.name) }
         return switch mode {
-        case .newTab: "Suchen oder URL eingeben …"
-        case .editURL: "URL bearbeiten …"
-        case .newSplit: "Neben dem aktuellen Tab öffnen …"
+        case .newTab: L("Suchen oder URL eingeben …")
+        case .editURL: L("URL bearbeiten …")
+        case .newSplit: L("Neben dem aktuellen Tab öffnen …")
         }
     }
 
@@ -313,7 +314,7 @@ final class CommandBarModel {
             completion = nil
             for create in creates.prefix(4) {
                 results.append(CommandResult(id: "create:\(create.url)", icon: .url(create.icon), title: create.title,
-                                             subtitle: Self.shortURL(create.url), badge: "Erstellen",
+                                             subtitle: Self.shortURL(create.url), badge: L("Erstellen"),
                                              action: { [unowned self] in self.open(create.url) }))
                 seenURLs.insert(create.url)
             }
@@ -342,8 +343,8 @@ final class CommandBarModel {
             results.append(agent)
         }
         if let candidate = siteCandidate(text) {
-            results.append(CommandResult(id: "site:\(candidate.id)", icon: .url(candidate.url), title: "\(candidate.name) durchsuchen",
-                                         subtitle: candidate.keyword.isEmpty ? nil : "Kürzel: \(candidate.keyword)", badge: "Tab",
+            results.append(CommandResult(id: "site:\(candidate.id)", icon: .url(candidate.url), title: L("%@ durchsuchen", candidate.name),
+                                         subtitle: candidate.keyword.isEmpty ? nil : L("Kürzel: %@", candidate.keyword), badge: L("Tab"),
                                          action: { [unowned self] in self.enterSite(candidate) }))
         }
 
@@ -354,7 +355,7 @@ final class CommandBarModel {
         }
         for chat in matchingAgentChats(text).prefix(3) {
             results.append(CommandResult(id: "tab:\(chat.id)", icon: .symbol("sparkles"), title: chat.displayTitle,
-                                         subtitle: "Agent-Chat", badge: "Zum Chat wechseln",
+                                         subtitle: L("Agent-Chat"), badge: L("Zum Chat wechseln"),
                                          action: { [unowned self] in self.browser.select(chat) }))
         }
 
@@ -378,7 +379,7 @@ final class CommandBarModel {
         for tab in archived.prefix(2) {
             seenURLs.insert(tab.url)
             results.append(CommandResult(id: "archive:\(tab.url)", icon: .url(tab.url), title: tab.title,
-                                         subtitle: "Archiviert · " + Self.shortURL(tab.url),
+                                         subtitle: L("Archiviert · %@", Self.shortURL(tab.url)),
                                          action: { [unowned self] in self.open(tab.url) }))
         }
 
@@ -394,7 +395,7 @@ final class CommandBarModel {
     private func siteResults(_ site: SiteSearch, _ text: String) -> [CommandResult] {
         guard !text.isEmpty else { return [] }
         var results = [CommandResult(id: "sitesearch:\(text)", icon: .url(site.url), title: text,
-                                     subtitle: "\(site.name) durchsuchen",
+                                     subtitle: L("%@ durchsuchen", site.name),
                                      action: { [unowned self] in self.open(site.url(for: text)) })]
         let host = site.host.replacingOccurrences(of: "www.", with: "")
         for entry in browser.history.search(text, limit: 20) where !host.isEmpty && entry.url.contains(host) {
@@ -406,7 +407,7 @@ final class CommandBarModel {
         }
         for suggestion in suggestions.prefix(5) where suggestion.lowercased() != text.lowercased() {
             results.append(CommandResult(id: "sitesearch:\(suggestion)", icon: .symbol("magnifyingglass"), title: suggestion,
-                                         subtitle: "\(site.name) durchsuchen",
+                                         subtitle: L("%@ durchsuchen", site.name),
                                          action: { [unowned self] in self.open(site.url(for: suggestion)) }))
         }
         return results
@@ -414,9 +415,9 @@ final class CommandBarModel {
 
     private var modeVerb: String {
         switch mode {
-        case .newTab: "In neuem Tab öffnen"
-        case .editURL: "Öffnen"
-        case .newSplit: "In Split View öffnen"
+        case .newTab: L("In neuem Tab öffnen")
+        case .editURL: L("Öffnen")
+        case .newSplit: L("In Split View öffnen")
         }
     }
 
@@ -424,7 +425,7 @@ final class CommandBarModel {
     private func askResult(_ text: String) -> CommandResult? {
         let chat = browser.library.settings.askAI
         guard let url = chat.url(for: text) else { return nil }
-        return CommandResult(id: "ask:\(text)", icon: .url(url), title: text, subtitle: "\(chat.name) fragen",
+        return CommandResult(id: "ask:\(text)", icon: .url(url), title: text, subtitle: L("%@ fragen", chat.name),
                              action: { [unowned self] in self.open(url) })
     }
 
@@ -432,7 +433,7 @@ final class CommandBarModel {
     /// first message.
     private func agentResult(_ text: String) -> CommandResult? {
         guard case .newTab = mode, browser.library.settings.agentChatsOn, !browser.isStandalone else { return nil }
-        return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: "Agent-Chat starten",
+        return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: L("Agent-Chat starten"),
                              action: { [unowned self] in self.browser.newAgentChat(prompt: text) })
     }
 
@@ -448,7 +449,7 @@ final class CommandBarModel {
         let engine = browser.library.settings.searchEngine
         let url = engine.url(for: text)
         return CommandResult(id: "search:\(text)", icon: .symbol("magnifyingglass"), title: text,
-                             subtitle: "\(engine.name)-Suche", action: { [unowned self] in self.open(url) })
+                             subtitle: L("%@-Suche", engine.name), action: { [unowned self] in self.open(url) })
     }
 
     private func tabResult(_ item: Item) -> CommandResult {
@@ -459,7 +460,7 @@ final class CommandBarModel {
         }
         let isOpen = item.pane != nil || item.role == .today
         return CommandResult(id: "tab:\(item.id)", icon: .item(item), title: item.displayTitle, subtitle: subtitle,
-                             badge: isOpen ? "Zu Tab wechseln" : "Öffnen",
+                             badge: L(isOpen ? "Zu Tab wechseln" : "Öffnen"),
                              action: { [unowned self] in self.switchTo(item) })
     }
 
@@ -598,11 +599,14 @@ final class CommandBarModel {
             }
         }
         for space in browser.library.spaces where space !== browser.state.space && !browser.isStandalone {
-            let switchSpace: Command = ("Zu Space „\(space.name)“ wechseln", "square.stack", nil, { browser.switchSpace(to: space) })
+            let switchSpace: Command = (L("Zu Space „%@“ wechseln", space.name), "square.stack", nil, { browser.switchSpace(to: space) })
             commands.append(switchSpace)
         }
         let needle = text.lowercased()
-        return commands
+        let localized = commands.map { title, symbol, action, run in
+            (L(title), symbol, action, run)
+        }
+        return localized
             .filter { title, _, _, _ in
                 let lower = title.lowercased()
                 return lower.hasPrefix(needle) || lower.split(separator: " ").contains { $0.hasPrefix(needle) }
