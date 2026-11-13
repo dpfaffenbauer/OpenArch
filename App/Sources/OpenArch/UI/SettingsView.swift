@@ -537,6 +537,10 @@ private struct LinksPage: View {
                 detail: "Aus: Links aus Mail, Slack & Co. öffnen als neuer Tab im Fenster. An: in einem kleinen Fenster, aus dem du sie mit einem Klick in einen Space holst.") {
                 Toggle("", isOn: $library.settings.linksInLittleOpenArch).labelsHidden().toggleStyle(.switch)
             }
+            Row(symbol: "arrow.right.square", color: .teal, title: "Zu offenem Tab wechseln",
+                detail: "Ist die Adresse schon in einem Tab offen, wechselt OpenArch dorthin, statt sie noch einmal zu öffnen.") {
+                Toggle("", isOn: $library.settings.linksToOpenTab).labelsHidden().toggleStyle(.switch)
+            }
             DefaultBrowserRow(app: app, showsDivider: false)
         }
         .onChange(of: library.settings) { library.setNeedsSave() }

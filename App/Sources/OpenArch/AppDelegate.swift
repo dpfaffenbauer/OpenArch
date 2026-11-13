@@ -317,6 +317,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard let browser = mainBrowser else { return }
+        if library.settings.linksToOpenTab, let tab = openTab(showing: url, in: browser) {
+            browser.showWindow(nil)
+            browser.select(tab)
+            if !selfTest { NSApp.activate() }
+            return
+        }
         if let rule = library.settings.linkRules.first(where: { $0.matches(url) }) {
             if let id = rule.spaceID, let space = library.space(id: id) {
                 browser.showWindow(nil)
@@ -333,6 +339,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser.openInNewTab(url)
             if !selfTest { NSApp.activate() }
         }
+    }
+
+    /// The tab that already shows |url| (the fragment and a trailing slash
+    /// do not count). Normal windows share their spaces, so one window's
+    /// tabs are all of them.
+    func openTab(showing url: String, in browser: BrowserWindowController) -> Item? {
+        guard let key = Self.tabKey(url) else { return nil }
+        return browser.allTabs.first { $0.kind == .tab && Self.tabKey($0.currentURL) == key }
+    }
+
+    static func tabKey(_ url: String) -> String? {
+        guard var components = URLComponents(string: url), let host = components.host?.lowercased(), !host.isEmpty else { return nil }
+        components.fragment = nil
+        components.scheme = components.scheme?.lowercased()
+        components.host = host
+        while components.path.count > 1 && components.path.hasSuffix("/") { components.path.removeLast() }
+        if components.path == "/" { components.path = "" }
+        return components.string
     }
 
     @objc func newLittleOpenArch(_ sender: Any?) {

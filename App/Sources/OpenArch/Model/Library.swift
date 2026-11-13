@@ -366,6 +366,9 @@ struct Settings: Codable, Equatable {
     /// instead of a new tab in the window. (A new key: the old one was on by
     /// default, and links now go to the window unless this is chosen.)
     var linksInLittleOpenArch = false
+    /// A link from another app whose address is already open in a tab
+    /// switches to that tab instead of opening it again.
+    var linksToOpenTab = true
     /// Sites to search from the command bar: keyword or name, then Tab.
     var siteSearches = SiteSearch.defaults
     /// Where links from other apps go, by address; the first match wins.
@@ -471,6 +474,7 @@ struct Settings: Codable, Equatable {
         showSidebarAddress = try container.decodeIfPresent(Bool.self, forKey: .showSidebarAddress) ?? defaults.showSidebarAddress
         sidebarWidth = try container.decodeIfPresent(Double.self, forKey: .sidebarWidth) ?? defaults.sidebarWidth
         linksInLittleOpenArch = try container.decodeIfPresent(Bool.self, forKey: .linksInLittleOpenArch) ?? defaults.linksInLittleOpenArch
+        linksToOpenTab = try container.decodeIfPresent(Bool.self, forKey: .linksToOpenTab) ?? defaults.linksToOpenTab
         siteSearches = try container.decodeIfPresent([SiteSearch].self, forKey: .siteSearches) ?? defaults.siteSearches
         linkRules = try container.decodeIfPresent([LinkRule].self, forKey: .linkRules) ?? defaults.linkRules
         autoPictureInPicture = try container.decodeIfPresent(Bool.self, forKey: .autoPictureInPicture) ?? defaults.autoPictureInPicture

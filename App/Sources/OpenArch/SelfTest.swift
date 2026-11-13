@@ -2241,6 +2241,16 @@ final class SelfTest {
         expect(browser.state.space === target && target.today.allTabs.contains { $0.currentURL == "https://example.org/from-mail" },
                "a link from another app follows its rule into the space „\(target.name)“")
         library.settings.linkRules = []
+        // the same address again switches to the open tab instead of opening a second one
+        let count = target.today.allTabs.count
+        browser.switchSpace(to: before)
+        app.openExternal("https://example.org/from-mail/#again")
+        expect(browser.state.space === target && target.today.allTabs.count == count
+               && browser.state.activeItem?.currentURL == "https://example.org/from-mail",
+               "a link to an address that is already open switches to its tab")
+        expect(AppDelegate.tabKey("https://Example.org/a/#x") == AppDelegate.tabKey("https://example.org/a")
+               && AppDelegate.tabKey("https://example.org/a?b=1") != AppDelegate.tabKey("https://example.org/a"),
+               "open tabs match by address without fragment and trailing slash")
         browser.switchSpace(to: before)
     }
 
