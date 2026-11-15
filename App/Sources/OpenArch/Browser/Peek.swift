@@ -49,7 +49,7 @@ final class PeekController: NSObject, OACPaneDelegate {
         let pane = OACPane(profile: profile.chromium, url: url)
         pane.delegate = self
         pane.cornerRadius = 12
-        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.activatesOnShow = AppPaths.panesActivate
         pane.toolbarVisible = false
         self.pane = pane
         self.source = source

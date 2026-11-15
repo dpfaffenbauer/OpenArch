@@ -37,6 +37,10 @@ final class SelfTest {
             popupTest()
             return
         }
+        if let index = CommandLine.arguments.firstIndex(of: "--memory-bench"), index + 1 < CommandLine.arguments.count {
+            memoryBench(urlFile: CommandLine.arguments[index + 1])
+            return
+        }
         if let index = CommandLine.arguments.firstIndex(of: "--show"), index + 1 < CommandLine.arguments.count {
             // Just one tab with this page, for driving OpenArch from outside.
             library.replace(with: LibraryData(
@@ -430,6 +434,32 @@ final class SelfTest {
             }
         }
         poll()
+    }
+
+    /// `--memory-bench <file>`: one tab per URL in the file (one per line),
+    /// each selected once so all of them load, then the first one in front.
+    /// Prints "STEP bench ready" and stays open; scripts/memory-bench.sh
+    /// measures the processes from outside and quits OpenArch.
+    private func memoryBench(urlFile: String) {
+        let urls = ((try? String(contentsOfFile: urlFile, encoding: .utf8)) ?? "")
+            .split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+        library.replace(with: LibraryData(
+            profiles: [ProfileData(id: "Default", name: "Bench", favorites: [])],
+            spaces: [SpaceData(id: UUID(), name: "Bench", icon: "gauge.with.dots.needle.33percent", colorHex: "#9C99BA",
+                               profileID: "Default", pinned: [], today: urls.map { tab($0, $0) })]))
+        browser.libraryWasReplaced()
+        let items = library.spaces.first?.today.items ?? []
+        func open(_ index: Int) {
+            guard index < items.count else {
+                if let first = items.first { browser.select(first) }
+                Swift.print("[selftest] STEP bench ready \(items.count) tabs")
+                return
+            }
+            browser.select(items[index])
+            after(1.5) { open(index + 1) }
+        }
+        open(0)
     }
 
     /// Quits, and makes sure the process ends even if Chromium's shutdown

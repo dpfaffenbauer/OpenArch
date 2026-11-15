@@ -80,7 +80,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         window.contentView?.addSubview(bar)
         pane.delegate = self
         pane.cornerRadius = 8
-        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.activatesOnShow = AppPaths.panesActivate
         pane.toolbarVisible = false
         model.toolbarVisible = false
     }

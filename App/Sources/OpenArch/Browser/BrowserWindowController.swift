@@ -777,7 +777,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let pane = OACPane(profile: profile, url: url)
         pane.delegate = self
         pane.cornerRadius = 8
-        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.activatesOnShow = AppPaths.panesActivate
         pane.toolbarVisible = library.settings.showChromeToolbar
         pane.offersAskAboutSelection = !isPrivate
         tab.pane = pane
