@@ -186,6 +186,15 @@ void OACBrowserClosed(CefRefPtr<CefBrowser> browser) {
   [super sendEvent:event];
 }
 
+// Chromium sends this to NSApp when someone answers "Leave site?" with
+// Cancel, to stop a quit that is waiting on the page (Chrome's own
+// application class has it). Without it the click raises "unrecognized
+// selector" and AppKit ends the app. Quitting here closes pages without
+// asking (OnBeforeUnloadDialog), so there is never a quit to stop: the
+// page just stays.
+- (void)cancelTerminate:(id)sender {
+}
+
 // AppKit would exit the process right away; Chromium has to close its
 // browsers and shut down first.
 - (void)terminate:(id)sender {
