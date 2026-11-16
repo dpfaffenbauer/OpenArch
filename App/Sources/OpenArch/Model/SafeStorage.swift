@@ -5,7 +5,7 @@ import Security
 /// The key Chromium encrypts saved passwords, cookies, card numbers and a few
 /// other values with ("v10" values). It is the password of the item
 /// "OpenArch Safe Storage" in the login keychain; Chromium reads it once per
-/// launch (CefSettings.keychain_service_name).
+/// launch (OACEngineSettings.keychainServiceName).
 ///
 /// Why OpenArch used Chromium's mock keychain (a fixed password) before: the
 /// keychain lets the app that made an item read it without asking and asks

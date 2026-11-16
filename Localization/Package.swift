@@ -1,8 +1,8 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-// The language layer is its own package so its tests run without the CEF
-// toolchain (App's executable targets need Vendor/cef).
+// The language layer is its own package so its tests run without Chrome's
+// framework (App's executable target links it).
 let package = Package(
     name: "OpenArchLocalization",
     platforms: [.macOS(.v15)],

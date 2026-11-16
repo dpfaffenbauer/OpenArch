@@ -878,7 +878,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private func configure(_ page: any OACPage) {
         page.delegate = self
         page.cornerRadius = 8
-        page.activatesOnShow = !AppPaths.isSelfTest
+        page.activatesOnShow = AppPaths.panesActivate
         page.toolbarVisible = library.settings.showChromeToolbar
         page.offersAskAboutSelection = !isPrivate
     }
@@ -1697,12 +1697,30 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     // MARK: OACPaneDelegate
 
+    /// The Site Control Center opened from the toolbar, while it shows.
+    private var sitePopover: NSPopover?
+
     private func item(for pane: any OACPage) -> Item? {
         itemsByPane[ObjectIdentifier(pane)]
     }
 
     func registerPane(_ pane: any OACPage, for item: Item) {
         itemsByPane[ObjectIdentifier(pane)] = item
+    }
+
+    /// The toolbar's site button (the Chromium engine's toolbar above the
+    /// page): the Site Control Center below it, as in Arc.
+    func pane(_ pane: OACPane, showSiteControlsFrom screenRect: NSRect) {
+        guard let item = item(for: pane), let window, let content = window.contentView else { return }
+        sitePopover?.close()
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.contentViewController = NSHostingController(rootView: SiteControls(
+            browser: self, item: item, anchor: screenRect, close: { [weak popover] in popover?.close() }))
+        let rect = content.convert(window.convertFromScreen(screenRect), from: nil)
+        popover.show(relativeTo: rect, of: content, preferredEdge: content.isFlipped ? .maxY : .minY)
+        sitePopover = popover
     }
 
     func pane(_ pane: any OACPage, titleDidChange title: String) {

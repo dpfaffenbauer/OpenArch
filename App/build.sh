@@ -1,13 +1,27 @@
 #!/usr/bin/env bash
-# Builds build/OpenArch.app: Swift app + CEF framework + helper apps.
+# Builds build/OpenArch.app: the Swift app on Chrome's own framework with
+# OpenArch's layer (docs/chromium-engine.md).
+#
+# The engine is OPENARCH_ENGINE_APP if set, else a local
+# scripts/build-chromium.sh build (~/chromium/src/out/OpenArch/Chromium.app),
+# else the release CI built for this Chrome version and layer
+# (scripts/fetch-chromium-engine.sh, into Vendor/engine).
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$APP_DIR/.." && pwd)"
-CEF="$ROOT/Vendor/cef"
 CONFIG="${CONFIG:-debug}"
 NAME="OpenArch"
 APP="$APP_DIR/build/$NAME.app"
+SWIFT_ARGS=(--package-path "$APP_DIR" -c "$CONFIG")
+ENGINE_APP="${OPENARCH_ENGINE_APP:-$HOME/chromium/src/out/OpenArch/Chromium.app}"
+if [[ -z "${OPENARCH_ENGINE_APP:-}" && ! -d "$ENGINE_APP" ]]; then
+  "$ROOT/scripts/fetch-chromium-engine.sh"
+  ENGINE_APP="$ROOT/Vendor/engine/Chromium.app"
+fi
+export OPENARCH_ENGINE_FRAMEWORKS="$ENGINE_APP/Contents/Frameworks"  # read by Package.swift
+[[ -d "$OPENARCH_ENGINE_FRAMEWORKS/Chromium Framework.framework" ]] ||
+  { echo "No engine in $OPENARCH_ENGINE_FRAMEWORKS" >&2; exit 1; }
 BUNDLE_ID="dev.openarch.browser"
 VERSION="${OPENARCH_VERSION:-0.1.0}"
 # CI sets these; local builds are build 0 and never update themselves.
@@ -16,15 +30,8 @@ BUILD="${OPENARCH_BUILD:-0}"
 CHANNEL="${OPENARCH_CHANNEL:-nightly}"
 COMMIT="${OPENARCH_COMMIT:-$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo dev)}"
 
-"$ROOT/scripts/fetch-cef.sh"
-"$ROOT/scripts/patch-cef.sh"
-if [[ ! -f "$CEF/build/libcef_dll_wrapper/libcef_dll_wrapper.a" ]]; then
-  cmake -S "$CEF" -B "$CEF/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DPROJECT_ARCH=arm64 -DUSE_SANDBOX=OFF
-  cmake --build "$CEF/build" --target libcef_dll_wrapper
-fi
-
-swift build --package-path "$APP_DIR" -c "$CONFIG"
-BIN="$(swift build --package-path "$APP_DIR" -c "$CONFIG" --show-bin-path)"
+swift build "${SWIFT_ARGS[@]}"
+BIN="$(swift build "${SWIFT_ARGS[@]}" --show-bin-path)"
 
 # write_plist <path> <executable> <bundle id> <display name> <extra plist entries>
 # Written next to the target and moved into place, so that LaunchServices
@@ -101,17 +108,16 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <key>NSAppleEventsUsageDescription</key><string>The player in the sidebar can pause Spotify and skip its songs.</string>
   <key>NSCalendarsFullAccessUsageDescription</key><string>OpenArch shows your next meeting in the sidebar, with a button to join the call.</string>
   <key>NSCalendarsUsageDescription</key><string>OpenArch shows your next meeting in the sidebar, with a button to join the call.</string>"
-rsync -a --delete "$CEF/Release/Chromium Embedded Framework.framework" "$APP/Contents/Frameworks/"
+# Chrome's framework, with its helper apps inside (Versions/<v>/Helpers).
+# What a CEF build of OpenArch left in an older build folder goes.
+rm -rf "$APP/Contents/Frameworks/Chromium Embedded Framework.framework" "$APP/Contents/Frameworks/$NAME Helper"*.app
+rsync -a --delete "$OPENARCH_ENGINE_FRAMEWORKS/Chromium Framework.framework" "$APP/Contents/Frameworks/"
+FRAMEWORK="$APP/Contents/Frameworks/Chromium Framework.framework"
 rsync -a --delete "$APP_DIR/Resources/" "$APP/Contents/Resources/"
-
-# Chromium looks up one helper app per process type by name.
-for suffix in "" " (Alerts)" " (GPU)" " (Plugin)" " (Renderer)"; do
-  helper="$NAME Helper$suffix"
-  id_suffix="$(printf '%s' "$suffix" | tr -d ' ()' | tr '[:upper:]' '[:lower:]')"
-  mkdir -p "$APP/Contents/Frameworks/$helper.app/Contents/MacOS"
-  install_file "$BIN/${NAME}Helper" "$APP/Contents/Frameworks/$helper.app/Contents/MacOS/$helper"
-  write_plist "$APP/Contents/Frameworks/$helper.app/Contents/Info.plist" "$helper" \
-    "$BUNDLE_ID.helper${id_suffix:+.$id_suffix}" "$helper" "<key>LSUIElement</key><true/>"
+# Chrome takes its language from the app's localizations (macOS's preferred
+# one among them): the same, empty ones Chromium.app has, beside OpenArch's.
+for lproj in "$ENGINE_APP"/Contents/Resources/*.lproj; do
+  mkdir -p "$APP/Contents/Resources/$(basename "$lproj")"
 done
 
 # The Dock's plug-in, which shows the chosen app icon while OpenArch is
@@ -127,26 +133,29 @@ sed -i '' 's|<key>CFBundlePackageType</key><string>APPL</string>|<key>CFBundlePa
 # Signatures, inside out. SIGN_IDENTITY (a Developer ID, set by CI) signs
 # with the hardened runtime for notarization; without it, ad hoc.
 SIGNING="$APP_DIR/Signing"
-FRAMEWORK="$APP/Contents/Frameworks/Chromium Embedded Framework.framework"
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   sign() { codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$@"; }
 else
   sign() { codesign --force --sign - "$@"; }
 fi
+# Chrome's helper apps and tools inside the framework, before the
+# framework; the helpers with Chrome's entitlements (JIT for V8 and
+# SwiftShader). Chrome looks them up by name per process type.
+for item in "$FRAMEWORK"/Versions/Current/Helpers/*; do
+  case "$item" in
+    *"Plugin).app") sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$item" ;;
+    *"Alerts).app") sign "$item" ;;
+    # The plain helper runs the utility processes, Widevine's among them.
+    *"/Chromium Helper.app" | *"(Aperitif).app") sign --entitlements "$SIGNING/HelperUtility.entitlements" "$item" ;;
+    *.app) sign --entitlements "$SIGNING/Helper.entitlements" "$item" ;;
+    *) sign "$item" ;;
+  esac
+done
 for library in "$FRAMEWORK"/Libraries/*.dylib; do
-  sign "$library"
+  if [[ -f "$library" ]]; then sign "$library"; fi
 done
 sign "$FRAMEWORK"
 sign "$PLUGIN"
-for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
-  case "$helper" in
-    *"(Plugin)"*) sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$helper" ;;
-    *"(Alerts)"*) sign "$helper" ;;
-    # The plain helper hosts the Widevine module (see the entitlements).
-    *"/$NAME Helper.app") sign --entitlements "$SIGNING/HelperUtility.entitlements" "$helper" ;;
-    *) sign --entitlements "$SIGNING/Helper.entitlements" "$helper" ;;
-  esac
-done
 sign --entitlements "$SIGNING/OpenArch.entitlements" "$APP"
 
 # Let LaunchServices (and the Dock) pick up the rebuilt bundle and its icon.

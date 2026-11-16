@@ -2,6 +2,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// Exported from Chrome's framework, which builds with hidden visibility
+/// (engine/chromium).
+#ifndef OAC_EXPORT
+#define OAC_EXPORT __attribute__((visibility("default")))
+#endif
+
 /// What a site may do, as in Chrome's site settings.
 typedef NS_ENUM(NSInteger, OACSitePermission) {
   OACSitePermissionCamera,
@@ -26,6 +32,7 @@ typedef NS_ENUM(NSInteger, OACPermissionValue) {
 /// A browsing profile: its own cookies, storage, cache, logins, history and
 /// extensions. In Arc terms, every Space uses one profile.
 NS_SWIFT_UI_ACTOR
+OAC_EXPORT
 @interface OACProfile : NSObject
 
 /// Chromium's default profile (<root>/Default).

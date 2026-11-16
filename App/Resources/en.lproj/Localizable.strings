@@ -8,6 +8,7 @@
 " OpenArch beginnt mit einem leeren Space; Einstellungen › Import holt Arc später." = " OpenArch starts with an empty Space; Settings › Import lets you import Arc later.";
 " OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr." = " After that, OpenArch takes over the key, and updates won't ask again either.";
 " · mit Passwort" = " · with password";
+" – auf dieser Seite nicht aktiv" = " – not active on this page";
 "#%02X%02X%02X" = "#%02X%02X%02X";
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nThe folder stays as long as the chat is running: Claude Code can only resume the session there.";
 "%@ angeheftet" = "%@ pinned";
@@ -126,6 +127,7 @@
 "Als Standard festlegen" = "Set as Default";
 "Als Standardbrowser festlegen" = "Set as Default Browser";
 "Als Tab öffnen" = "Open as tab";
+"An die Leiste heften" = "Pin to the toolbar";
 "Andere" = "Other";
 "Andere ausblenden" = "Hide Others";
 "Angehalten." = "Stopped.";
@@ -210,6 +212,7 @@
 "Bildschirmfoto" = "Screenshot";
 "Bitte beende %@ selbst und starte den Import dann noch einmal." = "Please quit %@ yourself, then start the import again.";
 "Blockieren" = "Block";
+"Boost" = "Boost";
 "Boost ausschalten" = "Turn Off Boost";
 "Boost bearbeiten" = "Edit Boost";
 "Boost bearbeiten …" = "Edit Boost…";
@@ -350,6 +353,7 @@
 "Eigenes Fenster" = "Separate window";
 "Ein Agent-Chat steht in der Sidebar wie ein Tab. Claude Code arbeitet darin in einem Ordner auf diesem Mac, mit dem Login von claude im Terminal und damit deinem Abo, ganz ohne API-Schlüssel. Ist die KI-Steuerung an, kann der Agent auch deine Tabs bedienen." = "An agent chat sits in the sidebar like a tab. In it, Claude Code works in a folder on this Mac, using the login of claude in Terminal and thus your subscription, no API key needed. If AI control is on, the agent can also operate your tabs.";
 "Ein Bericht enthält Versionen, die Art des Prozesses und die Stelle im Code, nie Adressen, Titel oder Seiteninhalte. Er geht nur als GitHub-Issue raus, das du selbst abschickst." = "A report contains versions, the type of process, and the location in the code—never addresses, titles, or page content. It's only sent as a GitHub issue that you submit yourself.";
+"Ein Bild der Seite in die Zwischenablage" = "Copy a picture of the page to the clipboard";
 "Ein Browser im Geist von Arc: Spaces mit eigenen Profilen, eine Sidebar statt Tab-Leiste, echte Chrome-Extensions. In zwei Minuten eingerichtet, jeder Schritt lässt sich überspringen." = "A browser in the spirit of Arc: Spaces with their own profiles, a sidebar instead of a tab bar, real Chrome extensions. Set up in two minutes, and you can skip any step.";
 "Ein Kürzel braucht ⌘ oder ⌃." = "A shortcut needs ⌘ or ⌃.";
 "Ein Link möchte diese App öffnen." = "A link wants to open this app.";
@@ -368,6 +372,7 @@
 "Einmal im Terminal ausführen. Danach kann Claude in jedem Projekt OpenArch steuern, etwa um eine lokale Seite zu testen. Nutzt Googles MCP-Server chrome-devtools-mcp." = "Run once in Terminal. After that, Claude can control OpenArch in any project, for example to test a local site. Uses Google's MCP server chrome-devtools-mcp.";
 "Einsetzen" = "Paste";
 "Einsetzen und Stil anpassen" = "Paste and Match Style";
+"Einstellungen" = "Settings";
 "Einstellungen …" = "Settings…";
 "Element untersuchen" = "Inspect Element";
 "Elemente ausblenden" = "Hide elements";
@@ -387,6 +392,8 @@
 "Erscheinungsbild" = "Appearance";
 "Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite." = "Create my Morning Brief for today, {{DATUM}}, as a standalone HTML page.";
 "Erstellen" = "Create";
+"Erweiterungen" = "Extensions";
+"Erweiterungen im Chrome Web Store" = "Extensions in the Chrome Web Store";
 "Es gibt noch keine Stable-Version." = "There is no stable version yet.";
 "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden." = "Export from Chrome, Edge, Brave, Firefox, Safari (Passwords app), 1Password, or Bitwarden.";
 "Export und Import" = "Export and import";
@@ -402,6 +409,7 @@
 "Fenster schließen" = "Close Window";
 "Fertig" = "Done";
 "Formulardaten" = "Form data";
+"Foto" = "Photo";
 "Frag Claude zu dieser Seite" = "Ask Claude about this page";
 "Frag zu dieser Seite … (@ für Tabs)" = "Ask about this page… (@ for tabs)";
 "Frag zur Auswahl …" = "Ask about the selection…";
@@ -481,6 +489,7 @@
 "Installiert die neue Version und startet OpenArch neu. Tabs bleiben erhalten." = "Installs the new version and restarts OpenArch. Your tabs are kept.";
 "Intensität" = "Intensity";
 "Iowan Old Style" = "Iowan Old Style";
+"Ist die Adresse schon in einem Tab offen, wechselt OpenArch dorthin, statt sie noch einmal zu öffnen." = "If the address is already open in a tab, OpenArch switches to it instead of opening it again.";
 "Ja" = "Yes";
 "JavaScript" = "JavaScript";
 "JavaScript-Konsole" = "JavaScript Console";
@@ -540,6 +549,7 @@
 "Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser" = "Reads files; asks before changes, commands, and browser use";
 "Liest die Seite" = "Reads the page";
 "Liest die Seite …" = "Reading the page…";
+"Link" = "Link";
 "Link erstellen" = "Create Link";
 "Link in neuem Tab öffnen" = "Open Link in New Tab";
 "Link kopieren" = "Copy Link";
@@ -676,7 +686,7 @@
 "Ohne Logins" = "Without Logins";
 "Ohne Ordner" = "No folder";
 "Ohne den Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und Logins nicht öffnen. Versuch es noch einmal und wähle „Immer erlauben“, oder beende OpenArch." = "Without the key “%@” from your login keychain, your passwords and logins can't be opened. Try again and choose “Always Allow”, or quit OpenArch.";
-"Open Source unter der MIT-Lizenz · mit Chromium und CEF gebaut" = "Open source under the MIT license · built with Chromium and CEF";
+"Open Source unter der MIT-Lizenz · mit Chromium gebaut" = "Open source under the MIT license · built with Chromium";
 "Open Source · keine Anmeldung, kein Konto" = "Open source · no sign-up, no account";
 "OpenArch" = "OpenArch";
 "OpenArch als Standardbrowser" = "OpenArch as your default browser";
@@ -712,6 +722,7 @@
 "Ordner wählen …" = "Choose Folder…";
 "Ordner „%@“ löschen?" = "Delete folder “%@”?";
 "Originalgröße" = "Actual Size";
+"Page.captureScreenshot" = "Page.captureScreenshot";
 "Passwort" = "Password";
 "Passwort (mindestens 4 Zeichen)" = "Password (at least 4 characters)";
 "Passwörter" = "Passwords";
@@ -898,6 +909,7 @@
 "Videos und Musik" = "Videos and Music";
 "Vollbild" = "Full Screen";
 "Vom Besitzer beendet" = "Ended by the owner";
+"Von der Leiste lösen" = "Unpin from the toolbar";
 "Von diesem Mac geteilt" = "Shared from this Mac";
 "Von keinem Space benutzt" = "Not used by any Space";
 "Vorherige Seite der Split View" = "Previous Split View Pane";
@@ -957,6 +969,7 @@
 "Zu Favoriten hinzufügen" = "Add to Favorites";
 "Zu Space „%@“ wechseln" = "Switch to Space “%@”";
 "Zu Tab wechseln" = "Switch to Tab";
+"Zu offenem Tab wechseln" = "Switch to open tab";
 "Zu viele Lesezeichen für eine Freigabe." = "Too many bookmarks for one share.";
 "Zu viele Lesezeichen für einen QR-Code. Sende den Link stattdessen." = "Too many bookmarks for one QR code. Send the link instead.";
 "Zu wenige Tabs zum Aufräumen" = "Too few tabs to tidy up";

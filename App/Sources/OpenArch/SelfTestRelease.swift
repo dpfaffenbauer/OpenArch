@@ -74,7 +74,7 @@ extension SelfTest {
         let nightly = manifest(1100, version: nil, in: folder)
         let releases: [[String: Any]] = [
             release("nightly", prerelease: true, manifest: nightly),
-            release("cef-156.0.15-codecs"),
+            release("engine-158.0.8127.37-beec6cf17c5b", prerelease: true),
             release("v0.3.0", manifest: stable),
             release("v0.2.0"),
             release("v0.4.0", draft: true, manifest: nightly),
@@ -218,15 +218,16 @@ extension SelfTest {
         crashes.diagnosticReports = reports
         crashes.bundlePath = bundle
         // The first launch looks at nothing older than itself.
-        try? ipsFile(process: "OpenArch Helper (GPU)", path: bundle + "/Contents/Frameworks/OpenArch Helper (GPU).app/x")
-            .write(to: reports.appendingPathComponent("OpenArch Helper (GPU)-old.ips"), atomically: true, encoding: .utf8)
+        let helpers = bundle + "/Contents/Frameworks/Chromium Framework.framework/Versions/158.0.8127.37/Helpers"
+        try? ipsFile(process: "Chromium Helper (GPU)", path: helpers + "/Chromium Helper (GPU).app/x")
+            .write(to: reports.appendingPathComponent("Chromium Helper (GPU)-old.ips"), atomically: true, encoding: .utf8)
         crashes.collectAtLaunch(now: Date().addingTimeInterval(60))
         expect(crashes.pending.isEmpty, "crash reports start with the first launch: older reports are not collected")
 
         let files: [(String, String, String)] = [
-            ("OpenArch Helper (Renderer)", bundle + "/Contents/Frameworks/OpenArch Helper (Renderer).app/Contents/MacOS/x", "309"),
-            ("OpenArch Helper (GPU)", bundle + "/Contents/Frameworks/OpenArch Helper (GPU).app/Contents/MacOS/x", "309"),
-            ("OpenArch Helper", bundle + "/Contents/Frameworks/OpenArch Helper.app/Contents/MacOS/x", "309"),
+            ("Chromium Helper (Aperitif Renderer)", helpers + "/Chromium Helper (Aperitif Renderer).app/Contents/MacOS/x", "309"),
+            ("Chromium Helper (GPU)", helpers + "/Chromium Helper (GPU).app/Contents/MacOS/x", "309"),
+            ("Chromium Helper", helpers + "/Chromium Helper.app/Contents/MacOS/x", "309"),
             ("OpenArch", "/Users/someone/Downloads/OpenArch.app/Contents/MacOS/OpenArch", "309"),  // another copy
             ("OpenArch", bundle + "/Contents/MacOS/OpenArch", "288"),  // a hang, not a crash
         ]
@@ -262,7 +263,7 @@ extension SelfTest {
         try? FileManager.default.removeItem(at: root)
     }
 
-    /// chrome://crash in a tab: CEF reports the renderer's crash.
+    /// chrome://crash in a tab: the engine reports the renderer's crash.
     private func rendererCrashTest(then done: @escaping () -> Void) {
         let root = temporaryFolder("renderer-crash")
         let crashes = CrashReports(folder: root)

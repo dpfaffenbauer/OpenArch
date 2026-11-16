@@ -1,0 +1,75 @@
+# OpenArch's layer in Chrome's framework (docs/chromium-engine.md): the
+# bridge's Objective-C classes (OACEngine, OACPane, OACProfile, see
+# include/, copied from App/Sources/OpenArchCore/include) and
+# OpenArchEngineMain. Linked into //chrome:chrome_dll by
+# engine/chromium/apply.sh.
+
+assert(is_mac)
+
+source_set("core") {
+  sources = [
+    "dialogs.mm",
+    "engine.mm",
+    "engine_main.mm",
+    "findbar.h",
+    "findbar.mm",
+    "include/OACEngine.h",
+    "include/OACPane.h",
+    "include/OACProfile.h",
+    "internal.h",
+    "pane.mm",
+    "profile.mm",
+    "toolbar.h",
+    "toolbar.mm",
+  ]
+  frameworks = [
+    "AppKit.framework",
+    "Foundation.framework",
+    "QuartzCore.framework",
+  ]
+  deps = [
+    "//base",
+    "//chrome/browser",
+    "//chrome/browser:chrome_browser_application_mac",
+    "//components/os_crypt/common:keychain_password_mac",
+    "//chrome/browser:main_extra_parts",
+    "//chrome/browser/content_settings:content_settings_factory",
+    "//chrome/browser/devtools",
+    "//chrome/browser/lifetime",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/profiles:profile_manager",
+    "//chrome/browser/profiles/keep_alive",
+    "//chrome/browser/ui:browser_commands",
+    "//chrome/browser/ui/browser_window",
+    "//chrome/browser/ui/browser_window:create_browser_window",
+    "//chrome/browser/ui/extensions:extension_popup_types",
+    "//chrome/browser/ui/javascript_dialogs",
+    "//chrome/browser/ui/tabs:tab_strip",
+    "//chrome/browser/ui/toolbar",
+    "//components/content_settings/core/browser",
+    "//components/content_settings/core/common",
+    "//components/download/public/common:public",
+    "//components/favicon/content",
+    "//components/favicon/core",
+    "//components/tabs:public",
+    "//components/find_in_page",
+    "//components/input",
+    "//components/javascript_dialogs",
+    "//components/keep_alive_registry",
+    "//components/permissions",
+    "//components/prefs",
+    "//components/url_formatter",
+    "//components/version_info",
+    "//components/web_modal",
+    "//components/zoom",
+    "//content/public/browser",
+    "//net",
+    "//services/network/public/cpp",
+    "//third_party/blink/public/mojom:mojom_platform_headers",
+    "//ui/base",
+    "//ui/gfx",
+    "//ui/menus",
+    "//ui/views/controls/webview",
+    "//url",
+  ]
+}

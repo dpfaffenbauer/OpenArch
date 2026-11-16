@@ -2,17 +2,16 @@
 import Foundation
 import PackageDescription
 
-// The CEF binary distribution lives in <repo>/Vendor/cef (see scripts/fetch-cef.sh).
-let cefRoot = URL(fileURLWithPath: #filePath)
-    .deletingLastPathComponent()
-    .appendingPathComponent("../Vendor/cef")
-    .standardizedFileURL.path
-let cefWrapper = "\(cefRoot)/build/libcef_dll_wrapper/libcef_dll_wrapper.a"
-
-// Must match the flags libcef_dll_wrapper is built with (cmake/cef_variables.cmake).
-let cefCxxSettings: [CXXSetting] = [
-    .unsafeFlags(["-I", cefRoot, "-fno-rtti", "-fno-exceptions", "-fobjc-arc"]),
-]
+// OpenArch runs on Chrome's own framework with OpenArch's layer
+// (docs/chromium-engine.md). The bridge's classes (OACEngine, OACPane,
+// OACProfile) live in the framework; OPENARCH_ENGINE_FRAMEWORKS, set by
+// App/build.sh, is the folder that holds it. Without it, the engine
+// scripts/fetch-chromium-engine.sh put into Vendor/engine.
+let engineFrameworks = ProcessInfo.processInfo.environment["OPENARCH_ENGINE_FRAMEWORKS"]
+    ?? URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .appendingPathComponent("../Vendor/engine/Chromium.app/Contents/Frameworks")
+        .standardizedFileURL.path
 
 let package = Package(
     name: "OpenArch",
@@ -25,9 +24,8 @@ let package = Package(
         .target(
             name: "OpenArchCore",
             publicHeadersPath: "include",
-            cxxSettings: cefCxxSettings,
             linkerSettings: [
-                .unsafeFlags([cefWrapper]),
+                .unsafeFlags(["-F", engineFrameworks, "-framework", "Chromium Framework"]),
                 .linkedFramework("AppKit"),
             ]
         ),
@@ -40,14 +38,6 @@ let package = Package(
                 .linkedLibrary("sqlite3"),
                 // Apple's on-device model (macOS 26 and later); OpenArch still starts on macOS 15.
                 .unsafeFlags(["-Xlinker", "-weak_framework", "-Xlinker", "FoundationModels"]),
-            ]
-        ),
-        .executableTarget(
-            name: "OpenArchHelper",
-            cxxSettings: cefCxxSettings,
-            linkerSettings: [
-                .unsafeFlags([cefWrapper]),
-                .linkedFramework("Foundation"),
             ]
         ),
     ],
