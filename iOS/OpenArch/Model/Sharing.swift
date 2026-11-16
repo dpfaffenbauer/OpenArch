@@ -135,7 +135,7 @@ final class Sharing {
             } catch {
                 // Ended in the meantime: not a problem.
                 if records.owned.contains(where: { $0.id == id }) {
-                    lastError = "„\(share.name)“: \(error.localizedDescription)"
+                    lastError = String(localized: "„\(share.name)“: \(error.localizedDescription)")
                 }
             }
             uploading.remove(id)
@@ -210,7 +210,7 @@ final class Sharing {
             } catch ShareError.ended, ShareError.notFound {
                 updateSubscription(id) { $0.ended = true }
             } catch {
-                lastError = "„\(subscription.name)“: \(error.localizedDescription)"
+                lastError = String(localized: "„\(subscription.name)“: \(error.localizedDescription)")
             }
         }
     }

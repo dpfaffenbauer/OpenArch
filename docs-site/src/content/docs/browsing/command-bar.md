@@ -74,6 +74,7 @@ Type the beginning of any word in a command, or any part of it from three letter
 | "Passwörter", "Browser-Einstellungen" | | Chrome's password manager and settings |
 | "OpenArch-Einstellungen" | <kbd>⌘,</kbd> | |
 | "Aus Arc importieren" | | see [Import from Arc](/start/import-from-arc/) |
+| "Aus anderem Browser importieren" | | see [Move over from another browser](/start/import/) |
 | "Neuer Agent-Chat", "Agents" | <kbd>⌃0</kbd> for Agents | only with agent chats turned on |
 
 With a tab in front, there are these too:

@@ -36,6 +36,8 @@ BUNDLE_ID="dev.openarch.browser"
 VERSION="${OPENARCH_VERSION:-0.1.0}"
 # CI sets these; local builds are build 0 and never update themselves.
 BUILD="${OPENARCH_BUILD:-0}"
+# The update channel the build starts on: "stable" for version tags.
+CHANNEL="${OPENARCH_CHANNEL:-nightly}"
 COMMIT="${OPENARCH_COMMIT:-$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo dev)}"
 
 if [[ "$ENGINE" == cef ]]; then
@@ -65,6 +67,8 @@ write_plist() {
   <key>CFBundleName</key><string>$4</string>
   <key>CFBundleDisplayName</key><string>$4</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleDevelopmentRegion</key><string>en</string>
+  <key>CFBundleLocalizations</key><array><string>en</string><string>de</string><string>fr</string><string>es</string><string>it</string></array>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$BUILD</string>
   <key>LSMinimumSystemVersion</key><string>15.0</string>
@@ -89,6 +93,7 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <key>NSPrincipalClass</key><string>OACApplication</string>
   <key>NSDockTilePlugIn</key><string>OpenArchDockTile.docktileplugin</string>
   <key>OpenArchCommit</key><string>$COMMIT</string>
+  <key>OpenArchChannel</key><string>$CHANNEL</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleURLTypes</key>
   <array><dict>
@@ -183,6 +188,8 @@ for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
   case "$helper" in
     *"(Plugin)"*) sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$helper" ;;
     *"(Alerts)"*) sign "$helper" ;;
+    # The plain helper hosts the Widevine module (see the entitlements).
+    *"/$NAME Helper.app") sign --entitlements "$SIGNING/HelperUtility.entitlements" "$helper" ;;
     *) sign --entitlements "$SIGNING/Helper.entitlements" "$helper" ;;
   esac
 done

@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import SwiftUI
 
 /// Arc's Site Control Center: quick actions for the page, its extensions,
@@ -21,7 +22,9 @@ struct SiteControls: View {
     @State private var copied = false
 
     private var origin: String? { SiteControls.origin(of: item.currentURL) }
-    private var profile: OACProfile? { item.pane?.profile }
+    /// Chromium's site settings; a WebKit page has its own (WebKit asks).
+    private var profile: OACProfile? { item.pane?.engine == .chromium ? item.pane?.profile : nil }
+    private var isWebKit: Bool { item.pane?.engine == .webKit }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -31,12 +34,19 @@ struct SiteControls: View {
                 Divider()
                 extensionGrid
             }
+            if origin != nil, item.pane != nil {
+                Divider()
+                engineRow
+            }
             if let origin, let profile {
                 Divider()
                 sectionTitle("Einstellungen")
                 VStack(spacing: 2) {
                     ForEach(SitePermission.all) { permission in
                         PermissionRow(permission: permission, value: binding(permission, origin: origin, profile: profile))
+                    }
+                    if let host = KeepAwakeSites.host(of: item.currentURL) {
+                        pictureInPictureRow(host)
                     }
                 }
             }
@@ -102,7 +112,8 @@ struct SiteControls: View {
 
     // MARK: Extensions (the Chromium engine; on CEF Chrome's toolbar has them)
 
-    private var showsExtensions: Bool { !OACPane.panesHaveWindows && item.pane != nil }
+    private var showsExtensions: Bool { !OACPane.panesHaveWindows && chromiumPane != nil }
+    private var chromiumPane: OACPane? { item.pane as? OACPane }
 
     private var extensionGrid: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -110,7 +121,7 @@ struct SiteControls: View {
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 8), count: 4), alignment: .leading, spacing: 8) {
                 ForEach(extensions, id: \.identifier) { info in
                     Button {
-                        let pane = item.pane
+                        let pane = chromiumPane
                         let rect = anchor == .zero ? NSRect(origin: NSEvent.mouseLocation, size: .zero) : anchor
                         dismiss()
                         pane?.runExtension(info.identifier, from: rect)
@@ -119,8 +130,8 @@ struct SiteControls: View {
                         .help(info.name + (info.activeOnPage ? "" : " – auf dieser Seite nicht aktiv"))
                         .contextMenu {
                             Button(info.pinned ? "Von der Leiste lösen" : "An die Leiste heften") {
-                                item.pane?.setExtension(info.identifier, pinned: !info.pinned)
-                                after(0.1) { extensions = item.pane?.extensions ?? [] }
+                                chromiumPane?.setExtension(info.identifier, pinned: !info.pinned)
+                                after(0.1) { extensions = chromiumPane?.extensions ?? [] }
                             }
                         }
                 }
@@ -149,7 +160,7 @@ struct SiteControls: View {
                 Text(URL(string: item.currentURL)?.host() ?? item.displayTitle)
                     .font(.system(size: 14, weight: .semibold)).lineLimit(1)
                 if web {
-                    Label(secure ? "Verbindung ist sicher" : "Verbindung ist nicht sicher",
+                    Label(L(secure ? "Verbindung ist sicher" : "Verbindung ist nicht sicher"),
                           systemImage: secure ? "lock.fill" : "exclamationmark.triangle.fill")
                         .font(.system(size: 11.5))
                         .foregroundStyle(secure ? Color.secondary : Color.orange)
@@ -158,6 +169,57 @@ struct SiteControls: View {
                 }
             }
         }
+    }
+
+    /// Whether the site's videos and calls float by themselves when you
+    /// leave the tab (Settings › Allgemein › Tabs › Ohne Bild-in-Bild).
+    private func pictureInPictureRow(_ host: String) -> some View {
+        let library = browser.library
+        return HStack(spacing: 8) {
+            Image(systemName: "pip").frame(width: 20).foregroundStyle(.secondary)
+            Text("Bild-in-Bild beim Verlassen").font(.system(size: 13))
+            Spacer()
+            Toggle("", isOn: Binding(
+                get: { !KeepAwakeSites.listed(item.currentURL, in: library.settings.pictureInPictureExceptions) },
+                set: { on in
+                    var sites = library.settings.pictureInPictureExceptions
+                    if on {
+                        sites.removeAll { KeepAwakeSites.listed(item.currentURL, in: [$0]) }
+                    } else {
+                        sites.append(host)
+                    }
+                    library.settings.pictureInPictureExceptions = sites
+                    library.setNeedsSave()
+                }))
+                .labelsHidden().toggleStyle(.switch).controlSize(.small)
+        }
+        .frame(height: 26)
+    }
+    /// Safari's engine for this site, both ways: the page opens again in
+    /// the other engine at once.
+    private var engineRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Image(systemName: "safari").frame(width: 20).foregroundStyle(.secondary)
+                Text("Safaris Engine").font(.system(size: 13))
+                Spacer()
+                Toggle("", isOn: Binding(get: { isWebKit }, set: { switchEngine(toWebKit: $0) }))
+                    .labelsHidden().toggleStyle(.switch).controlSize(.small)
+            }
+            .frame(height: 26)
+            if isWebKit {
+                let service = (item.pane as? WebKitPage)?.serviceName ?? ""
+                Text(L("%@ spielt geschützte Videos und Musik nur mit Apples FairPlay, darum läuft sie mit Safaris Engine. Chrome-Erweiterungen und Chromes DevTools gibt es hier nicht (⌥⌘I öffnet den Web Inspector), und Logins aus Chromium gelten hier nicht: Du meldest dich einmal neu an.", service.isEmpty ? L("Diese Seite") : service))
+                    .font(.system(size: 11)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func switchEngine(toWebKit: Bool) {
+        let engine: OACPageEngine = toWebKit ? .webKit : .chromium
+        ProtectedMedia.choose(engine, for: item.currentURL)
+        browser.replacePage(of: item, with: item.currentURL, engine: engine)
+        browser.state.siteControlsVisible = false
     }
 
     private var zoomRow: some View {
@@ -197,7 +259,7 @@ struct SiteControls: View {
             .confirmationDialog("Cookies und gespeicherte Daten dieser Website löschen?", isPresented: $confirmingClear) {
                 Button("Löschen", role: .destructive, action: clearData)
             } message: {
-                Text("Du wirst auf \(URL(string: item.currentURL)?.host() ?? "der Website") abgemeldet. Die Seite lädt danach neu.")
+                Text(L("Du wirst auf %@ abgemeldet. Die Seite lädt danach neu.", URL(string: item.currentURL)?.host() ?? L("der Website")))
             }
         }
     }
@@ -213,7 +275,7 @@ struct SiteControls: View {
 
     private func load() {
         zoom = item.pane?.zoomPercent ?? 100
-        extensions = item.pane?.extensions ?? []
+        extensions = chromiumPane?.extensions ?? []
         guard let origin, let profile else { return }
         for permission in SitePermission.all {
             values[permission.kind] = profile.permission(permission.kind, forSite: origin)
@@ -255,15 +317,15 @@ struct SitePermission: Identifiable {
     var id: Int { kind.rawValue }
 
     static let all: [SitePermission] = [
-        SitePermission(kind: .camera, title: "Kamera", symbol: "camera", defaultTitle: "Fragen"),
-        SitePermission(kind: .microphone, title: "Mikrofon", symbol: "mic", defaultTitle: "Fragen"),
-        SitePermission(kind: .location, title: "Standort", symbol: "location", defaultTitle: "Fragen"),
-        SitePermission(kind: .notifications, title: "Mitteilungen", symbol: "bell", defaultTitle: "Fragen"),
-        SitePermission(kind: .popups, title: "Pop-ups", symbol: "macwindow.on.rectangle", defaultTitle: "Blockieren", canAsk: false),
-        SitePermission(kind: .sound, title: "Ton", symbol: "speaker.wave.2", defaultTitle: "Erlauben", canAsk: false),
-        SitePermission(kind: .automaticDownloads, title: "Mehrere Downloads", symbol: "arrow.down.circle", defaultTitle: "Fragen"),
-        SitePermission(kind: .clipboard, title: "Zwischenablage", symbol: "doc.on.clipboard", defaultTitle: "Fragen"),
-        SitePermission(kind: .javaScript, title: "JavaScript", symbol: "curlybraces", defaultTitle: "Erlauben", canAsk: false),
+        SitePermission(kind: .camera, title: L("Kamera"), symbol: "camera", defaultTitle: L("Fragen")),
+        SitePermission(kind: .microphone, title: L("Mikrofon"), symbol: "mic", defaultTitle: L("Fragen")),
+        SitePermission(kind: .location, title: L("Standort"), symbol: "location", defaultTitle: L("Fragen")),
+        SitePermission(kind: .notifications, title: L("Mitteilungen"), symbol: "bell", defaultTitle: L("Fragen")),
+        SitePermission(kind: .popups, title: L("Pop-ups"), symbol: "macwindow.on.rectangle", defaultTitle: L("Blockieren"), canAsk: false),
+        SitePermission(kind: .sound, title: L("Ton"), symbol: "speaker.wave.2", defaultTitle: L("Erlauben"), canAsk: false),
+        SitePermission(kind: .automaticDownloads, title: L("Mehrere Downloads"), symbol: "arrow.down.circle", defaultTitle: L("Fragen")),
+        SitePermission(kind: .clipboard, title: L("Zwischenablage"), symbol: "doc.on.clipboard", defaultTitle: L("Fragen")),
+        SitePermission(kind: .javaScript, title: L("JavaScript"), symbol: "curlybraces", defaultTitle: L("Erlauben"), canAsk: false),
     ]
 }
 
@@ -277,7 +339,7 @@ private struct PermissionRow: View {
             Text(permission.title).font(.system(size: 13))
             Spacer()
             Picker("", selection: $value) {
-                Text("Standard (\(permission.defaultTitle))").tag(OACPermissionValue.default)
+                Text(L("Standard (%@)", permission.defaultTitle)).tag(OACPermissionValue.default)
                 Divider()
                 if permission.canAsk { Text("Fragen").tag(OACPermissionValue.ask) }
                 Text("Erlauben").tag(OACPermissionValue.allow)
@@ -303,7 +365,7 @@ private struct ActionRow: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: symbol).frame(width: 20)
-                Text(title).font(.system(size: 13))
+                Text(L(title)).font(.system(size: 13))
                 Spacer()
             }
             .foregroundStyle(isDestructive ? Color.red : Color.primary)

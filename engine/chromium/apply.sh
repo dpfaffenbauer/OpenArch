@@ -246,6 +246,19 @@ edit("ui/views/controls/webview/BUILD.gn", '''component("webview") {
     "openarch_hosted_page.h",
 ''', '"openarch_hosted_page.h"')
 
+# 3b. Chrome's keychain item can be named at run time (as CEF does), so the
+# engine uses OpenArch's ("OpenArch Safe Storage").
+edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {
+  source_set("keychain_password_mac") {
+''', '''if (is_apple) {
+  config("openarch_keychain_names") {  # OpenArch
+    defines = [ "ALLOW_RUNTIME_CONFIGURABLE_KEY_STORAGE" ]
+  }
+
+  source_set("keychain_password_mac") {
+    public_configs = [ ":openarch_keychain_names" ]
+''', "openarch_keychain_names")
+
 # 4. The framework exports OpenArch's entry and the bridge's classes.
 classes = ["OACApplication", "OACEngineSettings", "OACEngine", "OACProfile", "OACPane", "OACDownload",
            "OACExtensionInfo"]

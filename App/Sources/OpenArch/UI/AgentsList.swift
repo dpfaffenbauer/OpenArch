@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import SwiftUI
 
 /// Agents (⌃0, the ✨ in the space bar): in place of a space's tabs, every
@@ -56,9 +57,9 @@ struct AgentsList: View {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 14) {
                     if entries.isEmpty {
-                        Text(query.isEmpty
+                        Text(L(query.isEmpty
                              ? "Noch keine Agents. Starte einen Agent-Chat oben rechts. Sessions von claude im Terminal oder im Editor erscheinen hier auch."
-                             : "Nichts gefunden.")
+                             : "Nichts gefunden."))
                             .font(.system(size: 12))
                             .foregroundStyle(theme.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -95,7 +96,7 @@ struct AgentsList: View {
                 }
             } label: {
                 HStack(spacing: 4) {
-                    Text(group.title).font(.system(size: 11.5, weight: .semibold))
+                    Text(L(group.title)).font(.system(size: 11.5, weight: .semibold))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 8, weight: .bold))
                         .rotationEffect(.degrees(isCollapsed ? -90 : 0))
@@ -116,7 +117,7 @@ struct AgentsList: View {
                     AgentListRow(browser: browser, entry: entry, theme: theme, showsProject: grouping == .status)
                 }
                 if group.entries.count > limit {
-                    Button("\(group.entries.count - limit) weitere zeigen") { expanded.insert(group.title) }
+                    Button(L("%lld weitere zeigen", group.entries.count - limit)) { expanded.insert(group.title) }
                         .buttonStyle(.plain)
                         .font(.system(size: 12))
                         .foregroundStyle(theme.secondary)
@@ -139,10 +140,10 @@ struct AgentsList: View {
         case .status:
             // Like the Claude app: what needs you first, resting last.
             let order: [(String, [ClaudeSession.Status])] = [
-                ("Wartet auf dich", [.approval, .waiting]),
-                ("Arbeitet", [.working]),
-                ("Offene Todos", [.open]),
-                (AgentGroup.restingTitle, [.done]),
+                (L("Wartet auf dich"), [.approval, .waiting]),
+                (L("Arbeitet"), [.working]),
+                (L("Offene Todos"), [.open]),
+                (L(AgentGroup.restingTitle), [.done]),
             ]
             return order.compactMap { title, statuses in
                 let group = entries.filter { statuses.contains($0.status) }.sorted { $0.date > $1.date }
@@ -153,13 +154,13 @@ struct AgentsList: View {
             return byFolder.values
                 .map { $0.sorted { $0.date > $1.date } }
                 .sorted { ($0.first?.date ?? .distantPast) > ($1.first?.date ?? .distantPast) }
-                .map { group in AgentGroup(title: group.first?.project ?? "Ohne Ordner", entries: group) }
+                .map { group in AgentGroup(title: group.first?.project ?? L("Ohne Ordner"), entries: group) }
         }
     }
 }
 
 struct AgentGroup: Identifiable {
-    static let restingTitle = "Ruhend"
+    static let restingTitle = L("Ruhend")
 
     let title: String
     let entries: [AgentEntry]
@@ -173,8 +174,8 @@ enum AgentGrouping: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .status: "Status"
-        case .project: "Projekt"
+        case .status: L("Status")
+        case .project: L("Projekt")
         }
     }
 }
@@ -195,16 +196,16 @@ struct AgentEntry: Identifiable {
     var session: ClaudeSession?
 
     var project: String {
-        folder.isEmpty ? "Ohne Ordner" : URL(fileURLWithPath: folder).lastPathComponent
+        folder.isEmpty ? L("Ohne Ordner") : URL(fileURLWithPath: folder).lastPathComponent
     }
 
     /// How long ago, coarsely: a list that ticks every second looks busy.
     static func age(_ date: Date, now: Date = Date()) -> String {
         let seconds = now.timeIntervalSince(date)
-        if seconds < 60 { return "jetzt" }
-        if seconds < 3600 { return "\(Int(seconds / 60)) Min." }
-        if seconds < 86_400 { return "\(Int(seconds / 3600)) Std." }
-        if Calendar.current.isDateInYesterday(date) { return "gestern" }
+        if seconds < 60 { return L("jetzt") }
+        if seconds < 3600 { return L("%lld Min.", Int(seconds / 60)) }
+        if seconds < 86_400 { return L("%lld Std.", Int(seconds / 3600)) }
+        if Calendar.current.isDateInYesterday(date) { return L("gestern") }
         if seconds < 6 * 86_400 { return date.formatted(.dateTime.weekday(.wide)) }
         return date.formatted(.dateTime.day().month(.abbreviated))
     }
@@ -271,7 +272,7 @@ private struct AgentListRow: View {
                     Text("\(entry.openTodos)")
                         .font(.system(size: 10.5, weight: .semibold))
                         .foregroundStyle(theme.secondary)
-                        .help("\(entry.openTodos) offene Todos")
+                        .help(L("%lld offene Todos", entry.openTodos))
                 }
                 indicator
             }
@@ -282,21 +283,21 @@ private struct AgentListRow: View {
         .onHover { hovering = $0 }
         .help(tooltip)
         .contextMenu {
-            Button(entry.chat == nil ? "Als Agent-Chat öffnen" : "Öffnen") { open() }
+            Button(L(entry.chat == nil ? "Als Agent-Chat öffnen" : "Öffnen")) { open() }
             if let session = entry.session {
-                Button("Im Terminal fortsetzen") { BrowserWindowController.resumeInTerminal(session) }
+                Button(L("Im Terminal fortsetzen")) { BrowserWindowController.resumeInTerminal(session) }
             }
             if !entry.folder.isEmpty {
-                Button("Ordner im Finder zeigen") {
+                Button(L("Ordner im Finder zeigen")) {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: entry.folder)])
                 }
             }
             if let session = entry.session {
-                Button("Session-ID kopieren") { copy(session.id) }
+                Button(L("Session-ID kopieren")) { copy(session.id) }
             }
             if let chat = entry.chat {
                 Divider()
-                Button("Chat löschen") { browser.deleteAgentChat(chat) }
+                Button(L("Chat löschen")) { browser.deleteAgentChat(chat) }
             }
         }
     }

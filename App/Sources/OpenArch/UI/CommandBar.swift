@@ -1,6 +1,7 @@
 import AppKit
 import Observation
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 
@@ -26,11 +27,16 @@ final class CommandBarController: NSObject, NSWindowDelegate {
 
     var isVisible: Bool { panel?.isVisible == true }
 
+    /// The space's theme, for the bar's card and its selected row.
+    var theme: SpaceTheme { browser.theme }
+
     func show(mode: Mode) {
         guard let window = browser.window else { return }
         model.reset(mode: mode)
         let panel = self.panel ?? makePanel()
         self.panel = panel
+        // Light or dark like the space's theme, whose colors it takes.
+        panel.appearance = browser.theme.appearance
         let width: CGFloat = min(720, max(480, window.frame.width - 160))
         let content = window.convertToScreen(browser.contentRect)
         let x = content.midX - width / 2
@@ -192,11 +198,11 @@ final class CommandBarModel {
     }
 
     var placeholder: String {
-        if let site { return "\(site.name) durchsuchen …" }
+        if let site { return L("%@ durchsuchen", site.name) }
         return switch mode {
-        case .newTab: "Suchen oder URL eingeben …"
-        case .editURL: "URL bearbeiten …"
-        case .newSplit: "Neben dem aktuellen Tab öffnen …"
+        case .newTab: L("Suchen oder URL eingeben …")
+        case .editURL: L("URL bearbeiten …")
+        case .newSplit: L("Neben dem aktuellen Tab öffnen …")
         }
     }
 
@@ -308,7 +314,7 @@ final class CommandBarModel {
             completion = nil
             for create in creates.prefix(4) {
                 results.append(CommandResult(id: "create:\(create.url)", icon: .url(create.icon), title: create.title,
-                                             subtitle: Self.shortURL(create.url), badge: "Erstellen",
+                                             subtitle: Self.shortURL(create.url), badge: L("Erstellen"),
                                              action: { [unowned self] in self.open(create.url) }))
                 seenURLs.insert(create.url)
             }
@@ -337,8 +343,8 @@ final class CommandBarModel {
             results.append(agent)
         }
         if let candidate = siteCandidate(text) {
-            results.append(CommandResult(id: "site:\(candidate.id)", icon: .url(candidate.url), title: "\(candidate.name) durchsuchen",
-                                         subtitle: candidate.keyword.isEmpty ? nil : "Kürzel: \(candidate.keyword)", badge: "Tab",
+            results.append(CommandResult(id: "site:\(candidate.id)", icon: .url(candidate.url), title: L("%@ durchsuchen", candidate.name),
+                                         subtitle: candidate.keyword.isEmpty ? nil : L("Kürzel: %@", candidate.keyword), badge: L("Tab"),
                                          action: { [unowned self] in self.enterSite(candidate) }))
         }
 
@@ -349,7 +355,7 @@ final class CommandBarModel {
         }
         for chat in matchingAgentChats(text).prefix(3) {
             results.append(CommandResult(id: "tab:\(chat.id)", icon: .symbol("sparkles"), title: chat.displayTitle,
-                                         subtitle: "Agent-Chat", badge: "Zum Chat wechseln",
+                                         subtitle: L("Agent-Chat"), badge: L("Zum Chat wechseln"),
                                          action: { [unowned self] in self.browser.select(chat) }))
         }
 
@@ -373,7 +379,7 @@ final class CommandBarModel {
         for tab in archived.prefix(2) {
             seenURLs.insert(tab.url)
             results.append(CommandResult(id: "archive:\(tab.url)", icon: .url(tab.url), title: tab.title,
-                                         subtitle: "Archiviert · " + Self.shortURL(tab.url),
+                                         subtitle: L("Archiviert · %@", Self.shortURL(tab.url)),
                                          action: { [unowned self] in self.open(tab.url) }))
         }
 
@@ -389,7 +395,7 @@ final class CommandBarModel {
     private func siteResults(_ site: SiteSearch, _ text: String) -> [CommandResult] {
         guard !text.isEmpty else { return [] }
         var results = [CommandResult(id: "sitesearch:\(text)", icon: .url(site.url), title: text,
-                                     subtitle: "\(site.name) durchsuchen",
+                                     subtitle: L("%@ durchsuchen", site.name),
                                      action: { [unowned self] in self.open(site.url(for: text)) })]
         let host = site.host.replacingOccurrences(of: "www.", with: "")
         for entry in browser.history.search(text, limit: 20) where !host.isEmpty && entry.url.contains(host) {
@@ -401,7 +407,7 @@ final class CommandBarModel {
         }
         for suggestion in suggestions.prefix(5) where suggestion.lowercased() != text.lowercased() {
             results.append(CommandResult(id: "sitesearch:\(suggestion)", icon: .symbol("magnifyingglass"), title: suggestion,
-                                         subtitle: "\(site.name) durchsuchen",
+                                         subtitle: L("%@ durchsuchen", site.name),
                                          action: { [unowned self] in self.open(site.url(for: suggestion)) }))
         }
         return results
@@ -409,9 +415,9 @@ final class CommandBarModel {
 
     private var modeVerb: String {
         switch mode {
-        case .newTab: "In neuem Tab öffnen"
-        case .editURL: "Öffnen"
-        case .newSplit: "In Split View öffnen"
+        case .newTab: L("In neuem Tab öffnen")
+        case .editURL: L("Öffnen")
+        case .newSplit: L("In Split View öffnen")
         }
     }
 
@@ -419,15 +425,15 @@ final class CommandBarModel {
     private func askResult(_ text: String) -> CommandResult? {
         let chat = browser.library.settings.askAI
         guard let url = chat.url(for: text) else { return nil }
-        return CommandResult(id: "ask:\(text)", icon: .url(url), title: text, subtitle: "\(chat.name) fragen",
+        return CommandResult(id: "ask:\(text)", icon: .url(url), title: text, subtitle: L("%@ fragen", chat.name),
                              action: { [unowned self] in self.open(url) })
     }
 
     /// A new agent chat (Claude Code in the sidebar) with the input as its
     /// first message.
     private func agentResult(_ text: String) -> CommandResult? {
-        guard case .newTab = mode, browser.library.settings.agentChats, !browser.isStandalone else { return nil }
-        return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: "Agent-Chat starten",
+        guard case .newTab = mode, browser.library.settings.agentChatsOn, !browser.isStandalone else { return nil }
+        return CommandResult(id: "agent:\(text)", icon: .symbol("sparkles"), title: text, subtitle: L("Agent-Chat starten"),
                              action: { [unowned self] in self.browser.newAgentChat(prompt: text) })
     }
 
@@ -443,7 +449,7 @@ final class CommandBarModel {
         let engine = browser.library.settings.searchEngine
         let url = engine.url(for: text)
         return CommandResult(id: "search:\(text)", icon: .symbol("magnifyingglass"), title: text,
-                             subtitle: "\(engine.name)-Suche", action: { [unowned self] in self.open(url) })
+                             subtitle: L("%@-Suche", engine.name), action: { [unowned self] in self.open(url) })
     }
 
     private func tabResult(_ item: Item) -> CommandResult {
@@ -454,7 +460,7 @@ final class CommandBarModel {
         }
         let isOpen = item.pane != nil || item.role == .today
         return CommandResult(id: "tab:\(item.id)", icon: .item(item), title: item.displayTitle, subtitle: subtitle,
-                             badge: isOpen ? "Zu Tab wechseln" : "Öffnen",
+                             badge: L(isOpen ? "Zu Tab wechseln" : "Öffnen"),
                              action: { [unowned self] in self.switchTo(item) })
     }
 
@@ -552,6 +558,7 @@ final class CommandBarModel {
             ("Browser-Einstellungen", "gearshape.2", nil, { browser.openChromePage("chrome://settings") }),
             ("OpenArch-Einstellungen", "gearshape", #selector(AppDelegate.showSettings(_:)), { (NSApp.delegate as? AppDelegate)?.showSettings(nil) }),
             ("Aus Arc importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }),
+            ("Aus anderem Browser importieren", "square.and.arrow.down", nil, { (NSApp.delegate as? AppDelegate)?.importFromOtherBrowser(nil) }),
         ]
         if !ClosedWindows.shared.isEmpty {
             let reopen: Command = ("Geschlossenes Fenster wieder öffnen", "macwindow.badge.plus", nil, {
@@ -559,7 +566,7 @@ final class CommandBarModel {
             })
             commands.append(reopen)
         }
-        if browser.library.settings.agentChats, !browser.isStandalone {
+        if browser.library.settings.agentChatsOn, !browser.isStandalone {
             let agent: Command = ("Neuer Agent-Chat", "sparkles", nil, { browser.newAgentChat() })
             let agents: Command = ("Agents", "sparkles", #selector(AppDelegate.toggleAgents(_:)), { browser.toggleAgents() })
             commands += [agent, agents]
@@ -592,11 +599,14 @@ final class CommandBarModel {
             }
         }
         for space in browser.library.spaces where space !== browser.state.space && !browser.isStandalone {
-            let switchSpace: Command = ("Zu Space „\(space.name)“ wechseln", "square.stack", nil, { browser.switchSpace(to: space) })
+            let switchSpace: Command = (L("Zu Space „%@“ wechseln", space.name), "square.stack", nil, { browser.switchSpace(to: space) })
             commands.append(switchSpace)
         }
         let needle = text.lowercased()
-        return commands
+        let localized = commands.map { title, symbol, action, run in
+            (L(title), symbol, action, run)
+        }
+        return localized
             .filter { title, _, _, _ in
                 let lower = title.lowercased()
                 return lower.hasPrefix(needle) || lower.split(separator: " ").contains { $0.hasPrefix(needle) }
@@ -727,6 +737,7 @@ struct CommandBarView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let theme = controller.theme
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 HStack(spacing: 10) {
@@ -752,7 +763,8 @@ struct CommandBarView: View {
                         ScrollView {
                             VStack(spacing: 2) {
                                 ForEach(Array(model.results.enumerated()), id: \.element.id) { index, result in
-                                    CommandResultRow(result: result, isSelected: index == model.selection)
+                                    CommandResultRow(result: result, isSelected: index == model.selection,
+                                                     selectionFill: theme.surfaceSelection)
                                         .id(index)
                                         .contentShape(Rectangle())
                                         .onTapGesture { model.run(index) }
@@ -770,12 +782,16 @@ struct CommandBarView: View {
                     }
                 }
             }
+            .foregroundStyle(theme.surfaceText)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(.regularMaterial)
+                    .overlay(RoundedRectangle(cornerRadius: 14).fill(theme.surface.opacity(0.9)))
                     .shadow(color: .black.opacity(0.35), radius: 24, y: 10))
             .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color.primary.opacity(0.12)))
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .environment(\.colorScheme, theme.colorScheme)
+            .tint(theme.accent)
             .padding(.horizontal, 24)
             .padding(.top, 4)
             .padding(.bottom, 40)
@@ -788,6 +804,7 @@ struct CommandBarView: View {
 private struct CommandResultRow: View {
     let result: CommandResult
     let isSelected: Bool
+    var selectionFill = Color.primary.opacity(0.13)
 
     var body: some View {
         HStack(spacing: 12) {
@@ -816,7 +833,7 @@ private struct CommandResultRow: View {
         }
         .padding(.horizontal, 10)
         .frame(minHeight: 42)
-        .background(RoundedRectangle(cornerRadius: 9).fill(isSelected ? Color.primary.opacity(0.13) : .clear))
+        .background(RoundedRectangle(cornerRadius: 9).fill(isSelected ? selectionFill : .clear))
     }
 
     private var isSymbol: Bool {

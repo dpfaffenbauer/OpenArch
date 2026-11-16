@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import SwiftUI
 
 /// Über OpenArch: a flight through OpenArch's arches. The logo springs in,
@@ -17,7 +18,7 @@ final class AboutWindowController {
                                   styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
-            window.title = "Über OpenArch"
+            window.title = L("Über OpenArch")
             window.isMovableByWindowBackground = true
             window.isReleasedWhenClosed = false
             window.appearance = NSAppearance(named: .darkAqua)
@@ -119,8 +120,8 @@ struct AboutView: View {
     private var details: some View {
         VStack(spacing: 14) {
             VStack(spacing: 3) {
-                Text("Version \(Updater.shared.versionDescription)")
-                Text("Chromium \(OACEngine.versionString)")
+                Text(L("Version %@", Updater.shared.versionDescription))
+                Text(L("Chromium %@", OACEngine.versionString))
             }
             .font(.system(size: 11.5, design: .monospaced))
             .foregroundStyle(.white.opacity(0.55))

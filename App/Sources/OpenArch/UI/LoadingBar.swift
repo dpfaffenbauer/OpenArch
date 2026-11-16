@@ -51,7 +51,7 @@ struct PageLoadingLine: View {
     let browser: BrowserWindowController
 
     var body: some View {
-        let theme = SpaceTheme(hex: browser.state.space.colorHex)
+        let theme = browser.theme
         if !browser.addressFieldShowsLoading {
             // In the middle of the strip above the page.
             LoadingProgressBar(item: browser.state.activeItem, color: theme.foreground.opacity(0.55))

@@ -23,13 +23,21 @@ This applies to today tabs, pinned tabs and favorites alike. A tab stays awake w
 
 - it is on screen, in any window,
 - it plays sound, or a video in picture-in-picture,
-- its page would ask before you leave it, such as a form you have not sent or a document with unsaved changes.
+- it is in a call: its page uses the camera or the microphone,
+- its page would ask before you leave it, such as a form you have not sent or a document with unsaved changes,
+- it is a pinned tab or a favorite of a chat or mail site (see below).
 
 A tab you [loaded in the background](/sidebar/basics/#clicking) counts as used from the moment it loaded.
 
 Set the time under **Settings › Allgemein › Tabs › Schlafende Tabs**: **nach 30 Minuten**, **nach 1 Stunde**, **nach 2 Stunden** (the default), **nach 6 Stunden** or **nie** (never).
 
 To close a pinned tab's page yourself, click **−** (**Entladen**) on it.
+
+### Chat and mail stay awake
+
+Pinned tabs and favorites of chat and mail sites never sleep, so their messages, notifications and calls keep coming. That covers Gmail, Outlook, Proton Mail, Fastmail, HEY, Superhuman and Zoho Mail; Slack, Discord, WhatsApp, Telegram, Microsoft Teams, Google Chat, Google Meet, Google Messages, Messenger, Element, Zulip and Zoom; and Google Calendar. A site counts with every address below it: **slack.com** covers **acme.slack.com**. The same sites as today tabs sleep like any other.
+
+Turn this off under **Settings › Allgemein › Tabs › Chat und Mail wach halten**. Add sites of your own under **Weitere Seiten wach halten**, separated by commas, for example `chat.firma.de, linear.app`.
 
 ## Today tabs go to the archive
 

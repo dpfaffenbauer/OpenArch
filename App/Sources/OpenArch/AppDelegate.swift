@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 
@@ -44,9 +45,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         log("Chromium \(OACEngine.versionString)")
+        if !selfTest {
+            // The crashes since the last launch, before this one can add any.
+            CrashReports.shared.collectAtLaunch()
+            CrashReports.shared.installSignalHandlers()
+            startFeatureSwitches()
+        }
+        OACPane.renderProcessGoneHandler = { status, code in
+            MainActor.assumeIsolated { CrashReports.shared.rendererGone(status: status, code: code) }
+        }
         AppIcons.repairBundle()
         SpotifyPlayer.shared.start(readState: !selfTest)
         library = Library.load()
+        // A library from a backup may carry a language the preferences did
+        // not know yet (for example on a fresh Mac). The next launch uses it.
+        if UserDefaults.standard.string(forKey: Localization.selectionKey) == nil {
+            Localization.setSelection(library.settings.language)
+        }
         // With the user's own shortcuts (Settings › Tastatur).
         rebuildMenu()
         library.settings.applyToChromium()
@@ -83,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ClaudeSessions.shared.start(library)
             Meetings.shared.onReminder = { [weak self] meeting in
                 guard let self, let browser = self.mainBrowser else { return }
-                browser.showToast("„\(meeting.title)“ beginnt gleich", symbol: "calendar")
+                browser.showToast(L("„%@“ beginnt gleich", meeting.title), symbol: "calendar")
                 if !NSApp.isActive, !self.selfTest { NSApp.requestUserAttention(.informationalRequest) }
             }
             if !selfTest { Meetings.shared.start(enabled: library.settings.meetingBar) }
@@ -99,7 +114,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             OACPane.downloadHandler = { [weak self] download in
                 MainActor.assumeIsolated { Downloads.shared.update(download, in: self?.mainBrowser) }
             }
-            browser.showWindow(nil)
+            // The first launch starts with the onboarding; the browser window
+            // comes in behind it. --skip-onboarding leaves it out.
+            let onboarding = !selfTest && library.settings.onboardingPending
+                && !CommandLine.arguments.contains("--skip-onboarding")
+            if !onboarding { browser.showWindow(nil) }
             if selfTest {
                 test = SelfTest(browser: browser)
                 test?.start()
@@ -107,15 +126,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 browser.restoreSession()
                 for url in pendingURLs { openExternal(url) }
                 pendingURLs = []
-                offerArcImportOnFirstRun()
+                if onboarding {
+                    startOnboarding(mode: .firstRun)
+                } else {
+                    offerArcImportOnFirstRun()
+                    // After the Arc import question, not on top of it.
+                    after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
+                }
                 importArcFaviconsOnce()
                 Updater.shared.start()
                 AppIcons.applyAtLaunch(spaceHex: browser.state.space.colorHex)
-                // After the Arc import question, not on top of it.
-                after(1) { [weak self] in self?.offerDefaultBrowserOnce() }
                 if let result = ArcProfileImport.takeResult() {
                     let alert = NSAlert()
-                    alert.messageText = "Import aus Arc"
+                    alert.messageText = L("Import aus Arc")
+                    alert.informativeText = result
+                    alert.runModal()
+                }
+                if let result = Backups.takeResult() {
+                    let alert = NSAlert()
+                    alert.messageText = L("Sicherung importiert")
+                    alert.informativeText = result
+                    alert.runModal()
+                }
+                Backups.shared.start(library: library)
+                after(2) { [weak self] in
+                    CrashReports.shared.offer { url in _ = self?.mainBrowser?.openInNewTab(url.absoluteString) }
+                }
+                if let result = CredentialImport.takeResult() {
+                    let alert = NSAlert()
+                    alert.messageText = L("Logins und Passwörter importiert")
                     alert.informativeText = result
                     alert.runModal()
                 }
@@ -123,6 +162,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if !selfTest {
             NSApp.activate()
+        }
+    }
+
+    /// The remote feature switches at launch and every six hours; a feature
+    /// switched off while it shows closes.
+    private func startFeatureSwitches() {
+        let build = Updater.shared.currentBuild
+        let chromium = OACEngine.versionString
+        let refresh: @Sendable () -> Void = { FeatureSwitches.shared.refresh(build: build, chromium: chromium) }
+        refresh()
+        Timer.scheduledTimer(withTimeInterval: 6 * 3600, repeats: true) { _ in refresh() }
+        NotificationCenter.default.addObserver(forName: FeatureSwitches.didChange, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.featureSwitchesChanged() }
+        }
+    }
+
+    func featureSwitchesChanged() {
+        let switches = FeatureSwitches.shared
+        if !switches.disabled.isEmpty {
+            log("features switched off: \(switches.disabled.keys.map(\.rawValue).sorted())")
+        }
+        for browser in browsers {
+            if !switches.isOn(.peek) { browser.peek.close() }
+            if !switches.isOn(.tabPreviews) { browser.tabPreview.hide() }
         }
     }
 
@@ -156,6 +219,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if let onboarding {
+            onboarding.window.makeKeyAndOrderFront(nil)
+            return true
+        }
         mainBrowser?.showWindow(nil)
         return true
     }
@@ -250,6 +317,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard let browser = mainBrowser else { return }
+        if library.settings.linksToOpenTab, let tab = openTab(showing: url, in: browser) {
+            browser.showWindow(nil)
+            browser.select(tab)
+            if !selfTest { NSApp.activate() }
+            return
+        }
         if let rule = library.settings.linkRules.first(where: { $0.matches(url) }) {
             if let id = rule.spaceID, let space = library.space(id: id) {
                 browser.showWindow(nil)
@@ -266,6 +339,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser.openInNewTab(url)
             if !selfTest { NSApp.activate() }
         }
+    }
+
+    /// The tab that already shows |url| (the fragment and a trailing slash
+    /// do not count). Normal windows share their spaces, so one window's
+    /// tabs are all of them.
+    func openTab(showing url: String, in browser: BrowserWindowController) -> Item? {
+        guard let key = Self.tabKey(url) else { return nil }
+        return browser.allTabs.first { $0.kind == .tab && Self.tabKey($0.currentURL) == key }
+    }
+
+    static func tabKey(_ url: String) -> String? {
+        guard var components = URLComponents(string: url), let host = components.host?.lowercased(), !host.isEmpty else { return nil }
+        components.fragment = nil
+        components.scheme = components.scheme?.lowercased()
+        components.host = host
+        while components.path.count > 1 && components.path.hasSuffix("/") { components.path.removeLast() }
+        if components.path == "/" { components.path = "" }
+        return components.string
     }
 
     @objc func newLittleOpenArch(_ sender: Any?) {
@@ -291,15 +382,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ArcFavicons.importIcons(for: ArcFavicons.urls(in: library))
     }
 
+    // MARK: Onboarding
+
+    private(set) var onboarding: OnboardingController?
+
+    /// The onboarding: by itself at the first launch, again from Settings ›
+    /// Allgemein.
+    @objc func showOnboarding(_ sender: Any?) {
+        startOnboarding(mode: .rerun)
+    }
+
+    @discardableResult
+    func startOnboarding(mode: OnboardingController.Mode, arc: OnboardingArcSource = OnboardingArcSource(),
+                         focus: Bool = true) -> OnboardingController {
+        if let onboarding {
+            onboarding.window.makeKeyAndOrderFront(nil)
+            return onboarding
+        }
+        settingsWindow?.orderOut(nil)
+        let controller = OnboardingController(app: self, mode: mode, arc: arc, focus: focus && !selfTest)
+        onboarding = controller
+        controller.present()
+        return controller
+    }
+
+    func onboardingDidEnd(_ controller: OnboardingController) {
+        if onboarding === controller { onboarding = nil }
+    }
+
     private func offerArcImportOnFirstRun() {
         let key = "didOfferArcImport"
         guard !UserDefaults.standard.bool(forKey: key), ArcImporter.isAvailable else { return }
         UserDefaults.standard.set(true, forKey: key)
         let alert = NSAlert()
-        alert.messageText = "Sidebar aus Arc übernehmen?"
-        alert.informativeText = "OpenArch kann Spaces, Favoriten, angeheftete Tabs mit Ordnern und offene Tabs aus Arc übernehmen. Arc selbst bleibt unverändert."
-        alert.addButton(withTitle: "Übernehmen")
-        alert.addButton(withTitle: "Nicht jetzt")
+        alert.messageText = L("Sidebar aus Arc übernehmen?")
+        alert.informativeText = L("OpenArch kann Spaces, Favoriten, angeheftete Tabs mit Ordnern und offene Tabs aus Arc übernehmen. Arc selbst bleibt unverändert.")
+        alert.addButton(withTitle: L("Übernehmen"))
+        alert.addButton(withTitle: L("Nicht jetzt"))
         if alert.runModal() == .alertFirstButtonReturn {
             importFromArc(nil)
         }
@@ -317,7 +436,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                   styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
-            window.title = "OpenArch-Einstellungen"
+            window.title = L("OpenArch-Einstellungen")
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: SettingsView(app: self))
             window.center()
@@ -340,22 +459,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let browser = mainBrowser else { return }
         do {
             let current = Dictionary(library.profiles.map { ($0.name, $0.id) }, uniquingKeysWith: { first, _ in first })
-            let (data, summary) = try ArcImporter.load(currentProfiles: current)
+            let arcProfile = library.settings.arcDefaultProfile ?? "Default"
+            let (data, summary) = try ArcImporter.load(currentProfiles: current, defaultDirectory: arcProfile)
             let alert = NSAlert()
-            alert.messageText = "Aus Arc importieren"
-            alert.informativeText = """
-                Sidebar: \(summary.spaces) Space(s), \(summary.favorites) Favoriten, \(summary.pinned) angeheftete Tabs \
-                in \(summary.folders) Ordnern und \(summary.today) offene Tabs. Die bisherige Sidebar bleibt als \
-                Sicherung erhalten.
+            alert.messageText = L("Aus Arc importieren")
+            alert.informativeText = L("""
+                Sidebar: %lld Space(s), %lld Favoriten, %lld angeheftete Tabs in %lld Ordnern und %lld offene Tabs. \
+                Die bisherige Sidebar bleibt als Sicherung erhalten.
 
                 „Alles übernehmen“ holt zusätzlich Logins und Cookies, gespeicherte Passwörter, Verlauf, Website-Daten \
                 und die installierten Extensions samt Einstellungen. Dafür startet OpenArch neu, Arc muss beendet sein, \
                 und macOS fragt einmal nach dem Zugriff auf „Arc Safe Storage“. Bisherige Logins und Website-Daten \
                 bleiben ebenfalls als Sicherung erhalten.
-                """
-            alert.addButton(withTitle: "Alles übernehmen")
-            alert.addButton(withTitle: "Nur Sidebar")
-            alert.addButton(withTitle: "Abbrechen")
+                """, summary.spaces, summary.favorites, summary.pinned, summary.folders, summary.today)
+            alert.addButton(withTitle: L("Alles übernehmen"))
+            alert.addButton(withTitle: L("Nur Sidebar"))
+            alert.addButton(withTitle: L("Abbrechen"))
             let choice = alert.runModal()
             guard choice != .alertThirdButtonReturn else { return }
             if choice == .alertFirstButtonReturn, !quitArcIfNeeded() {
@@ -371,7 +490,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser.libraryWasReplaced()
             if choice == .alertFirstButtonReturn {
                 library.save()
-                ArcProfileImport.scheduleAndRelaunch()
+                ArcProfileImport.scheduleAndRelaunch(into: arcProfile)
             }
         } catch {
             NSAlert(error: error).runModal()
@@ -379,14 +498,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Arc has to be closed so its databases are complete on disk.
-    private func quitArcIfNeeded() -> Bool {
-        let running = NSRunningApplication.runningApplications(withBundleIdentifier: ArcProfileImport.arcBundleID)
+    func quitArcIfNeeded() -> Bool {
+        quitAppIfNeeded(bundleIDs: [ArcProfileImport.arcBundleID], name: "Arc")
+    }
+
+    /// A browser whose logins are imported has to be closed, so its
+    /// databases are complete on disk.
+    func quitAppIfNeeded(bundleIDs: [String], name: String) -> Bool {
+        let running = bundleIDs.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
         guard !running.isEmpty else { return true }
         let alert = NSAlert()
-        alert.messageText = "Arc beenden?"
-        alert.informativeText = "Arc läuft noch. Damit Logins und Website-Daten vollständig übernommen werden, muss Arc beendet sein. Deine Tabs in Arc bleiben erhalten."
-        alert.addButton(withTitle: "Arc beenden")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.messageText = L("%@ beenden?", name)
+        alert.informativeText = L("%@ läuft noch. Damit Logins und Website-Daten vollständig übernommen werden, muss %@ beendet sein. Deine Tabs in %@ bleiben erhalten.", name, name, name)
+        alert.addButton(withTitle: L("%@ beenden", name))
+        alert.addButton(withTitle: L("Abbrechen"))
         guard alert.runModal() == .alertFirstButtonReturn else { return false }
         for app in running { app.terminate() }
         let deadline = Date().addingTimeInterval(15)
@@ -395,12 +520,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if running.contains(where: { !$0.isTerminated }) {
             let failed = NSAlert()
-            failed.messageText = "Arc ließ sich nicht beenden."
-            failed.informativeText = "Bitte beende Arc selbst und starte den Import dann noch einmal."
+            failed.messageText = L("%@ ließ sich nicht beenden.", name)
+            failed.informativeText = L("Bitte beende %@ selbst und starte den Import dann noch einmal.", name)
             failed.runModal()
             return false
         }
         return true
+    }
+
+    /// Settings › Import, where the other browsers on this Mac are listed.
+    @objc func importFromOtherBrowser(_ sender: Any?) {
+        showSettings(page: .importing)
+    }
+
+    @objc func backUpArc(_ sender: Any?) {
+        do {
+            let file = try ArcBackup.make()
+            NSWorkspace.shared.activateFileViewerSelecting([file])
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     @objc func installArcExtensions(_ sender: Any?) {
@@ -408,7 +547,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let extensions = ArcExtensions.installed()
         guard !extensions.isEmpty else {
             let alert = NSAlert()
-            alert.messageText = "Keine Extensions in Arc gefunden."
+            alert.messageText = L("Keine Extensions in Arc gefunden.")
             alert.runModal()
             return
         }
@@ -419,8 +558,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DefaultBrowser.makeDefault { success in
             guard !success else { return }
             let alert = NSAlert()
-            alert.messageText = "OpenArch ist nicht Standardbrowser geworden."
-            alert.informativeText = "macOS hat die Änderung nicht übernommen. Du kannst OpenArch auch unter Systemeinstellungen › Schreibtisch & Dock › Standard-Webbrowser auswählen."
+            alert.messageText = L("OpenArch ist nicht Standardbrowser geworden.")
+            alert.informativeText = L("macOS hat die Änderung nicht übernommen. Du kannst OpenArch auch unter Systemeinstellungen › Schreibtisch & Dock › Standard-Webbrowser auswählen.")
             alert.runModal()
         }
     }
@@ -432,10 +571,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !UserDefaults.standard.bool(forKey: key), !DefaultBrowser.isDefault else { return }
         UserDefaults.standard.set(true, forKey: key)
         let alert = NSAlert()
-        alert.messageText = "OpenArch als Standardbrowser verwenden?"
-        alert.informativeText = "Dann öffnen Links aus Mail, Slack und anderen Apps in OpenArch, in Little OpenArch oder nach deinen Link-Regeln direkt im richtigen Space."
-        alert.addButton(withTitle: "Als Standard festlegen")
-        alert.addButton(withTitle: "Nicht jetzt")
+        alert.messageText = L("OpenArch als Standardbrowser verwenden?")
+        alert.informativeText = L("Dann öffnen Links aus Mail, Slack und anderen Apps in OpenArch, in Little OpenArch oder nach deinen Link-Regeln direkt im richtigen Space.")
+        alert.addButton(withTitle: L("Als Standard festlegen"))
+        alert.addButton(withTitle: L("Nicht jetzt"))
         if alert.runModal() == .alertFirstButtonReturn {
             setAsDefaultBrowser(nil)
         }
@@ -462,8 +601,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     /// ⌘⇧T: the last closed tab, or the last closed window if it closed
-    /// later, as in Chrome.
+    /// later, as in Chrome; a Peek card closed after both.
     @objc func reopenTab(_ sender: Any?) {
+        // A Peek card closed after the last tab comes back first.
+        if let browser, browser.peek.canReopen(newerThan: library.archive.first?.date) {
+            return browser.peek.reopen()
+        }
         if ClosedWindows.shared.lastIsNewer(than: library.archive), ClosedWindows.shared.reopen(app: self) { return }
         browser?.reopenClosedTab()
     }
@@ -592,7 +735,7 @@ enum MainMenu {
 
         func item(_ title: String, _ action: Selector?, _ key: String = "", _ modifiers: NSEvent.ModifierFlags = .command,
                   tag: Int = 0, toDelegate: Bool = true, hidden: Bool = false) -> NSMenuItem {
-            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            let item = NSMenuItem(title: L(title), action: action, keyEquivalent: key)
             item.keyEquivalentModifierMask = modifiers
             item.tag = tag
             if toDelegate, action != nil { item.target = target }
@@ -612,9 +755,9 @@ enum MainMenu {
             return holder
         }
         func submenu(_ title: String, _ items: [NSMenuItem]) -> NSMenuItem {
-            let menu = NSMenu(title: title)
+            let menu = NSMenu(title: L(title))
             for entry in items { menu.addItem(entry) }
-            let holder = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            let holder = NSMenuItem(title: L(title), action: nil, keyEquivalent: "")
             holder.submenu = menu
             return holder
         }
@@ -649,6 +792,7 @@ enum MainMenu {
             .separator(),
             item("Seite sichern unter …", #selector(AppDelegate.savePage(_:)), "s", [.command, .shift]),
             item("Aus Arc importieren …", #selector(AppDelegate.importFromArc(_:))),
+            item("Aus anderem Browser importieren …", #selector(AppDelegate.importFromOtherBrowser(_:))),
             .separator(),
             item("Drucken …", #selector(AppDelegate.printPage(_:)), "p"),
         ]))
@@ -723,7 +867,7 @@ enum MainMenu {
             .separator(),
         ]
         for index in 0..<9 {
-            let entry = item(index == 8 ? "Letzter Tab" : "Tab \(index + 1)", #selector(AppDelegate.selectTab(_:)),
+            let entry = item(index == 8 ? L("Letzter Tab") : L("Tab %lld", index + 1), #selector(AppDelegate.selectTab(_:)),
                              "\(index + 1)", tag: index == 8 ? -1 : index)
             entry.allowsKeyEquivalentWhenHidden = true
             tabItems.append(entry)
@@ -742,7 +886,7 @@ enum MainMenu {
             item("Vorherige Seite der Split View", #selector(AppDelegate.previousSplit(_:)), "[", [.control, .shift]),
         ]
         for index in 0..<4 {
-            let entry = item("Seite \(index + 1)", #selector(AppDelegate.focusSplit(_:)), "\(index + 1)", [.control, .shift], tag: index)
+            let entry = item(L("Seite %lld", index + 1), #selector(AppDelegate.focusSplit(_:)), "\(index + 1)", [.control, .shift], tag: index)
             entry.allowsKeyEquivalentWhenHidden = true
             splitItems.append(entry)
         }
@@ -761,7 +905,7 @@ enum MainMenu {
         ]
         for index in 0..<9 {
             // Shortcuts stay active while hidden; titles follow the spaces.
-            let entry = item("Space \(index + 1)", #selector(AppDelegate.selectSpace(_:)), "\(index + 1)", .control, tag: index)
+            let entry = item(L("Space %lld", index + 1), #selector(AppDelegate.selectSpace(_:)), "\(index + 1)", .control, tag: index)
             entry.allowsKeyEquivalentWhenHidden = true
             spaceItems.append(entry)
         }
@@ -870,7 +1014,7 @@ final class SplitMenuUpdater: NSObject, NSMenuDelegate {
                 item.isEnabled = !sides.isEmpty
             case #selector(AppDelegate.rotateSplit(_:)):
                 item.isEnabled = !sides.isEmpty
-                item.title = browser.state.activeItem?.split?.splitStacked == true ? "Nebeneinander anzeigen" : "Übereinander anzeigen"
+                item.title = browser.state.activeItem?.split?.splitStacked == true ? L("Nebeneinander anzeigen") : L("Übereinander anzeigen")
             case #selector(AppDelegate.splitView(_:)):
                 item.isEnabled = browser.state.activeItem != nil && sides.count < 4
             default:

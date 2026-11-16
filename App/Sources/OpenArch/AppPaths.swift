@@ -13,6 +13,13 @@ enum AppPaths {
 
     static let support: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        // OPENARCH_DATA_DIR: a data folder of its own, so a test build runs
+        // next to the OpenArch in use without touching its data.
+        if !isSelfTest, let custom = ProcessInfo.processInfo.environment["OPENARCH_DATA_DIR"], !custom.isEmpty {
+            let url = URL(fileURLWithPath: (custom as NSString).expandingTildeInPath, isDirectory: true)
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
         // The Chromium engine (docs/chromium-engine.md) keeps its own data
         // while it is tried next to OpenArch on CEF: Chrome would move a
         // profile to its newer format, which CEF's older Chromium can't read.

@@ -17,7 +17,9 @@ The settings of OpenArch for iPhone and iPad are on
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| **Standardbrowser** | **Als Standard festlegen** makes OpenArch the Mac's browser, so links from Mail, Slack and other apps open in it. Shows **Aktiv** once it is. OpenArch also asks once, after its first launch. See [Links from other apps](/browsing/links/). | |
+| **Standardbrowser** | **Als Standard festlegen** makes OpenArch the Mac's browser, so links from Mail, Slack and other apps open in it. Shows **Aktiv** once it is. The [first launch](/start/install/#the-first-launch) asks too. See [Links from other apps](/browsing/links/). | |
+| **Erscheinungsbild** | Light or dark for pages, chats and the settings: **Wie macOS**, **Hell** or **Dunkel**. Pages that have a dark mode follow it. The sidebar keeps its space's color. | Wie macOS |
+| **Einführung** | **Erneut zeigen** opens the steps of the first launch again: import from Arc, accounts, colors, default browser. Esc on its first step closes it. | |
 
 ### Suchen
 
@@ -32,7 +34,6 @@ The settings of OpenArch for iPhone and iPad are on
 | --- | --- | --- |
 | **Tabs unter dem Strich archivieren** | Today tabs you have not used for this long go to the archive: after 12 hours, 24 hours, 7 days, 30 days, or never. See [Tabs](/sidebar/tabs/). | nach 12 Stunden |
 | **Schlafende Tabs** | Tabs you have not looked at for this long free their memory and load again when you come back: after 30 minutes, 1 hour, 2 hours, 6 hours, or never. Tabs playing sound or with unsaved input stay awake. See [Tabs](/sidebar/tabs/). | nach 2 Stunden |
-| **Peek** | Links from pinned tabs and favorites to other sites open in a card over the page. See [Peek](/browsing/peek/). | On |
 | **Bild-in-Bild beim Tab-Wechsel** | A video playing with sound goes on in a small window when you leave its tab. See [Player, meetings and screen sharing](/sidebar/cards/). | On |
 | **Chrome-Toolbar in Tabs** | The address bar, extension icons and downloads above the page (<kbd>⇧⌘D</kbd>). See [Extensions and Chrome features](/browsing/chrome/). | On |
 | **Adresse oben in der Sidebar** | The page's address at the top of the sidebar. See [The sidebar](/sidebar/basics/). | Off |
@@ -49,14 +50,21 @@ The settings of OpenArch for iPhone and iPad are on
 | --- | --- | --- |
 | **Nur HTTPS** | `http://` addresses load encrypted first; if that fails, OpenArch asks before opening the page unencrypted (Chromium's HTTPS-First mode). See [Data and privacy](/reference/data-and-privacy/). | Off |
 
+### Geschützte Inhalte
+
+| Setting | What it does | Default |
+| --- | --- | --- |
+| **DRM-Seiten mit Safaris Engine abspielen** | Spotify, Netflix and the other listed streaming services open with Safari's engine, which plays their DRM. Applies to pages you open from then on. See [Streaming services](/browsing/protected-media/). | On |
+| **Geschützte Inhalte (Widevine)** | Lets pages use Chromium's Widevine module, for streams that ask for no certification. Takes effect after OpenArch starts again. | Off |
+
 ### Sidebar
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| **Breite** | The sidebar's width, from 200 to 440 points. Dragging the sidebar's edge does the same; dragging it far to the left hides the sidebar. See [The sidebar](/sidebar/basics/). | 300 |
-| **Glas-Effekt** | The desktop shows through the window. From macOS 26 the sidebar floats on it as Liquid Glass, before that as frosted glass; the pages lie beside it as cards. See [Colors, glass and grain](/sidebar/appearance/). | Off |
-| **Tönung** | How much of the space's color is in the glass: little lets more of the desktop through, a lot keeps the text easy to read. Only with **Glas-Effekt** on. | Just left of the middle |
-| **Körnung** | Arc's fine grain on the space's color. All the way to the left, it is off. See [Colors, glass and grain](/sidebar/appearance/). | Off |
+| **Sidebar-Position** | **Links** or **Rechts**: the sidebar on the window's left or right, in every window. See [Themes, glass and the sidebar's side](/sidebar/appearance/#the-sidebar-on-the-right). | Links |
+| **Breite** | The sidebar's width, from 200 to 440 points. Dragging the sidebar's inner edge does the same; dragging it far towards the window's edge hides the sidebar. See [The sidebar](/sidebar/basics/). | 300 |
+| **Glas-Effekt** | The desktop shows through the window. From macOS 26 the sidebar floats on it as Liquid Glass, before that as frosted glass; the pages lie beside it as cards. See [Themes, glass and the sidebar's side](/sidebar/appearance/). | Off |
+| **Tönung** | How much of the space's colors is on the glass: little lets more of the desktop through, a lot keeps the text easy to read. Only with **Glas-Effekt** on. | Just left of the middle |
 | **Vorschau beim Überfahren** | Resting the pointer on a tab in the sidebar shows a picture of its page beside it. See [Tabs](/sidebar/tabs/). | On |
 
 ### App-Symbol
@@ -64,7 +72,7 @@ The settings of OpenArch for iPhone and iPad are on
 The Dock icon: twelve takes on the arch, **Space-Farbe** (the color of the
 space you are in) or **Jeden Tag** (a different one each day). The fixed
 icons also show for OpenArch in the Finder. See
-[Colors, glass and grain](/sidebar/appearance/). Default: **Tunnel**,
+[Themes, glass and the sidebar's side](/sidebar/appearance/). Default: **Tunnel**,
 OpenArch's own.
 
 ### Seitensuche
@@ -103,6 +111,12 @@ sidebar. See [Spaces and profiles](/sidebar/spaces/). Default: one profile,
 **Persönlich**.
 
 ## Links
+
+### Links in Tabs
+
+| Setting | What it does | Default |
+| --- | --- | --- |
+| **Peek** | Links from pinned tabs and favorites to other sites, and <kbd>⇧</kbd>-clicked links, open in a card over the page; <kbd>⌘Z</kbd> or <kbd>⇧⌘T</kbd> opens a card just closed again. Off: they open as usual, a <kbd>⇧</kbd>-clicked link as a new tab. See [Peek](/browsing/peek/). | On |
 
 ### Link-Regeln
 
@@ -174,21 +188,31 @@ back. See [Keyboard shortcuts](/reference/shortcuts/#change-a-shortcut).
 
 ## Import
 
-See [Move over from Arc](/start/import-from-arc/).
+See [Move over from Arc](/start/import-from-arc/) and [Move over from another browser](/start/import/).
 
 | Setting | What it does |
 | --- | --- |
 | **Sidebar und alles andere** | **Importieren …** takes spaces, favorites, folders and tabs from Arc, and if you choose, logins and cookies, passwords, history, website data and extensions. Greyed out when there is no Arc on this Mac. |
 | **Extensions aus Arc** | **Ordner anlegen** puts a folder with a Chrome Web Store link for each of Arc's extensions into the sidebar, to install them again. |
+| **Arc-Daten sichern** | **Sichern** zips Arc's JSON files and its `Local State` into your Documents folder. |
+| **Aus anderen Browsern** | The browsers found on this Mac with their profiles. Tick profiles and what to take (**Lesezeichen**, **Verlauf**, **Logins und Passwörter**), then **Importieren**. |
+| **Lesezeichen-Datei (HTML)** | **Datei wählen …** imports an exported bookmarks file into a space of its own. |
+| **Passwörter (CSV)** | Choose a profile, then **Datei wählen …** to add the passwords from an exported CSV file at the next launch. |
 
 ## Info
 
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Version | OpenArch's version and Chromium's. **Über OpenArch …** opens the About window. | |
+| **Update-Kanal** | **Stable** (the published versions) or **Nightly** (the newest build of every change). Never installs a version older than yours: back on Stable, OpenArch waits until Stable catches up. See [Install and update](/start/install/#stable-or-nightly). | The channel of the build you downloaded |
 | **Automatisch aktualisieren** | Looks for a new version at launch and every six hours, downloads it and installs it at the next quit. See [Install and update](/start/install/). | On |
 | Update status | Whether OpenArch is up to date, with **Jetzt prüfen** (check now); once an update is ready, **Neu starten** installs it. | |
 | **Profile, Sidebar und Verlauf** | Where OpenArch keeps its data, `~/Library/Application Support/OpenArch`. **Im Finder zeigen** opens it. See [Data and privacy](/reference/data-and-privacy/). | |
+| **Tägliche Sicherung** | Once a day, the sidebar, link rules, boosts and settings into the backup folder; the newest 14 stay. **Jetzt sichern** makes one now. See [Data and privacy](/reference/data-and-privacy/#daily-backup). | On |
+| **Ordner** | Where the backups go. **Wählen …** picks another folder, iCloud Drive included; **Zeigen** opens it. | `Backups/` in OpenArch's folder |
+| **Export und Import** | **Exportieren …** writes a backup into a folder you choose; **Importieren …** brings one back and restarts OpenArch. | |
+| **Nach einem Absturz fragen** | Notes crashes of OpenArch and its processes and asks at the next launch whether to send a report, as a GitHub issue you send yourself. See [Data and privacy](/reference/data-and-privacy/#crash-reports). | On |
+| **Vorübergehend abgeschaltet** | Shows only when a feature is switched off from openarch.app or on this Mac, with the reason. See [Data and privacy](/reference/data-and-privacy/#feature-switches). | |
 | **Quellcode auf GitHub** | **Öffnen** opens OpenArch's repository in a tab. | |
 
 ## Settings outside this window

@@ -1,6 +1,7 @@
 import AppKit
 import QuickLookThumbnailing
 import SwiftUI
+import OpenArchLocalization
 import UniformTypeIdentifiers
 
 /// Arc's library, in place of the sidebar: media, downloads, spaces and
@@ -12,11 +13,11 @@ struct LibraryView: View {
 
     var body: some View {
         let state = browser.state
-        let theme = SpaceTheme(hex: state.space.colorHex)
+        let theme = browser.theme
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 0) {
-                Spacer().frame(width: 72)
-                IconButton(symbol: "sidebar.left", help: "Sidebar ausblenden (⌘S)") { browser.toggleSidebar() }
+                Spacer().frame(width: browser.sidebarButtonRoom(floating: false))
+                IconButton(symbol: browser.sidebarSymbol, help: "Sidebar ausblenden (⌘S)") { browser.toggleSidebar() }
                 Spacer()
                 IconButton(symbol: "xmark", help: "Bibliothek schließen (⌥⌘B)") { browser.toggleLibrary() }
             }
@@ -36,7 +37,7 @@ struct LibraryView: View {
                 .frame(width: 78)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    SearchField(text: $query, placeholder: "\(state.librarySection.title) durchsuchen …", theme: theme)
+                    SearchField(text: $query, placeholder: L("%@ durchsuchen …", state.librarySection.title), theme: theme)
                     Group {
                         switch state.librarySection {
                         case .media: MediaSection(browser: browser, files: files, query: query, theme: theme)
@@ -353,7 +354,7 @@ private struct SpacesSection: View {
                             .background(Circle().fill(Color(nsColor: space.color)))
                         VStack(alignment: .leading, spacing: 1) {
                             Text(space.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
-                            Text("Profil: \(library.profile(id: space.profileID).name) · \(space.pinned.allTabs.count) angeheftet, \(space.today.allTabs.count) offen")
+                            Text(L("Profil: %@ · %lld angeheftet, %lld offen", library.profile(id: space.profileID).name, space.pinned.allTabs.count, space.today.allTabs.count))
                                 .font(.system(size: 11)).opacity(0.6).lineLimit(1)
                         }
                     }
@@ -378,6 +379,17 @@ private struct SpacesSection: View {
                     browser.addSpace()
                 } label: {
                     Label("Neuer Space", systemImage: "plus")
+                        .font(.system(size: 13))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
+                }
+                .buttonStyle(.plain)
+                .opacity(0.75)
+                Button {
+                    browser.manageSpaces.show()
+                } label: {
+                    Label("Spaces verwalten …", systemImage: "slider.horizontal.3")
                         .font(.system(size: 13))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
@@ -473,7 +485,7 @@ private struct EmptyHint: View {
 
     var body: some View {
         if isEmpty {
-            Text(text).font(.system(size: 12)).opacity(0.5).multilineTextAlignment(.center).padding()
+            Text(L(text)).font(.system(size: 12)).opacity(0.5).multilineTextAlignment(.center).padding()
         }
     }
 }

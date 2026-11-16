@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// "new doc", "new sheet", "new ticket" … in the command bar: the first row
 /// goes straight to a new document, as in Dia. Most of these are the web
@@ -12,34 +13,34 @@ struct QuickCreate: Equatable {
     let keywords: [String]
 
     static let all: [QuickCreate] = [
-        QuickCreate(title: "Neues Google-Dokument", url: "https://docs.new", icon: "https://docs.google.com",
+        QuickCreate(title: L("Neues Google-Dokument"), url: "https://docs.new", icon: "https://docs.google.com",
                     keywords: ["doc", "docs", "dokument", "document", "text"]),
-        QuickCreate(title: "Neue Google-Tabelle", url: "https://sheets.new", icon: "https://docs.google.com",
+        QuickCreate(title: L("Neue Google-Tabelle"), url: "https://sheets.new", icon: "https://docs.google.com",
                     keywords: ["sheet", "sheets", "tabelle", "table", "spreadsheet"]),
-        QuickCreate(title: "Neue Google-Präsentation", url: "https://slides.new", icon: "https://docs.google.com",
+        QuickCreate(title: L("Neue Google-Präsentation"), url: "https://slides.new", icon: "https://docs.google.com",
                     keywords: ["slide", "slides", "präsentation", "presentation", "folien", "deck"]),
-        QuickCreate(title: "Neues Google-Formular", url: "https://forms.new", icon: "https://docs.google.com",
+        QuickCreate(title: L("Neues Google-Formular"), url: "https://forms.new", icon: "https://docs.google.com",
                     keywords: ["form", "forms", "formular", "umfrage"]),
-        QuickCreate(title: "Neues Google Meet", url: "https://meet.new", icon: "https://meet.google.com",
+        QuickCreate(title: L("Neues Google Meet"), url: "https://meet.new", icon: "https://meet.google.com",
                     keywords: ["meet", "meeting", "call"]),
-        QuickCreate(title: "Neuer Kalendertermin", url: "https://cal.new", icon: "https://calendar.google.com",
+        QuickCreate(title: L("Neuer Kalendertermin"), url: "https://cal.new", icon: "https://calendar.google.com",
                     keywords: ["event", "termin", "kalender", "calendar", "cal"]),
-        QuickCreate(title: "Neuer GitHub-Gist", url: "https://gist.github.com/", icon: "https://gist.github.com",
+        QuickCreate(title: L("Neuer GitHub-Gist"), url: "https://gist.github.com/", icon: "https://gist.github.com",
                     keywords: ["gist", "snippet"]),
-        QuickCreate(title: "Neues GitHub-Repository", url: "https://github.com/new", icon: "https://github.com",
+        QuickCreate(title: L("Neues GitHub-Repository"), url: "https://github.com/new", icon: "https://github.com",
                     keywords: ["repo", "repository"]),
-        QuickCreate(title: "Neue Notion-Seite", url: "https://notion.new", icon: "https://www.notion.so",
+        QuickCreate(title: L("Neue Notion-Seite"), url: "https://notion.new", icon: "https://www.notion.so",
                     keywords: ["notion", "page", "seite", "notiz", "note"]),
-        QuickCreate(title: "Neues Linear-Issue", url: "https://linear.new", icon: "https://linear.app",
+        QuickCreate(title: L("Neues Linear-Issue"), url: "https://linear.new", icon: "https://linear.app",
                     keywords: ["linear", "issue", "ticket"]),
-        QuickCreate(title: "Neue Figma-Datei", url: "https://figma.new", icon: "https://www.figma.com",
+        QuickCreate(title: L("Neue Figma-Datei"), url: "https://figma.new", icon: "https://www.figma.com",
                     keywords: ["figma", "design"]),
     ]
 
     /// Jira lives on the company's own site; its address comes from the
     /// history (a visited *.atlassian.net).
     static func jira(host: String) -> QuickCreate {
-        QuickCreate(title: "Neues Jira-Ticket", url: "https://\(host)/secure/CreateIssue!default.jspa",
+        QuickCreate(title: L("Neues Jira-Ticket"), url: "https://\(host)/secure/CreateIssue!default.jspa",
                     icon: "https://\(host)", keywords: ["jira", "ticket", "issue", "task", "aufgabe", "bug"])
     }
 

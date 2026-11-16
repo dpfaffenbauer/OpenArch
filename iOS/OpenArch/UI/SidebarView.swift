@@ -434,7 +434,7 @@ private struct SpaceBar: View {
                     if let text = UIPasteboard.general.string, let link = ShareURL(string: text) {
                         browser.present(.importShare(link))
                     } else {
-                        browser.showToast("Kein OpenArch-Link in der Zwischenablage")
+                        browser.showToast(String(localized: "Kein OpenArch-Link in der Zwischenablage"))
                     }
                 }
             } label: {

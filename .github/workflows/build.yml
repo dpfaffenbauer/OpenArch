@@ -91,7 +91,12 @@ jobs:
         env:
           OPENARCH_BUILD: ${{ github.run_number }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then export OPENARCH_VERSION="${GITHUB_REF_NAME#v}"; fi
+          # A version tag is a Stable build: it starts on the Stable update
+          # channel. Build numbers count up across tags and main alike, which
+          # is what keeps the updater from installing an older build.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            export OPENARCH_VERSION="${GITHUB_REF_NAME#v}" OPENARCH_CHANNEL=stable
+          fi
           CONFIG=release App/build.sh
 
       # Drives the real UI in the background. Needs network access (it opens
@@ -225,13 +230,32 @@ jobs:
           fi
           gh release upload nightly latest.json --clobber
 
-      # A version tag: the release, with notes from .github/release-notes.
+      # A version tag: the Stable release, which the Stable update channel
+      # installs (Updater.newestStable). Its notes come from
+      # .github/release-notes/<tag>.md, or else GitHub writes them from the
+      # pull requests since the previous tag.
       - name: Publish the release
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           version="${GITHUB_REF_NAME#v}"
-          notes=".github/release-notes/$GITHUB_REF_NAME.md"
-          [ -f "$notes" ] || notes=/dev/null
+          cat > latest.json <<JSON
+          {"build": ${{ github.run_number }}, "version": "$version", "commit": "$(git rev-parse --short HEAD)", "chromium": "$CEF",
+           "sha256": "$(sha256sum OpenArch.zip | cut -d' ' -f1)", "size": $(stat -c%s OpenArch.zip),
+           "url": "https://github.com/${{ github.repository }}/releases/download/$GITHUB_REF_NAME/OpenArch.zip"}
+          JSON
+          notes=(--generate-notes)
+          if [ -f ".github/release-notes/$GITHUB_REF_NAME.md" ]; then
+            notes=(--notes-file ".github/release-notes/$GITHUB_REF_NAME.md")
+          fi
           # Same file name in every release: releases/latest/download/OpenArch.zip
-          # always points to the newest one.
-          gh release create "$GITHUB_REF_NAME" OpenArch.zip --title "OpenArch $version" --notes-file "$notes" --verify-tag
+          # always points to the newest one. --latest: a Chromium build's
+          # release (cef-…-codecs) published since must not take that place.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            # Made by hand before the build was done: keep its notes.
+            gh release upload "$GITHUB_REF_NAME" OpenArch.zip --clobber
+            gh release edit "$GITHUB_REF_NAME" --latest --prerelease=false
+          else
+            gh release create "$GITHUB_REF_NAME" OpenArch.zip --title "OpenArch $version" "${notes[@]}" --verify-tag --latest
+          fi
+          # Last, after the zip it points to: what the updater reads.
+          gh release upload "$GITHUB_REF_NAME" latest.json --clobber

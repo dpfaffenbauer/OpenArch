@@ -930,3 +930,27 @@ footer p:last-child {
     backdrop-filter: none;
   }
 }
+
+/* iPhone and iPad: a short block with the App Store link. */
+
+.iphone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding-top: 96px;
+  padding-bottom: 48px;
+  text-align: center;
+}
+
+.iphone h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.iphone > p:not(.meta) {
+  max-width: 640px;
+  color: var(--soft);
+  font-size: 1.125rem;
+  line-height: 1.55;
+  text-wrap: pretty;
+}

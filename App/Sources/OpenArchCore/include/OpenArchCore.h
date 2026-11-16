@@ -2,5 +2,6 @@
 // Chromium (CEF). Nothing CEF- or C++-specific leaks through it.
 
 #import "OACEngine.h"
+#import "OACPage.h"
 #import "OACPane.h"
 #import "OACProfile.h"

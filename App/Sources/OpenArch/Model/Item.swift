@@ -88,7 +88,7 @@ final class Item: Identifiable {
     private(set) weak var parent: Item?
 
     // Live state while a pane exists.
-    var pane: OACPane?
+    var pane: (any OACPage)?
     var liveURL: String?
     var liveTitle: String?
     var favicon: NSImage?
@@ -108,6 +108,15 @@ final class Item: Identifiable {
     var screenShare: ScreenShare?
     /// How a page sharing a tab names this one (built-in extension).
     var captureHandle: String?
+    /// Chrome's recording indicator: the page uses the camera (video) or
+    /// the microphone (audio).
+    var mediaAccess = MediaAccess()
+    /// The page's call, as the built-in extension sees it (call.js).
+    var call: CallState?
+    /// In a call: the page uses the camera or the microphone.
+    var isInCall: Bool {
+        mediaAccess.video || mediaAccess.audio || call?.camera == true || call?.microphone == true
+    }
     /// Its page was closed to save memory; it loads again when shown.
     var isAsleep = false
     /// When its page was last made (shown, or loaded in the background).
@@ -324,11 +333,16 @@ struct SpaceData: Codable {
     var id: UUID
     var name: String
     var icon: String
+    /// The theme's first color; all a space had before themes, and still
+    /// written for older versions of OpenArch.
     var colorHex: String
     var profileID: String
     var pinned: [ItemData]
     var today: [ItemData]
     var activeItemID: UUID?
+    /// Colors, intensity, grain and light or dark; nil in libraries from
+    /// before themes, whose spaces get their one color as the only handle.
+    var theme: ThemeData?
 }
 
 struct ItemData: Codable {
@@ -353,6 +367,22 @@ struct ItemData: Codable {
 struct ScreenShare: Equatable, Decodable {
     var surface = ""
     var handle = ""
+}
+
+struct MediaAccess: Equatable {
+    var video = false
+    var audio = false
+}
+
+/// A page in a call, from the built-in extension's call.js: its live camera
+/// and microphone tracks, whether the site has a picture-in-picture of its
+/// own (Google Meet), and which floating window shows the call now: "site"
+/// (the site's own), "own" (OpenArch's), "video" (a video's), or "".
+struct CallState: Equatable, Decodable {
+    var camera = false
+    var microphone = false
+    var sitePip = false
+    var pip = ""
 }
 
 /// A page's audio or video, as its media element and Media Session report it.

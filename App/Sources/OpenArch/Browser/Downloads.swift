@@ -44,7 +44,7 @@ final class Downloads {
 
     /// Stops a running download; Chrome removes the partial file.
     func cancel(_ id: UInt32) {
-        OACPane.cancelDownload(id)
+        if !OACPane.cancelDownload(id) { _ = WebKitDownloads.shared.cancel(id) }
         progress[id] = nil
         names[id] = nil
         lastUpdate[id] = nil

@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 
 /// Links to addresses another app opens (bambustudioopen:, zoommtg:,
 /// mailto: ...): OpenArch asks before it opens the app, like Chrome, and can
@@ -14,7 +15,7 @@ enum ExternalApps {
                      toast: (String) -> Void) {
         guard let target = URL(string: url), let scheme = target.scheme?.lowercased() else { return }
         guard let app = app(for: target) else {
-            toast("Keine App für \(scheme): gefunden")
+            toast(L("Keine App für %@: gefunden", scheme))
             return
         }
         let host = URL(string: site)?.host() ?? ""
@@ -25,14 +26,14 @@ enum ExternalApps {
         }
         let name = FileManager.default.displayName(atPath: app.path).replacingOccurrences(of: ".app", with: "")
         let alert = NSAlert()
-        alert.messageText = "„\(name)“ öffnen?"
-        alert.informativeText = host.isEmpty ? "Ein Link möchte diese App öffnen." : "\(host) möchte diese App öffnen."
+        alert.messageText = L("„%@“ öffnen?", name)
+        alert.informativeText = host.isEmpty ? L("Ein Link möchte diese App öffnen.") : L("%@ möchte diese App öffnen.", host)
         alert.icon = NSWorkspace.shared.icon(forFile: app.path)
-        alert.addButton(withTitle: "Öffnen")
-        alert.addButton(withTitle: "Abbrechen")
+        alert.addButton(withTitle: L("Öffnen"))
+        alert.addButton(withTitle: L("Abbrechen"))
         if !host.isEmpty {
             alert.showsSuppressionButton = true
-            alert.suppressionButton?.title = "Links von \(host) immer in „\(name)“ öffnen"
+            alert.suppressionButton?.title = L("Links von %@ immer in „%@“ öffnen", host, name)
         }
         let finish: (NSApplication.ModalResponse) -> Void = { response in
             guard response == .alertFirstButtonReturn else { return }

@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// One of your Claude Code skills (~/.claude/skills/<name>/SKILL.md) or
 /// slash commands (~/.claude/commands/<name>.md).
@@ -61,11 +62,11 @@ enum ClaudeSkills {
     static func commandResults(_ text: String, browser: BrowserWindowController) -> [CommandResult] {
         guard !browser.isPrivate, let tab = browser.state.activeItem, tab.kind == .tab else { return [] }
         return matching(text).prefix(text.hasPrefix("/") ? 6 : 3).map { skill in
-            let kind = skill.kind == .skill ? "Skill" : "Befehl"
+            let kind = skill.kind == .skill ? L("Skill") : L("Befehl")
             return CommandResult(id: "skill:\(skill.id)", icon: .symbol(skill.kind == .skill ? "wand.and.stars" : "slash.circle"),
                                  title: "/" + skill.name,
                                  subtitle: skill.description.isEmpty ? kind : "\(kind) · \(skill.description)",
-                                 badge: "Auf diese Seite anwenden",
+                                 badge: L("Auf diese Seite anwenden"),
                                  action: { browser.runSkill(skill, on: tab) })
         }
     }

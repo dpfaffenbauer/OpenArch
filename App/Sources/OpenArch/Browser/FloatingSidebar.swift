@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// With the sidebar collapsed, moving the mouse to the window's left edge
-/// brings it back over the page, like Arc. It goes away again once the
+/// With the sidebar collapsed, moving the mouse to the window's edge on the
+/// sidebar's side (left, or right) brings it back over the page, like Arc. It goes away again once the
 /// mouse has left it for a moment.
 @MainActor
 final class FloatingSidebar {
@@ -31,13 +31,13 @@ final class FloatingSidebar {
     }
 
     /// Where the sidebar floats, in screen coordinates: below the window
-    /// buttons, along the left edge.
+    /// buttons, along the left edge (or the right one, with the sidebar there).
     var frame: NSRect? {
         guard let window = browser.window, let content = window.contentView else { return nil }
         let top: CGFloat = window.styleMask.contains(.fullScreen) ? Self.margin : 30
         let rect = NSRect(x: Self.margin, y: Self.margin, width: browser.sidebarWidth,
                           height: content.bounds.height - Self.margin - top)
-        return window.convertToScreen(rect)
+        return window.convertToScreen(browser.mirrored(rect))
     }
 
     func show() {
@@ -45,8 +45,9 @@ final class FloatingSidebar {
               let frame else { return }
         let panel = self.panel ?? FloatingSidebarWindow(browser: browser)
         self.panel = panel
-        panel.applyTheme(SpaceTheme(hex: browser.state.space.colorHex))
-        panel.setFrame(frame.offsetBy(dx: -16, dy: 0), display: false)
+        panel.applyTheme(browser.theme)
+        // It slides in from its edge.
+        panel.setFrame(frame.offsetBy(dx: browser.sidebarOnRight ? 16 : -16, dy: 0), display: false)
         panel.alphaValue = 0
         window.addChildWindow(panel, ordered: .above)
         panel.order(.above, relativeTo: window.windowNumber)
@@ -89,7 +90,7 @@ final class FloatingSidebar {
     }
 
     func applyTheme() {
-        panel?.applyTheme(SpaceTheme(hex: browser.state.space.colorHex))
+        panel?.applyTheme(browser.theme)
     }
 
     private func checkMouse() {
@@ -120,24 +121,32 @@ final class FloatingSidebarWindow: NSWindow {
         collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
         let host = NSHostingView(rootView: SidebarView(browser: browser, floating: true))
         host.sizingOptions = []
-        host.wantsLayer = true
-        host.layer?.cornerRadius = 10
-        host.layer?.cornerCurve = .continuous
-        host.layer?.masksToBounds = true
-        contentView = host
+        let container = NSView()
+        container.wantsLayer = true
+        container.layer?.cornerRadius = 10
+        container.layer?.cornerCurve = .continuous
+        container.layer?.masksToBounds = true
+        background.autoresizingMask = [.width, .height]
+        host.autoresizingMask = [.width, .height]
+        container.addSubview(background)
+        container.addSubview(host)
+        contentView = container
     }
 
+    /// The space's theme behind it, as in the window.
+    let background = SpaceBackgroundView()
+
     func applyTheme(_ theme: SpaceTheme) {
-        contentView?.layer?.backgroundColor = theme.base.cgColor
-        appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
+        background.apply(theme, active: true)
+        appearance = theme.appearance
     }
 
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 }
 
-/// A strip along the window's left edge that brings back the collapsed
-/// sidebar when the mouse touches it.
+/// A strip along the window's edge on the sidebar's side that brings back
+/// the collapsed sidebar when the mouse touches it.
 final class SidebarEdgeView: NSView {
     var onEnter: (() -> Void)?
 

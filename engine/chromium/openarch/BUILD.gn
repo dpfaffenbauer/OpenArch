@@ -31,6 +31,7 @@ source_set("core") {
     "//base",
     "//chrome/browser",
     "//chrome/browser:chrome_browser_application_mac",
+    "//components/os_crypt/common:keychain_password_mac",
     "//chrome/browser:main_extra_parts",
     "//chrome/browser/content_settings:content_settings_factory",
     "//chrome/browser/devtools",

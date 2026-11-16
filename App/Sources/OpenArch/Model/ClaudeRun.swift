@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// One headless run of `claude -p` for OpenArch's own jobs (the morning
 /// brief, tidying tabs): a prompt goes in, the answer comes back as text.
@@ -42,7 +43,7 @@ enum ClaudeRun {
                     continuation.resume(returning: answer.outcome(status: status, errors: errors, untilInit: untilInit))
                 })
             } catch {
-                continuation.resume(returning: Outcome(error: "Claude Code ließ sich nicht starten: \(error.localizedDescription)"))
+                continuation.resume(returning: Outcome(error: L("Claude Code ließ sich nicht starten: %@", error.localizedDescription)))
                 return
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + timeout) {

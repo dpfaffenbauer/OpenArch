@@ -1,4 +1,5 @@
 import Foundation
+import OpenArchLocalization
 
 /// The folder an agent works in, as git sees it: repository, branch and the
 /// files changed since the last commit. Read with git in the background for
@@ -48,7 +49,7 @@ struct AgentWorkspace: Sendable, Equatable {
     nonisolated static func diff(folder: String, change: Change) -> String {
         if change.isNew {
             let url = URL(fileURLWithPath: folder).appendingPathComponent(change.path)
-            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return "(Binärdatei)" }
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return L("(Binärdatei)") }
             return text.split(separator: "\n", omittingEmptySubsequences: false).prefix(2000).map { "+" + $0 }.joined(separator: "\n")
         }
         return run(folder, ["diff", "HEAD", "--", change.path]) ?? ""

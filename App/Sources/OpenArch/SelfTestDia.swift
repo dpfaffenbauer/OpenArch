@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import OpenArchCore
 
 /// Checks for the features taken from Dia: "new doc" in the command bar,
@@ -24,10 +25,10 @@ extension SelfTest {
         browser.commandBar.show(mode: .newTab)
         model.query = "new doc"
         let first = model.results.first
-        expect(first?.title == "Neues Google-Dokument" && first?.badge == "Erstellen",
+        expect(first?.title == L("Neues Google-Dokument") && first?.badge == L("Erstellen"),
                "„new doc“ in the command bar offers a new Google doc first (\(first?.title ?? "nothing"))")
         model.query = "neue tabelle"
-        expect(model.results.first?.title == "Neue Google-Tabelle", "„neue tabelle“ offers a new sheet first")
+        expect(model.results.first?.title == L("Neue Google-Tabelle"), "„neue tabelle“ offers a new sheet first")
         model.query = "new"
         expect(!model.results.contains { $0.id.hasPrefix("create:") }, "„new“ alone offers no new documents")
         expect(QuickCreate.matching("new ticket") { "acme.atlassian.net" }.first?.url
@@ -72,10 +73,11 @@ extension SelfTest {
     }
 
     private func grainTest() {
-        library.settings.grain = 0.6
+        let space = browser.state.space
+        space.theme.grain = 0.6
         browser.applyTheme()
-        expect(browser.grainAmount == 0.6, "the space's color gets Arc's grain")
-        library.settings.grain = 0
+        expect(browser.grainAmount == 0.6, "the space's theme gets Arc's grain")
+        space.theme.grain = 0
         browser.applyTheme()
         expect(browser.grainAmount == 0, "and none at zero")
     }

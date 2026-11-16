@@ -71,6 +71,8 @@
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
+#include "chrome/browser/media/webrtc/media_capture_devices_dispatcher.h"
+#include "chrome/browser/media/webrtc/media_stream_capture_indicator.h"
 #include "content/public/browser/web_contents_observer.h"
 #include "ui/base/page_transition_types.h"
 #include "ui/gfx/native_ui_types.h"
@@ -100,6 +102,8 @@
 - (void)faviconChanged:(NSImage*)image;
 - (BOOL)takeNewTabWithURL:(const GURL&)url disposition:(WindowOpenDisposition)disposition;
 - (BOOL)interceptsNavigationToURL:(const GURL&)url;
+- (BOOL)handsOffNavigationToURL:(const GURL&)url method:(NSString*)method;
+- (void)mediaAccessChangedVideo:(BOOL)video audio:(BOOL)audio;
 - (void)wantsExternalURL:(const GURL&)url;
 - (void)pageColorChanged;
 - (void)devToolsClosed;
@@ -254,6 +258,7 @@ void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_about_page_handler)(void) = nil;
 NSString* g_ask_about_selection_title = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+void (^g_render_process_gone_handler)(NSString*, int) = nil;
 
 // Forwards a WebContents' events to its pane.
 class PaneObserver : public content::WebContentsObserver,
@@ -279,6 +284,31 @@ class PaneObserver : public content::WebContentsObserver,
       if (favicons_) {
         favicons_->AddObserver(this);
       }
+    }
+  }
+
+  // A renderer that ended unexpectedly, to OACPane.renderProcessGoneHandler.
+  // Ones killed on purpose (closing, discarding) don't count.
+  void PrimaryMainFrameRenderProcessGone(base::TerminationStatus status) override {
+    const char* name = nullptr;
+    switch (status) {
+      case base::TERMINATION_STATUS_PROCESS_CRASHED:
+        name = "crashed";
+        break;
+      case base::TERMINATION_STATUS_OOM:
+        name = "oom";
+        break;
+      case base::TERMINATION_STATUS_ABNORMAL_TERMINATION:
+        name = "abnormal";
+        break;
+      case base::TERMINATION_STATUS_LAUNCH_FAILED:
+        name = "launch-failed";
+        break;
+      default:
+        return;
+    }
+    if (g_render_process_gone_handler) {
+      g_render_process_gone_handler(@(name), web_contents()->GetCrashedErrorCode());
     }
   }
 
@@ -377,6 +407,13 @@ class PaneNavigationThrottle : public content::NavigationThrottle {
       [pane wantsExternalURL:url];
       return CANCEL_AND_IGNORE;
     }
+    // A page OpenArch shows in WebKit (a streaming service): links,
+    // redirects and scripts going there move the tab before the request
+    // goes out. Reloads stay.
+    if (!ui::PageTransitionCoreTypeIs(handle->GetPageTransition(), ui::PAGE_TRANSITION_RELOAD) &&
+        [pane handsOffNavigationToURL:url method:handle->IsPost() ? @"POST" : @"GET"]) {
+      return CANCEL_AND_IGNORE;
+    }
     bool clicked = handle->IsRendererInitiated() && handle->HasUserGesture() &&
                    ui::PageTransitionCoreTypeIs(handle->GetPageTransition(),
                                                 ui::PAGE_TRANSITION_LINK);
@@ -392,6 +429,35 @@ void AddNavigationThrottle(content::NavigationThrottleRegistry& registry) {
     registry.AddThrottle(std::make_unique<PaneNavigationThrottle>(registry));
   }
 }
+
+// Chrome's recording indicator: a page uses the camera or the microphone.
+class CaptureWatcher : public MediaStreamCaptureIndicator::Observer {
+ public:
+  static void Ensure() {
+    static base::NoDestructor<CaptureWatcher> watcher;
+  }
+  CaptureWatcher() {
+    indicator_ = MediaCaptureDevicesDispatcher::GetInstance()->GetMediaStreamCaptureIndicator();
+    indicator_->AddObserver(this);
+  }
+
+  void OnIsCapturingVideoChanged(content::WebContents* contents, bool) override {
+    Tell(contents);
+  }
+  void OnIsCapturingAudioChanged(content::WebContents* contents, bool) override {
+    Tell(contents);
+  }
+
+ private:
+  void Tell(content::WebContents* contents) {
+    if (OACPane* pane = PaneForContents(contents)) {
+      [pane mediaAccessChangedVideo:indicator_->IsCapturingVideo(contents)
+                              audio:indicator_->IsCapturingAudio(contents)];
+    }
+  }
+
+  scoped_refptr<MediaStreamCaptureIndicator> indicator_;
+};
 
 bool TakeNewTab(content::WebContents* source, const GURL& url, WindowOpenDisposition disposition) {
   OACPane* pane = PaneForContents(source);
@@ -767,6 +833,7 @@ void InstallPaneHooks() {
   g_new_tab_hook = &TakeNewTab;
   g_key_hook = &HandleKey;
   g_navigation_throttle_hook = &AddNavigationThrottle;
+  CaptureWatcher::Ensure();
 }
 
 BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
@@ -793,6 +860,27 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 }  // namespace openarch
 
 @implementation OACDownload
+- (instancetype)initWithIdentifier:(uint32_t)identifier
+                          fileName:(NSString*)fileName
+                              path:(NSString*)path
+                   percentComplete:(NSInteger)percentComplete
+                        isComplete:(BOOL)isComplete
+                          isFailed:(BOOL)isFailed {
+  if ((self = [super init])) {
+    _identifier = identifier;
+    _fileName = [fileName copy];
+    _path = [path copy];
+    _percentComplete = percentComplete;
+    _isComplete = isComplete;
+    _isFailed = isFailed;
+  }
+  return self;
+}
++ (void)report:(OACDownload*)download {
+  if (g_download_handler) {
+    g_download_handler(download);
+  }
+}
 - (uint32_t)identifier {
   return _identifier;
 }
@@ -899,6 +987,51 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 
 - (BOOL)isLoaded {
   return _contents != nullptr;
+}
+
+- (OACPageEngine)engine {
+  return OACPageEngineChromium;
+}
+
+- (BOOL)isFullScreen {
+  return _contents && _contents->IsFullscreen();
+}
+
+// Whether the page has a beforeunload handler, which closing it to sleep
+// would skip. YES when it cannot tell.
+- (void)checkAsksBeforeLeaving:(void (^)(BOOL asks))completion {
+  NSString* group = @"openarch-sleep";
+  [self callDevToolsMethod:@"Runtime.evaluate"
+                    params:@{@"expression" : @"window", @"objectGroup" : group}
+                completion:^(NSDictionary<NSString*, id>* result) {
+                  NSDictionary* object = result[@"result"];
+                  NSString* objectID =
+                      [object isKindOfClass:NSDictionary.class] ? object[@"objectId"] : nil;
+                  if (![objectID isKindOfClass:NSString.class]) {
+                    completion(YES);
+                    return;
+                  }
+                  [self callDevToolsMethod:@"DOMDebugger.getEventListeners"
+                                    params:@{@"objectId" : objectID}
+                                completion:^(NSDictionary<NSString*, id>* listeners) {
+                                  [self callDevToolsMethod:@"Runtime.releaseObjectGroup"
+                                                    params:@{@"objectGroup" : group}
+                                                completion:nil];
+                                  NSArray* list = listeners[@"listeners"];
+                                  if (![list isKindOfClass:NSArray.class]) {
+                                    completion(YES);
+                                    return;
+                                  }
+                                  for (NSDictionary* listener in list) {
+                                    if ([listener isKindOfClass:NSDictionary.class] &&
+                                        [listener[@"type"] isEqual:@"beforeunload"]) {
+                                      completion(YES);
+                                      return;
+                                    }
+                                  }
+                                  completion(NO);
+                                }];
+                }];
 }
 
 - (BOOL)isVisible {
@@ -1859,6 +1992,12 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
     [self wantsExternalURL:url];
     return YES;
   }
+  // ⇧-click on a link (a new window, for Chrome) opens Peek.
+  if (disposition == WindowOpenDisposition::kNewWindow &&
+      [_delegate respondsToSelector:@selector(pane:wantsPeekWithURL:)] &&
+      [_delegate pane:self wantsPeekWithURL:openarch::ToNSString(url.spec())]) {
+    return YES;
+  }
   if (![_delegate respondsToSelector:@selector(pane:wantsNewTabWithURL:background:)]) {
     return NO;
   }
@@ -1871,6 +2010,19 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 - (BOOL)interceptsNavigationToURL:(const GURL&)url {
   return [_delegate respondsToSelector:@selector(pane:shouldInterceptNavigationToURL:)] &&
          [_delegate pane:self shouldInterceptNavigationToURL:openarch::ToNSString(url.spec())];
+}
+
+- (BOOL)handsOffNavigationToURL:(const GURL&)url method:(NSString*)method {
+  return [_delegate respondsToSelector:@selector(pane:shouldHandOffNavigationToURL:method:)] &&
+         [_delegate pane:self
+             shouldHandOffNavigationToURL:openarch::ToNSString(url.spec())
+                                   method:method];
+}
+
+- (void)mediaAccessChangedVideo:(BOOL)video audio:(BOOL)audio {
+  if ([_delegate respondsToSelector:@selector(pane:mediaAccessDidChangeVideo:audio:)]) {
+    [_delegate pane:self mediaAccessDidChangeVideo:video audio:audio];
+  }
 }
 
 - (void)wantsExternalURL:(const GURL&)url {
@@ -1966,6 +2118,14 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 
 + (void)setAskAboutSelectionTitle:(NSString*)title {
   g_ask_about_selection_title = [title copy];
+}
+
++ (void (^)(NSString*, int))renderProcessGoneHandler {
+  return g_render_process_gone_handler;
+}
+
++ (void)setRenderProcessGoneHandler:(void (^)(NSString*, int))handler {
+  g_render_process_gone_handler = [handler copy];
 }
 
 + (void (^)(OACDownload*))downloadHandler {

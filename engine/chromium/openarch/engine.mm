@@ -14,6 +14,7 @@
 #include "chrome/browser/lifetime/application_lifetime_desktop.h"
 #include "components/keep_alive_registry/keep_alive_types.h"
 #include "components/keep_alive_registry/scoped_keep_alive.h"
+#include "components/os_crypt/common/keychain_password_mac.h"
 #include "chrome/browser/openarch_engine_hooks.h"
 #include "components/version_info/version_info.h"
 
@@ -100,6 +101,15 @@ std::vector<std::string> EngineArguments(int argc, const char** argv) {
   }
   if (g_settings.useMockKeychain) {
     args.push_back("--use-mock-keychain");
+  } else {
+    // The login keychain item with the encryption key, as on CEF
+    // ("OpenArch Safe Storage"), not Chromium's.
+    if (g_settings.keychainServiceName.length) {
+      KeychainPassword::GetServiceName() = ToStdString(g_settings.keychainServiceName);
+    }
+    if (g_settings.keychainAccountName.length) {
+      KeychainPassword::GetAccountName() = ToStdString(g_settings.keychainAccountName);
+    }
   }
   std::vector<std::string> features_off;
   if (g_settings.extensionPaths.count) {

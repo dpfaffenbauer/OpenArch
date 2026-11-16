@@ -37,11 +37,11 @@ struct ShareView: View {
                 if let owned {
                     LinkSection(browser: browser, link: owned.link)
                     Section {
-                        LabeledContent("Stand", value: "Version \(owned.version)")
+                        LabeledContent("Stand", value: String(localized: "Version \(owned.version)"))
                         if let date = owned.publishedAt {
                             LabeledContent("Hochgeladen", value: date.formatted(date: .abbreviated, time: .shortened))
                         }
-                        LabeledContent("Passwort", value: owned.passwordSlot == nil ? "Nein" : "Ja")
+                        LabeledContent("Passwort", value: owned.passwordSlot == nil ? String(localized: "Nein") : String(localized: "Ja"))
                         Button("Teilen beenden", role: .destructive) { confirmEnd = true }
                     } footer: {
                         Text("Änderungen erscheinen bei allen, die den Link hinzugefügt haben. Nur dieses Gerät kann die Freigabe ändern. Wer sie schon hat, behält sie, wenn du das Teilen beendest.")
@@ -125,7 +125,7 @@ struct ShareView: View {
                 }
             } catch {
                 self.error = error.localizedDescription
-                    + (live ? " Ohne „Aktuell halten“ geht es ganz ohne Server." : "")
+                    + (live ? " " + String(localized: "Ohne „Aktuell halten“ geht es ganz ohne Server.") : "")
             }
             busy = false
             #if DEBUG
@@ -211,7 +211,9 @@ struct ImportView: View {
                                 .foregroundStyle(Color(uiColor: UIColor(hex: payload.color ?? "") ?? .tintColor))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(payload.name).font(.headline)
-                                Text("\(payload.kind == .space ? "Space" : "Ordner") · \(payload.allTabs.count) Lesezeichen · \(opened.version == nil ? "Momentaufnahme" : "aktuell gehalten")")
+                                Text(opened.version == nil
+                                     ? (payload.kind == .space ? "Space · \(payload.allTabs.count) Lesezeichen · Momentaufnahme" : "Ordner · \(payload.allTabs.count) Lesezeichen · Momentaufnahme")
+                                     : (payload.kind == .space ? "Space · \(payload.allTabs.count) Lesezeichen · aktuell gehalten" : "Ordner · \(payload.allTabs.count) Lesezeichen · aktuell gehalten"))
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
@@ -315,7 +317,7 @@ struct ImportView: View {
     private func add(_ opened: ShareReader.Opened, follow: Bool) {
         browser.sharing.add(opened, asSpace: asSpace, follow: follow)
         browser.sheet = nil
-        browser.showToast(follow ? "„\(opened.payload.name)“ hinzugefügt, folgt Änderungen" : "„\(opened.payload.name)“ hinzugefügt")
+        browser.showToast(follow ? String(localized: "„\(opened.payload.name)“ hinzugefügt, folgt Änderungen") : String(localized: "„\(opened.payload.name)“ hinzugefügt"))
     }
 
     struct PreviewRow {
@@ -362,7 +364,7 @@ struct ScannerSheet: View {
             browser.openInNewTab(url.absoluteString)
         } else {
             browser.sheet = nil
-            browser.showToast("Kein Link in diesem Code")
+            browser.showToast(String(localized: "Kein Link in diesem Code"))
         }
     }
 }

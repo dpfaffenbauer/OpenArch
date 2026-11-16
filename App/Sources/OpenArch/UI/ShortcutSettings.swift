@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 import SwiftUI
 
 /// A menu command's keyboard shortcut, stored like macOS's own App
@@ -161,11 +162,11 @@ struct ShortcutsPage: View {
                 }
                 .disabled(library.settings.shortcuts.isEmpty)
             }
-            Text(note ?? "Klick auf ein Kürzel und drück die neuen Tasten, mit ⌘ oder ⌃. ⌫ nimmt das Kürzel weg, ⎋ bricht ab.")
+            Text(L(note ?? "Klick auf ein Kürzel und drück die neuen Tasten, mit ⌘ oder ⌃. ⌫ nimmt das Kürzel weg, ⎋ bricht ab."))
                 .font(.system(size: 11)).foregroundStyle(note == nil ? .secondary : Color.orange)
             ForEach(menus, id: \.self) { menu in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(menu).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
+                    Text(L(menu)).font(.system(size: 13, weight: .semibold)).foregroundStyle(.secondary)
                     VStack(spacing: 0) {
                         let rows = shown.filter { $0.menu == menu }
                         ForEach(rows) { command in
@@ -202,7 +203,7 @@ struct ShortcutsPage: View {
         let isCustom = library.settings.shortcuts[command.id] != nil
         let recording = recordingID == command.id
         return HStack(spacing: 10) {
-            Text(command.title).font(.system(size: 13))
+            Text(L(command.title)).font(.system(size: 13))
             Spacer(minLength: 12)
             if isCustom {
                 Button {
@@ -212,12 +213,12 @@ struct ShortcutsPage: View {
                     Image(systemName: "arrow.uturn.backward.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Zurück zu \(command.defaultShortcut?.display ?? "keinem Kürzel")")
+                .help(L("Zurück zu %@", command.defaultShortcut?.display ?? L("keinem Kürzel")))
             }
             Button {
                 recording ? stopRecording() : record(command)
             } label: {
-                Text(recording ? "Tasten drücken …" : (current(command)?.display ?? "–"))
+                Text(recording ? L("Tasten drücken …") : (current(command)?.display ?? "–"))
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .frame(minWidth: 86)
                     .padding(.vertical, 4)
@@ -245,13 +246,13 @@ struct ShortcutsPage: View {
                 rebuild()
             default:
                 guard let shortcut = KeyShortcut(event: event) else {
-                    note = "Ein Kürzel braucht ⌘ oder ⌃."
+                    note = L("Ein Kürzel braucht ⌘ oder ⌃.")
                     return
                 }
                 // The shortcut moves here from whatever had it.
                 if let other = commands.first(where: { $0.id != command.id && current($0) == shortcut }) {
                     library.settings.shortcuts[other.id] = ""
-                    note = "\(shortcut.display) gehörte zu „\(other.title)“ und gilt jetzt hier."
+                    note = L("%@ gehörte zu „%@“ und gilt jetzt hier.", shortcut.display, other.title)
                 }
                 library.settings.shortcuts[command.id] = shortcut == command.defaultShortcut ? nil : shortcut.string
                 stopRecording()

@@ -1,11 +1,15 @@
 import AppKit
 import SwiftUI
+import OpenArchLocalization
 
 /// "Tabs mit KI aufräumen": Claude sorts the current space's today tabs
 /// into folders with short names and gives tabs shorter titles. Only their
 /// titles and addresses go to Claude, nothing of the pages. The proposal
 /// shows first and is applied on "Übernehmen"; ⌘Z (or Rückgängig in the
 /// toast) puts everything back. Pinned tabs and favorites are never touched.
+/// The shorter titles go to ShortTitles, where the names from Apple's
+/// on-device model are; while those are made („Tab-Titel kürzen“), Claude
+/// only sorts into folders.
 @MainActor @Observable
 final class TabTidy {
     enum Phase: Equatable {
@@ -24,6 +28,8 @@ final class TabTidy {
     private(set) var titles: [ObjectIdentifier: String] = [:]
     let tabs: [Item]
     let space: Space
+    /// Whether Claude is asked for shorter titles too (not while Apple's model makes them).
+    private(set) var asksTitles = true
     @ObservationIgnored private weak var browser: BrowserWindowController?
     @ObservationIgnored private var panel: NSPanel?
 
@@ -61,31 +67,37 @@ final class TabTidy {
         }
         current?.close()
         let tidy = TabTidy(tabs: tabs, space: space, browser: browser)
+        let titles = !ShortTitles.shared.isActive(enabled: browser.library.settings.tidyTitles)
+        tidy.asksTitles = titles
         current = tidy
         tidy.showPanel()
         Task {
-            let outcome = await ClaudeRun.run(prompt(for: tabs), in: folder, arguments: ["--permission-mode", "default"],
+            let outcome = await ClaudeRun.run(prompt(for: tabs, titles: titles), in: folder, arguments: ["--permission-mode", "default"],
                                               timeout: 240)
             tidy.take(outcome)
         }
         return tidy
     }
 
-    static func prompt(for tabs: [Item]) -> String {
+    /// |titles|: Claude also proposes shorter titles (not while Apple's model makes them).
+    static func prompt(for tabs: [Item], titles: Bool = true) -> String {
         let list = tabs.enumerated().map { index, tab in
             "\(index + 1). \(tab.displayTitle.replacingOccurrences(of: "\n", with: " ")) — \(tab.currentURL)"
         }
+        let format = titles ? #", "titles": {"1": "Kurzer Titel"}"# : ""
+        let titleRule = titles
+            ? "\n- \"titles\": kürzere, klare Titel (höchstens etwa 30 Zeichen) für Tabs, deren Titel lang oder unklar ist, in der Sprache des Titels."
+            : ""
         return """
             Sortiere diese offenen Browser-Tabs in Ordner. Jede Zeile: Nummer, Titel — Adresse.
 
             \(list.joined(separator: "\n"))
 
             Antworte nur mit JSON in dieser Form, ohne Text davor oder danach:
-            {"folders": [{"name": "🛠️ Entwicklung", "tabs": [1, 4]}], "titles": {"1": "Kurzer Titel"}}
+            {"folders": [{"name": "🛠️ Entwicklung", "tabs": [1, 4]}]\(format)}
 
             - 2 bis 7 Ordner nach Thema oder Aufgabe, mit kurzen Namen (ein bis drei Wörter), gern mit einem passenden Emoji vorn.
-            - Ein Ordner braucht mindestens zwei Tabs, jeder Tab steht in höchstens einem Ordner; was nirgends passt, lässt du weg.
-            - "titles": kürzere, klare Titel (höchstens etwa 30 Zeichen) für Tabs, deren Titel lang oder unklar ist, in der Sprache des Titels.
+            - Ein Ordner braucht mindestens zwei Tabs, jeder Tab steht in höchstens einem Ordner; was nirgends passt, lässt du weg.\(titleRule)
             - Benutze keine Werkzeuge; Titel und Adressen genügen.
             """
     }
@@ -124,13 +136,14 @@ final class TabTidy {
             folders.append(Folder(name: String(name.prefix(40)), tabs: members.map { tabs[$0 - 1] }))
         }
         titles = [:]
+        guard asksTitles else { return !folders.isEmpty }
         for (key, value) in json["titles"] as? [String: Any] ?? [:] {
             guard let number = Int(key), tabs.indices.contains(number - 1), let title = value as? String else { continue }
             let tab = tabs[number - 1]
             let short = title.trimmingCharacters(in: .whitespacesAndNewlines)
             // A name you gave a tab yourself stays.
             guard !short.isEmpty, short != tab.displayTitle, tab.customTitle == nil else { continue }
-            titles[ObjectIdentifier(tab)] = String(short.prefix(60))
+            titles[ObjectIdentifier(tab)] = String(short.prefix(ShortTitles.shortTitleLimit))
         }
         return !folders.isEmpty || !titles.isEmpty
     }
@@ -148,14 +161,14 @@ final class TabTidy {
     // MARK: Applying
 
     /// Puts the folders at the top of the today tabs and gives the tabs
-    /// their new titles; ⌘Z or the toast's Rückgängig undoes it.
+    /// their new titles (short names in ShortTitles, not names of their
+    /// own); ⌘Z or the toast's Rückgängig undoes it.
     func apply() {
         guard phase == .ready, let browser else { return close() }
         let today = space.today
         let alive = tabs.filter { $0.container === today }
         let undo = Undo(browser: browser, space: space, top: today.items,
-                        folders: today.allItems.filter { $0.kind == .folder }.map { ($0, $0.children) },
-                        titles: alive.map { ($0, $0.customTitle) })
+                        folders: today.allItems.filter { $0.kind == .folder }.map { ($0, $0.children) })
         for (index, folder) in folders.enumerated() {
             let members = folder.tabs.filter { $0.container === today }
             guard members.count >= 2 else { continue }
@@ -167,7 +180,9 @@ final class TabTidy {
             undo.created.append(item)
         }
         for tab in alive {
-            if let title = titles[ObjectIdentifier(tab)] { tab.customTitle = title }
+            if let title = titles[ObjectIdentifier(tab)], let before = ShortTitles.shared.setClaudeName(title, for: tab) {
+                undo.names.append(before)
+            }
         }
         // Folders of an earlier tidy that are empty now go.
         for folder in today.allItems where folder.kind == .folder && folder.children.isEmpty
@@ -186,10 +201,10 @@ final class TabTidy {
         undo.browser?.window?.undoManager?.registerUndo(withTarget: undo) { undo in
             MainActor.assumeIsolated { _ = TabTidy.undoLast(undo) }
         }
-        undo.browser?.window?.undoManager?.setActionName("Tabs aufräumen")
+        undo.browser?.window?.undoManager?.setActionName(L("Tabs aufräumen"))
         let folders = undo.created.count
-        undo.browser?.showToast(folders == 1 ? "1 Ordner angelegt" : "\(folders) Ordner angelegt", symbol: "sparkles",
-                                action: ToastAction(title: "Rückgängig") { _ = TabTidy.undoLast() })
+        undo.browser?.showToast(Localization.count(folders, one: "1 Ordner angelegt", other: "%lld Ordner angelegt"), symbol: "sparkles",
+                                action: ToastAction(title: L("Rückgängig")) { _ = TabTidy.undoLast() })
         // ⌘Z also from the page, which would otherwise take it.
         if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -240,8 +255,8 @@ final class TabTidy {
         for folder in undo.created {
             folder.detach()
         }
-        for (tab, title) in undo.titles where tab.container === today {
-            tab.customTitle = title
+        for (url, entry) in undo.names.reversed() {
+            ShortTitles.shared.restore(url: url, entry: entry)
         }
         undo.browser?.library.setNeedsSave()
         undo.browser?.layoutContent()
@@ -254,16 +269,16 @@ final class TabTidy {
         let space: Space
         let top: [Item]
         let folders: [(Item, [Item])]
-        let titles: [(Item, String?)]
+        /// The short names Claude's replaced, by address.
+        var names: [(url: String, entry: ShortTitles.Entry?)] = []
         var created: [Item] = []
         var removed: [Item] = []
 
-        init(browser: BrowserWindowController, space: Space, top: [Item], folders: [(Item, [Item])], titles: [(Item, String?)]) {
+        init(browser: BrowserWindowController, space: Space, top: [Item], folders: [(Item, [Item])]) {
             self.browser = browser
             self.space = space
             self.top = top
             self.folders = folders
-            self.titles = titles
         }
     }
 
@@ -323,7 +338,7 @@ private struct TabTidyView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Tabs aufräumen", systemImage: "sparkles").font(.system(size: 15, weight: .semibold))
-                Text("Vorschlag von Claude für die Tabs unter dem Strich in „\(tidy.space.name)“. Claude bekommt nur Titel und Adressen, angeheftete Tabs und Favoriten bleiben, wie sie sind.")
+                Text(L("Vorschlag von Claude für die Tabs unter dem Strich in „%@“. Claude bekommt nur Titel und Adressen, angeheftete Tabs und Favoriten bleiben, wie sie sind.", tidy.space.name))
                     .font(.system(size: 11.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 20)
@@ -334,8 +349,8 @@ private struct TabTidyView: View {
             Divider()
             HStack {
                 Spacer()
-                Button("Abbrechen") { tidy.close() }.keyboardShortcut(.cancelAction)
-                Button("Übernehmen") { tidy.apply() }
+                Button(L("Abbrechen")) { tidy.close() }.keyboardShortcut(.cancelAction)
+                Button(L("Übernehmen")) { tidy.apply() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(tidy.phase != .ready)
             }
@@ -349,7 +364,7 @@ private struct TabTidyView: View {
         case .working:
             VStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text("Claude sortiert \(tidy.tabs.count) Tabs …").font(.system(size: 12.5)).foregroundStyle(.secondary)
+                Text(L("Claude sortiert %lld Tabs …", tidy.tabs.count)).font(.system(size: 12.5)).foregroundStyle(.secondary)
             }
         case .failed(let message):
             Label {

@@ -47,9 +47,7 @@ Chrome's extensions page lists one extension you did not install: **OpenArch**. 
 
 Chrome's password manager saves and fills passwords as in Chrome. Each profile has its own, so a space with another profile has other passwords. To see them, choose **Verlauf › Passwörter** or "Passwörter" in the command bar. The [import from Arc](/start/import-from-arc/) brings your saved passwords along.
 
-:::caution
-OpenArch runs Chromium with its mock keychain. Saved passwords and cookies are therefore not protected by your login keychain. See [Limitations](/reference/limitations/).
-:::
+Saved passwords are encrypted with OpenArch's key in your login keychain, **OpenArch Safe Storage**. See [Data and privacy](/reference/data-and-privacy/#the-key-to-your-passwords-and-cookies).
 
 ## Chrome's own pages
 

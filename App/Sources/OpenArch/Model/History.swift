@@ -144,6 +144,30 @@ final class History {
         return count
     }
 
+    /// Pages from another browser's history (BrowserImport). A page already
+    /// known keeps the higher count and the later visit, so importing again
+    /// adds nothing twice. Returns how many pages were added or updated.
+    @discardableResult
+    func importVisits(_ visits: [ImportedVisit]) -> Int {
+        exec("BEGIN")
+        var count = 0
+        for visit in visits where Self.isRecordable(visit.url) {
+            run("""
+                INSERT INTO visits (url, title, visit_count, last_visit) VALUES (?1, ?2, ?3, ?4)
+                ON CONFLICT(url) DO UPDATE SET visit_count = max(visit_count, ?3),
+                  last_visit = max(last_visit, ?4), title = CASE WHEN title = '' THEN ?2 ELSE title END
+                """, [visit.url, visit.title, max(1, visit.visitCount), visit.lastVisit.timeIntervalSince1970])
+            count += 1
+        }
+        exec("COMMIT")
+        return count
+    }
+
+    /// One page as the index knows it, or nil.
+    func entry(for url: String) -> Entry? {
+        fetch("SELECT url, title, visit_count, last_visit FROM visits WHERE url = ?1", [url]).first
+    }
+
     static func isRecordable(_ url: String) -> Bool {
         url.hasPrefix("http://") || url.hasPrefix("https://")
     }

@@ -284,7 +284,7 @@ final class Library {
             library.archive = data.archive ?? []
             library.selectedSpaceID = data.selectedSpaceID
         } else {
-            library.spaces = [Space(name: "Persönlich", icon: "person.fill", colorHex: "#7B6CF6")]
+            library.spaces = [Space(name: String(localized: "Persönlich"), icon: "person.fill", colorHex: "#7B6CF6")]
             library.favorites = [
                 .tab(url: "https://www.google.com/", title: "Google"),
                 .tab(url: "https://de.wikipedia.org/", title: "Wikipedia"),

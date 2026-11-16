@@ -10,7 +10,7 @@ Swift / AppKit / SwiftUI app        App/Sources/OpenArch
   sidebar, command bar, spaces, library, Arc import, AI features
         │  a narrow Objective-C API
 OpenArchCore (Objective-C++)        App/Sources/OpenArchCore
-  OACEngine, OACProfile, OACPane
+  OACEngine, OACProfile, OACPage, OACPane
         │
 CEF (Chromium) with codecs          Vendor/cef
 ```
@@ -20,6 +20,10 @@ CEF (Chromium) with codecs          Vendor/cef
 Each tab is an `OACPane`: a Chrome-style CEF browser in a borderless window of its own, attached as a child window over OpenArch's content area. To Chromium it is an ordinary Chrome tab, so extensions, `chrome.tabs`, side panels, DevTools, the password manager and `chrome://` pages work as in Chrome. Browsers embedded the simpler way ("Alloy" style) lack most of that; `spikes/01-cef/RESULTS.md` has the details.
 
 CEF allows one Chrome-style browser per window. Split view therefore places several of these windows side by side.
+
+## Pages with Safari's engine
+
+Streaming services open in a `WebKitPage` instead (`App/Sources/OpenArch/Browser/WebKitPage.swift`): a `WKWebView` in a borderless window of its own, attached the same way. Both kinds of page meet the `OACPage` protocol (`OACPage.h`) and report to the same delegate, so the sidebar, split view, Peek, Little OpenArch, previews, the media player and sleeping tabs treat them alike. `ProtectedMedia.swift` holds the list of services and decides which engine a page gets; a Chromium page's navigation to a listed site is stopped in `OnBeforeBrowse` and the tab gets a WebKit page at that address. The built-in extension's media scripts run in WebKit pages as user scripts. See [Streaming services](/browsing/protected-media/).
 
 ## Profiles
 

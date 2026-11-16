@@ -34,7 +34,9 @@ final class SidebarSwipe {
         }
         let point = window.contentView?.convert(event.locationInWindow, from: nil) ?? .zero
         // Not over the space bar at the bottom, which scrolls sideways itself.
-        let inSidebar = point.x < browser.sidebarWidth && point.y > 44
+        let width = window.contentView?.bounds.width ?? 0
+        let inSidebar = (browser.sidebarOnRight ? point.x > width - browser.sidebarWidth : point.x < browser.sidebarWidth)
+            && point.y > 44
         // With natural scrolling the deltas follow the fingers; normalize so
         // positive always means "fingers moved right".
         let delta = event.isDirectionInvertedFromDevice ? event.scrollingDeltaX : -event.scrollingDeltaX

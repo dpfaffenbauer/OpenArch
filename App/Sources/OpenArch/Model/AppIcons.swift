@@ -1,4 +1,5 @@
 import AppKit
+import OpenArchLocalization
 
 /// Dock icons to choose from: twelve takes on the arch (Tunnel is OpenArch's
 /// own), one in the color of the space you are in, and a different one each
@@ -55,7 +56,7 @@ struct AppIconDesign {
             <path fill="#7CFF8A" d="M13 58 V32 A19 19 0 0 1 51 32 V58 H48.5 V32 A16.5 16.5 0 0 0 15.5 32 V58 Z"/>\
             <path fill="#FF5FD2" d="M20 58 V32 A12 12 0 0 1 44 32 V58 H41.5 V32 A9.5 9.5 0 0 0 22.5 32 V58 Z"/>
             """, glow: NSColor(srgbRed: 124 / 255, green: 1, blue: 138 / 255, alpha: 0.6)),
-        "bands": AppIconDesign(name: "Bänder", tile: ["#FFF4E2"], glyph: """
+        "bands": AppIconDesign(name: L("Bänder"), tile: ["#FFF4E2"], glyph: """
             <path fill="#F2577E" d="M6 58 V34 A26 26 0 0 1 58 34 V58 H52 V34 A20 20 0 0 0 12 34 V58 Z"/>\
             <path fill="#FFB36B" d="M12 58 V34 A20 20 0 0 1 52 34 V58 H46 V34 A14 14 0 0 0 18 34 V58 Z"/>\
             <path fill="#55B860" d="M18 58 V34 A14 14 0 0 1 46 34 V58 H40 V34 A8 8 0 0 0 24 34 V58 Z"/>\

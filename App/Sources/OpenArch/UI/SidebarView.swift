@@ -1,5 +1,6 @@
 import AppKit
 import OpenArchCore
+import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
 import UniformTypeIdentifiers
@@ -31,7 +32,7 @@ struct SidebarView: View {
     }
 
     private var sidebar: some View {
-        let theme = SpaceTheme(hex: browser.state.space.colorHex)
+        let theme = browser.theme
         let stack = browser.state.downloadStack
         return VStack(alignment: .leading, spacing: 0) {
             content(theme: theme)
@@ -196,7 +197,7 @@ private struct MediaCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(showHelp)
+            .help(L(showHelp))
             if expanded {
                 if let tab, media.video {
                     IconButton(symbol: media.pip ? "pip.exit" : "pip.enter", help: "Bild-in-Bild", size: 12) {
@@ -221,7 +222,7 @@ private struct MediaCard: View {
 
     private func controls(_ media: MediaState) -> some View {
         HStack(spacing: 0) {
-            IconButton(symbol: "arrow.up.right", help: showHelp, size: 11) {
+            IconButton(symbol: "arrow.up.right", help: L(showHelp), size: 11) {
                 show()
             }
             Spacer(minLength: 0)
@@ -380,7 +381,7 @@ private struct PlayPauseButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(playing ? "Pause" : "Abspielen")
+        .help(L(playing ? "Pause" : "Abspielen"))
     }
 }
 
@@ -484,11 +485,11 @@ private struct ScreenShareCard: View {
     @State private var hovering = false
 
     private var what: String {
-        if let shared { return "Du teilst „\(shared.displayTitle)“" }
+        if let shared { return L("Du teilst „%@“", shared.displayTitle) }
         switch sharer.screenShare?.surface {
-        case "browser": return "Du teilst einen Tab"
-        case "window": return "Du teilst ein Fenster"
-        default: return "Du teilst deinen Bildschirm"
+        case "browser": return L("Du teilst einen Tab")
+        case "window": return L("Du teilst ein Fenster")
+        default: return L("Du teilst deinen Bildschirm")
         }
     }
 
@@ -511,11 +512,11 @@ private struct ScreenShareCard: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(shared != nil ? "Zum geteilten Tab" : "Zum Tab, der teilt")
+            .help(L(shared != nil ? "Zum geteilten Tab" : "Zum Tab, der teilt"))
             if shared != nil, browser.state.activeItem !== sharer {
-                IconButton(symbol: "video.fill", help: "Zum Tab, der teilt") { browser.select(sharer) }
+                IconButton(symbol: "video.fill", help: L("Zum Tab, der teilt")) { browser.select(sharer) }
             }
-            IconButton(symbol: "stop.fill", help: "Teilen beenden") { browser.stopScreenShare(sharer) }
+            IconButton(symbol: "stop.fill", help: L("Teilen beenden")) { browser.stopScreenShare(sharer) }
         }
         .padding(.leading, 10)
         .padding(.trailing, 4)
@@ -581,7 +582,7 @@ private struct ChecksMark: View {
             }
         }
         .font(.system(size: 11, weight: .semibold))
-        .help(checks.label.isEmpty ? "Checks" : checks.label)
+        .help(checks.label.isEmpty ? L("Checks") : L(checks.label))
     }
 }
 
@@ -649,15 +650,15 @@ private struct SidebarTopBar: View {
         // sidebar has room for nothing more: a wider bar widened the whole
         // sidebar, which SwiftUI centered and so pushed under the window
         // buttons.
-        let room = browser.sidebarWidth - 16 - (floating ? 4 : 72) - 4 * IconButton.width
+        let room = browser.sidebarWidth - 16 - browser.sidebarButtonRoom(floating: floating) - 4 * IconButton.width
         let siteControls = active?.kind == .tab && !floating
         let siteButton = siteControls && room >= IconButton.width
         // Without room the antenna is a dot on the toggle.
         let antenna = remote && room - (siteButton ? IconButton.width : 0) >= Self.antennaWidth
         HStack(spacing: 0) {
             // Room for the window buttons, which a floating sidebar sits below.
-            Spacer().frame(width: floating ? 4 : 72)
-            IconButton(symbol: "sidebar.left", help: remote && !antenna ? "\(toggleHelp)\n\(remoteHelp)" : toggleHelp) {
+            Spacer().frame(width: browser.sidebarButtonRoom(floating: floating))
+            IconButton(symbol: browser.sidebarSymbol, help: remote && !antenna ? "\(toggleHelp)\n\(remoteHelp)" : toggleHelp) {
                 browser.toggleSidebar()
             }
             .overlay(alignment: .topTrailing) {
@@ -731,7 +732,7 @@ struct IconButton: View {
         .buttonStyle(.plain)
         .opacity(isEnabled ? 0.75 : 0.3)
         .onHover { hovering = $0 }
-        .help(help)
+        .help(L(help))
     }
 }
 
@@ -747,7 +748,7 @@ private struct AddressPill: View {
             if let url, url.scheme == "https" {
                 Image(systemName: "lock.fill").font(.system(size: 9)).opacity(0.5)
             }
-            Text(url.map(displayHost) ?? "Suchen oder URL eingeben")
+            Text(url.map(displayHost) ?? L("Suchen oder URL eingeben"))
                 .font(.system(size: 12.5, weight: .medium))
                 .lineLimit(1)
                 .opacity(url == nil ? 0.55 : 0.9)
@@ -831,6 +832,11 @@ private struct FavoriteTile: View {
                     AudioButton(browser: browser, item: item, size: 9)
                         .padding(4)
                 }
+            if let unread = item.unreadCount, !item.isAudible, !item.isMuted {
+                UnreadDot(count: unread, theme: theme)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(6)
+            }
             if item.pane != nil {
                 Capsule().fill(theme.foreground.opacity(0.5)).frame(width: 12, height: 2.5).padding(.bottom, 4)
             }
@@ -868,6 +874,27 @@ private struct SpaceHeader: View {
     let space: Space
     let theme: SpaceTheme
     @State private var hovering = false
+    @State private var profileShown = false
+    @State private var insideCard = false
+    @State private var profileTimer: Task<Void, Never>?
+
+    private func hoverName(_ inside: Bool) {
+        profileTimer?.cancel()
+        if inside {
+            GoogleAccounts.shared.refresh(space.profileID)
+            profileTimer = Task {
+                try? await Task.sleep(for: .milliseconds(500))
+                guard !Task.isCancelled else { return }
+                profileShown = true
+            }
+        } else {
+            profileTimer = Task {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled, !insideCard else { return }
+                profileShown = false
+            }
+        }
+    }
 
     var body: some View {
         let editing = Binding(
@@ -879,6 +906,15 @@ private struct SpaceHeader: View {
             Text(space.name)
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
+                // The space's profile and its Google account.
+                .onHover { hoverName($0) }
+                .popover(isPresented: $profileShown, arrowEdge: .bottom) {
+                    ProfileCard(browser: browser, space: space)
+                        .onHover { inside in
+                            insideCard = inside
+                            if !inside { hoverName(false) }
+                        }
+                }
             Spacer()
             Menu {
                 Button("Space bearbeiten …") { editing.wrappedValue = true }
@@ -890,11 +926,12 @@ private struct SpaceHeader: View {
                     Button("Nicht mehr folgen") { Sharing.shared.unsubscribe(space.id) }
                 }
                 Button("Neuer Ordner") { browser.newFolder() }
-                if browser.library.settings.agentChats {
+                if browser.library.settings.agentChatsOn {
                     Button("Neuer Agent-Chat") { browser.newAgentChat() }
                 }
                 Divider()
                 Button("Neuer Space") { browser.addSpace() }
+                Button("Spaces verwalten …") { browser.manageSpaces.show() }
                 Button("Space löschen …") { browser.deleteSpace(space) }
                     .disabled(browser.library.spaces.count < 2)
             } label: {
@@ -993,7 +1030,7 @@ private struct FolderRow: View {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 9, weight: .semibold))
                     .opacity(0.55)
-                    .help(Sharing.shared.subscription(item.id) != nil ? "Geteilt mit dir" : "Geteilt")
+                    .help(L(Sharing.shared.subscription(item.id) != nil ? "Geteilt mit dir" : "Geteilt"))
             }
             if item.liveStatus == .loading {
                 ProgressView().controlSize(.mini).opacity(0.6)
@@ -1001,32 +1038,54 @@ private struct FolderRow: View {
                 SmallButton(symbol: "arrow.clockwise", help: "Jetzt aktualisieren") { LiveFolders.shared.refresh(item) }
             }
         }
-        .rowStyle(depth: depth, isActive: false, hovering: hovering, theme: theme, dropZone: dropZone)
-        .onTapGesture { withAnimation(.easeOut(duration: 0.15)) { browser.click(item) } }
-        .onHover { hovering = $0 }
-        .onDrag { tabDragProvider(item) }
+        .rowStyle(depth: depth, isActive: false, hovering: hovering, theme: theme, dropZone: dropZone,
+                  isSelected: browser.isSelected(item))
+        .onTapGesture {
+            browser.state.folderPreviewID = nil
+            withAnimation(.easeOut(duration: 0.15)) { browser.click(item) }
+        }
+        .onHover {
+            hovering = $0
+            browser.hoverFolder(item, inside: $0)
+        }
+        // A closed folder's tabs, when the pointer rests on it.
+        .popover(isPresented: Binding(
+            get: { browser.state.folderPreviewID == item.id && !item.isExpanded },
+            set: { if !$0, browser.state.folderPreviewID == item.id { browser.state.folderPreviewID = nil } }),
+                 arrowEdge: .trailing) {
+            FolderPreviewView(browser: browser, folder: item)
+        }
+        .onDrag { browser.dragProvider(for: item) }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: true, zone: $dropZone))
         .contextMenu {
-            if item.live != nil {
-                Button("Jetzt aktualisieren") { LiveFolders.shared.refresh(item) }
-                Divider()
+            if browser.actsOnSelection(item) {
+                SelectionContextMenu(browser: browser)
+            } else {
+                folderMenu
             }
-            Button("Umbenennen") { browser.state.renamingItemID = item.id }
-            Button("Neuer Unterordner") { browser.newFolder(in: item) }
-            Button("Alle öffnen") {
-                for tab in item.descendants where tab.kind == .tab { browser.select(tab, focus: false) }
-            }
-            Divider()
-            Button("Teilen …") {
-                if let app = NSApp.delegate as? AppDelegate { ShareWindows.share(.folder(item), app: app) }
-            }
-            if Sharing.shared.subscription(item.id) != nil {
-                Button("Geteilten Ordner jetzt aktualisieren") { Task { await Sharing.shared.refresh() } }
-                Button("Nicht mehr folgen") { Sharing.shared.unsubscribe(item.id) }
-            }
-            Divider()
-            Button("Ordner löschen …") { browser.deleteFolder(item) }
         }
+    }
+
+    @ViewBuilder private var folderMenu: some View {
+        if item.live != nil {
+            Button("Jetzt aktualisieren") { LiveFolders.shared.refresh(item) }
+            Divider()
+        }
+        Button("Umbenennen") { browser.state.renamingItemID = item.id }
+        Button("Neuer Unterordner") { browser.newFolder(in: item) }
+        Button("Alle öffnen") {
+            for tab in item.descendants where tab.kind == .tab { browser.select(tab, focus: false) }
+        }
+        Divider()
+        Button("Teilen …") {
+            if let app = NSApp.delegate as? AppDelegate { ShareWindows.share(.folder(item), app: app) }
+        }
+        if Sharing.shared.subscription(item.id) != nil {
+            Button("Geteilten Ordner jetzt aktualisieren") { Task { await Sharing.shared.refresh() } }
+            Button("Nicht mehr folgen") { Sharing.shared.unsubscribe(item.id) }
+        }
+        Divider()
+        Button("Ordner löschen …") { browser.deleteFolder(item) }
     }
 }
 
@@ -1053,7 +1112,7 @@ private struct LiveFolderStatus: View {
             EmptyView()
         case nil:
             if folder.children.isEmpty {
-                Text(folder.live?.kind == .issues ? "Keine offenen Issues" : "Keine offenen Pull Requests")
+                Text(L(folder.live?.kind == .issues ? "Keine offenen Issues" : "Keine offenen Pull Requests"))
                     .font(.system(size: 12.5))
                     .opacity(0.5)
                     .padding(.leading, 10 + CGFloat(depth) * 16)
@@ -1065,7 +1124,7 @@ private struct LiveFolderStatus: View {
     private func row(symbol: String, text: String, action: @escaping () -> Void) -> some View {
         HStack(spacing: 10) {
             Image(systemName: symbol).font(.system(size: 13)).frame(width: 16)
-            Text(text).font(.system(size: 13))
+            Text(L(text)).font(.system(size: 13))
             Spacer(minLength: 2)
         }
         .opacity(0.75)
@@ -1090,13 +1149,13 @@ private struct TabRow: View {
         HStack(spacing: 10) {
             FaviconView(item: item, size: 16)
                 .opacity(item.isAsleep ? 0.5 : 1)
-                .help(item.isAsleep ? "Schläft: lädt neu, wenn du den Tab öffnest" : "")
+                .help(L(item.isAsleep ? "Schläft: lädt neu, wenn du den Tab öffnest" : ""))
             AudioButton(browser: browser, item: item)
             ScreenShareMark(browser: browser, item: item)
             if item.hasNavigatedAway {
                 Text("/").font(.system(size: 14)).opacity(0.5).padding(.horizontal, -4)
             }
-            RenamableTitle(browser: browser, item: item)
+            RenamableTitle(browser: browser, item: item, title: ShortTitles.shared.title(of: item, in: browser))
                 .font(.system(size: 14))
             Spacer(minLength: 2)
             if hovering {
@@ -1113,13 +1172,16 @@ private struct TabRow: View {
                 }
             } else if item.isLoading {
                 ProgressView().controlSize(.mini).opacity(0.6)
+            } else if let unread = item.unreadCount {
+                UnreadDot(count: unread, theme: theme).padding(.trailing, 6)
             } else if item.isUnread {
                 Circle().fill(theme.foreground).frame(width: 7, height: 7).padding(.trailing, 6)
             } else if let checks = item.checks {
                 ChecksMark(checks: checks)
             }
         }
-        .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone)
+        .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone,
+                  isSelected: browser.isSelected(item))
         .onGeometryChange(for: CGRect.self, of: { $0.frame(in: .global) }) { frame = $0 }
         .onTapGesture {
             browser.tabPreview.hide()
@@ -1132,12 +1194,18 @@ private struct TabRow: View {
         .onDrag {
             browser.tabPreview.hide()
             browser.beginTabDrag(item)
-            return tabDragProvider(item)
+            return browser.dragProvider(for: item)
         }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
-        .contextMenu { TabContextMenu(browser: browser, item: item) }
-        // The preview shows the address; the tooltip would cover it.
-        .help(browser.library.settings.tabPreviews ? "" : item.currentURL)
+        .contextMenu {
+            if browser.actsOnSelection(item) {
+                SelectionContextMenu(browser: browser)
+            } else {
+                TabContextMenu(browser: browser, item: item)
+            }
+        }
+        // The preview shows the title and address; the tooltip would cover it.
+        .help(ShortTitles.shared.help(for: item, in: browser))
     }
 }
 
@@ -1158,7 +1226,7 @@ private struct AgentRow: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 13, weight: .medium))
                 .frame(width: 16)
-            RenamableTitle(browser: browser, item: item)
+            RenamableTitle(browser: browser, item: item, title: ShortTitles.shared.title(of: item, in: browser))
                 .font(.system(size: 14))
             Spacer(minLength: 2)
             if hovering {
@@ -1173,10 +1241,11 @@ private struct AgentRow: View {
                 Circle().fill(theme.foreground).frame(width: 7, height: 7).padding(.trailing, 6)
             }
         }
-        .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone)
-        .onTapGesture { browser.select(item) }
+        .rowStyle(depth: depth, isActive: isActive, hovering: hovering, theme: theme, dropZone: dropZone,
+                  isSelected: browser.isSelected(item))
+        .onTapGesture { browser.click(item) }
         .onHover { hovering = $0 }
-        .onDrag { tabDragProvider(item) }
+        .onDrag { browser.dragProvider(for: item) }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, zone: $dropZone))
         .contextMenu {
             Button("Umbenennen") { browser.state.renamingItemID = item.id }
@@ -1223,14 +1292,47 @@ private struct SplitRow: View {
                 .background(RoundedRectangle(cornerRadius: 7).fill(isActive && isShown ? theme.foreground.opacity(0.14) : .clear))
                 .contentShape(Rectangle())
                 .onTapGesture { browser.click(child) }
-                .contextMenu { TabContextMenu(browser: browser, item: child) }
+                .contextMenu {
+                    if browser.actsOnSelection(child) {
+                        SelectionContextMenu(browser: browser)
+                    } else {
+                        TabContextMenu(browser: browser, item: child)
+                    }
+                }
             }
         }
-        .rowStyle(depth: depth, isActive: isShown, hovering: hovering, theme: theme, dropZone: dropZone, horizontalPadding: 3)
+        .rowStyle(depth: depth, isActive: isShown, hovering: hovering, theme: theme, dropZone: dropZone, horizontalPadding: 3,
+                  isSelected: browser.isSelected(item))
         .onHover { hovering = $0 }
-        .onDrag { tabDragProvider(item) }
+        .onDrag { browser.dragProvider(for: item) }
         .onDrop(of: UTType.sidebarDrops, delegate: RowDropDelegate(browser: browser, item: item, acceptsInto: false, splits: true, zone: $dropZone))
         .help("Split View")
+    }
+}
+
+/// The menu of several selected rows (SidebarSelection).
+private struct SelectionContextMenu: View {
+    let browser: BrowserWindowController
+
+    var body: some View {
+        let items = browser.selectedItems
+        let tabs = browser.selectedTabs.count
+        Text(Localization.count(items.count, one: "1 Zeile ausgewählt", other: "%lld Zeilen ausgewählt"))
+        if !browser.isStandalone {
+            Button(Localization.count(tabs, one: "Neuer Ordner mit 1 Tab", other: "Neuer Ordner mit %lld Tabs")) { browser.newFolderWithSelection() }
+        }
+        Button("URLs kopieren (⇧⌘C)") { browser.copySelectedURLs() }.disabled(tabs == 0)
+        if !browser.isStandalone {
+            Menu("In Space verschieben") {
+                ForEach(browser.library.spaces.filter { $0 !== browser.state.space }) { space in
+                    Button(space.name) { browser.moveSelection(toSpace: space) }
+                }
+            }
+        }
+        Divider()
+        Button("Archivieren") { browser.archiveSelection() }
+            .disabled(!items.contains { $0.kind == .tab || $0.kind == .split })
+        Button("Auswahl aufheben") { browser.clearSelection() }
     }
 }
 
@@ -1241,7 +1343,7 @@ private struct TabContextMenu: View {
     var body: some View {
         Button("Neu laden") { item.pane?.reload() }.disabled(item.pane == nil)
         if item.isAudible || item.isMuted {
-            Button(item.isMuted ? "Ton einschalten" : "Stummschalten") { browser.toggleMute(item) }
+            Button(L(item.isMuted ? "Ton einschalten" : "Stummschalten")) { browser.toggleMute(item) }
         }
         Button("Duplizieren") { browser.duplicate(item) }
         Button("Umbenennen") { browser.state.renamingItemID = item.id }
@@ -1269,7 +1371,7 @@ private struct TabContextMenu: View {
         if let split = item.split {
             Button("Split View aufheben") { browser.unsplit(item) }
             Button("Seiten tauschen (⌃⇧S)") { browser.swapSplit(split) }
-            Button(split.splitStacked ? "Nebeneinander anzeigen" : "Übereinander anzeigen") {
+            Button(L(split.splitStacked ? "Nebeneinander anzeigen" : "Übereinander anzeigen")) {
                 browser.setSplitStacked(split, !split.splitStacked)
             }
         } else {
@@ -1292,7 +1394,7 @@ private struct TabContextMenu: View {
             }
         }
         Divider()
-        Button(item.role == .today ? "Schließen" : "Entladen") { browser.close(item) }
+        Button(L(item.role == .today ? "Schließen" : "Entladen")) { browser.close(item) }
             .disabled(item.role != .today && item.pane == nil)
         if item.role == .pinned {
             Button("Löschen") { browser.deletePinned(item) }
@@ -1362,7 +1464,7 @@ private struct NewTabRow: View {
             Spacer()
             if hovering {
                 Text("⌘T").font(.system(size: 11)).opacity(0.6)
-                if browser.library.settings.agentChats, !browser.isStandalone {
+                if browser.library.settings.agentChatsOn, !browser.isStandalone {
                     SmallButton(symbol: "sparkles", help: "Neuer Agent-Chat") { browser.newAgentChat() }
                 }
             }
@@ -1400,7 +1502,7 @@ private struct SpaceBar: View {
             .contextMenu { LibraryButtonMenu(browser: browser) }
             ScrollView(.horizontal) {
                 HStack(spacing: 2) {
-                    if browser.library.settings.agentChats, !browser.isPrivate {
+                    if browser.library.settings.agentChatsOn, !browser.isPrivate {
                         AgentsSpaceButton(browser: browser, theme: theme)
                     }
                     ForEach(Array(browser.library.spaces.enumerated()), id: \.element.id) { index, space in
@@ -1413,12 +1515,12 @@ private struct SpaceBar: View {
             Menu {
                 Button("Neuer Space") { browser.addSpace() }
                 Button("Neuer Ordner") { browser.newFolder() }
-                if browser.library.settings.agentChats, !browser.isPrivate {
+                if browser.library.settings.agentChatsOn, !browser.isPrivate {
                     Button("Neuer Agent-Chat") { browser.newAgentChat() }
                 }
                 Menu("GitHub-Live-Ordner") {
                     Button("Meine Pull Requests") { browser.newLiveFolder(.myPullRequests, name: "Meine Pull Requests") }
-                    Button("Reviews für mich") { browser.newLiveFolder(.reviewRequests, name: "Reviews für mich") }
+                    Button("Reviews für mich") { browser.newLiveFolder(.reviewRequests, name: L("Reviews für mich")) }
                     Button("Meine Issues") { browser.newLiveFolder(.myIssues, name: "Meine Issues") }
                 }
                 Divider()
@@ -1426,6 +1528,7 @@ private struct SpaceBar: View {
                     if let app = NSApp.delegate as? AppDelegate { ShareWindows.askForLink(app: app) }
                 }
                 Button("Aus Arc importieren …") { (NSApp.delegate as? AppDelegate)?.importFromArc(nil) }
+                Button("Aus anderem Browser importieren …") { (NSApp.delegate as? AppDelegate)?.importFromOtherBrowser(nil) }
             } label: {
                 Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
             }
@@ -1491,7 +1594,7 @@ private struct AgentsSpaceButton: View {
             .contentShape(Circle())
             .onTapGesture { browser.toggleAgents() }
             .onHover { hovering = $0 }
-            .help(waiting > 0 ? "Agents (⌃0): \(waiting) warten auf dich" : "Agents (⌃0)")
+            .help(waiting > 0 ? L("Agents (⌃0): %lld warten auf dich", waiting) : L("Agents (⌃0)"))
     }
 }
 
@@ -1504,9 +1607,18 @@ private struct SpaceButton: View {
 
     var body: some View {
         let isCurrent = browser.state.space === space && !browser.state.agentsVisible
+        let library = browser.library
+        let profile = library.profile(id: space.profileID)
         SpaceIcon(icon: space.icon, size: 12)
             .frame(width: 28, height: 28)
             .background(Circle().fill(isCurrent ? theme.selection : (hovering ? theme.hover : .clear)))
+            // A thin ring in the profile's color, once there is more than one.
+            .overlay {
+                if library.profiles.count > 1 {
+                    Circle().strokeBorder(Color(nsColor: library.color(for: profile)), lineWidth: 1.5)
+                        .padding(1)
+                }
+            }
             .opacity(isCurrent ? 1 : 0.6)
             .contentShape(Circle())
             .onTapGesture {
@@ -1514,7 +1626,8 @@ private struct SpaceButton: View {
                 browser.switchSpace(to: space)
             }
             .onHover { hovering = $0 }
-            .help(index < 9 ? "\(space.name) (⌃\(index + 1))" : space.name)
+            .help((index < 9 ? "\(space.name) (⌃\(index + 1))" : space.name)
+                  + (library.profiles.count > 1 ? "\nProfil: \(profile.name)" : ""))
             .onDrag {
                 browser.state.draggingSpaceID = space.id
                 let provider = NSItemProvider()
@@ -1534,6 +1647,8 @@ private struct SpaceButton: View {
                 Button("Nach links") { browser.library.moveSpace(space, by: -1) }
                 Button("Nach rechts") { browser.library.moveSpace(space, by: 1) }
                 Divider()
+                Button("Spaces verwalten …") { browser.manageSpaces.show() }
+                Divider()
                 Button("Space löschen …") { browser.deleteSpace(space) }.disabled(browser.library.spaces.count < 2)
             }
     }
@@ -1541,13 +1656,54 @@ private struct SpaceButton: View {
 
 // MARK: - Building blocks
 
+/// A dot for what a site reports unread in its title (UnreadBadges).
+private struct UnreadDot: View {
+    let count: Int
+    let theme: SpaceTheme
+
+    var body: some View {
+        Circle().fill(theme.foreground)
+            .frame(width: 7, height: 7)
+            .help(Localization.count(count, one: "1 ungelesen", other: "%lld ungelesen"))
+            .accessibilityLabel(Localization.count(count, one: "1 ungelesen", other: "%lld ungelesen"))
+    }
+}
+
+/// Google Calendar's icon with today's date, as its own favicon shows it.
+private struct CalendarDateIcon: View {
+    let size: CGFloat
+
+    var body: some View {
+        // Redrawn at midnight, so a favorite never shows yesterday.
+        TimelineView(.everyMinute) { context in
+            let day = Calendar.current.component(.day, from: context.date)
+            RoundedRectangle(cornerRadius: size * 0.22)
+                .fill(Color.white)
+                .overlay(alignment: .top) {
+                    Rectangle().fill(Color(red: 0.26, green: 0.52, blue: 0.96)).frame(height: size * 0.24)
+                }
+                .overlay(alignment: .bottom) {
+                    Text("\(day)")
+                        .font(.system(size: size * 0.56, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color(red: 0.26, green: 0.52, blue: 0.96))
+                        .minimumScaleFactor(0.5)
+                        .padding(.bottom, size * 0.02)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.22))
+                .overlay(RoundedRectangle(cornerRadius: size * 0.22).strokeBorder(Color.black.opacity(0.12), lineWidth: 0.5))
+        }
+    }
+}
+
 struct FaviconView: View {
     let item: Item
     var size: CGFloat = 16
 
     var body: some View {
         Group {
-            if let image = item.favicon ?? FaviconStore.shared.image(forURL: item.currentURL)
+            if UnreadBadges.isCalendar(item.currentURL) {
+                CalendarDateIcon(size: size)
+            } else if let image = item.favicon ?? FaviconStore.shared.image(forURL: item.currentURL)
                 ?? FaviconStore.shared.image(forURL: item.savedURL) {
                 Image(nsImage: image).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
             } else if item.currentURL.hasPrefix("chrome://") {
@@ -1581,7 +1737,7 @@ private struct SmallButton: View {
         .buttonStyle(.plain)
         .opacity(0.7)
         .onHover { hovering = $0 }
-        .help(help)
+        .help(L(help))
     }
 }
 
@@ -1589,6 +1745,8 @@ private struct SmallButton: View {
 private struct RenamableTitle: View {
     let browser: BrowserWindowController
     let item: Item
+    /// What shows when not renaming (a tab's short name); its own title when nil.
+    var title: String?
     @State private var text = ""
     @FocusState private var focused: Bool
 
@@ -1607,7 +1765,7 @@ private struct RenamableTitle: View {
                     if !isFocused, browser.state.renamingItemID == item.id { browser.rename(item, to: text) }
                 }
         } else {
-            Text(item.displayTitle).lineLimit(1).truncationMode(.tail)
+            Text(title ?? item.displayTitle).lineLimit(1).truncationMode(.tail)
         }
     }
 }
@@ -1649,7 +1807,7 @@ private struct AudioButton: View {
             }
             .buttonStyle(.plain)
             .onHover { hovering = $0 }
-            .help(item.isMuted ? "Ton einschalten" : "Stummschalten")
+            .help(L(item.isMuted ? "Ton einschalten" : "Stummschalten"))
         }
     }
 }
@@ -1669,7 +1827,7 @@ enum DropZone {
 
 extension View {
     func rowStyle(depth: Int, isActive: Bool, hovering: Bool, theme: SpaceTheme, dropZone: DropZone?,
-                  horizontalPadding: CGFloat = 10) -> some View {
+                  horizontalPadding: CGFloat = 10, isSelected: Bool = false) -> some View {
         self
             .padding(.leading, horizontalPadding + CGFloat(depth) * 16)
             .padding(.trailing, horizontalPadding - 4)
@@ -1677,8 +1835,15 @@ extension View {
             .background(
                 RoundedRectangle(cornerRadius: 10)
                     .fill(isActive ? theme.selection
-                          : (hovering || dropZone == .into || dropZone == .split ? theme.hover : .clear))
+                          : (isSelected ? theme.tileHover
+                             : (hovering || dropZone == .into || dropZone == .split ? theme.hover : .clear)))
                     .shadow(color: .black.opacity(isActive && !theme.isDark ? 0.08 : 0), radius: 1, y: 0.5))
+            // Rows selected with ⇧- or ⌘⇧-click.
+            .overlay {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 10).strokeBorder(theme.foreground.opacity(0.45), lineWidth: 1.5)
+                }
+            }
             .overlay(alignment: dropZone == .after ? .bottom : .top) {
                 if dropZone == .before || dropZone == .after {
                     Capsule().fill(theme.foreground.opacity(0.7)).frame(height: 2).padding(.leading, CGFloat(depth) * 16)
@@ -1801,8 +1966,13 @@ extension NSPasteboard.PasteboardType {
 
 /// What dragging a sidebar item carries: its id, as OpenArch's own type.
 func tabDragProvider(_ item: Item) -> NSItemProvider {
+    tabDragProvider(ids: [item.id])
+}
+
+/// Several selected rows: their ids, one per line.
+func tabDragProvider(ids: [UUID]) -> NSItemProvider {
     let provider = NSItemProvider()
-    let id = Data(item.id.uuidString.utf8)
+    let id = Data(ids.map(\.uuidString).joined(separator: "\n").utf8)
     provider.registerDataRepresentation(forTypeIdentifier: UTType.openArchTab.identifier, visibility: .all) { completion in
         completion(id, nil)
         return nil
