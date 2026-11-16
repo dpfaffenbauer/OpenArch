@@ -131,7 +131,7 @@ struct AboutView: View {
                           url: "https://github.com/dpfaffenbauer/OpenArch")
                 AboutLink(title: "openarch.app", symbol: "globe", url: "https://openarch.app")
             }
-            Text("Open Source unter der MIT-Lizenz · mit Chromium und CEF gebaut")
+            Text("Open Source unter der MIT-Lizenz · mit Chromium gebaut")
                 .font(.system(size: 11))
                 .foregroundStyle(.white.opacity(0.4))
         }

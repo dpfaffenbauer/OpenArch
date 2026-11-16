@@ -110,7 +110,7 @@ struct SiteControls: View {
         }
     }
 
-    // MARK: Extensions (the Chromium engine; on CEF Chrome's toolbar has them)
+    // MARK: Extensions
 
     private var showsExtensions: Bool { !OACPane.panesHaveWindows && chromiumPane != nil }
     private var chromiumPane: OACPane? { item.pane as? OACPane }

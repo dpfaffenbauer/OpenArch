@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Downloads OpenArch's engine (Chrome's framework with OpenArch's layer,
 # docs/chromium-engine.md) into Vendor/engine/Chromium.app, so that
-# OPENARCH_ENGINE=chromium App/build.sh needs no Chromium checkout.
+# App/build.sh needs no Chromium checkout.
 #
 # .github/workflows/chromium-engine.yml builds the engine and publishes it as
 # the release engine-<Chrome version>-<key>. The key is a hash of everything

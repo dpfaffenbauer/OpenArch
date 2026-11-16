@@ -2,16 +2,16 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Exported from Chrome's framework on the Chromium engine (which builds with
-/// hidden visibility); no effect on CEF.
+/// Exported from Chrome's framework, which builds with hidden visibility
+/// (engine/chromium).
 #ifndef OAC_EXPORT
 #define OAC_EXPORT __attribute__((visibility("default")))
 #endif
 
-/// NSApplication subclass Chromium needs on macOS (CefAppProtocol).
-/// Set it as NSPrincipalClass and create it before anything else.
-/// On Chrome's framework (engine/chromium) it is a BrowserCrApplication,
-/// which the engine sets with OAC_APPLICATION_SUPERCLASS.
+/// The NSApplication subclass Chrome needs on macOS. Set it as
+/// NSPrincipalClass and create it before anything else. In Chrome's
+/// framework (engine/chromium) it is a BrowserCrApplication, which the
+/// engine sets with OAC_APPLICATION_SUPERCLASS.
 #ifndef OAC_APPLICATION_SUPERCLASS
 #define OAC_APPLICATION_SUPERCLASS NSApplication
 #endif

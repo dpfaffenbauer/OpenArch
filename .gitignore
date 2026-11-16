@@ -1,7 +1,6 @@
 .DS_Store
 /Vendor/
 .build/
-.build-engine/
 build/
 *.xcuserstate
 xcuserdata/

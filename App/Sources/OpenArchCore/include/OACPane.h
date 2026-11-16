@@ -5,15 +5,15 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Exported from Chrome's framework on the Chromium engine (which builds with
-/// hidden visibility); no effect on CEF.
+/// Exported from Chrome's framework, which builds with hidden visibility
+/// (engine/chromium).
 #ifndef OAC_EXPORT
 #define OAC_EXPORT __attribute__((visibility("default")))
 #endif
 
 @class OACPane;
 
-/// Chrome command ids (see include/cef_command_ids.h) that OpenArch handles
+/// Chrome command ids (chrome/app/chrome_command_ids.h) that OpenArch handles
 /// itself instead of Chrome.
 typedef NS_ENUM(NSInteger, OACChromeCommand) {
   OACChromeCommandBack = 33000,
@@ -87,8 +87,7 @@ OAC_EXPORT
 + (void)report:(OACDownload*)download;
 @end
 
-/// An extension with a toolbar action, for OpenArch's own extension UI (the
-/// Chromium engine; on CEF Chrome's toolbar shows them).
+/// An extension with a toolbar action, for OpenArch's own extension UI.
 OAC_EXPORT
 @interface OACExtensionInfo : NSObject
 @property(readonly, copy) NSString* identifier;
@@ -159,10 +158,11 @@ NS_SWIFT_UI_ACTOR
                           method:(NSString*)method;
 @end
 
-/// One Chrome tab. It is hosted in its own borderless Chrome-style window
-/// that OpenArch attaches as a child window over its content area, so that
-/// Chrome treats it as a real tab: extensions (chrome.tabs, action popups,
-/// side panels), DevTools, find, downloads and permission prompts all work.
+/// One Chrome tab. It is a tab of its profile's hidden Chrome window, so
+/// Chrome treats it as a real tab (extensions with chrome.tabs, action
+/// popups and side panels, DevTools, find, downloads, permission prompts),
+/// and its view is shown where OpenArch puts it, in OpenArch's window
+/// (docs/chromium-engine.md).
 NS_SWIFT_UI_ACTOR
 OAC_EXPORT
 @interface OACPane : NSObject <OACPage>
@@ -182,13 +182,12 @@ OAC_EXPORT
 /// first -showInWindow:frame:.
 @property(readonly) BOOL isLoaded;
 @property(readonly) BOOL isVisible;
-/// The borderless window hosting the tab, once created. On the Chromium
-/// engine (panesHaveWindows NO) the window the page is shown in.
+/// The window the page is shown in (nil while hidden).
 @property(readonly, nullable) NSWindow* window;
 /// Where the page is on screen (NSZeroRect while not shown).
 @property(readonly) NSRect screenFrame;
-/// Whether each pane is a window of its own (CEF) or a view in the window
-/// that shows it (the Chromium engine, docs/chromium-engine.md).
+/// Whether each pane is a window of its own: NO, a pane is a view in the
+/// window that shows it. (A WebKit page has a window of its own.)
 @property(class, readonly) BOOL panesHaveWindows;
 /// Chrome's toolbar (location bar, extension buttons, downloads, menu).
 @property(nonatomic) BOOL toolbarVisible;
@@ -238,7 +237,7 @@ OAC_EXPORT
 - (void)executeChromeCommand:(NSInteger)commandID;
 - (void)showDevTools;
 - (void)setAudioMuted:(BOOL)muted;
-/// The extensions with a toolbar action, for this page (empty on CEF).
+/// The extensions with a toolbar action, for this page.
 @property(readonly) NSArray<OACExtensionInfo*>* extensions;
 /// Runs an extension's action on this page, as a click on its button;
 /// its popup opens below |screenRect| (screen coordinates).
@@ -278,9 +277,9 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 /// and incognito windows are left alone.
 @property(class, nonatomic, copy, nullable) void (^externalTabHandler)(NSString* url);
 
-/// Chrome's About page (chrome://help) is not part of CEF; Chromium only
-/// shows ERR_INVALID_URL. With a handler set, going there from a page that
-/// is already open calls it instead, and the navigation is cancelled.
+/// Chrome's About page (chrome://help) is Chrome's, not OpenArch's. With a
+/// handler set, going there from a page that is already open calls it
+/// instead, and the navigation is cancelled.
 @property(class, nonatomic, copy, nullable) void (^aboutPageHandler)(void);
 /// Whether |url| is Chrome's About page (chrome://help, any path).
 + (BOOL)isAboutPageURL:(NSString*)url;

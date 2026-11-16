@@ -1,12 +1,11 @@
 # Chromium engine: OpenArch on Chrome's own framework, without CEF
 
-Decided 16 Nov 2026, after spikes/02-chromium. OpenArch moves from CEF to
+Decided 16 Nov 2026, after spikes/02-chromium. OpenArch moved from CEF to
 Chrome's own framework (`//chrome:chrome_framework`) with a layer of
 OpenArch's code linked in. The Swift app keeps its bridge,
-`App/Sources/OpenArchCore/include` (`OACEngine`, `OACPane`, `OACProfile`):
-the layer is a second implementation of those headers. Both engines build
-side by side (`OPENARCH_ENGINE=chromium App/build.sh`) until the new one does
-everything the CEF one does, then OpenArch switches in one go.
+`App/Sources/OpenArchCore/include` (`OACEngine`, `OACPane`, `OACProfile`,
+`OACPage`): the layer implements those headers. Since 16 Nov 2026 it is the
+only engine; CEF is gone (`App/build.sh` builds on Chrome's framework).
 
 The shape follows Cra (github.com/VictorKildahl/cra, MIT,
 `docs/chromium-engine.md` there), which made the same move on 13 Nov 2026.
@@ -200,3 +199,19 @@ The shape follows Cra (github.com/VictorKildahl/cra, MIT,
   - Not done yet: `chrome.sidePanel.open()` from an extension (only the
     action's click opens a panel), the release build (official, PGO,
     branding, signing, the CI chain).
+- 16 Nov 2026, step 5: **the switch.** Merged with main (the `OACPage`
+  protocol, WebKit pages for streaming services, Peek on ⇧-click, camera
+  and microphone, renderer crashes, the keychain item's name: a hook makes
+  Chrome's configurable at run time). Then CEF went: its implementation of
+  the bridge, its helper app, `fetch-cef.sh`, `patch-cef.*`, `cef-codecs`,
+  `update-cef`. OpenArch is `dev.openarch.browser` with the data folder
+  "OpenArch" again: the first launch of the new build opens the profile CEF
+  (Chromium 156) wrote, and Chrome 158 moves it to its format, which CEF
+  cannot read; the keychain item stays the same, so passwords and cookies
+  carry over. `build.yml` takes the engine release for its layer; a pull
+  request that changes the layer builds its engine first
+  (`chromium-engine.yml` runs for pull requests too).
+  - Chrome's helpers are signed with OpenArch's entitlements by name
+    (Renderer and GPU: JIT; Plugin and the plain helper: also other
+    signers' code; Alerts: none).
+  - Crash reports know Chrome's helper names ("Chromium Helper (GPU)").

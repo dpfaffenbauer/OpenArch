@@ -2,9 +2,8 @@
 # Moves engine/chromium/VERSION to the newest stable Chrome for Mac.
 #
 # OpenArch's engine is its own build of Chrome (docs/chromium-engine.md), so
-# a new Chrome takes two steps, as for CEF (scripts/update-cef.sh). The first
-# run that sees it starts .github/workflows/chromium-engine.yml for it (two
-# to three days). A run after that build has published its release
+# a new Chrome takes two steps. The first run that sees it starts
+# .github/workflows/chromium-engine.yml for it (two to three days). A run after that build has published its release
 # (scripts/fetch-chromium-engine.sh --tag) moves the pin.
 #
 # Prints the new version when it moved the pin. In GitHub Actions it also

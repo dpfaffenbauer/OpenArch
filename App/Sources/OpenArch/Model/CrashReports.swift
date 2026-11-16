@@ -8,10 +8,10 @@ import OpenArchCore
 ///
 /// - its own crash: a signal handler writes the signal's number to a file,
 ///   since macOS does not always write a report for a process this big;
-/// - a tab's renderer that ended unexpectedly (CEF's OnRenderProcessTerminated);
+/// - a tab's renderer that ended unexpectedly (OACPane.renderProcessGoneHandler);
 /// - macOS's crash reports (.ips in ~/Library/Logs/DiagnosticReports) of
 ///   this copy of OpenArch and its helpers: the app, renderers, the GPU
-///   process and the utility processes. CEF tells the app of no other
+///   process and the utility processes. The engine tells the app of no other
 ///   process's end, so these are how a GPU or network crash shows.
 ///
 /// At the next launch OpenArch asks whether to send a report, and shows it.
@@ -107,7 +107,7 @@ final class CrashReports {
         guard !events.isEmpty else { return }
         var all = pending
         for event in events {
-            // macOS's report of a renderer crash that CEF reported too: the richer one.
+            // macOS's report of a renderer crash the engine reported too: the richer one.
             if event.source == "ips", event.process == "Renderer",
                let index = all.firstIndex(where: { $0.source == "renderer" && abs($0.date.timeIntervalSince(event.date)) < 120 }) {
                 all[index] = event
@@ -141,11 +141,13 @@ final class CrashReports {
         }
     }
 
-    /// macOS's crash reports of this OpenArch, written since |since|.
+    /// macOS's crash reports of this OpenArch, written since |since|: the
+    /// app's and its Chrome helpers' ("Chromium Helper (GPU)-…ips"; that they
+    /// belong to this copy, parseIPS checks by path).
     func scanDiagnosticReports(since: Date) -> [Event] {
         let files = FileManager.default
         guard let names = try? files.contentsOfDirectory(atPath: diagnosticReports.path) else { return [] }
-        return names.filter { $0.hasPrefix("OpenArch") && $0.hasSuffix(".ips") }.compactMap { name in
+        return names.filter { ($0.hasPrefix("OpenArch") || $0.hasPrefix("Chromium Helper")) && $0.hasSuffix(".ips") }.compactMap { name in
             let url = diagnosticReports.appendingPathComponent(name)
             guard let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
                   date > since, let text = try? String(contentsOf: url, encoding: .utf8),
@@ -182,14 +184,17 @@ final class CrashReports {
         return Event(date: Date(), process: processKind(name), kind: kind, frames: frames, source: "ips")
     }
 
-    /// "OpenArch Helper (GPU)" → "GPU"; the plain helper runs the utility
+    /// Chrome's helpers: "Chromium Helper (GPU)" → "GPU", "Chromium Helper
+    /// (Aperitif Renderer)" → "Renderer"; the plain helper runs the utility
     /// processes (network, storage, audio).
     static func processKind(_ name: String) -> String {
         if name == "OpenArch" { return "App" }
         if let open = name.firstIndex(of: "("), let close = name.lastIndex(of: ")"), open < close {
-            return String(name[name.index(after: open)..<close])
+            let kind = String(name[name.index(after: open)..<close])
+            if kind == "Aperitif" { return "Utility" }
+            return kind.hasPrefix("Aperitif ") ? String(kind.dropFirst("Aperitif ".count)) : kind
         }
-        return name.hasPrefix("OpenArch Helper") ? "Utility" : name
+        return name.hasSuffix(" Helper") ? "Utility" : name
     }
 
     // MARK: The report

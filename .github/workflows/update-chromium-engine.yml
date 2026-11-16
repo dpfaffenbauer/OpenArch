@@ -6,9 +6,14 @@ name: Update Chrome engine
 # the update of engine/chromium/VERSION as a pull request that merges itself
 # once main's required checks have passed. A failing build (often a hook in
 # engine/chromium/apply.sh that no longer fits Chrome's code) stops here and
-# GitHub reports the failed run. The same as update-cef.yml for CEF, with the
-# same GitHub App: repository variable UPDATE_APP_CLIENT_ID and secret
-# UPDATE_APP_PRIVATE_KEY (Contents and Pull requests, read and write).
+# GitHub reports the failed run.
+#
+# The pull request is pushed, opened and set to auto-merge with a token of
+# OpenArch's GitHub App: repository variable UPDATE_APP_CLIENT_ID (its Client
+# ID) and secret UPDATE_APP_PRIVATE_KEY (a private key of it); the app needs
+# Contents and Pull requests, read and write. Done with github.token, the pull
+# request's checks would wait for someone to approve them, and its merge would
+# not start the build of main.
 
 on:
   schedule:
@@ -38,7 +43,7 @@ jobs:
 
       - name: Build OpenArch on it
         if: steps.chrome.outputs.updated == 'true'
-        run: OPENARCH_ENGINE=chromium CONFIG=release App/build.sh
+        run: CONFIG=release App/build.sh
 
       # After the build: the token is valid for an hour.
       - name: Token of the app

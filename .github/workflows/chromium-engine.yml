@@ -8,28 +8,32 @@ run-name: Chromium engine ${{ inputs.chromium_version || 'as pinned' }} (${{ git
 # engine-<version>-<key>. The key is a hash of the layer, its hooks, the
 # bridge's headers and the build scripts (scripts/fetch-chromium-engine.sh
 # --key), so every change to them gets its own build, and
-# OPENARCH_ENGINE=chromium App/build.sh downloads the one that fits.
+# App/build.sh downloads the one that fits.
 #
-# As for CEF (cef-codecs.yml), Chromium takes two to three days on a hosted
+# Chromium takes two to three days on a hosted
 # macOS runner and a job may run for six hours: a chain of jobs, each one
 # builds for about five hours, packs the tree into an artifact, and the next
 # one lets ninja carry on. The job that finishes zips the app; the jobs after
 # it are skipped. The work itself is in scripts/chromium-engine-ci.sh.
 #
-# Starts on a push to main that changes what the engine is built from, from
-# scripts/update-chromium.sh when Chrome has a new stable version, or by
-# hand: Actions > Chromium engine > Run workflow. When the release for the
-# version and key is already there, nothing is built. A failed job (a lost
-# runner, a network error) can be re-run with "Re-run failed jobs".
+# Starts on a push to main or a pull request that changes what the engine is
+# built from (build.yml needs the engine of the pull request's layer for its
+# app check), from scripts/update-chromium.sh when Chrome has a new stable
+# version, or by hand: Actions > Chromium engine > Run workflow. When the
+# release for the version and key is already there, nothing is built. A
+# failed job (a lost runner, a network error) can be re-run with "Re-run
+# failed jobs". Pull requests from forks build, but cannot publish.
 
 on:
   push:
     branches: [main]
-    paths:
+    paths: &engine-paths
       - engine/chromium/**
       - App/Sources/OpenArchCore/include/**
       - scripts/build-chromium.sh
       - scripts/chromium-engine-ci.sh
+  pull_request:
+    paths: *engine-paths
   workflow_dispatch:
     inputs:
       chromium_version:
@@ -49,10 +53,10 @@ permissions:
   contents: read
   actions: write # deleting the intermediate artifacts
 
-# One engine build at a time; a newer push waits instead of cancelling a
-# build that is a day in.
+# One engine build per branch at a time; a newer push waits instead of
+# cancelling a build that is a day in.
 concurrency:
-  group: chromium-engine
+  group: chromium-engine-${{ github.head_ref || github.ref }}
   cancel-in-progress: false
 
 env:

@@ -2,8 +2,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Exported from Chrome's framework on the Chromium engine (which builds with
-/// hidden visibility); no effect on CEF.
+/// Exported from Chrome's framework, which builds with hidden visibility
+/// (engine/chromium).
 #ifndef OAC_EXPORT
 #define OAC_EXPORT __attribute__((visibility("default")))
 #endif

@@ -1017,8 +1017,8 @@ final class SelfTest {
         expect(saved.spaces.count == library.spaces.count, "library saved with \(saved.spaces.count) spaces")
     }
 
-    /// The window that shows a pane: the pane's own window's parent on CEF,
-    /// the window holding its view on the Chromium engine.
+    /// The window that shows a page: the window holding a Chromium page's
+    /// view, the parent of a WebKit page's own window.
     func host(of pane: (any OACPage)?) -> NSWindow? {
         guard let window = pane?.window else { return nil }
         return pane is OACPane && !OACPane.panesHaveWindows ? window : window.parent
@@ -1413,7 +1413,7 @@ final class SelfTest {
             }
             after(0.5) {
                 let panes = [hidden, front].compactMap(\.pane)
-                // Each pane's own window (CEF); on the Chromium engine a pane is a
+                // A page with a window of its own (WebKit); a Chromium page is a
                 // view in the window that shows it, which stays.
                 let windows = OACPane.panesHaveWindows ? panes.compactMap(\.window) : []
                 self.browser.close(hidden)
@@ -1506,7 +1506,7 @@ final class SelfTest {
         }
     }
 
-    /// chrome://help, which CEF does not have, opens Über OpenArch and the tab
+    /// chrome://help (Chrome's About page) opens Über OpenArch and the tab
     /// stays on its page. A tab whose first page it is (restored at launch)
     /// opens no window.
     private func aboutPage(then next: @escaping () -> Void) {
@@ -2819,6 +2819,6 @@ final class SelfTest {
 
 extension OACPage {
     /// Where the page is on screen: its view's frame on the Chromium engine
-    /// (OACPane.screenFrame), its own window's on CEF and WebKit.
+    /// (OACPane.screenFrame), its own window's for WebKit.
     var screenFrame: NSRect { (self as? OACPane)?.screenFrame ?? window?.frame ?? .zero }
 }

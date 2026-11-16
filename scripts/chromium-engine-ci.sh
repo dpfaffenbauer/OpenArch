@@ -3,7 +3,7 @@
 # Chrome's framework from the stable tag in engine/chromium/VERSION with
 # OpenArch's layer, an official build (ThinLTO, PGO, H.264/AAC). Used by
 # .github/workflows/chromium-engine.yml, where one build takes a chain of
-# jobs, as for CEF (scripts/cef-codecs.sh). Each command is one stage:
+# jobs. Each command is one stage:
 #
 #   check                   is the release for this version and layer there?
 #   prepare                 select Xcode, free disk space, Metal Toolchain

@@ -8,18 +8,20 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Which engine draws a page.
 typedef NS_ENUM(NSInteger, OACPageEngine) {
-  /// Chromium (CEF): every page, unless OpenArch picks WebKit for it.
+  /// Chromium (Chrome's framework): every page, unless OpenArch picks
+  /// WebKit for it.
   OACPageEngineChromium,
   /// The Mac's own WebKit, with Safari's FairPlay: streaming services
   /// whose DRM Chromium cannot play (see ProtectedMedia.swift).
   OACPageEngineWebKit,
 };
 
-/// What OpenArch needs from a tab's page, whichever engine draws it. Every
-/// page lives in a borderless window of its own that OpenArch attaches as a
-/// child window over its content area, so sidebar, split view, Peek, Little
-/// OpenArch, previews, the media player, sleeping tabs and the rest work the
-/// same for both. OACPane is Chromium's; the app's WebKitPage is WebKit's.
+/// What OpenArch needs from a tab's page, whichever engine draws it, so
+/// sidebar, split view, Peek, Little OpenArch, previews, the media player,
+/// sleeping tabs and the rest work the same for both. OACPane is Chromium's
+/// (a view in OpenArch's window); the app's WebKitPage is WebKit's (a
+/// borderless window of its own, attached as a child window over the
+/// content area).
 NS_SWIFT_UI_ACTOR
 @protocol OACPage <NSObject>
 
