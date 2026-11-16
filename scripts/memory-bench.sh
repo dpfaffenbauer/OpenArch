@@ -9,6 +9,9 @@
 # next to an OpenArch in use), waits until every tab has loaded and settled,
 # then sums the physical footprint of the app and all its helpers. Prints
 # one line per run as TSV: browser, gpu, renderers, other, total (MB).
+# BENCH_ARGS: more arguments for the app, e.g. for the Chromium spike
+# (spikes/02-chromium): "--openarch-embedder --no-startup-window
+# --no-first-run --user-data-dir=<dir>".
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -46,10 +49,13 @@ tree() {
 
 mb() { echo $(( $1 / 1048576 )); }
 
-printf "run\tbrowser\tgpu\trenderers\tother\ttotal\tvisible\n"
+printf "run\tbrowser\tgpu\trenderers\tother\ttotal\tvisible\tloaded\n"
 for run in $(seq 1 "$RUNS"); do
   DEVTOOLS=$(python3 -I -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')
-  "$BIN" --selftest --memory-bench "$WORK/urls.txt" --remote-debugging-port "$DEVTOOLS" > "$WORK/log" 2>&1 &
+  # OpenArch reads "--remote-debugging-port <port>", Chromium only
+  # "--remote-debugging-port=<port>".
+  if [[ -n "${BENCH_ARGS:-}" ]]; then port_args=("--remote-debugging-port=$DEVTOOLS"); else port_args=(--remote-debugging-port "$DEVTOOLS"); fi
+  "$BIN" --selftest --memory-bench "$WORK/urls.txt" "${port_args[@]}" ${BENCH_ARGS:-} > "$WORK/log" 2>&1 &
   APP_PID=$!
   for _ in $(seq 1 240); do
     grep -q "STEP bench ready" "$WORK/log" && break
@@ -60,7 +66,7 @@ for run in $(seq 1 "$RUNS"); do
 
   browser=0 gpu=0 renderers=0 other=0
   for pid in $(tree "$APP_PID"); do
-    bytes=$(footprint -f bytes --noCategories -p "$pid" 2>/dev/null | sed -nE 's/.*Footprint: ([0-9]+) B.*/\1/p' | head -1)
+    bytes=$(footprint -f bytes --noCategories -p "$pid" 2>/dev/null | sed -nE 's/.*Footprint: ([0-9]+) B.*/\1/p' | head -1 || true)
     [[ -n "$bytes" ]] || continue
     command=$(ps -o command= -p "$pid" || true)
     case "$command" in
@@ -71,9 +77,17 @@ for run in $(seq 1 "$RUNS"); do
     esac
   done
   total=$((browser + gpu + renderers + other))
-  # How many pages Chromium treats as visible (light pages only).
-  visible=$(curl -s "http://127.0.0.1:$DEVTOOLS/json/list" | grep -c '"title": "Page [0-9]* visible"' || true)
-  printf "%d\t%d\t%d\t%d\t%d\t%d\t%s\n" "$run" "$(mb $browser)" "$(mb $gpu)" "$(mb $renderers)" "$(mb $other)" "$(mb $total)" "$visible"
+  # Asks each tab itself: how many Chromium treats as visible, and how many
+  # have loaded their page (not still about:blank). Titles in /json/list are
+  # empty in Chromium 156; the spike's tabs are listed as "other".
+  visible=0 loaded=0
+  for ws in $(curl -s "http://127.0.0.1:$DEVTOOLS/json/list" | python3 -I -c 'import json,sys; [print(t["webSocketDebuggerUrl"]) for t in json.load(sys.stdin) if t["type"] in ("page","other") and t["url"].startswith("http")]'); do
+    state=$(python3 -I "$ROOT/scripts/cdp.py" "$ws" Runtime.evaluate '{"expression":"document.visibilityState+\" \"+location.href","returnByValue":true}' 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["result"]["result"]["value"])' 2>/dev/null || true)
+    [[ -z "${DUMP:-}" ]] || echo "$state" >&2
+    [[ "$state" != visible* ]] || visible=$((visible + 1))
+    [[ "$state" != *" http"* ]] || loaded=$((loaded + 1))
+  done
+  printf "%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\n" "$run" "$(mb $browser)" "$(mb $gpu)" "$(mb $renderers)" "$(mb $other)" "$(mb $total)" "$visible" "$loaded"
 
   kill "$APP_PID" 2>/dev/null || true
   for _ in $(seq 1 40); do kill -0 "$APP_PID" 2>/dev/null || break; sleep 0.5; done
