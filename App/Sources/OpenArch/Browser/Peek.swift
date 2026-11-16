@@ -62,7 +62,13 @@ final class PeekController: NSObject, OACPaneDelegate {
         backdrop.cardFrame = window.convertToScreen(cardFrame)
         window.addChildWindow(backdrop, ordered: .above)
         backdrop.order(.above, relativeTo: window.windowNumber)
-        pane.show(in: window, frame: cardFrame)
+        if OACPane.panesHaveWindows {
+            pane.show(in: window, frame: cardFrame)
+        } else {
+            // A pane is a view in the window that shows it (Chromium engine):
+            // the card goes in the backdrop, which lies above the window.
+            pane.show(in: backdrop, frame: backdrop.convertFromScreen(backdrop.cardFrame))
+        }
         pane.focus()
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -119,7 +125,7 @@ final class PeekController: NSObject, OACPaneDelegate {
         backdrop.cardFrame = window.convertToScreen(cardFrame)
         window.removeChildWindow(backdrop)
         window.addChildWindow(backdrop, ordered: .above)
-        pane.setFrame(cardFrame)
+        pane.setFrame(OACPane.panesHaveWindows ? cardFrame : backdrop.convertFromScreen(backdrop.cardFrame))
         pane.orderFront()
     }
 

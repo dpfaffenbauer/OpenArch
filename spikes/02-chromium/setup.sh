@@ -10,7 +10,7 @@ set -euo pipefail
 
 SPIKE="$(cd "$(dirname "$0")" && pwd)"
 DIR="${CHROMIUM_DIR:-$HOME/chromium}"
-VERSION="156.0.8078.80"
+VERSION="${CHROMIUM_VERSION:-156.0.8078.80}"
 OUT="out/Spike"
 export PATH="$DIR/depot_tools:$PATH"
 export DEPOT_TOOLS_UPDATE=0

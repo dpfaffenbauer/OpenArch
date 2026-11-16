@@ -4,6 +4,12 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// Exported from Chrome's framework on the Chromium engine (which builds with
+/// hidden visibility); no effect on CEF.
+#ifndef OAC_EXPORT
+#define OAC_EXPORT __attribute__((visibility("default")))
+#endif
+
 @class OACPane;
 
 /// Chrome command ids (see include/cef_command_ids.h) that OpenArch handles
@@ -57,6 +63,7 @@ typedef NS_ENUM(NSInteger, OACChromeCommand) {
 
 /// A download a page started. Chrome saves it in the Downloads folder and
 /// shows it in its toolbar; OpenArch gets its progress.
+OAC_EXPORT
 @interface OACDownload : NSObject
 @property(readonly) uint32_t identifier;
 /// The file name, as far as known.
@@ -68,6 +75,21 @@ typedef NS_ENUM(NSInteger, OACChromeCommand) {
 @property(readonly) BOOL isComplete;
 /// Cancelled or interrupted: it will not complete.
 @property(readonly) BOOL isFailed;
+@end
+
+/// An extension with a toolbar action, for OpenArch's own extension UI (the
+/// Chromium engine; on CEF Chrome's toolbar shows them).
+OAC_EXPORT
+@interface OACExtensionInfo : NSObject
+@property(readonly, copy) NSString* identifier;
+@property(readonly, copy) NSString* name;
+@property(readonly) NSImage* icon;
+/// Pinned to the toolbar.
+@property(readonly) BOOL pinned;
+/// Its badge on this page ("" for none).
+@property(readonly, copy) NSString* badge;
+/// Whether its action is on for this page.
+@property(readonly) BOOL activeOnPage;
 @end
 
 NS_SWIFT_UI_ACTOR
@@ -108,6 +130,10 @@ NS_SWIFT_UI_ACTOR
 /// "Claude fragen" (askAboutSelectionTitle) was chosen in the context menu
 /// of text selected on the page.
 - (void)pane:(OACPane*)pane askAboutSelection:(NSString*)text;
+/// The toolbar's site button was clicked (the Chromium engine's toolbar):
+/// show the site's controls below |screenRect|, a rect in screen
+/// coordinates. Without it the toolbar shows a menu of the extensions.
+- (void)pane:(OACPane*)pane showSiteControlsFromRect:(NSRect)screenRect;
 @end
 
 /// One Chrome tab. It is hosted in its own borderless Chrome-style window
@@ -115,6 +141,7 @@ NS_SWIFT_UI_ACTOR
 /// Chrome treats it as a real tab: extensions (chrome.tabs, action popups,
 /// side panels), DevTools, find, downloads and permission prompts all work.
 NS_SWIFT_UI_ACTOR
+OAC_EXPORT
 @interface OACPane : NSObject
 
 - (instancetype)initWithProfile:(OACProfile*)profile url:(NSString*)url;
@@ -132,8 +159,14 @@ NS_SWIFT_UI_ACTOR
 /// first -showInWindow:frame:.
 @property(readonly) BOOL isLoaded;
 @property(readonly) BOOL isVisible;
-/// The borderless window hosting the tab, once created.
+/// The borderless window hosting the tab, once created. On the Chromium
+/// engine (panesHaveWindows NO) the window the page is shown in.
 @property(readonly, nullable) NSWindow* window;
+/// Where the page is on screen (NSZeroRect while not shown).
+@property(readonly) NSRect screenFrame;
+/// Whether each pane is a window of its own (CEF) or a view in the window
+/// that shows it (the Chromium engine, docs/chromium-engine.md).
+@property(class, readonly) BOOL panesHaveWindows;
 /// Chrome's toolbar (location bar, extension buttons, downloads, menu).
 @property(nonatomic) BOOL toolbarVisible;
 /// Whether showing or focusing the pane activates OpenArch (Chrome's
@@ -182,6 +215,13 @@ NS_SWIFT_UI_ACTOR
 - (void)executeChromeCommand:(NSInteger)commandID;
 - (void)showDevTools;
 - (void)setAudioMuted:(BOOL)muted;
+/// The extensions with a toolbar action, for this page (empty on CEF).
+@property(readonly) NSArray<OACExtensionInfo*>* extensions;
+/// Runs an extension's action on this page, as a click on its button;
+/// its popup opens below |screenRect| (screen coordinates).
+- (void)runExtension:(NSString*)identifier fromRect:(NSRect)screenRect;
+/// Pins an extension to the toolbar, or takes it off.
+- (void)setExtension:(NSString*)identifier pinned:(BOOL)pinned;
 /// Closes the browser and its window. The delegate gets -paneDidClose:.
 - (void)close;
 

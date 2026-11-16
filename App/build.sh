@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # Builds build/OpenArch.app: Swift app + CEF framework + helper apps.
+#
+# OPENARCH_ENGINE=chromium builds it on Chrome's own framework instead
+# (docs/chromium-engine.md), into build/engine/OpenArch.app. The engine is
+# OPENARCH_ENGINE_APP if set, else a local scripts/build-chromium.sh build
+# (~/chromium/src/out/OpenArch/Chromium.app), else the release CI built for
+# this version and layer (scripts/fetch-chromium-engine.sh, Vendor/engine).
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -7,22 +13,42 @@ ROOT="$(cd "$APP_DIR/.." && pwd)"
 CEF="$ROOT/Vendor/cef"
 CONFIG="${CONFIG:-debug}"
 NAME="OpenArch"
+ENGINE="${OPENARCH_ENGINE:-cef}"
 APP="$APP_DIR/build/$NAME.app"
+SWIFT_ARGS=(--package-path "$APP_DIR" -c "$CONFIG")
+if [[ "$ENGINE" == chromium ]]; then
+  ENGINE_APP="${OPENARCH_ENGINE_APP:-$HOME/chromium/src/out/OpenArch/Chromium.app}"
+  if [[ -z "${OPENARCH_ENGINE_APP:-}" && ! -d "$ENGINE_APP" ]]; then
+    "$ROOT/scripts/fetch-chromium-engine.sh"
+    ENGINE_APP="$ROOT/Vendor/engine/Chromium.app"
+  fi
+  export OPENARCH_ENGINE=chromium OPENARCH_ENGINE_FRAMEWORKS="$ENGINE_APP/Contents/Frameworks"  # read by Package.swift
+  [[ -d "$OPENARCH_ENGINE_FRAMEWORKS/Chromium Framework.framework" ]] ||
+    { echo "No engine in $OPENARCH_ENGINE_FRAMEWORKS" >&2; exit 1; }
+  APP="$APP_DIR/build/engine/$NAME.app"
+  # Its own SwiftPM folder: Package.swift differs between the engines.
+  SWIFT_ARGS+=(--scratch-path "$APP_DIR/.build-engine")
+fi
 BUNDLE_ID="dev.openarch.browser"
+# The Chromium engine's build has its own, so it never meets an installed
+# OpenArch (settings, LaunchServices, a second launch's hand-over).
+[[ "$ENGINE" == cef ]] || BUNDLE_ID="$BUNDLE_ID.engine"
 VERSION="${OPENARCH_VERSION:-0.1.0}"
 # CI sets these; local builds are build 0 and never update themselves.
 BUILD="${OPENARCH_BUILD:-0}"
 COMMIT="${OPENARCH_COMMIT:-$(git -C "$(dirname "$0")" rev-parse --short HEAD 2>/dev/null || echo dev)}"
 
-"$ROOT/scripts/fetch-cef.sh"
-"$ROOT/scripts/patch-cef.sh"
-if [[ ! -f "$CEF/build/libcef_dll_wrapper/libcef_dll_wrapper.a" ]]; then
-  cmake -S "$CEF" -B "$CEF/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DPROJECT_ARCH=arm64 -DUSE_SANDBOX=OFF
-  cmake --build "$CEF/build" --target libcef_dll_wrapper
+if [[ "$ENGINE" == cef ]]; then
+  "$ROOT/scripts/fetch-cef.sh"
+  "$ROOT/scripts/patch-cef.sh"
+  if [[ ! -f "$CEF/build/libcef_dll_wrapper/libcef_dll_wrapper.a" ]]; then
+    cmake -S "$CEF" -B "$CEF/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DPROJECT_ARCH=arm64 -DUSE_SANDBOX=OFF
+    cmake --build "$CEF/build" --target libcef_dll_wrapper
+  fi
 fi
 
-swift build --package-path "$APP_DIR" -c "$CONFIG"
-BIN="$(swift build --package-path "$APP_DIR" -c "$CONFIG" --show-bin-path)"
+swift build "${SWIFT_ARGS[@]}"
+BIN="$(swift build "${SWIFT_ARGS[@]}" --show-bin-path)"
 
 # write_plist <path> <executable> <bundle id> <display name> <extra plist entries>
 # Written next to the target and moved into place, so that LaunchServices
@@ -96,11 +122,25 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <key>NSAppleEventsUsageDescription</key><string>The player in the sidebar can pause Spotify and skip its songs.</string>
   <key>NSCalendarsFullAccessUsageDescription</key><string>OpenArch shows your next meeting in the sidebar, with a button to join the call.</string>
   <key>NSCalendarsUsageDescription</key><string>OpenArch shows your next meeting in the sidebar, with a button to join the call.</string>"
-rsync -a --delete "$CEF/Release/Chromium Embedded Framework.framework" "$APP/Contents/Frameworks/"
+if [[ "$ENGINE" == chromium ]]; then
+  # Chrome's framework, with its helper apps inside (Versions/<v>/Helpers).
+  rsync -a --delete "$OPENARCH_ENGINE_FRAMEWORKS/Chromium Framework.framework" "$APP/Contents/Frameworks/"
+  FRAMEWORK="$APP/Contents/Frameworks/Chromium Framework.framework"
+else
+  rsync -a --delete "$CEF/Release/Chromium Embedded Framework.framework" "$APP/Contents/Frameworks/"
+  FRAMEWORK="$APP/Contents/Frameworks/Chromium Embedded Framework.framework"
+fi
 rsync -a --delete "$APP_DIR/Resources/" "$APP/Contents/Resources/"
+if [[ "$ENGINE" == chromium ]]; then
+  # Chrome takes its language from the app's localizations (macOS's
+  # preferred one among them): the same, empty, as Chromium.app has.
+  for lproj in "$ENGINE_APP"/Contents/Resources/*.lproj; do
+    mkdir -p "$APP/Contents/Resources/$(basename "$lproj")"
+  done
+fi
 
 # Chromium looks up one helper app per process type by name.
-for suffix in "" " (Alerts)" " (GPU)" " (Plugin)" " (Renderer)"; do
+[[ "$ENGINE" == chromium ]] || for suffix in "" " (Alerts)" " (GPU)" " (Plugin)" " (Renderer)"; do
   helper="$NAME Helper$suffix"
   id_suffix="$(printf '%s' "$suffix" | tr -d ' ()' | tr '[:upper:]' '[:lower:]')"
   mkdir -p "$APP/Contents/Frameworks/$helper.app/Contents/MacOS"
@@ -122,18 +162,24 @@ sed -i '' 's|<key>CFBundlePackageType</key><string>APPL</string>|<key>CFBundlePa
 # Signatures, inside out. SIGN_IDENTITY (a Developer ID, set by CI) signs
 # with the hardened runtime for notarization; without it, ad hoc.
 SIGNING="$APP_DIR/Signing"
-FRAMEWORK="$APP/Contents/Frameworks/Chromium Embedded Framework.framework"
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   sign() { codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$@"; }
 else
   sign() { codesign --force --sign - "$@"; }
 fi
+if [[ "$ENGINE" == chromium ]]; then
+  # Chrome's helpers and tools inside the framework, before the framework.
+  for item in "$FRAMEWORK"/Versions/Current/Helpers/*; do
+    sign "$item"
+  done
+fi
 for library in "$FRAMEWORK"/Libraries/*.dylib; do
-  sign "$library"
+  if [[ -f "$library" ]]; then sign "$library"; fi
 done
 sign "$FRAMEWORK"
 sign "$PLUGIN"
 for helper in "$APP"/Contents/Frameworks/*Helper*.app; do
+  [[ -d "$helper" ]] || continue
   case "$helper" in
     *"(Plugin)"*) sign --entitlements "$SIGNING/HelperPlugin.entitlements" "$helper" ;;
     *"(Alerts)"*) sign "$helper" ;;

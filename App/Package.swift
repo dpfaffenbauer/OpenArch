@@ -14,6 +14,45 @@ let cefCxxSettings: [CXXSetting] = [
     .unsafeFlags(["-I", cefRoot, "-fno-rtti", "-fno-exceptions", "-fobjc-arc"]),
 ]
 
+// OPENARCH_ENGINE=chromium (App/build.sh): Chrome's own framework instead of
+// CEF (docs/chromium-engine.md). The bridge's classes live in the framework;
+// OPENARCH_ENGINE_FRAMEWORKS is the folder that holds it.
+let environment = ProcessInfo.processInfo.environment
+let chromiumEngine = environment["OPENARCH_ENGINE"] == "chromium"
+let engineFrameworks = environment["OPENARCH_ENGINE_FRAMEWORKS"] ?? ""
+
+let coreTarget: Target = chromiumEngine
+    ? .target(
+        name: "OpenArchCore",
+        path: "Sources/OpenArchCoreChromium",
+        publicHeadersPath: "include",
+        linkerSettings: [
+            .unsafeFlags(["-F", engineFrameworks, "-framework", "Chromium Framework"]),
+            .linkedFramework("AppKit"),
+        ]
+    )
+    : .target(
+        name: "OpenArchCore",
+        publicHeadersPath: "include",
+        cxxSettings: cefCxxSettings,
+        linkerSettings: [
+            .unsafeFlags([cefWrapper]),
+            .linkedFramework("AppKit"),
+        ]
+    )
+
+// Chrome's framework brings its own helper apps.
+let helperTargets: [Target] = chromiumEngine ? [] : [
+    .executableTarget(
+        name: "OpenArchHelper",
+        cxxSettings: cefCxxSettings,
+        linkerSettings: [
+            .unsafeFlags([cefWrapper]),
+            .linkedFramework("Foundation"),
+        ]
+    ),
+]
+
 let package = Package(
     name: "OpenArch",
     platforms: [.macOS(.v15)],
@@ -21,28 +60,12 @@ let package = Package(
         .package(path: "../Shared"),
     ],
     targets: [
-        .target(
-            name: "OpenArchCore",
-            publicHeadersPath: "include",
-            cxxSettings: cefCxxSettings,
-            linkerSettings: [
-                .unsafeFlags([cefWrapper]),
-                .linkedFramework("AppKit"),
-            ]
-        ),
+        coreTarget,
         .executableTarget(
             name: "OpenArch",
             dependencies: ["OpenArchCore", .product(name: "OpenArchShared", package: "Shared")],
             linkerSettings: [.linkedLibrary("sqlite3")]
         ),
-        .executableTarget(
-            name: "OpenArchHelper",
-            cxxSettings: cefCxxSettings,
-            linkerSettings: [
-                .unsafeFlags([cefWrapper]),
-                .linkedFramework("Foundation"),
-            ]
-        ),
-    ],
+    ] + helperTargets,
     cxxLanguageStandard: .cxx20
 )

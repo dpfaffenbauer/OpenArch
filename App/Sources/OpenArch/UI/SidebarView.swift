@@ -683,14 +683,17 @@ private struct SidebarTopBar: View {
                     SiteControls(browser: browser, item: active)
                 }
             }
-            IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.goBack() }
-                .disabled(!(active?.canGoBack ?? false))
-            IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.goForward() }
-                .disabled(!(active?.canGoForward ?? false))
-            IconButton(symbol: active?.isLoading == true ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") {
-                if active?.isLoading == true { browser.activePane?.stopLoading() } else { browser.reload() }
+            // The toolbar above the page has them while it shows (as Arc).
+            if !browser.library.settings.showChromeToolbar {
+                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.goBack() }
+                    .disabled(!(active?.canGoBack ?? false))
+                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.goForward() }
+                    .disabled(!(active?.canGoForward ?? false))
+                IconButton(symbol: active?.isLoading == true ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") {
+                    if active?.isLoading == true { browser.activePane?.stopLoading() } else { browser.reload() }
+                }
+                .disabled(active == nil)
             }
-            .disabled(active == nil)
         }
         // Without its button, ⌃⌘I shows the site controls under the bar.
         .popover(isPresented: siteControls && !siteButton ? siteControlsShown : .constant(false), arrowEdge: .bottom) {

@@ -13,7 +13,12 @@ enum AppPaths {
 
     static let support: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let url = base.appendingPathComponent(isSelfTest ? "OpenArch SelfTest" : "OpenArch", isDirectory: true)
+        // The Chromium engine (docs/chromium-engine.md) keeps its own data
+        // while it is tried next to OpenArch on CEF: Chrome would move a
+        // profile to its newer format, which CEF's older Chromium can't read.
+        let engine = Bundle.main.bundleIdentifier?.hasSuffix(".engine") == true
+        let name = isSelfTest ? "OpenArch SelfTest" : (engine ? "OpenArch Engine" : "OpenArch")
+        let url = base.appendingPathComponent(name, isDirectory: true)
         // A fresh folder per test run; --keep-data starts a second instance on
         // the running test's data (the second-launch test).
         if isSelfTest && !CommandLine.arguments.contains("--keep-data") {

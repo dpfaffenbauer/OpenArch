@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         log("Chromium \(OACEngine.versionString)")
         AppIcons.repairBundle()
-        SpotifyPlayer.shared.start()
+        SpotifyPlayer.shared.start(readState: !selfTest)
         library = Library.load()
         // With the user's own shortcuts (Settings › Tastatur).
         rebuildMenu()

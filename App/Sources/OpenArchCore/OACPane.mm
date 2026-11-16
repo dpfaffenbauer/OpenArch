@@ -53,6 +53,9 @@
 @property(readwrite) BOOL isFailed;
 @end
 
+@implementation OACExtensionInfo
+@end
+
 @implementation OACDownload
 @end
 
@@ -962,6 +965,14 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   return _window;
 }
 
+- (NSRect)screenFrame {
+  return _window.isVisible ? _window.frame : NSZeroRect;
+}
+
++ (BOOL)panesHaveWindows {
+  return YES;
+}
+
 #pragma mark - Placement
 
 - (void)showInWindow:(NSWindow*)window frame:(NSRect)frame {
@@ -1240,6 +1251,17 @@ CefRefPtr<CefClient> OACCreateDefaultClient() {
   if (_browser) {
     _browser->GetHost()->SetAudioMuted(muted);
   }
+}
+
+// On CEF, Chrome's toolbar in the tab's window shows the extensions.
+- (NSArray<OACExtensionInfo*>*)extensions {
+  return @[];
+}
+
+- (void)runExtension:(NSString*)identifier fromRect:(NSRect)screenRect {
+}
+
+- (void)setExtension:(NSString*)identifier pinned:(BOOL)pinned {
 }
 
 - (void)close {

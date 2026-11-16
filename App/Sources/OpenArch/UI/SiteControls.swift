@@ -2,24 +2,38 @@ import AppKit
 import OpenArchCore
 import SwiftUI
 
-/// Arc's Site Control Center: what the site in front may do, its zoom, its
-/// data and its boost. Opens from the sidebar's top bar.
+/// Arc's Site Control Center: quick actions for the page, its extensions,
+/// what the site may do, its zoom and its data. Opens from the sidebar's top
+/// bar, or from the toolbar above the page (the Chromium engine's).
 struct SiteControls: View {
     let browser: BrowserWindowController
     let item: Item
+    /// Where it opened from, on screen: an extension's popup opens there.
+    var anchor: NSRect = .zero
+    /// Closes it when it is not the sidebar's popover.
+    var close: (() -> Void)? = nil
     @State private var values: [OACSitePermission: OACPermissionValue] = [:]
     @State private var zoom = 100
     @State private var confirmingClear = false
     @State private var cleared = false
+    @State private var extensions: [OACExtensionInfo] = []
+    @State private var shot = false
+    @State private var copied = false
 
     private var origin: String? { SiteControls.origin(of: item.currentURL) }
     private var profile: OACProfile? { item.pane?.profile }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            quickActions
             header
+            if showsExtensions {
+                Divider()
+                extensionGrid
+            }
             if let origin, let profile {
                 Divider()
+                sectionTitle("Einstellungen")
                 VStack(spacing: 2) {
                     ForEach(SitePermission.all) { permission in
                         PermissionRow(permission: permission, value: binding(permission, origin: origin, profile: profile))
@@ -34,6 +48,96 @@ struct SiteControls: View {
         .padding(14)
         .frame(width: 320)
         .onAppear(perform: load)
+    }
+
+    private func dismiss() {
+        browser.state.siteControlsVisible = false
+        close?()
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+    }
+
+    // MARK: Quick actions (as Arc's top row)
+
+    private var quickActions: some View {
+        HStack(spacing: 8) {
+            if let url = URL(string: item.currentURL), origin != nil {
+                ShareLink(item: url) { QuickActionLabel(symbol: "square.and.arrow.up", title: "Teilen") }
+                    .buttonStyle(QuickActionStyle())
+            }
+            Button {
+                dismiss()
+                BoostPanelController.show(for: item, browser: browser)
+            } label: { QuickActionLabel(symbol: "paintbrush.pointed", title: "Boost") }
+                .buttonStyle(QuickActionStyle())
+                .disabled(origin == nil)
+            Button(action: screenshot) {
+                QuickActionLabel(symbol: shot ? "checkmark" : "camera", title: shot ? "Kopiert" : "Foto")
+            }
+            .buttonStyle(QuickActionStyle())
+            .help("Ein Bild der Seite in die Zwischenablage")
+            Button {
+                browser.copyURL()
+                copied = true
+                after(1.2) { copied = false }
+            } label: { QuickActionLabel(symbol: copied ? "checkmark" : "link", title: copied ? "Kopiert" : "Link") }
+                .buttonStyle(QuickActionStyle())
+        }
+    }
+
+    private func screenshot() {
+        item.pane?.callDevToolsMethod("Page.captureScreenshot", params: ["format": "png"]) { result in
+            guard let base64 = result?["data"] as? String, let data = Data(base64Encoded: base64),
+                  let image = NSImage(data: data) else { return NSSound.beep() }
+            MainActor.assumeIsolated {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.writeObjects([image])
+                shot = true
+                after(1.2) { shot = false }
+            }
+        }
+    }
+
+    // MARK: Extensions (the Chromium engine; on CEF Chrome's toolbar has them)
+
+    private var showsExtensions: Bool { !OACPane.panesHaveWindows && item.pane != nil }
+
+    private var extensionGrid: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionTitle("Erweiterungen")
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(64), spacing: 8), count: 4), alignment: .leading, spacing: 8) {
+                ForEach(extensions, id: \.identifier) { info in
+                    Button {
+                        let pane = item.pane
+                        let rect = anchor == .zero ? NSRect(origin: NSEvent.mouseLocation, size: .zero) : anchor
+                        dismiss()
+                        pane?.runExtension(info.identifier, from: rect)
+                    } label: { ExtensionTile(info: info) }
+                        .buttonStyle(.plain)
+                        .help(info.name + (info.activeOnPage ? "" : " – auf dieser Seite nicht aktiv"))
+                        .contextMenu {
+                            Button(info.pinned ? "Von der Leiste lösen" : "An die Leiste heften") {
+                                item.pane?.setExtension(info.identifier, pinned: !info.pinned)
+                                after(0.1) { extensions = item.pane?.extensions ?? [] }
+                            }
+                        }
+                }
+                Button {
+                    dismiss()
+                    _ = browser.openInNewTab("https://chromewebstore.google.com/")
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 64, height: 44)
+                        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.quaternary.opacity(0.6)))
+                }
+                .buttonStyle(.plain)
+                .help("Erweiterungen im Chrome Web Store")
+            }
+        }
     }
 
     private var header: some View {
@@ -77,13 +181,13 @@ struct SiteControls: View {
     private var actions: some View {
         VStack(alignment: .leading, spacing: 4) {
             ActionRow(symbol: "paintbrush", title: "Boost bearbeiten …") {
-                browser.state.siteControlsVisible = false
+                dismiss()
                 BoostPanelController.show(for: item, browser: browser)
             }
             .disabled(origin == nil)
             ActionRow(symbol: "link", title: "URL kopieren") {
                 browser.copyURL()
-                browser.state.siteControlsVisible = false
+                dismiss()
             }
             ActionRow(symbol: cleared ? "checkmark" : "trash", title: cleared ? "Website-Daten gelöscht" : "Website-Daten löschen …",
                       isDestructive: !cleared) {
@@ -109,6 +213,7 @@ struct SiteControls: View {
 
     private func load() {
         zoom = item.pane?.zoomPercent ?? 100
+        extensions = item.pane?.extensions ?? []
         guard let origin, let profile else { return }
         for permission in SitePermission.all {
             values[permission.kind] = profile.permission(permission.kind, forSite: origin)
@@ -210,5 +315,70 @@ private struct ActionRow: View {
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.4)
         .onHover { hovering = $0 }
+    }
+}
+
+/// A big button of the quick actions row: a symbol over a short title.
+private struct QuickActionLabel: View {
+    let symbol: String
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: symbol).font(.system(size: 15, weight: .medium)).frame(height: 18)
+            Text(title).font(.system(size: 10.5, weight: .medium))
+        }
+        .frame(maxWidth: .infinity, minHeight: 50)
+    }
+}
+
+private struct QuickActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? Color.primary : Color.secondary.opacity(0.5))
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.primary.opacity(configuration.isPressed ? 0.14 : 0.07)))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+/// An extension in the grid: its icon on a tile, a pin when it is pinned to
+/// the toolbar, its badge, dimmed while it is off for the page.
+private struct ExtensionTile: View {
+    let info: OACExtensionInfo
+    @State private var hovered = false
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Image(nsImage: info.icon)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 20, height: 20)
+                .opacity(info.activeOnPage ? 1 : 0.4)
+                .frame(width: 64, height: 44)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(hovered ? 0.12 : 0.07)))
+            if info.pinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 7.5, weight: .bold))
+                    .foregroundStyle(.white)
+                    .rotationEffect(.degrees(45))
+                    .frame(width: 15, height: 15)
+                    .background(Circle().fill(Color.black.opacity(0.75)))
+                    .offset(x: 3, y: 3)
+            }
+            if !info.badge.isEmpty {
+                Text(info.badge)
+                    .font(.system(size: 8.5, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 4)
+                    .frame(minWidth: 14, minHeight: 13)
+                    .background(Capsule().fill(Color.red))
+                    .offset(x: 3, y: -31)
+            }
+        }
+        .onHover { hovered = $0 }
     }
 }
