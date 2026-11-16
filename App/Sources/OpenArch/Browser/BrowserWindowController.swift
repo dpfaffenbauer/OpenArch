@@ -138,6 +138,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             guard let self else { return }
             self.resizeSidebar(to: self.sidebarOnRight ? self.rootView.bounds.width - x - 4 : x + 4)
         }
+        sidebarHandle.onDragStart = { [weak self] in self?.beginSidebarResize() }
         rootView.addSubview(sidebarHandle)
         sidebarEdge.onEnter = { [weak self] in MainActor.assumeIsolated { self?.floatingSidebar.show() } }
         rootView.addSubview(sidebarEdge)
@@ -487,10 +488,13 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// Dragging the sidebar's inner edge to make it |x| wide. Narrow enough
     /// (far to the left, or to the right with the sidebar there), it
     /// collapses like Arc's; dragging back out (still holding) opens it again.
+    /// The width is shared by all windows; a drag that collapses the
+    /// sidebar leaves it as it was before the drag.
     func resizeSidebar(to x: CGFloat) {
         if x < 150 {
             if state.sidebarVisible {
                 state.sidebarVisible = false
+                if let width = sidebarWidthBeforeDrag { setSidebarWidth(width) }
                 layoutContent()
             }
             return
@@ -499,8 +503,23 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             guard x > 200 else { return }
             state.sidebarVisible = true
         }
-        library.settings.sidebarWidth = Double(max(200, min(440, (x + 4).rounded())))
-        layoutContent()
+        setSidebarWidth(Double(max(200, min(440, (x + 4).rounded()))))
+    }
+
+    /// The width as the drag began, to go back to when it collapses.
+    private var sidebarWidthBeforeDrag: Double?
+
+    func beginSidebarResize() {
+        sidebarWidthBeforeDrag = library.settings.sidebarWidth
+    }
+
+    /// Every window shows the shared width, so every window lays out again.
+    private func setSidebarWidth(_ width: Double) {
+        defer { layoutContent() }
+        guard library.settings.sidebarWidth != width else { return }
+        library.settings.sidebarWidth = width
+        let others = (NSApp.delegate as? AppDelegate)?.browsers.filter { $0 !== self } ?? []
+        others.forEach { $0.layoutContent() }
         library.setNeedsSave()
     }
 
@@ -2069,9 +2088,15 @@ final class SplitDividerView: NSView {
         didSet { if stacked != oldValue { window?.invalidateCursorRects(for: self) } }
     }
     var onDrag: ((Int, CGFloat) -> Void)?
+    /// Called as a drag begins.
+    var onDragStart: (() -> Void)?
 
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: stacked ? .resizeUpDown : .resizeLeftRight)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        onDragStart?()
     }
 
     override func mouseDragged(with event: NSEvent) {
