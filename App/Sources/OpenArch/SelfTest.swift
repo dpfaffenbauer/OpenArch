@@ -1891,9 +1891,21 @@ final class SelfTest {
                 self.expect(value == "true", "HTTPS-only turns on Chromium's HTTPS-First mode (\(value ?? "no value"))")
                 self.library.settings.httpsOnly = false
                 self.library.settings.applyToChromium()
-                if let shown { self.browser.select(shown, focus: false) }
-                self.browser.close(tab)
-                next()
+                // The same page, while it is open: pages speak the system's
+                // language, not en-US — a time field on a German Mac reads
+                // 20:30, not 8:30 PM.
+                let system = String((Locale.preferredLanguages.first ?? "en").prefix(2))
+                let language = "navigator.language + ' ' + new Date(2026, 0, 1, 20, 30).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })"
+                tab.pane?.callDevToolsMethod("Runtime.evaluate", params: ["expression": language, "returnByValue": true]) { result in
+                    let spoken = (result?["result"] as? [String: Any])?["value"] as? String ?? ""
+                    self.expect(spoken.hasPrefix(system), "pages speak the system's language \(system) (\(spoken))")
+                    if system != "en" {
+                        self.expect(!spoken.contains("PM"), "times on a page follow the system, no AM/PM (\(spoken))")
+                    }
+                    if let shown { self.browser.select(shown, focus: false) }
+                    self.browser.close(tab)
+                    next()
+                }
             }
         }
     }
