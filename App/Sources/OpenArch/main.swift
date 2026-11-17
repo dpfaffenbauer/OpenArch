@@ -114,6 +114,12 @@ if AppPaths.isSelfTest {
 // OpenArch decides what a first launch shows (the onboarding); Chrome's own
 // first-run pages and its default browser question never appear.
 settings.extraSwitches += ["no-first-run", "no-default-browser-check"]
+// Chrome treats a user data folder of its own (OpenArch's, always) as a sign
+// of cookie theft: it calls the keychain key unavailable ("v10") and
+// encrypts with one of its own ("v11"). Cookies, the protected preferences'
+// hashes and everything else OpenArch encrypted before could not be read
+// any more: Chrome dropped the cookies and reset the extensions.
+settings.extraSwitches += ["disable-features=KeychainKeyProviderUserDataDirProtection"]
 if let index = arguments.firstIndex(of: "--remote-debugging-port"), index + 1 < arguments.count {
     settings.remoteDebuggingPort = Int(arguments[index + 1]) ?? 0
 } else if !AppPaths.isSelfTest {
