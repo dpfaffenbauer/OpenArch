@@ -9,9 +9,7 @@
 # next to an OpenArch in use), waits until every tab has loaded and settled,
 # then sums the physical footprint of the app and all its helpers. Prints
 # one line per run as TSV: browser, gpu, renderers, other, total (MB).
-# BENCH_ARGS: more arguments for the app, e.g. for the Chromium spike
-# (spikes/02-chromium): "--openarch-embedder --no-startup-window
-# --no-first-run --user-data-dir=<dir>".
+# BENCH_ARGS: more arguments for the app.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
