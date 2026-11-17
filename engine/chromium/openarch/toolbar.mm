@@ -91,8 +91,10 @@ Popup* g_popup = nullptr;
 // goes to the background.
 class Popup : public extensions::ExtensionView {
  public:
-  Popup(std::unique_ptr<extensions::ExtensionViewHost> host, NSRect anchor)
-      : host_(std::move(host)), anchor_(anchor) {
+  // |owner| is the toolbar whose page opened it: closing that page closes
+  // it, closing other pages does not.
+  Popup(std::unique_ptr<extensions::ExtensionViewHost> host, NSRect anchor, id owner)
+      : host_(std::move(host)), anchor_(anchor), owner_(owner) {
     g_popup = this;
     host_->set_view(this);
     host_->SetCloseHandler(base::BindOnce(&Popup::HostWantsToClose, weak_factory_.GetWeakPtr()));
@@ -157,6 +159,8 @@ class Popup : public extensions::ExtensionView {
     [panel_ orderOut:nil];
     host_->set_view(nullptr);
   }
+
+  bool IsOwnedBy(id toolbar) const { return owner_ == toolbar; }
 
   void CloseSoon() {
     if (closing_) {
@@ -274,6 +278,7 @@ class Popup : public extensions::ExtensionView {
 
   std::unique_ptr<extensions::ExtensionViewHost> host_;
   NSRect anchor_;
+  __weak id owner_;
   gfx::Size size_;
   NSPanel* __strong panel_;
   id __strong resign_observer_;
@@ -525,6 +530,13 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   }
 }
 
+// Closes the popup if this toolbar's page opened it.
+- (void)closeOwnPopup {
+  if (g_popup && g_popup->IsOwnedBy(self)) {
+    g_popup->CloseSoon();
+  }
+}
+
 - (instancetype)initWithWebContents:(content::WebContents*)contents
                             browser:(BrowserWindowInterface*)browser
                             openURL:(void (^)(NSString*))openURL {
@@ -613,7 +625,7 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   _observer.reset();
   _contents = nullptr;
   _browser = nullptr;
-  [OAExtensionToolbar closePopup];
+  [self closeOwnPopup];
 }
 
 - (void)setFrame:(NSRect)frame {
@@ -954,7 +966,7 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   if (!host) {
     return;
   }
-  new Popup(std::move(host), anchor);  // deletes itself when closed
+  new Popup(std::move(host), anchor, self);  // deletes itself when closed
 }
 
 // An extension's menu: open it, pin or unpin, its options, manage it.

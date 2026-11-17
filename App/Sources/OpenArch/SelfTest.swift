@@ -2036,8 +2036,16 @@ final class SelfTest {
                 self.eventually({ note(); return (popup()?.frame.width ?? 0) > 100 }, timeout: 15) { shown in
                     note()
                     self.expect(shown, "an extension's popup opens at its page's size (\(popup().map { "\($0.frame.size)" } ?? "none"); \(seen.joined(separator: " → ")))")
-                    // A click in another window closes it, as in Chrome.
                     guard shown, let window = self.browser.window else { popup()?.close(); return }
+                    // Another page closing (here a tab with OpenArch's
+                    // toolbar) leaves it open: only its own page closes it.
+                    let other = self.browser.openInNewTab("https://example.com/popup-other", select: false)
+                    (other.pane as? OACPane)?.toolbarVisible = true
+                    _ = (other.pane as? OACPane)?.extensions
+                    after(1) { self.browser.close(other) }
+                    after(2.5) {
+                    self.expect(popup() != nil, "closing another tab leaves an extension's popup open")
+                    // A click in another window closes it, as in Chrome.
                     for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
                         if let event = NSEvent.mouseEvent(with: type, location: NSPoint(x: 20, y: 20), modifierFlags: [],
                                                           timestamp: ProcessInfo.processInfo.systemUptime,
@@ -2049,6 +2057,7 @@ final class SelfTest {
                     self.eventually({ popup() == nil }, timeout: 3) { closed in
                         self.expect(closed, "a click elsewhere closes the extension's popup")
                         popup()?.close()
+                    }
                     }
                 }
             } else {
