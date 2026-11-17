@@ -1,100 +1,166 @@
-/* OpenArch website, after the "Website-Entwurf" artboard of the logo canvas:
-   a light page in Bricolage Grotesque and Instrument Sans, with the three
-   space colors (blue Travel, orange Home, green Work) as feature sections.
-   It follows the Mac's appearance, Increase Contrast and Reduce Transparency,
-   and text sizes in rem follow the browser's font size. */
+/* openarch.app is laid out like an OpenArch window. The ground is the theme
+   of the space you are in (one to three colors along the diagonal, with
+   grain, as the app draws it), the sidebar sits directly on it, and the
+   pages lie on top as rounded cards. Scrolling into another part of the
+   site changes the space, and with it the theme and the sidebar's tabs.
+   Bricolage Grotesque and Instrument Sans, as on the logo canvas. It follows
+   the Mac's appearance, Increase Contrast, Reduce Motion and Reduce
+   Transparency, and text sizes in rem follow the browser's font size. */
+
+/* Registered, so a change of space blends the colors instead of jumping. */
+
+@property --c1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #55b860;
+}
+
+@property --c2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2bb3a3;
+}
+
+@property --c3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #c6d94e;
+}
+
+@property --wash {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.6;
+}
 
 :root {
   color-scheme: light dark;
-  --bg: #fafaf7;
+
+  /* The space's theme. site.js sets these when a theme is edited. */
+  --c1: #55b860;
+  --c2: #2bb3a3;
+  --c3: #c6d94e;
+  --wash: 0.6;
+  --grain: 0.35;
+
+  --under: #ffffff;
+  --page: #ffffff;
   --ink: #141814;
   --soft: #4c5650;
   --muted: #5b655e;
-  --line: #e2e5df;
-  --edge: #d6dad3;
-  --card: #ffffff;
-  --hover: #f1f2ee;
-  --key-edge: #ced3cb;
-  --green: #55b860;
-  --green-ink: #2f7a3a;
-  --green-ink-hover: #1d5226;
-  --orange-ink: #a8501a;
-  --focus: #3e7be6;
-  --dark: #141814;
-  --dark-soft: #b7c1ba;
-  --dark-line: #2a322c;
-  --travel: #eaf1fd;
-  --travel-ink: #1f4fa8;
-  --travel-text: #3d4752;
-  --home: #fdeee2;
-  --home-ink: #9a4711;
-  --home-text: #52443a;
-  --work: #e8f5ea;
-  --work-ink: #2a7337;
-  --work-text: #3e4a41;
-  --shot-filter: none;
+  --line: #e3e6e0;
+  --hover: #f1f3ef;
+  --on-ground: #141814;
+  --tile: rgb(255 255 255 / 0.4);
+  --tile-hover: rgb(255 255 255 / 0.56);
+  --row-on: rgb(255 255 255 / 0.7);
+
+  --night: #13201a;
+  --night-raise: #1d2e25;
+  --night-line: #2e4237;
+  --on-night: #f3f5f1;
+  --on-night-soft: #b9c6bd;
+  --night-ink: #0d1611;
+
+  /* From the theme: an accent that reads as text on a page, its soft tint,
+     and the light version for the night cards. */
+  --accent: color-mix(in oklab, var(--c1) 50%, #000);
+  --on-accent: #ffffff;
+  --tint: color-mix(in oklab, var(--c1) 11%, var(--page));
+  --tint-line: color-mix(in oklab, var(--c1) 30%, var(--page));
+  --glow: color-mix(in oklab, var(--c1) 55%, #fff);
+  /* The ground as two plain colors, for the sidebar when it floats. */
+  --ground-1: color-mix(in oklab, var(--c1) calc(var(--wash) * 100%), var(--under));
+  --ground-2: color-mix(in oklab, var(--c2) calc(var(--wash) * 100%), var(--under));
+
+  --check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 10.5 4 4 8-9'/%3E%3C/svg%3E");
+  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
   --display: "Bricolage Grotesque", system-ui, sans-serif;
   --body: "Instrument Sans", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
-  --wide: 1240px;
-  --gutter: 24px;
-  --bar: 4.625rem;
+
+  --sb-w: 272px;
+  --sb-l: var(--sb-w);
+  --sb-r: 0px;
+  --gap: 8px;
+  --pad-l: 0px;
+  --pad-r: var(--gap);
+  --radius: 16px;
 }
 
-/* Dark: the same page at night. The bands keep their space colors, deep
-   instead of pale, and the white of the screenshots is turned down a little. */
+/* The other spaces. Each part of the page belongs to one. */
+
+html[data-space="browse"] {
+  --c1: #3e7be6;
+  --c2: #7b6cf6;
+  --c3: #3fc6e0;
+}
+
+html[data-space="claude"] {
+  --c1: #f08a3c;
+  --c2: #e5566a;
+  --c3: #f2d46c;
+}
+
+html[data-space="everywhere"] {
+  --c1: #9e749b;
+  --c2: #e59eba;
+  --c3: #7eb6d5;
+}
+
+html[data-side="right"] {
+  --sb-l: 0px;
+  --sb-r: var(--sb-w);
+  --pad-l: var(--gap);
+  --pad-r: 0px;
+}
+
+html[data-sidebar="hidden"] {
+  --sb-l: 0px;
+  --sb-r: 0px;
+  --pad-l: var(--gap);
+  --pad-r: var(--gap);
+}
+
+/* Dark: the colors lie over black instead of white, as in the app. */
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e110f;
+    --under: #070908;
+    --page: #161b17;
     --ink: #eef1ec;
     --soft: #aeb8b1;
     --muted: #9aa49d;
-    --line: #262d28;
-    --edge: #343c36;
-    --card: #171c18;
-    --hover: #212722;
-    --key-edge: #070908;
-    --green-ink: #7fcf89;
-    --green-ink-hover: #a8e0af;
-    --orange-ink: #f2a46c;
-    --dark: #171c18;
-    --dark-line: #2c342e;
-    --travel: #101b2e;
-    --travel-ink: #93b8f7;
-    --travel-text: #bac5d4;
-    --home: #26180e;
-    --home-ink: #f2a46c;
-    --home-text: #d8c8bb;
-    --work: #0f2013;
-    --work-ink: #7fcf89;
-    --work-text: #bbcdbf;
-    --shot-filter: brightness(0.9);
+    --line: #283029;
+    --hover: #1f2620;
+    --on-ground: #f3f5f1;
+    --tile: rgb(255 255 255 / 0.09);
+    --tile-hover: rgb(255 255 255 / 0.15);
+    --row-on: rgb(255 255 255 / 0.2);
+    --night: #0b110d;
+    --night-raise: #162019;
+    --night-line: #25342a;
+    --wash: 0.5;
+    --accent: color-mix(in oklab, var(--c1) 55%, #fff);
+    --on-accent: #0d1611;
+    --tint: color-mix(in oklab, var(--c1) 14%, var(--page));
+    --tint-line: color-mix(in oklab, var(--c1) 34%, var(--page));
   }
 }
 
-/* Increase Contrast: secondary text and edges move toward the ink. */
+/* Increase Contrast: secondary text and edges move toward the ink, and the
+   theme's colors step back. */
 
 @media (prefers-contrast: more) {
   :root {
-    --soft: #2b322d;
-    --muted: #353d37;
-    --line: #a9b0a7;
-    --edge: #7d857e;
-    --dark-soft: #e3e8e4;
-    --dark-line: #5a645c;
-    --travel-text: var(--ink);
-    --home-text: var(--ink);
-    --work-text: var(--ink);
-  }
-}
-
-@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  :root {
-    --soft: #d9dfdb;
-    --muted: #c9d0cb;
-    --line: #56605a;
-    --edge: #7d877f;
+    --soft: var(--ink);
+    --muted: var(--ink);
+    --line: color-mix(in oklab, var(--ink) 45%, var(--page));
+    --tile: color-mix(in oklab, var(--under) 70%, transparent);
+    --row-on: var(--under);
+    --on-night-soft: var(--on-night);
+    --wash: 0.35;
   }
 }
 
@@ -106,12 +172,18 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: var(--bar);
+  transition: --c1 0.9s ease, --c2 0.9s ease, --c3 0.9s ease, --wash 0.9s ease;
+}
+
+/* While a handle of the theme editor is dragged, the colors follow at once. */
+
+html.theming {
+  transition: none;
 }
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--under);
   color: var(--ink);
   font-family: var(--body);
   font-size: 1rem;
@@ -126,11 +198,8 @@ img {
 }
 
 a {
-  color: var(--green-ink);
-}
-
-a:hover {
-  color: var(--green-ink-hover);
+  color: var(--accent);
+  text-underline-offset: 0.18em;
 }
 
 h1,
@@ -146,24 +215,53 @@ h3 {
   text-wrap: balance;
 }
 
-h2 {
-  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
-}
-
-p {
+p,
+ul,
+ol,
+dl,
+figure {
   margin: 0;
 }
 
-code {
-  font-family: var(--mono);
-  font-size: 0.9em;
+ul,
+ol {
+  padding: 0;
+  list-style: none;
 }
 
-.wrap {
-  max-width: var(--wide);
-  margin: 0 auto;
-  padding-left: var(--gutter);
-  padding-right: var(--gutter);
+strong {
+  font-weight: 600;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--c1) 38%, transparent);
+}
+
+:focus-visible {
+  outline: 2.5px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .sr-only {
@@ -176,569 +274,1392 @@ code {
 }
 
 .skip {
-  position: absolute;
+  position: fixed;
   left: 1rem;
   top: -4rem;
-  z-index: 30;
+  z-index: 40;
   padding: 0.6rem 1rem;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--ink);
-  color: var(--bg);
+  color: var(--page);
 }
 
 .skip:focus {
   top: 1rem;
 }
 
-:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
+/* Keys, in the system's font: it draws ⌘ ⌃ ⌥ ⇧ at the size of the letters.
+   In a headline (.caps) they are as tall as the headline. */
 
-/* Buttons: ink pills, and a card-colored one with an edge. */
-
-.button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 24px;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--bg);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: transform 0.15s ease-out, background-color 0.15s ease-out;
-}
-
-.button:hover {
-  color: var(--bg);
-  background: color-mix(in oklab, var(--ink) 84%, var(--bg));
-}
-
-.button:active {
-  transform: translateY(1px);
-}
-
-.button.ghost {
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: inset 0 0 0 1px var(--edge);
-}
-
-.button.ghost:hover {
+kbd {
+  padding: 0.14em 0.42em;
+  border-radius: 6px;
   background: var(--hover);
+  box-shadow: inset 0 0 0 1px var(--line), 0 1.5px 0 var(--line);
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 0.875em;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.button.small {
-  min-height: 44px;
-  padding: 0 18px;
-  font-size: 0.9375rem;
+/* The ground: the space's theme. Colors one and two blend along the 45°
+   diagonal and reach the second at three quarters, the third fades in
+   towards the bottom, all of it at --wash over white or black. */
+
+.ground {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--under);
 }
 
-/* The header stays at the top while the page scrolls. */
+.ground::before,
+.ground::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
 
-.topbar {
-  position: sticky;
+.ground::before {
+  opacity: var(--wash);
+  background:
+    linear-gradient(to bottom, transparent 45%, var(--c3) 130%),
+    linear-gradient(135deg, var(--c1), var(--c2) 75%);
+  background:
+    linear-gradient(to bottom in oklab, transparent 45%, var(--c3) 130%),
+    linear-gradient(135deg in oklab, var(--c1), var(--c2) 75%);
+}
+
+.ground::after {
+  opacity: calc(var(--grain) * 0.6);
+  background-image: var(--noise);
+  mix-blend-mode: soft-light;
+}
+
+/* The sidebar, directly on the ground. */
+
+.sidebar {
+  position: fixed;
+  z-index: 10;
   top: 0;
-  z-index: 20;
-  background: color-mix(in oklab, var(--bg) 88%, transparent);
-  -webkit-backdrop-filter: saturate(1.4) blur(14px);
-  backdrop-filter: saturate(1.4) blur(14px);
-  transition: box-shadow 0.2s ease-out;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--sb-w);
+  padding: 12px 10px 10px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  color: var(--on-ground);
+  font-size: 0.9375rem;
+  font-weight: 500;
 }
 
-.topbar[data-scrolled] {
-  box-shadow: 0 1px 0 var(--line);
+.sidebar :focus-visible,
+.foot :focus-visible {
+  outline-color: var(--on-ground);
 }
 
-.topbar-inner {
+html[data-side="right"] .sidebar {
+  left: auto;
+  right: 0;
+}
+
+.sb-top {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: var(--bar);
+  justify-content: space-between;
+  min-height: 36px;
+  padding-left: 6px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: var(--ink);
+  gap: 9px;
+  color: inherit;
   font-family: var(--display);
-  font-size: 1.3125rem;
+  font-size: 1.25rem;
   font-weight: 500;
   letter-spacing: -0.03em;
   text-decoration: none;
-}
-
-.brand:hover {
-  color: var(--ink);
-}
-
-.brand img {
-  width: 34px;
-  height: 34px;
-  /* The icon file carries the Dock's margin and shadow; the tile fills
-     about four fifths of it. */
-  transform: scale(1.22);
 }
 
 .brand strong {
   font-weight: 800;
 }
 
-.topbar nav {
-  display: flex;
-  margin-left: auto;
-  font-size: 0.9375rem;
+.app-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.28));
 }
 
-.topbar nav a {
-  padding: 12px;
-  color: var(--soft);
-  text-decoration: none;
-  white-space: nowrap;
+.app-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.topbar nav a:hover {
-  color: var(--ink);
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  cursor: pointer;
 }
 
-/* Hero */
+.icon-button:hover {
+  background: var(--tile);
+}
 
-.hero {
+/* Favorites: the download across the top, three tiles below it. */
+
+.favorites {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.fav {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
-  padding-top: 56px;
-  text-align: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 56px;
+  border-radius: 13px;
+  background: var(--tile);
+  color: inherit;
+  font-size: 0.75rem;
+  text-decoration: none;
 }
 
-.notice {
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
-  color: var(--soft);
-  font-size: 0.875rem;
+.fav:hover {
+  background: var(--tile-hover);
+}
+
+.fav-download {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  gap: 8px;
+  min-height: 46px;
+  background: var(--on-ground);
+  color: var(--under);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.fav-download:hover {
+  background: color-mix(in oklab, var(--on-ground) 86%, var(--under));
+}
+
+/* The space's name, and its tabs: the sections of this part of the page. */
+
+.tabs {
+  margin-top: 14px;
+}
+
+.space-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  opacity: 0.74;
+}
+
+.space-name .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* A row holds one line: its icon, then its title, cut with an ellipsis. */
+
+.tabs a,
+.folder > span,
+.tab-row {
+  display: block;
+  padding: 0 10px;
+  border-radius: 9px;
+  color: inherit;
+  line-height: 34px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.tabs .icon,
+.tab-row .icon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  vertical-align: -4px;
+}
+
+.tabs a:hover,
+.tab-row:hover {
+  background: var(--tile);
+}
+
+.tabs a[aria-current="true"] {
+  background: var(--row-on);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.folder > span {
+  font-weight: 600;
+}
+
+.folder ul {
+  padding-left: 18px;
+}
+
+/* With scripting, the sidebar shows the tabs of the space in front, and
+   they slide in when the space changes. Without it, all of them. */
+
+.js .space-list {
+  display: none;
+}
+
+html[data-space="move"] .space-list[data-space="move"],
+html[data-space="browse"] .space-list[data-space="browse"],
+html[data-space="claude"] .space-list[data-space="claude"],
+html[data-space="everywhere"] .space-list[data-space="everywhere"] {
+  display: block;
+  animation: list-in 0.3s ease-out;
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+.sb-line {
+  flex: none;
+  height: 1px;
+  margin: 10px 10px;
+  background: currentColor;
+  opacity: 0.16;
+}
+
+.new-tab {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  background: none;
   font-weight: 500;
-  text-wrap: balance;
+  text-align: left;
+  opacity: 0.78;
+  cursor: pointer;
 }
 
-.countdown {
-  color: var(--orange-ink);
+.new-tab .icon {
+  margin-right: 10px;
+}
+
+.new-tab kbd,
+.button kbd,
+.chat-field kbd {
+  margin-left: auto;
+  background: var(--tile);
+  box-shadow: none;
+  color: inherit;
+}
+
+/* Where the app shows your next meeting. */
+
+.meeting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1px 10px;
+  margin-top: auto;
+  padding: 10px 10px 10px 12px;
+  border-radius: 13px;
+  background: var(--tile);
+  color: inherit;
+  text-decoration: none;
+}
+
+.meeting:hover {
+  background: var(--tile-hover);
+}
+
+.meeting-when {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+
+.meeting-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: #e8621f;
+}
+
+.meeting-what {
+  grid-column: 1;
+  font-weight: 600;
+}
+
+.meeting-join {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--on-ground);
+  color: var(--under);
+  font-size: 0.8125rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.hero h1 {
-  font-size: clamp(2.5rem, 7vw, 5.8rem);
-  line-height: 0.98;
-  letter-spacing: -0.035em;
+/* The space bar: the library, then one icon per space. */
+
+.spacebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
 }
 
-.lead {
-  max-width: 600px;
+.spacebar::after {
+  content: "";
+  width: 34px;
+}
+
+.spaces {
+  display: flex;
+  gap: 2px;
+}
+
+.spaces a[aria-current="true"] {
+  background: var(--row-on);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+/* Hidden, the sidebar floats back over the page from the window's edge. */
+
+.edge,
+.sb-show,
+.scrim,
+.phone-bar {
+  display: none;
+}
+
+html[data-sidebar="hidden"] .sidebar {
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--ground-1), var(--ground-2));
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.08);
+  transform: translateX(calc(-100% - 20px));
+  transition: transform 0.24s ease-out;
+}
+
+html[data-sidebar="hidden"][data-side="right"] .sidebar {
+  left: auto;
+  right: 8px;
+  transform: translateX(calc(100% + 20px));
+}
+
+html[data-sidebar="hidden"] .edge {
+  position: fixed;
+  z-index: 9;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  width: 10px;
+}
+
+html[data-sidebar="hidden"][data-side="right"] .edge {
+  left: auto;
+  right: 0;
+}
+
+html[data-sidebar="hidden"] .edge:hover + .sidebar,
+html[data-sidebar="hidden"] .sidebar:hover,
+html[data-sidebar="hidden"] .sidebar:focus-within {
+  transform: none;
+}
+
+html[data-sidebar="hidden"] .sb-show {
+  position: fixed;
+  z-index: 8;
+  top: 18px;
+  left: 18px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--page);
+  color: var(--ink);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.16), 0 0 0 1px rgb(0 0 0 / 0.06);
+}
+
+html[data-sidebar="hidden"][data-side="right"] .sb-show {
+  left: auto;
+  right: 18px;
+}
+
+/* The pages. */
+
+.pages {
+  container: pages / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 100vh;
+  margin-left: var(--sb-l);
+  margin-right: var(--sb-r);
+  padding: var(--gap) var(--pad-r) 0 var(--pad-l);
+  transition: margin 0.24s ease-out;
+}
+
+.space {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  scroll-margin-top: var(--gap);
+}
+
+/* A very wide window: the pages stop growing, and the ground shows beside
+   them. */
+
+.space,
+.foot {
+  width: 100%;
+  max-width: 1760px;
+  margin-inline: auto;
+}
+
+/* Two pages side by side, as in split view. */
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--gap);
+}
+
+.row.lean-left {
+  grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+}
+
+.page {
+  --pad: clamp(24px, 5cqi, 64px);
+  position: relative;
+  padding: var(--pad);
+  border-radius: var(--radius);
+  background: var(--page);
+  color: var(--ink);
+  scroll-margin-top: var(--gap);
+}
+
+.row > .page {
+  --pad: clamp(24px, 3.6cqi, 48px);
+}
+
+.page > * + *,
+.copy > * + * {
+  margin-top: 1.15rem;
+}
+
+.page h2 {
+  font-size: clamp(1.9rem, 4.3cqi, 3.2rem);
+  font-stretch: 92%;
+}
+
+.row > .page h2 {
+  font-size: clamp(1.8rem, 3.3cqi, 2.6rem);
+}
+
+h3 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.body {
+  max-width: 58ch;
   color: var(--soft);
-  font-size: 1.1875rem;
+  font-size: 1.0625rem;
   line-height: 1.55;
   text-wrap: pretty;
+}
+
+.fine {
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  text-wrap: pretty;
+}
+
+.shortcut {
+  max-width: 58ch;
+  color: var(--soft);
+}
+
+/* The night pages: the tile of the app icon. */
+
+.night {
+  --ink: var(--on-night);
+  --soft: var(--on-night-soft);
+  --muted: var(--on-night-soft);
+  --line: var(--night-line);
+  --hover: var(--night-raise);
+  --accent: var(--glow);
+  background: var(--night);
+}
+
+/* Buttons: ink pills, and one with only an edge. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--page);
+  font: 600 1.0625rem var(--body);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.button:hover {
+  background: color-mix(in oklab, var(--ink) 84%, var(--page));
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.night .button {
+  background: var(--glow);
+  color: var(--night-ink);
+}
+
+.night .button:hover {
+  background: color-mix(in oklab, var(--glow) 86%, #fff);
+}
+
+.button.ghost,
+.night .button.ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--ink) 30%, transparent);
+}
+
+.button.ghost:hover,
+.night .button.ghost:hover {
+  background: color-mix(in oklab, var(--ink) 9%, transparent);
+}
+
+.button kbd {
+  margin-left: 4px;
+  background: color-mix(in oklab, var(--ink) 9%, transparent);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 10px;
 }
 
+/* The first page: the headline, and OpenArch's arches standing on its floor. */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  align-items: end;
+  gap: 16px;
+  min-height: min(88vh, 860px);
+  padding-right: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: center;
+  gap: 22px;
+  padding-bottom: var(--pad);
+}
+
+.hero h1 {
+  font-size: clamp(2.7rem, 8.6cqi, 6.5rem);
+  font-stretch: 84%;
+  line-height: 0.94;
+  letter-spacing: -0.035em;
+}
+
+.notice {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 12px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--night-line);
+  color: var(--on-night-soft);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.countdown {
+  color: #f6a765;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lead {
+  max-width: 34ch;
+  color: var(--on-night-soft);
+  font-size: clamp(1.125rem, 2.1cqi, 1.375rem);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
 .meta {
-  color: var(--muted);
+  max-width: 52ch;
+  color: var(--on-night-soft);
   font-size: 0.875rem;
 }
 
-/* Screenshots, one at a time, picked by tabs: a segmented control with
-   segments of equal width, two by two where four don't fit. */
-
-.shots {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  max-width: 1320px;
-  margin: 0 auto;
-  padding: 48px var(--gutter) 96px;
-}
-
-.shot-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 6px;
-  border-radius: 28px;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.shot-tabs button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--ink);
-  font: 600 0.9375rem var(--body);
-  white-space: nowrap;
+.tunnel {
+  position: relative;
+  display: block;
+  align-self: end;
+  justify-self: end;
+  width: 100%;
+  max-width: 660px;
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: pointer;
 }
 
-.shot-tabs button::before {
-  content: "";
-  flex: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 5px;
-  background: var(--dot);
-}
-
-.shot-tabs button:hover {
-  background: var(--hover);
-}
-
-.shot-tabs button[aria-selected="true"] {
-  background: var(--ink);
-  color: var(--bg);
-}
-
-.shot-frame {
+.tunnel svg {
+  display: block;
   width: 100%;
-  padding: 14px;
-  border-radius: 22px;
-  background: var(--work);
-  transition: background-color 0.25s ease-out;
+  height: auto;
 }
 
-.shot-frame[data-shot="command"] {
-  background: var(--travel);
+.tunnel:focus-visible {
+  outline-offset: -6px;
 }
 
-.shot-frame[data-shot="split"] {
-  background: var(--home);
+.tunnel-hint {
+  position: absolute;
+  top: 3%;
+  right: clamp(16px, 3cqi, 32px);
+  color: var(--on-night-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
 }
 
-.shot-frame img {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: 14px;
-  box-shadow: 0 40px 90px rgba(20, 24, 20, 0.22), 0 0 0 1px rgba(20, 24, 20, 0.06);
-  filter: var(--shot-filter);
+.tunnel:hover .tunnel-hint,
+.tunnel:focus-visible .tunnel-hint {
+  opacity: 1;
 }
 
-.shot-caption {
-  max-width: 640px;
-  color: var(--soft);
-  font-size: 1rem;
-  text-align: center;
-  text-wrap: balance;
+/* Farther arches are brighter: the light is at the end. Each moves a little
+   with the pointer, the far ones most (--px, from site.js). */
+
+.arch {
+  transform-origin: 32px 58px;
+  translate: calc(var(--px, 0) * var(--depth, 0) * 1px) 0;
+  transition: translate 0.25s ease-out;
 }
 
-/* Two columns that wrap: text and a screenshot. */
-
-.split-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 48px;
-  padding-top: 96px;
-  padding-bottom: 96px;
+.arch.gap {
+  fill: var(--night);
 }
 
-.split-row.reverse {
-  flex-wrap: wrap-reverse;
+.arch.a1 {
+  fill: color-mix(in oklab, var(--c1) 38%, var(--night));
 }
 
-.split-row .copy {
-  display: flex;
-  flex: 1 1 320px;
-  flex-direction: column;
-  gap: 16px;
+.arch.a2 {
+  fill: color-mix(in oklab, var(--c1) 68%, var(--night));
 }
 
-.split-row .copy p {
-  font-size: 1.125rem;
-  line-height: 1.55;
+.arch.a3 {
+  fill: var(--c1);
 }
 
-.split-row > img {
-  flex: 2 1 560px;
-  min-width: 0;
-  border-radius: 14px;
-  filter: var(--shot-filter);
+.arch.a4 {
+  fill: var(--glow);
 }
 
-/* Import: the dark band. */
-
-.dark {
-  background: var(--dark);
-  color: #f3f5f1;
+.arch.door {
+  fill: #f3f5f1;
 }
 
-.import .split-row {
-  padding-top: 88px;
-  padding-bottom: 88px;
+.arch:nth-child(1) { --i: 0; --depth: 0; }
+.arch:nth-child(2) { --i: 1; --depth: 0.3; }
+.arch:nth-child(3) { --i: 2; --depth: 0.6; }
+.arch:nth-child(4) { --i: 3; --depth: 0.9; }
+.arch:nth-child(5) { --i: 4; --depth: 1.2; }
+.arch:nth-child(6) { --i: 5; --depth: 1.5; }
+.arch:nth-child(7) { --i: 6; --depth: 1.8; }
+.arch:nth-child(8) { --i: 7; --depth: 2.1; }
+.arch:nth-child(9) { --i: 8; --depth: 2.4; }
+
+/* The page opens: the arches rise one after the other. A click flies
+   through them, as a click on the logo does in the app's About window. */
+
+.js .tunnel:not(.risen) .arch {
+  animation: rise 0.9s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation-delay: calc(var(--i) * 60ms + 150ms);
 }
 
-.import .copy {
-  flex-basis: 380px;
+.js .tunnel.warp .arch {
+  animation: warp 1.5s cubic-bezier(0.5, 0, 0.3, 1) both;
+  animation-delay: calc(var(--i) * 70ms);
 }
 
-.import .copy p {
-  color: var(--dark-soft);
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: scale(0.04);
+  }
 }
+
+@keyframes warp {
+  42% {
+    opacity: 0;
+    transform: scale(7);
+  }
+  43% {
+    opacity: 0;
+    transform: scale(0.04);
+  }
+}
+
+/* Moving in: what comes along, and from where. */
 
 .checklist {
   display: grid;
-  flex: 1 1 480px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 24px;
-  margin: 0;
+  gap: 0 28px;
+  margin-top: 1.6rem;
+  font-size: 1.0625rem;
+  font-weight: 500;
+}
+
+.checklist li,
+.ticks li {
+  position: relative;
+  padding: 11px 0 11px 30px;
+  border-bottom: 1px solid var(--line);
+}
+
+.checklist li::before,
+.ticks li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 20px;
+  height: 20px;
+  background: var(--accent);
+  -webkit-mask: var(--check) center / contain no-repeat;
+  mask: var(--check) center / contain no-repeat;
+}
+
+.checklist li:nth-last-child(-n + 2),
+.ticks li:last-child {
+  border-bottom: 0;
+}
+
+.ticks {
+  margin-top: 1.4rem;
+  font-weight: 500;
+}
+
+.browsers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 1.4rem;
+}
+
+.browsers li {
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: var(--tint);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* The first launch: five steps, each numbered on a small arch. */
+
+.lead-in {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 16px 48px;
+}
+
+.lead-in > * + * {
+  margin-top: 0;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 28px 24px;
+  margin-top: 2.4rem;
+  counter-reset: step;
+}
+
+.steps li {
+  position: relative;
+  padding-top: 62px;
+  counter-increment: step;
+}
+
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 48px;
+  padding-top: 5px;
+  border-radius: 19px 19px 5px 5px;
+  background: var(--tint);
+  color: var(--accent);
+  font: 800 1.125rem var(--display);
+}
+
+.steps p {
+  margin-top: 6px;
+  color: var(--soft);
+  font-size: 0.9375rem;
+}
+
+/* A feature and its screenshot. */
+
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(24px, 4.5cqi, 64px);
+}
+
+.feature > * + * {
+  margin-top: 0;
+}
+
+.feature.flip {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
+.feature.flip .copy {
+  order: 2;
+}
+
+.shot {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 30px 60px -22px rgb(20 24 20 / 0.42), 0 0 0 1px rgb(20 24 20 / 0.07);
+}
+
+/* ⌘T in the headline, as the keys themselves. */
+
+.caps {
+  white-space: nowrap;
+}
+
+.caps kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.22em;
+  height: 1.22em;
+  margin-right: 0.07em;
+  padding: 0 0.18em;
+  border-radius: 0.24em;
+  background: var(--tint);
+  box-shadow: inset 0 0 0 1.5px var(--tint-line), 0 0.09em 0 var(--tint-line);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8em;
+  letter-spacing: 0;
+  vertical-align: 0.06em;
+}
+
+.also {
+  display: grid;
+  gap: 8px;
+  color: var(--soft);
+}
+
+.also li {
+  position: relative;
+  padding-left: 18px;
+}
+
+.also li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+/* Spaces, and the theme editor that themes this page. */
+
+.spaces-page {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: clamp(24px, 4.5cqi, 64px);
+}
+
+.spaces-page > * + * {
+  margin-top: 0;
+}
+
+.theme-editor {
+  padding: 22px 24px 20px;
+  border-radius: 20px;
+  background: var(--tint);
+}
+
+.theme-title {
+  font-family: var(--display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.theme-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 28px;
+  margin-top: 18px;
+}
+
+/* The disc: the hue goes round, from dark in the middle to light at the
+   edge. site.js draws it and places the handles. */
+
+.disc {
+  position: relative;
+  flex: none;
+  width: 210px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px var(--page), 0 8px 24px rgb(0 0 0 / 0.16);
+  touch-action: none;
+}
+
+.disc canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.handle {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px;
   padding: 0;
-  list-style: none;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 0.45);
+  cursor: grab;
+  touch-action: none;
+}
+
+.handle:first-of-type {
+  width: 32px;
+  height: 32px;
+  margin: -16px;
+}
+
+.handle:active {
+  cursor: grabbing;
+}
+
+.handle:focus-visible {
+  outline: 2.5px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.theme-controls {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.theme-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.theme-label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.theme-line input[type="range"] {
+  width: min(150px, 55%);
+  accent-color: var(--accent);
+}
+
+.stepper,
+.segmented {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+}
+
+.stepper button,
+.segmented button {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.stepper button:hover:not(:disabled),
+.segmented button[aria-pressed="true"] {
+  background: var(--page);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.14);
+}
+
+.stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 4px 0;
+}
+
+.swatches button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+}
+
+.text-button {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+}
+
+/* The little things, by where you meet them. */
+
+.little-groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px 44px;
+  margin-top: 2.2rem;
+}
+
+.little-groups h3 {
+  padding-top: 14px;
+  border-top: 2px solid var(--ink);
   font-size: 1.0625rem;
 }
 
-.checklist li {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--dark-line);
-}
-
-.checklist li:nth-last-child(-n + 2) {
-  border-bottom: none;
-}
-
-.checklist li::before {
-  content: "✓";
-  margin-right: 10px;
-  color: var(--green);
-}
-
-/* Feature sections in the three space colors, each named by its feature
-   and its shortcut. */
-
-.kicker {
-  font-family: var(--mono);
-  font-size: 0.875rem;
-}
-
-.travel {
-  background: var(--travel);
-}
-
-.travel .kicker {
-  color: var(--travel-ink);
-}
-
-.travel .copy p:not(.kicker) {
-  color: var(--travel-text);
-}
-
-.travel img {
-  box-shadow: 0 30px 70px rgba(31, 79, 168, 0.25);
-}
-
-.home {
-  background: var(--home);
-}
-
-.home .kicker {
-  color: var(--home-ink);
-}
-
-.home .copy p:not(.kicker) {
-  color: var(--home-text);
-}
-
-.home img {
-  box-shadow: 0 30px 70px rgba(180, 86, 26, 0.25);
-}
-
-.work {
-  background: var(--work);
-}
-
-.work .kicker {
-  color: var(--work-ink);
-}
-
-.work .copy p:not(.kicker) {
-  color: var(--work-text);
-}
-
-.work img {
-  box-shadow: 0 30px 70px rgba(42, 115, 55, 0.25);
-}
-
-/* The little things */
-
-.little {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-  padding-top: 96px;
-  padding-bottom: 48px;
-}
-
-.little h2,
-.shortcuts h2,
-.agents h2,
-.faq h2 {
-  font-size: clamp(2rem, 4vw, 3rem);
-}
-
-.little-grid {
+.little-groups dl {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 28px 32px;
-  margin: 0;
+  gap: 4px;
+  margin-top: 10px;
 }
 
-.little-grid div {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.little-groups dl div {
+  margin: 0 -10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  scroll-margin-top: 28px;
 }
 
-.little-grid dt {
-  font-size: 1.125rem;
+.little-groups dt,
+.grid-list dt {
   font-weight: 600;
 }
 
-.little-grid dd {
+.little-groups dd,
+.grid-list dd {
   margin: 0;
   color: var(--soft);
-  font-size: 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
-/* Shortcuts as key caps */
+/* What the command bar found. */
 
-.shortcuts {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding-top: 48px;
-  padding-bottom: 48px;
+.found {
+  animation: found 2.4s ease-out;
 }
+
+@keyframes found {
+  0%,
+  45% {
+    background: var(--tint);
+    box-shadow: inset 0 0 0 1.5px var(--tint-line);
+  }
+}
+
+/* Shortcuts as key caps. */
 
 .keys {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: 8px;
+  margin-top: 1.5rem;
 }
 
 .keys li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px 8px 8px;
-  border-radius: 12px;
-  background: var(--card);
-  box-shadow: inset 0 0 0 1px var(--line);
+  gap: 9px;
+  padding: 6px 13px 6px 6px;
+  border-radius: 11px;
+  background: var(--tint);
   font-size: 0.9375rem;
+  font-weight: 500;
 }
 
-kbd {
-  padding: 6px 9px;
+.keys kbd {
+  padding: 5px 8px;
   border-radius: 7px;
-  background: var(--hover);
-  box-shadow: 0 2px 0 var(--key-edge);
-  font-family: var(--mono);
-  font-size: 0.875rem;
+  background: var(--page);
+  box-shadow: 0 1.5px 0 var(--tint-line);
+  font-size: 0.8125rem;
 }
 
-/* For developers */
+/* The twelve app icons. */
 
-.agents {
-  padding-top: 48px;
-  padding-bottom: 48px;
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 4px;
+  margin-top: 1.5rem;
 }
 
-.agents-card {
+.icon-grid button {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 36px;
-  padding: 44px 36px;
-  border-radius: 24px;
-}
-
-.agents-card .copy {
-  display: flex;
-  flex: 3 1 360px;
   flex-direction: column;
-  gap: 14px;
-}
-
-.agents-card .copy p {
-  color: var(--dark-soft);
-  font-size: 1.0625rem;
-  line-height: 1.55;
-}
-
-.agents-card .copy a {
-  color: #7fcf89;
-}
-
-.agents-card .copy a:hover {
-  color: #a8e0af;
-}
-
-.agents-card .copy kbd {
-  padding: 2px 6px;
-  background: var(--dark-line);
-  box-shadow: none;
-  color: inherit;
-}
-
-.terminal {
-  flex: 2 1 360px;
-  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 2px 9px;
+  border: 0;
   border-radius: 14px;
-  background: #0b0e0c;
-  box-shadow: inset 0 0 0 1px var(--dark-line);
-}
-
-.terminal-bar {
-  display: flex;
-  justify-content: flex-end;
-  padding: 8px 8px 0;
-}
-
-.terminal button {
-  min-height: 44px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 10px;
-  background: var(--green);
-  color: #0e1411;
-  font: 600 0.875rem var(--body);
+  background: none;
+  color: var(--soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
 }
 
-.terminal button:active {
-  transform: translateY(1px);
+.icon-grid svg {
+  width: min(60px, 78%);
+  height: auto;
+  filter: drop-shadow(0 5px 8px rgb(0 0 0 / 0.2));
+  transition: transform 0.15s ease-out;
+}
+
+.icon-grid button:hover svg {
+  transform: translateY(-2px);
+}
+
+.icon-grid button[aria-pressed="true"] {
+  background: var(--tint);
+  color: var(--ink);
+}
+
+/* Claude: the chat beside the page, as a small picture of one. */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 0.9375rem;
+}
+
+.chat > * + * {
+  margin-top: 0;
+}
+
+.chat-you {
+  align-self: flex-end;
+  max-width: 90%;
+  padding: 10px 14px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--night-raise);
+}
+
+.chat-tab {
+  color: var(--glow);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chat-tools {
+  display: grid;
+  gap: 7px;
+  color: var(--on-night-soft);
+  font-size: 0.875rem;
+}
+
+.chat-tools li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-tools .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--glow);
+}
+
+.chat-tools .chat-ask {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 7px 7px 7px 12px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--night-line);
+  color: var(--on-night);
+}
+
+.chat-allow {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--glow);
+  color: var(--night-ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chat-claude {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.chat-field {
+  display: flex;
+  align-items: center;
+  margin-top: auto;
+  padding: 11px 12px 11px 16px;
+  border-radius: 14px;
+  background: var(--night-raise);
+  color: var(--on-night-soft);
+}
+
+.chat-field kbd {
+  background: var(--night-line);
+}
+
+.grid-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 30px 44px;
+  margin-top: 2rem;
+}
+
+.grid-list dt {
+  font-size: 1.0625rem;
+}
+
+.grid-list dd {
+  margin-top: 4px;
+}
+
+/* For the terminal. */
+
+.terminal-page {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  align-items: center;
+  gap: clamp(24px, 4.5cqi, 64px);
+}
+
+.terminal-page > * + * {
+  margin-top: 0;
+}
+
+.terminal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 20px 16px;
+  border-radius: 16px;
+  background: #080d0a;
+  box-shadow: inset 0 0 0 1px var(--night-line);
 }
 
 .terminal pre {
   margin: 0;
-  padding: 4px 20px 22px;
   color: #dde6df;
   font-family: var(--mono);
   font-size: 0.875rem;
@@ -747,19 +1668,110 @@ kbd {
   word-break: break-all;
 }
 
-/* Questions */
+.terminal button {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--glow);
+  color: var(--night-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Sharing: the link, and which part of it the server ever sees. */
+
+.link-anatomy {
+  margin-top: 1.6rem;
+}
+
+.link {
+  display: flex;
+  overflow: hidden;
+  border-radius: 12px;
+  font-family: var(--mono);
+  font-size: clamp(0.8125rem, 1.5cqi, 0.9375rem);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.link span {
+  padding: 15px 0;
+}
+
+.link-open {
+  padding-left: 14px !important;
+  background: var(--hover);
+  color: var(--soft);
+}
+
+.link-hash,
+.link-key {
+  background: var(--tint);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.link-hash {
+  padding-left: 3px !important;
+}
+
+.link-key {
+  flex: 1;
+  min-width: 0;
+  padding-right: 14px !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.link-anatomy figcaption {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--soft);
+  font-size: 0.9375rem;
+}
+
+.link-anatomy figcaption span {
+  position: relative;
+  padding-left: 22px;
+}
+
+.link-anatomy figcaption span::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.32em;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--line);
+}
+
+.link-anatomy .cap-key::before {
+  background: var(--accent);
+}
+
+/* Questions. */
 
 .faq {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 72px var(--gutter);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 16px 48px;
+}
+
+.faq > * + * {
+  margin-top: 0;
 }
 
 .faq details {
   border-bottom: 1px solid var(--line);
+}
+
+.faq details:first-child {
+  border-top: 1px solid var(--line);
 }
 
 .faq summary {
@@ -767,8 +1779,8 @@ kbd {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  min-height: 60px;
-  padding: 16px 0;
+  min-height: 58px;
+  padding: 14px 0;
   font-size: 1.125rem;
   font-weight: 600;
   list-style: none;
@@ -783,8 +1795,9 @@ kbd {
   content: "+";
   flex: none;
   width: 1ch;
-  color: var(--green-ink);
+  color: var(--accent);
   font-size: 1.375rem;
+  font-weight: 500;
   text-align: center;
 }
 
@@ -793,120 +1806,446 @@ kbd {
 }
 
 .faq details p {
-  margin-bottom: 20px;
+  max-width: 62ch;
+  margin-bottom: 18px;
   color: var(--soft);
-  font-size: 1rem;
   line-height: 1.6;
 }
 
-/* Closing call, green, with the app peeking out */
+/* The last page: the call, with the app coming in from the corner. */
 
 .closing {
-  padding-top: 24px;
-  padding-bottom: 88px;
-}
-
-.closing-card {
-  /* The blue ring would be lost on the green. */
-  --focus: #0e1411;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  grid-template-rows: 1fr auto 1fr;
+  align-items: end;
+  column-gap: clamp(24px, 4cqi, 56px);
+  min-height: min(70vh, 620px);
+  padding-right: 0;
+  padding-bottom: 0;
   overflow: hidden;
-  padding: 56px 32px 0;
-  border-radius: 28px;
-  background: var(--green);
-  text-align: center;
 }
 
-.closing-card h2 {
-  color: #0e1411;
-  font-size: clamp(2.6rem, 6vw, 4.8rem);
-  line-height: 0.98;
-  letter-spacing: -0.035em;
+.closing > * + * {
+  margin-top: 0;
 }
 
-.closing-card .button {
-  background: #0e1411;
-  color: #fff;
+.closing h2 {
+  grid-row: 1;
+  font-size: clamp(2.4rem, 6.6cqi, 5rem);
+  font-stretch: 84%;
+  line-height: 0.96;
 }
 
-.closing-card .button:hover {
-  background: #2a322c;
+.closing .actions {
+  grid-row: 2;
+  align-self: start;
+  margin-top: 26px;
 }
 
-.closing-card img {
-  width: 100%;
-  max-width: 980px;
-  margin-top: 18px;
-  margin-bottom: -18%;
-  border-radius: 14px 14px 0 0;
-  box-shadow: 0 -10px 60px rgba(14, 20, 17, 0.25);
-  filter: var(--shot-filter);
+.closing img {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: end;
+  width: 150%;
+  max-width: none;
+  margin-top: var(--pad);
+  border-radius: 14px 0 0 0;
+  box-shadow: 0 0 80px rgb(0 0 0 / 0.5);
 }
 
-/* The footer's rule lines up with the content above it. */
+/* The footer, on the ground. */
 
-footer {
+.foot {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
-  width: min(100% - 2 * var(--gutter), var(--wide) - 2 * var(--gutter));
-  margin: 0 auto;
-  padding-top: 28px;
-  padding-bottom: 52px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
+  gap: 12px 40px;
+  padding: 18px 14px 28px;
+  color: var(--on-ground);
   font-size: 0.875rem;
 }
 
-footer p:last-child {
-  max-width: 640px;
+.foot p:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  font-weight: 500;
 }
 
-/* Small screens. In em, so larger text gets the small layout sooner. */
+.foot p:last-child {
+  max-width: 620px;
+  opacity: 0.82;
+}
 
-@media (max-width: 53.75em) {
-  .topbar nav {
-    display: none;
-  }
+.foot a {
+  color: inherit;
+}
 
-  .topbar .button {
-    margin-left: auto;
-  }
+/* The command bar: a card over the page, near white or deep gray with a
+   little of the theme's hue; the row in front takes the theme's color. */
 
-  .split-row {
-    gap: 36px;
-    padding-top: 72px;
-    padding-bottom: 72px;
+.bar {
+  width: min(680px, calc(100vw - 24px));
+  max-height: none;
+  margin: 13vh auto auto;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: color-mix(in oklab, var(--c1) 5%, var(--page));
+  color: var(--ink);
+  box-shadow: 0 40px 110px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(0 0 0 / 0.08);
+  overflow: hidden;
+}
+
+.bar[open] {
+  animation: bar-in 0.18s ease-out;
+}
+
+.bar::backdrop {
+  background: rgb(10 14 11 / 0.3);
+}
+
+@keyframes bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
   }
 }
 
-@media (max-width: 45em) {
-  .shot-tabs {
-    grid-template-columns: repeat(2, 1fr);
-    width: 100%;
-    max-width: 420px;
+.bar-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.bar-field input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--ink);
+  font: 500 1.25rem var(--body);
+}
+
+.bar-field input::placeholder {
+  color: var(--muted);
+}
+
+#bar-list {
+  max-height: min(54vh, 430px);
+  padding: 8px;
+  overflow-y: auto;
+}
+
+#bar-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  scroll-margin: 8px;
+  cursor: pointer;
+}
+
+#bar-list li[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.bar-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.bar-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-sub {
+  font-size: 0.8125rem;
+  opacity: 0.72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-hint {
+  flex: none;
+  font-size: 0.8125rem;
+  opacity: 0.72;
+}
+
+.bar-empty {
+  padding: 22px 14px;
+  color: var(--muted);
+}
+
+.bar-foot {
+  padding: 10px 20px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* Without scripting, what needs it is not offered. */
+
+html:not(.js) [data-open-bar],
+html:not(.js) [data-sidebar-toggle],
+html:not(.js) .theme-editor,
+html:not(.js) .phone-bar,
+html:not(.js) .tunnel-hint {
+  display: none;
+}
+
+/* Narrower pages (the container is the column of pages, so a wide window
+   with the sidebar open counts as narrower than one without). */
+
+@container pages (max-width: 1040px) {
+  .steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .little-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 32.5em) {
+@container pages (max-width: 860px) {
+  .row,
+  .row.lean-left,
+  .feature,
+  .spaces-page,
+  .terminal-page,
+  .lead-in,
+  .faq {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feature.flip .copy {
+    order: 0;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding-right: var(--pad);
+  }
+
+  .hero-copy {
+    padding-top: 12px;
+    padding-bottom: 0;
+  }
+
+  .tunnel {
+    justify-self: center;
+    max-width: 440px;
+    margin-top: 12px;
+  }
+
+  .closing {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    min-height: 0;
+  }
+
+  .closing h2,
+  .closing .actions,
+  .closing img {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .closing img {
+    width: 125%;
+  }
+}
+
+@container pages (max-width: 600px) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .steps li {
+    min-height: 48px;
+    padding: 0 0 0 56px;
+  }
+
+  .little-groups,
+  .grid-list,
   .checklist {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .checklist li:nth-last-child(2) {
-    border-bottom: 1px solid var(--dark-line);
+    border-bottom: 1px solid var(--line);
   }
 
-  .agents-card {
-    padding: 32px 22px;
+  .icon-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .shot-tabs button {
-    padding: 0 12px;
+  .disc {
+    margin: 0 auto;
+  }
+}
+
+/* A short window: the sidebar gives up its least important rows. */
+
+@media (max-height: 780px) {
+  .today {
+    display: none;
+  }
+}
+
+@media (max-height: 620px) {
+  .meeting {
+    display: none;
+  }
+
+  .spacebar {
+    margin-top: auto;
+  }
+}
+
+/* Small screens: the layout of OpenArch for iPhone. The page fills the
+   screen with a bar below it, and the sidebar opens over the page. In em, so
+   larger text gets this layout sooner. */
+
+@media (max-width: 56em) {
+  :root {
+    --sb-l: 0px;
+    --sb-r: 0px;
+    --pad-l: var(--gap);
+    --pad-r: var(--gap);
+    --radius: 14px;
+  }
+
+  html[data-side="right"],
+  html[data-sidebar="hidden"] {
+    --sb-l: 0px;
+    --sb-r: 0px;
+    --pad-l: var(--gap);
+    --pad-r: var(--gap);
+  }
+
+  .pages {
+    padding-bottom: 76px;
+  }
+
+  .sidebar,
+  html[data-sidebar="hidden"] .sidebar,
+  html[data-sidebar="hidden"][data-side="right"] .sidebar {
+    z-index: 30;
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
+    right: auto;
+    width: min(300px, calc(100vw - 56px));
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, var(--ground-1), var(--ground-2));
+    box-shadow: 0 24px 70px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.08);
+    transform: translateX(calc(-100% - 20px));
+    transition: transform 0.24s ease-out, visibility 0s 0.24s;
+    visibility: hidden;
+  }
+
+  html[data-drawer="open"] .sidebar,
+  html[data-drawer="open"][data-sidebar="hidden"] .sidebar {
+    transform: none;
+    transition: transform 0.24s ease-out;
+    visibility: visible;
+  }
+
+  html[data-drawer="open"] .scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    display: block;
+    background: rgb(10 14 11 / 0.35);
+  }
+
+  .edge,
+  .sb-show,
+  html[data-sidebar="hidden"] .edge,
+  html[data-sidebar="hidden"] .sb-show,
+  .sb-top .icon-button {
+    display: none;
+  }
+
+  .today {
+    display: block;
+  }
+
+  .phone-bar {
+    position: fixed;
+    z-index: 20;
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 20px;
+    background: color-mix(in oklab, var(--page) 84%, transparent);
+    -webkit-backdrop-filter: saturate(1.5) blur(18px);
+    backdrop-filter: saturate(1.5) blur(18px);
+    box-shadow: 0 10px 34px rgb(0 0 0 / 0.2), 0 0 0 1px rgb(0 0 0 / 0.07);
+    color: var(--ink);
+  }
+
+  .phone-bar .icon-button {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .phone-bar .icon-button:hover {
+    background: var(--hover);
+  }
+
+  .address {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--hover);
+    color: var(--soft);
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .bar {
+    margin-top: 8px;
+  }
+
+  .bar-foot,
+  .bar-hint {
+    display: none;
+  }
+
+  .foot {
+    padding-bottom: 8px;
   }
 }
 
@@ -915,42 +2254,28 @@ footer p:last-child {
     scroll-behavior: auto;
   }
 
-  .shot-frame,
-  .topbar {
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .tunnel {
+    cursor: default;
+  }
+
+  .tunnel-hint {
+    display: none;
   }
 }
 
-/* Reduce Transparency: a solid header instead of the blur. */
+/* Reduce Transparency: the bar below the page is solid. */
 
 @media (prefers-reduced-transparency: reduce) {
-  .topbar {
-    background: var(--bg);
+  .phone-bar {
+    background: var(--page);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-}
-
-/* iPhone and iPad: a short block with the App Store link. */
-
-.iphone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-  padding-top: 96px;
-  padding-bottom: 48px;
-  text-align: center;
-}
-
-.iphone h2 {
-  font-size: clamp(2rem, 4vw, 3rem);
-}
-
-.iphone > p:not(.meta) {
-  max-width: 640px;
-  color: var(--soft);
-  font-size: 1.125rem;
-  line-height: 1.55;
-  text-wrap: pretty;
 }

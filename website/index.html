@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-space="move">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,291 +11,623 @@
   <meta property="og:url" content="https://openarch.app/">
   <link rel="canonical" href="https://openarch.app/">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#fafaf7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0e110f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#a5dbb0">
   <link rel="icon" href="assets/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+  <!-- The icons of the sidebar and the pages, drawn on a 20-point grid. -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-download" viewBox="0 0 20 20"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 16h12"/></symbol>
+      <symbol id="i-code" viewBox="0 0 20 20"><path d="m7 6-4 4 4 4m6-8 4 4-4 4"/></symbol>
+      <symbol id="i-book" viewBox="0 0 20 20"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H16v12H5.5A1.5 1.5 0 0 0 4 16.5v-12Zm0 12A1.5 1.5 0 0 0 5.5 18H16"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 20 20"><rect x="6" y="2.5" width="8" height="15" rx="2"/><path d="M9 15h2"/></symbol>
+      <symbol id="i-sidebar" viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2.5"/><path d="M8 4v12"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></symbol>
+      <symbol id="i-search" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5"/><path d="m13 13 4 4"/></symbol>
+      <symbol id="i-library" viewBox="0 0 20 20"><path d="M4 16V5m4 11V4m4 12V7m2 .5 3 8.5"/></symbol>
+      <symbol id="i-box" viewBox="0 0 20 20"><path d="M3 7.5 10 4l7 3.5v6L10 17l-7-3.5v-6Zm0 0L10 11l7-3.5M10 11v6"/></symbol>
+      <symbol id="i-compass" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="m12.8 7.2-1.6 4-4 1.6 1.6-4 4-1.6Z"/></symbol>
+      <symbol id="i-sparkle" viewBox="0 0 20 20"><path d="M9 3c.4 3.6 1.4 4.6 5 5-3.6.4-4.6 1.4-5 5-.4-3.6-1.4-4.6-5-5 3.6-.4 4.6-1.4 5-5Zm6 10c.2 1.5.5 1.8 2 2-1.5.2-1.8.5-2 2-.2-1.5-.5-1.8-2-2 1.5-.2 1.8-.5 2-2Z"/></symbol>
+      <symbol id="i-link" viewBox="0 0 20 20"><path d="M8.5 11.5a3 3 0 0 0 4.2 0l2.6-2.6a3 3 0 0 0-4.2-4.2l-.9.9m1.3 2.9a3 3 0 0 0-4.2 0l-2.6 2.6a3 3 0 0 0 4.2 4.2l.9-.9"/></symbol>
+      <symbol id="i-arch" viewBox="0 0 20 20"><path d="M5 17V9a5 5 0 0 1 10 0v8"/></symbol>
+      <symbol id="i-columns" viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2.5"/><path d="M10 4v12"/></symbol>
+      <symbol id="i-theme" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="2.5"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 20 20"><path d="m10 3 7 4-7 4-7-4 7-4Zm-7 8 7 4 7-4"/></symbol>
+      <symbol id="i-play" viewBox="0 0 20 20"><path d="M7 5v10l8-5-8-5Z"/></symbol>
+      <symbol id="i-list" viewBox="0 0 20 20"><path d="M7 6h10M7 10h10M7 14h10M3.5 6h.01M3.5 10h.01M3.5 14h.01"/></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 20 20"><rect x="2.5" y="5" width="15" height="10" rx="2"/><path d="M6 9h.01M9 9h.01M12 9h.01M14.5 9h.01M6.5 12h7"/></symbol>
+      <symbol id="i-terminal" viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="12" rx="2.5"/><path d="m6 8 2.5 2L6 12m4.5 0H14"/></symbol>
+      <symbol id="i-question" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M8 8a2 2 0 1 1 3 1.7c-.6.4-1 .8-1 1.6m0 2.2h.01"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 20 20"><path d="M5 17V4m0 1h9l-2 3 2 3H5"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c2.5 2.5 2.5 11.5 0 14m0-14c-2.5 2.5-2.5 11.5 0 14"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 20 20"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h9A1.5 1.5 0 0 1 16 5.5v6a1.5 1.5 0 0 1-1.5 1.5H9l-4 3v-3.5A1.5 1.5 0 0 1 4 11.5v-6Z"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 20 20"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H8l1.5 2h6A1.5 1.5 0 0 1 17 8.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5v-8Z"/></symbol>
+      <symbol id="i-tag" viewBox="0 0 20 20"><path d="M3 4h6l8 8-6 6-8-8V4Zm3.5 3.5h.01"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 20 20"><path d="M15.5 12A6.5 6.5 0 0 1 8 4.5a6.5 6.5 0 1 0 7.5 7.5Z"/></symbol>
+      <symbol id="i-info" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 9v4.5m0-7h.01"/></symbol>
+      <symbol id="i-check" viewBox="0 0 20 20"><path d="m4 10.5 4 4 8-9"/></symbol>
+      <symbol id="i-return" viewBox="0 0 20 20"><path d="M16 5v4a2 2 0 0 1-2 2H5m0 0 3-3m-3 3 3 3"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="ground" aria-hidden="true"></div>
   <a class="skip" href="#main">Skip to content</a>
 
-  <header class="topbar">
-    <div class="wrap topbar-inner">
+  <!-- With the sidebar hidden, this edge of the window brings it back. -->
+  <div class="edge" aria-hidden="true"></div>
+
+  <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+    <div class="sb-top">
       <a class="brand" href="#top" translate="no">
-        <img src="assets/icon.png" alt="" width="34" height="34">
+        <span class="app-icon" data-app-icon><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14.5" fill="#13201A"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#55B860" d="M6 58 V32 A26 26 0 0 1 58 32 V58 Z"/><path fill="#13201A" d="M11 58 V36 A21 21 0 0 1 53 36 V58 Z"/><path fill="#8FDB99" d="M16 58 V40 A16 16 0 0 1 48 40 V58 Z"/><path fill="#13201A" d="M21 58 V44 A11 11 0 0 1 43 44 V58 Z"/><path fill="#F3F5F1" d="M26 58 V48 A6 6 0 0 1 38 48 V58 Z"/></g></svg></span>
         <span>Open<strong>Arch</strong></span>
       </a>
-      <nav aria-label="Sections">
-        <a href="#import">Import</a>
-        <a href="#features">Features</a>
-        <a href="#shortcuts">Shortcuts</a>
-        <a href="#agents">Claude</a>
-        <a href="#iphone">iPhone</a>
-        <a href="https://docs.openarch.app/">Docs</a>
-        <a href="https://github.com/dpfaffenbauer/OpenArch">GitHub</a>
-      </nav>
-      <a class="button small" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip">Download</a>
+      <button class="icon-button" type="button" data-sidebar-toggle aria-controls="sidebar" aria-expanded="true">
+        <svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg>
+        <span class="sr-only">Hide the sidebar</span>
+      </button>
     </div>
-  </header>
 
-  <main id="main">
-    <section class="hero wrap" id="top">
-      <p class="notice">Arc stops working on December&nbsp;22,&nbsp;2026<span class="countdown" hidden></span></p>
-      <h1>Arc closes.<br>OpenArch opens.</h1>
-      <p class="lead">The sidebar browser you know, rebuilt as open source on real Chrome. Your spaces, logins and extensions move over in one step.</p>
-      <div class="actions">
-        <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip">Download for Mac</a>
-        <a class="button ghost" href="https://apps.apple.com/at/app/openarch/id6828950867">iPhone &amp; iPad</a>
-      </div>
-      <p class="meta">Free, MIT licensed · macOS&nbsp;15+ on Apple silicon · <a href="https://apps.apple.com/at/app/openarch/id6828950867">On the App Store</a> for iPhone and iPad · <a href="https://github.com/dpfaffenbauer/OpenArch">Source on GitHub</a></p>
-    </section>
+    <div class="favorites">
+      <a class="fav fav-download" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip">
+        <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download for Mac
+      </a>
+      <a class="fav" href="https://github.com/dpfaffenbauer/OpenArch">
+        <svg class="icon" aria-hidden="true"><use href="#i-code"/></svg>GitHub
+      </a>
+      <a class="fav" href="https://docs.openarch.app/">
+        <svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>Docs
+      </a>
+      <a class="fav" href="https://apps.apple.com/at/app/openarch/id6828950867">
+        <svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>iPhone
+      </a>
+    </div>
 
-    <section class="shots" aria-label="Screenshots">
-      <div class="shot-tabs" role="tablist" aria-label="Screenshots">
-        <button type="button" role="tab" id="tab-sidebar" aria-selected="true" aria-controls="shot-panel" data-shot="sidebar" style="--dot: #55b860">Sidebar</button>
-        <button type="button" role="tab" id="tab-command" aria-selected="false" aria-controls="shot-panel" tabindex="-1" data-shot="command" style="--dot: #3e7be6">Command bar</button>
-        <button type="button" role="tab" id="tab-split" aria-selected="false" aria-controls="shot-panel" tabindex="-1" data-shot="split" style="--dot: #f08a3c">Split View</button>
-        <button type="button" role="tab" id="tab-library" aria-selected="false" aria-controls="shot-panel" tabindex="-1" data-shot="library" style="--dot: #2f8a3e">Library</button>
-      </div>
-      <div class="shot-frame" id="shot-panel" role="tabpanel" aria-labelledby="tab-sidebar" data-shot="sidebar">
-        <img src="assets/hero.jpg" width="2400" height="1500" alt="OpenArch with a green sidebar: favorites, pinned folders and open tabs">
-      </div>
-      <p class="shot-caption" aria-live="polite">Favorites, pinned folders and today’s tabs, in the sidebar you already know.</p>
-    </section>
-
-    <section class="import dark" id="import" aria-labelledby="import-title">
-      <div class="wrap split-row">
-        <div class="copy">
-          <h2 id="import-title">Everything comes along.</h2>
-          <p>OpenArch reads your Arc data right on your Mac. No account, no upload. Arc stays untouched.</p>
-        </div>
-        <ul class="checklist">
-          <li>Spaces, colors &amp; icons</li>
-          <li>Favorites</li>
-          <li>Pinned tabs &amp; folders</li>
-          <li>Open tabs &amp; split views</li>
-          <li>Logins &amp; cookies</li>
-          <li>Saved passwords</li>
-          <li>History</li>
-          <li>Extensions &amp; settings</li>
+    <nav class="tabs" aria-label="Sections">
+      <div class="space-list" data-space="move">
+        <p class="space-name"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg>Move in</p>
+        <ul>
+          <li><a href="#top"><svg class="icon" aria-hidden="true"><use href="#i-arch"/></svg>Arc closes. OpenArch opens.</a></li>
+          <li><a href="#import"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg>Everything comes along</a></li>
+          <li><a href="#other-browsers"><svg class="icon" aria-hidden="true"><use href="#i-globe"/></svg>From other browsers</a></li>
+          <li><a href="#first-launch"><svg class="icon" aria-hidden="true"><use href="#i-flag"/></svg>The first launch</a></li>
+          <li><a href="#faq"><svg class="icon" aria-hidden="true"><use href="#i-question"/></svg>Questions</a></li>
+          <li><a href="#download"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a></li>
         </ul>
       </div>
-    </section>
-
-    <section class="feature travel" id="features" aria-labelledby="travel-title">
-      <div class="wrap split-row">
-        <div class="copy">
-          <p class="kicker">Command bar · ⌘T</p>
-          <h2 id="travel-title">⌘T finds everything.</h2>
-          <p>One field for addresses, searches, open tabs, pinned pages, history and commands. Enter takes you there, or straight back to the tab you already have.</p>
-        </div>
-        <img src="assets/commandbar.jpg" width="2400" height="1500" loading="lazy" alt="The command bar in the blue Travel space, searching for arches">
+      <div class="space-list" data-space="browse">
+        <p class="space-name"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg>Browse</p>
+        <ul>
+          <li><a href="#the-sidebar"><svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg>The sidebar</a></li>
+          <li><a href="#command-bar"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>The command bar</a></li>
+          <li><a href="#split-view"><svg class="icon" aria-hidden="true"><use href="#i-columns"/></svg>Split view</a></li>
+          <li><a href="#spaces"><svg class="icon" aria-hidden="true"><use href="#i-theme"/></svg>Spaces and themes</a></li>
+          <li class="folder"><span><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>Under the hood</span>
+            <ul>
+              <li><a href="#chrome"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg>Real Chrome</a></li>
+              <li><a href="#streaming"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Streaming</a></li>
+            </ul>
+          </li>
+          <li><a href="#little"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>All the little things</a></li>
+          <li><a href="#shortcuts"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg>Shortcuts</a></li>
+          <li><a href="#icons"><svg class="icon" aria-hidden="true"><use href="#i-arch"/></svg>Twelve arches</a></li>
+        </ul>
       </div>
-    </section>
+      <div class="space-list" data-space="claude">
+        <p class="space-name"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg>Claude</p>
+        <ul>
+          <li><a href="#claude"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg>Chat with the page</a></li>
+          <li><a href="#agent-chats"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg>Agents, briefs and skills</a></li>
+          <li><a href="#terminal"><svg class="icon" aria-hidden="true"><use href="#i-terminal"/></svg>From your terminal</a></li>
+        </ul>
+      </div>
+      <div class="space-list" data-space="everywhere">
+        <p class="space-name"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>Everywhere</p>
+        <ul>
+          <li><a href="#sharing"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>Share without an account</a></li>
+          <li><a href="#iphone"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>iPhone and iPad</a></li>
+        </ul>
+      </div>
+    </nav>
 
-    <section class="feature home" aria-labelledby="home-title">
-      <div class="wrap split-row reverse">
-        <img src="assets/split.jpg" width="2400" height="1500" loading="lazy" alt="Split View in the orange Home space with two articles side by side">
+    <div class="sb-line" role="presentation"></div>
+
+    <button class="tab-row new-tab" type="button" data-open-bar>
+      <svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>New Tab<kbd>⌘K</kbd>
+    </button>
+    <ul class="today">
+      <li><a class="tab-row" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest"><svg class="icon" aria-hidden="true"><use href="#i-tag"/></svg>Release notes</a></li>
+      <li><a class="tab-row" href="https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>Nightly build</a></li>
+      <li><a class="tab-row" href="https://docs.openarch.app/reference/limitations/"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>Known limitations</a></li>
+    </ul>
+
+    <!-- Where the app shows your next meeting: the one date that matters here. -->
+    <a class="meeting" href="#import">
+      <span class="meeting-when"><span class="meeting-dot" aria-hidden="true"></span>December 22, 2026</span>
+      <span class="meeting-what">Arc stops working</span>
+      <span class="meeting-join" data-countdown="in {n} {days}">Move over</span>
+    </a>
+
+    <div class="spacebar">
+      <a class="icon-button" href="#little" title="Everything it does">
+        <svg class="icon" aria-hidden="true"><use href="#i-library"/></svg>
+        <span class="sr-only">Everything it does</span>
+      </a>
+      <nav class="spaces" aria-label="Spaces">
+        <a class="icon-button" href="#top" data-space-link="move" title="Move in (⌃1)"><svg class="icon" aria-hidden="true"><use href="#i-box"/></svg><span class="sr-only">Move in</span></a>
+        <a class="icon-button" href="#the-sidebar" data-space-link="browse" title="Browse (⌃2)"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg><span class="sr-only">Browse</span></a>
+        <a class="icon-button" href="#claude" data-space-link="claude" title="Claude (⌃3)"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg><span class="sr-only">Claude</span></a>
+        <a class="icon-button" href="#sharing" data-space-link="everywhere" title="Everywhere (⌃4)"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg><span class="sr-only">Everywhere</span></a>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Shown over the page while the sidebar is hidden. -->
+  <button class="icon-button sb-show" type="button" data-sidebar-toggle aria-controls="sidebar">
+    <svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg>
+    <span class="sr-only">Show the sidebar</span>
+  </button>
+  <div class="scrim" data-sidebar-close hidden></div>
+
+  <main id="main" class="pages">
+
+    <!-- Move in -->
+    <div class="space" data-space="move">
+      <section class="page night hero" id="top" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="notice">Arc stops working on December&nbsp;22,&nbsp;2026<span class="countdown" data-countdown="{n} {days} to go" hidden></span></p>
+          <h1 id="hero-title">Arc closes.<br>OpenArch opens.</h1>
+          <p class="lead">The sidebar browser you know, rebuilt as open source on real Chrome. Your spaces, logins and extensions move over in one step.</p>
+          <div class="actions">
+            <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download for Mac</a>
+            <a class="button ghost" href="https://apps.apple.com/at/app/openarch/id6828950867">iPhone &amp; iPad</a>
+          </div>
+          <p class="meta">Free and MIT licensed. macOS&nbsp;15 or later on Apple silicon, signed and notarized. The <a href="https://github.com/dpfaffenbauer/OpenArch">source is on GitHub</a>.</p>
+        </div>
+        <!-- OpenArch's arch, again and again, as in the app's About window. -->
+        <button class="tunnel" type="button" data-warp>
+          <svg viewBox="-12 -23 88 81" aria-hidden="true">
+            <path class="arch a1" d="M-9 58 V20 A41 41 0 0 1 73 20 V58 Z"/>
+            <path class="arch gap" d="M-4 58 V24 A36 36 0 0 1 68 24 V58 Z"/>
+            <path class="arch a2" d="M1 58 V28 A31 31 0 0 1 63 28 V58 Z"/>
+            <path class="arch gap" d="M6 58 V32 A26 26 0 0 1 58 32 V58 Z"/>
+            <path class="arch a3" d="M11 58 V36 A21 21 0 0 1 53 36 V58 Z"/>
+            <path class="arch gap" d="M16 58 V40 A16 16 0 0 1 48 40 V58 Z"/>
+            <path class="arch a4" d="M21 58 V44 A11 11 0 0 1 43 44 V58 Z"/>
+            <path class="arch gap" d="M26 58 V48 A6 6 0 0 1 38 48 V58 Z"/>
+            <path class="arch door" d="M28.5 58 V50 A3.5 3.5 0 0 1 35.5 50 V58 Z"/>
+          </svg>
+          <span class="tunnel-hint" aria-hidden="true">Click to fly through</span>
+          <span class="sr-only">Fly through the arches</span>
+        </button>
+      </section>
+
+      <div class="row">
+        <section class="page" id="import" aria-labelledby="import-title">
+          <h2 id="import-title">Everything comes along.</h2>
+          <p class="body">OpenArch reads your Arc data right on your Mac. No account, no upload, and Arc stays as it was.</p>
+          <ul class="checklist">
+            <li>Spaces with their themes</li>
+            <li>Favorites</li>
+            <li>Pinned tabs &amp; folders</li>
+            <li>Open tabs &amp; split views</li>
+            <li>Logins &amp; cookies</li>
+            <li>Saved passwords</li>
+            <li>History</li>
+            <li>Extensions &amp; their settings</li>
+          </ul>
+          <p class="fine">Before Arc goes, <strong>Settings › Import › Back up Arc data</strong> saves its own files as a zip. <a href="https://docs.openarch.app/start/import-from-arc/">How the move from Arc works</a></p>
+        </section>
+
+        <section class="page" id="other-browsers" aria-labelledby="other-title">
+          <h2 id="other-title">Coming from somewhere else?</h2>
+          <p class="body">Bookmarks and history come over from every browser on your Mac. Each browser profile becomes a space of its own.</p>
+          <ul class="browsers" aria-label="Browsers OpenArch imports from">
+            <li>Chrome</li><li>Edge</li><li>Brave</li><li>Vivaldi</li><li>Opera</li><li>Dia</li><li>Helium</li><li>Comet</li><li>Firefox</li><li>Zen</li><li>Safari</li>
+          </ul>
+          <p class="body">From Chrome and the browsers built on it, your logins and saved passwords come too. Passwords from Firefox, Safari, 1Password or Bitwarden import from their CSV export.</p>
+          <p class="fine">The other browsers stay as they were. <a href="https://docs.openarch.app/start/import/">How the move from another browser works</a></p>
+        </section>
+      </div>
+
+      <section class="page" id="first-launch" aria-labelledby="launch-title">
+        <div class="lead-in">
+          <h2 id="launch-title">Set up before the first tab opens.</h2>
+          <p class="body">The first time OpenArch opens, a small window walks you through it. A couple of minutes, and every step can be skipped.</p>
+        </div>
+        <ol class="steps">
+          <li><h3>Bring your Arc</h3><p>Your spaces, favorites and pinned tabs build up in front of you, without a restart.</p></li>
+          <li><h3>One question from macOS</h3><p>It asks once for Arc’s key in your keychain, so your logins come along.</p></li>
+          <li><h3>Spaces and accounts</h3><p>See which Google account each profile is signed in to, and sign in where one is missing.</p></li>
+          <li><h3>Make it yours</h3><p>A color for each space, and light or dark for the pages.</p></li>
+          <li><h3>Default browser</h3><p>One click, and links from Mail and Slack open here.</p></li>
+        </ol>
+      </section>
+    </div>
+
+    <!-- Browse -->
+    <div class="space" data-space="browse" id="features">
+      <section class="page feature" id="the-sidebar" aria-labelledby="sidebar-title">
         <div class="copy">
-          <p class="kicker">Split View · ⌃⇧=</p>
-          <h2 id="home-title">Two pages, one view.</h2>
-          <p>Drag a tab onto the page, or onto another tab in the sidebar. Up to four pages side by side or stacked, with dividers you can drag.</p>
+          <h2 id="sidebar-title">The sidebar you already know.</h2>
+          <p class="body">No tab strip and no toolbar. Your tabs are on the left, and the page gets the rest of the window.</p>
+          <ul class="also">
+            <li>Favorites at the top, for the sites you use all the time.</li>
+            <li>Pinned tabs and folders, which belong to the space and stay.</li>
+            <li>Under the line, today’s tabs. They clear themselves away unless you pin them.</li>
+          </ul>
+          <p class="shortcut"><kbd>⌘S</kbd> hides the sidebar, <kbd>⌘D</kbd> pins a tab.</p>
+        </div>
+        <img class="shot" src="assets/hero.jpg" width="2400" height="1500" loading="lazy" alt="OpenArch with a green sidebar: six favorites, the pinned folders OpenArch and Reading, and three of today’s tabs beside an article about arches">
+      </section>
+
+      <section class="page feature flip" id="command-bar" aria-labelledby="bar-title">
+        <div class="copy">
+          <h2 id="bar-title"><span class="caps"><kbd>⌘</kbd><kbd>T</kbd></span> finds everything.</h2>
+          <p class="body">One field for addresses, searches, open tabs, pinned pages, history and commands. Enter takes you there, or straight back to the tab you already have.</p>
+          <ul class="also">
+            <li>Type <kbd>yt</kbd> or <kbd>gh</kbd>, press <kbd>Tab</kbd>, and search that site.</li>
+            <li>A whole question goes to Claude or ChatGPT.</li>
+            <li><kbd>new doc</kbd>, <kbd>new sheet</kbd> or <kbd>new ticket</kbd> starts a fresh one.</li>
+          </ul>
+          <button class="button ghost" type="button" data-open-bar>Try it on this page<kbd>⌘K</kbd></button>
+        </div>
+        <img class="shot" src="assets/commandbar.jpg" width="2400" height="1500" loading="lazy" alt="The command bar in a blue space, searching for arches: a search, an open tab to switch to, and suggestions">
+      </section>
+
+      <section class="page feature" id="split-view" aria-labelledby="split-title">
+        <div class="copy">
+          <h2 id="split-title">Two pages, one view.</h2>
+          <p class="body">Drag a tab onto the page, or onto another tab in the sidebar. Up to four pages side by side or stacked, with dividers you can drag.</p>
+          <p class="shortcut"><kbd>⌃⇧=</kbd> splits the view, <kbd>⌃⇧S</kbd> swaps the sides.</p>
+        </div>
+        <img class="shot" src="assets/split.jpg" width="2400" height="1500" loading="lazy" alt="Split view in an orange space with two articles side by side">
+      </section>
+
+      <section class="page spaces-page" id="spaces" aria-labelledby="spaces-title">
+        <div class="copy">
+          <h2 id="spaces-title">A space for every part of your day.</h2>
+          <p class="body">Each space has its own theme, pinned folders and tabs. Give it a profile and it keeps its own logins and extensions, so work and private never mix.</p>
+          <p class="body">The theme picker is Arc’s: one to three colors that blend across the window, with intensity and grain. Themes from Arc come over exactly.</p>
+          <p class="shortcut"><kbd>⌃1</kbd> to <kbd>⌃9</kbd> change spaces, and so does a sideways swipe over the sidebar. <kbd>⌃1</kbd> to <kbd>⌃4</kbd> work on this page too.</p>
+        </div>
+
+        <!-- This page is a space as well: the editor below themes it. -->
+        <div class="theme-editor" role="group" aria-labelledby="theme-title">
+          <p class="theme-title" id="theme-title">This page is a space too. Drag a handle.</p>
+          <div class="theme-body">
+            <div class="disc" id="disc">
+              <canvas width="440" height="440" aria-hidden="true"></canvas>
+            </div>
+            <div class="theme-controls">
+              <div class="theme-line">
+                <span class="theme-label" id="count-label">Colors</span>
+                <div class="stepper" role="group" aria-labelledby="count-label">
+                  <button type="button" id="theme-less" aria-label="One color fewer">−</button>
+                  <button type="button" id="theme-more" aria-label="One color more">+</button>
+                </div>
+              </div>
+              <div class="swatches" role="group" aria-label="Arc’s nine swatches"></div>
+              <label class="theme-line"><span class="theme-label">Intensity</span><input type="range" id="theme-intensity" min="0" max="1" step="0.01" value="0.81"></label>
+              <label class="theme-line"><span class="theme-label">Grain</span><input type="range" id="theme-grain" min="0" max="1" step="0.01" value="0.35"></label>
+              <div class="theme-line">
+                <span class="theme-label" id="side-label">Sidebar</span>
+                <div class="segmented" role="group" aria-labelledby="side-label">
+                  <button type="button" data-side="left" aria-pressed="true">Left</button>
+                  <button type="button" data-side="right" aria-pressed="false">Right</button>
+                </div>
+              </div>
+              <button class="text-button" type="button" id="theme-reset">Back to this space’s theme</button>
+            </div>
+          </div>
+          <noscript><p class="fine">The theme editor needs JavaScript.</p></noscript>
+        </div>
+      </section>
+
+      <div class="row">
+        <section class="page" id="chrome" aria-labelledby="chrome-title">
+          <h2 id="chrome-title">Real Chrome underneath.</h2>
+          <p class="body">The sidebar is a native Mac app. The pages are Chrome: every tab is a real Chrome tab, on Chrome’s own engine, kept on its newest stable release.</p>
+          <ul class="ticks">
+            <li>Every extension from the Chrome Web Store, with its popups and side panels</li>
+            <li>DevTools, docked beside the page or in a window of their own</li>
+            <li>Chrome’s password manager, encrypted with a key in your login keychain</li>
+            <li>H.264, AAC and HEVC video</li>
+            <li>Chromium’s sandbox around every page</li>
+          </ul>
+          <p class="fine"><a href="https://docs.openarch.app/browsing/chrome/">Extensions and Chrome features</a></p>
+        </section>
+
+        <section class="page" id="streaming" aria-labelledby="streaming-title">
+          <h2 id="streaming-title">Netflix and Spotify play.</h2>
+          <p class="body">Streaming services only certify their DRM for Chrome itself. So OpenArch opens them with Safari’s engine, in the same tab, and everything else with Chrome.</p>
+          <ul class="browsers" aria-label="Some of the services that open with Safari’s engine">
+            <li>Spotify</li><li>Netflix</li><li>Disney+</li><li>Max</li><li>Prime Video</li><li>Apple TV</li><li>Tidal</li><li>Deezer</li><li>Crunchyroll</li>
+          </ul>
+          <p class="fine">On these pages Chrome extensions do not run, and you sign in once more. <a href="https://docs.openarch.app/browsing/protected-media/">Streaming services</a></p>
+        </section>
+      </div>
+
+      <section class="page little" id="little" aria-labelledby="little-title">
+        <h2 id="little-title">And all the little things.</h2>
+        <div class="little-groups">
+          <section aria-labelledby="g-sidebar">
+            <h3 id="g-sidebar">In the sidebar</h3>
+            <dl>
+              <div id="peek"><dt>Peek</dt><dd>Links from pinned tabs open in a card over the page, and so does any link you ⇧-click. Keep it, split it, or Esc.</dd></div>
+              <div id="tab-previews"><dt>Tab previews</dt><dd>Rest the pointer on a tab and see its page, without leaving the one you are on.</dd></div>
+              <div id="folder-previews"><dt>Folder previews</dt><dd>Rest on a closed folder for a list of its tabs. Type to search it.</dd></div>
+              <div id="unread-dots"><dt>Unread dots</dt><dd>Gmail, Slack, WhatsApp and others get a dot on their icon while something is unread.</dd></div>
+              <div id="select-several"><dt>Select several</dt><dd>⇧-click a range of tabs, then move them, archive them or put them in a folder together.</dd></div>
+              <div id="live-folders"><dt>GitHub live folders</dt><dd>Pinned folders that fill themselves with your pull requests, reviews or issues, with their checks.</dd></div>
+              <div id="hover-sidebar"><dt>Hover sidebar</dt><dd>Hide it, touch the window’s edge, and it floats back. It does that here too.</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="g-calls">
+            <h3 id="g-calls">Calls and media</h3>
+            <dl>
+              <div id="meetings"><dt>Meetings</dt><dd>Your next meeting at the bottom of the sidebar, a nudge before it starts, and a button that joins the call.</dd></div>
+              <div id="calls"><dt>Calls keep going</dt><dd>Leave a call’s tab and it floats in a small window, with buttons to mute, turn off the camera and hang up.</dd></div>
+              <div id="screen-sharing"><dt>Screen sharing</dt><dd>While a call shares a tab or your screen, the sidebar says what, and ends it with one click.</dd></div>
+              <div id="now-playing"><dt>Now playing</dt><dd>What plays in another tab, or in Spotify, sits in the sidebar with its cover. Rest on it to scrub, skip or pause.</dd></div>
+              <div id="picture-in-picture"><dt>Picture in picture</dt><dd>Leave a tab with a video playing and it keeps going in a small window.</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="g-tabs">
+            <h3 id="g-tabs">Tabs that look after themselves</h3>
+            <dl>
+              <div id="archive"><dt>Today’s tabs clear away</dt><dd>Tabs you did not pin go to the archive after twelve hours. Pinned ones stay.</dd></div>
+              <div id="sleeping-tabs"><dt>Sleeping tabs</dt><dd>Tabs you have not looked at in a while free their memory and wake up when you come back.</dd></div>
+              <div id="stay-awake"><dt>Chat and mail stay awake</dt><dd>Pinned Gmail, Slack or WhatsApp never sleep, so messages and calls keep coming.</dd></div>
+              <div id="short-titles"><dt>Short tab titles</dt><dd>Long, noisy titles get short names, made on your Mac by Apple Intelligence.</dd></div>
+              <div id="tab-switcher"><dt>Tab switcher</dt><dd>Hold ⌃ and press Tab for the tabs you used last, each with a picture of its page.</dd></div>
+              <div id="library"><dt>Library</dt><dd>Downloads fly into the library button. Media, downloads, spaces and archived tabs in one searchable place.</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="g-page">
+            <h3 id="g-page">On the page</h3>
+            <dl>
+              <div id="boosts"><dt>Boosts</dt><dd>Recolor a site, zap what annoys you, add your own CSS and JavaScript.</dd></div>
+              <div id="site-controls"><dt>Site Control Center</dt><dd>Camera, microphone, pop-ups, zoom and cookies of the site in front, in one panel.</dd></div>
+              <div id="https-only"><dt>HTTPS only</dt><dd>Turn it on and http:// addresses load over HTTPS, with a warning before falling back.</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="g-windows">
+            <h3 id="g-windows">Links and windows</h3>
+            <dl>
+              <div id="link-rules"><dt>Link rules</dt><dd>Links from Mail or Slack go straight to the right space.</dd></div>
+              <div id="open-tab"><dt>Already open?</dt><dd>A link from another app switches to the tab that already shows it.</dd></div>
+              <div id="little-openarch"><dt>Little OpenArch</dt><dd>A small window for a quick link, without touching your tabs.</dd></div>
+              <div id="own-window"><dt>A window of its own</dt><dd>Drag a tab out of the sidebar and it becomes a window, in its space’s colors.</dd></div>
+              <div id="private-windows"><dt>Private windows</dt><dd>Their own profile in memory, no history, gone when you close them.</dd></div>
+              <div id="closed-windows"><dt>Closed windows come back</dt><dd>⇧⌘T reopens the window you just closed, where it was, tabs and all.</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="g-yours">
+            <h3 id="g-yours">Yours, and quietly looked after</h3>
+            <dl>
+              <div id="sidebar-right"><dt>Sidebar on the right</dt><dd>Put it on the other side. Previews, downloads and the hover edge move with it.</dd></div>
+              <div id="glass"><dt>Glass</dt><dd>Let the desktop shine through. On macOS 26 the whole window is one sheet of Liquid Glass in your space’s colors.</dd></div>
+              <div id="languages"><dt>Five languages</dt><dd>English, German, French, Spanish and Italian, following your Mac.</dd></div>
+              <div id="updates"><dt>Updates by themselves</dt><dd>On a Stable or Nightly channel, checked every six hours and installed when you quit.</dd></div>
+              <div id="backup"><dt>Daily backup</dt><dd>Your sidebar, boosts and settings are backed up once a day.</dd></div>
+              <div id="no-telemetry"><dt>No telemetry</dt><dd>No account and no analytics. A crash report only goes out when you send it yourself.</dd></div>
+            </dl>
+          </section>
+        </div>
+      </section>
+
+      <div class="row">
+        <section class="page" id="shortcuts" aria-labelledby="shortcuts-title">
+          <h2 id="shortcuts-title">Your hands already know it.</h2>
+          <p class="body">Arc’s shortcuts are there, and they win over the page. Give any menu command the keys you like in <strong>Settings › Keyboard</strong>.</p>
+          <ul class="keys">
+            <li><kbd>⌘T</kbd>Command bar</li>
+            <li><kbd>⌘S</kbd>Sidebar</li>
+            <li><kbd>⌘D</kbd>Pin tab</li>
+            <li><kbd>⌘E</kbd>Chat with the page</li>
+            <li><kbd>⌃1–9</kbd>Spaces</li>
+            <li><kbd>⌃⇧=</kbd>Split view</li>
+            <li><kbd>⌃Tab</kbd>Tab switcher</li>
+            <li><kbd>⇧⌘T</kbd>Reopen tab</li>
+            <li><kbd>⇧⌘K</kbd>Clean up today</li>
+            <li><kbd>⇧⌘L</kbd>Library</li>
+            <li><kbd>⇧⌘C</kbd>Copy address</li>
+            <li><kbd>⌥⌘N</kbd>Little OpenArch</li>
+            <li><kbd>⌃⌘B</kbd>Boost</li>
+            <li><kbd>⌃⌘I</kbd>Site controls</li>
+            <li><kbd>⌃0</kbd>Agents</li>
+          </ul>
+          <p class="fine"><a href="https://docs.openarch.app/reference/shortcuts/">Every keyboard shortcut</a></p>
+        </section>
+
+        <section class="page" id="icons" aria-labelledby="icons-title">
+          <h2 id="icons-title">Twelve takes on the arch.</h2>
+          <p class="body">Pick your Dock icon, let it take your space’s color, or get a different one each day. Pick one here and this page wears it.</p>
+          <div class="icon-grid" role="group" aria-label="App icons">
+            <button type="button" data-icon="dusk" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="tile-dusk" x1=".33" y1="0" x2=".67" y2="1"><stop stop-color="#FFB36B"/><stop offset="1" stop-color="#F2577E"/></linearGradient></defs><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="url(#tile-dusk)"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#2B1B4A" d="M12 58 V30 A20 20 0 0 1 52 30 V58 Z"/><circle cx="32" cy="48" r="9" fill="#FFD27A"/><rect x="12" y="48" width="40" height="10" fill="#1A0F30"/></g></svg><span>Dusk</span></button>
+            <button type="button" data-icon="neon" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#0B0F1A"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#3EF0E0" d="M6 58 V32 A26 26 0 0 1 58 32 V58 H55.5 V32 A23.5 23.5 0 0 0 8.5 32 V58 Z"/><path fill="#7CFF8A" d="M13 58 V32 A19 19 0 0 1 51 32 V58 H48.5 V32 A16.5 16.5 0 0 0 15.5 32 V58 Z"/><path fill="#FF5FD2" d="M20 58 V32 A12 12 0 0 1 44 32 V58 H41.5 V32 A9.5 9.5 0 0 0 22.5 32 V58 Z"/></g></svg><span>Neon</span></button>
+            <button type="button" data-icon="bands" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#FFF4E2" stroke="#000" stroke-opacity=".1" stroke-width=".8"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#F2577E" d="M6 58 V34 A26 26 0 0 1 58 34 V58 H52 V34 A20 20 0 0 0 12 34 V58 Z"/><path fill="#FFB36B" d="M12 58 V34 A20 20 0 0 1 52 34 V58 H46 V34 A14 14 0 0 0 18 34 V58 Z"/><path fill="#55B860" d="M18 58 V34 A14 14 0 0 1 46 34 V58 H40 V34 A8 8 0 0 0 24 34 V58 Z"/><path fill="#3E7BE6" d="M24 58 V34 A8 8 0 0 1 40 34 V58 Z"/></g></svg><span>Bands</span></button>
+            <button type="button" data-icon="tunnel" aria-pressed="true"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#13201A"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#55B860" d="M6 58 V32 A26 26 0 0 1 58 32 V58 Z"/><path fill="#13201A" d="M11 58 V36 A21 21 0 0 1 53 36 V58 Z"/><path fill="#8FDB99" d="M16 58 V40 A16 16 0 0 1 48 40 V58 Z"/><path fill="#13201A" d="M21 58 V44 A11 11 0 0 1 43 44 V58 Z"/><path fill="#F3F5F1" d="M26 58 V48 A6 6 0 0 1 38 48 V58 Z"/></g></svg><span>Tunnel</span></button>
+            <button type="button" data-icon="bauhaus" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#F1E9DA" stroke="#000" stroke-opacity=".1" stroke-width=".8"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#E2463B" d="M8 34 A24 24 0 0 1 56 34 Z"/><path fill="#F1E9DA" d="M20 34 A12 12 0 0 1 44 34 Z"/><rect x="8" y="34" width="12" height="24" fill="#2F5BD3"/><rect x="44" y="34" width="12" height="24" fill="#F4C430"/><circle cx="32" cy="47" r="4" fill="#13201A"/></g></svg><span>Bauhaus</span></button>
+            <button type="button" data-icon="sidebar" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#FFFFFF" stroke="#000" stroke-opacity=".1" stroke-width=".8"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#13201A" d="M8 58 V30 A24 24 0 0 1 56 30 V58 Z"/><path fill="#EAF6EC" d="M25 53 V36 A12.5 12.5 0 0 1 50 36 V53 Z"/><rect x="30" y="42" width="15" height="3" rx="1.5" fill="#55B860"/><rect x="30" y="47" width="10" height="3" rx="1.5" fill="#B9DDBF"/><rect x="12" y="33" width="9" height="3" rx="1.5" fill="#55B860"/><rect x="12" y="39" width="9" height="3" rx="1.5" fill="#3E7BE6"/><rect x="12" y="45" width="6" height="3" rx="1.5" fill="#F08A3C"/></g></svg><span>Sidebar</span></button>
+            <button type="button" data-icon="moonGate" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#C8643B"/><g transform="translate(10.67 10.67) scale(.6667)"><circle cx="32" cy="32" r="22" fill="#BFE3F2"/><circle cx="41" cy="22" r="4" fill="#FFF3C4"/><path fill="#55B860" d="M11.51 40 Q32 30 52.49 40 A22 22 0 0 1 11.51 40 Z"/></g></svg><span>Moon Gate</span></button>
+            <button type="button" data-icon="pixel" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#101A14"/><g transform="translate(10.67 10.67) scale(.6667)"><g fill="#7CFF8A"><rect x="17" y="5" width="5.4" height="5.4" rx="1"/><rect x="23" y="5" width="5.4" height="5.4" rx="1"/><rect x="29" y="5" width="5.4" height="5.4" rx="1"/><rect x="35" y="5" width="5.4" height="5.4" rx="1"/><rect x="41" y="5" width="5.4" height="5.4" rx="1"/><rect x="11" y="11" width="5.4" height="5.4" rx="1"/><rect x="17" y="11" width="5.4" height="5.4" rx="1"/><rect x="23" y="11" width="5.4" height="5.4" rx="1"/><rect x="29" y="11" width="5.4" height="5.4" rx="1"/><rect x="35" y="11" width="5.4" height="5.4" rx="1"/><rect x="41" y="11" width="5.4" height="5.4" rx="1"/><rect x="47" y="11" width="5.4" height="5.4" rx="1"/><rect x="5" y="17" width="5.4" height="5.4" rx="1"/><rect x="11" y="17" width="5.4" height="5.4" rx="1"/><rect x="17" y="17" width="5.4" height="5.4" rx="1"/><rect x="41" y="17" width="5.4" height="5.4" rx="1"/><rect x="47" y="17" width="5.4" height="5.4" rx="1"/><rect x="53" y="17" width="5.4" height="5.4" rx="1"/><rect x="5" y="23" width="5.4" height="5.4" rx="1"/><rect x="11" y="23" width="5.4" height="5.4" rx="1"/><rect x="47" y="23" width="5.4" height="5.4" rx="1"/><rect x="53" y="23" width="5.4" height="5.4" rx="1"/><rect x="5" y="29" width="5.4" height="5.4" rx="1"/><rect x="11" y="29" width="5.4" height="5.4" rx="1"/><rect x="47" y="29" width="5.4" height="5.4" rx="1"/><rect x="53" y="29" width="5.4" height="5.4" rx="1"/><rect x="5" y="35" width="5.4" height="5.4" rx="1"/><rect x="11" y="35" width="5.4" height="5.4" rx="1"/><rect x="47" y="35" width="5.4" height="5.4" rx="1"/><rect x="53" y="35" width="5.4" height="5.4" rx="1"/><rect x="5" y="41" width="5.4" height="5.4" rx="1"/><rect x="11" y="41" width="5.4" height="5.4" rx="1"/><rect x="47" y="41" width="5.4" height="5.4" rx="1"/><rect x="53" y="41" width="5.4" height="5.4" rx="1"/><rect x="5" y="47" width="5.4" height="5.4" rx="1"/><rect x="11" y="47" width="5.4" height="5.4" rx="1"/><rect x="47" y="47" width="5.4" height="5.4" rx="1"/><rect x="53" y="47" width="5.4" height="5.4" rx="1"/><rect x="5" y="53" width="5.4" height="5.4" rx="1"/><rect x="11" y="53" width="5.4" height="5.4" rx="1"/><rect x="47" y="53" width="5.4" height="5.4" rx="1"/><rect x="53" y="53" width="5.4" height="5.4" rx="1"/></g><rect x="29" y="47" width="5.4" height="5.4" rx="1" fill="#F08A3C"/></g></svg><span>Pixel</span></button>
+            <button type="button" data-icon="origami" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#EAF6EC" stroke="#000" stroke-opacity=".1" stroke-width=".8"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#55B860" d="M6 32 L9.48 19 L21.61 26 L20 32 Z"/><path fill="#2F8A3E" d="M9.48 19 L19 9.48 L26 21.61 L21.61 26 Z"/><path fill="#55B860" d="M19 9.48 L32 6 L32 20 L26 21.61 Z"/><path fill="#2F8A3E" d="M32 6 L45 9.48 L38 21.61 L32 20 Z"/><path fill="#55B860" d="M45 9.48 L54.52 19 L42.39 26 L38 21.61 Z"/><path fill="#2F8A3E" d="M54.52 19 L58 32 L44 32 L42.39 26 Z"/><path fill="#2F8A3E" d="M6 32 H20 L6 45 Z"/><path fill="#55B860" d="M20 32 V58 H6 V45 Z"/><path fill="#55B860" d="M44 32 H58 V45 Z"/><path fill="#2F8A3E" d="M44 32 L58 45 V58 H44 Z"/></g></svg><span>Origami</span></button>
+            <button type="button" data-icon="orbit" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#1B2340"/><g transform="translate(10.67 10.67) scale(.6667)"><circle cx="10" cy="22" r="1" fill="#FFFFFF"/><circle cx="38" cy="7" r="1" fill="#FFFFFF"/><circle cx="22" cy="10" r="0.8" fill="#FFFFFF"/><path fill="#FFFFFF" d="M8 56 V34 A22 22 0 0 1 52 34 V56 H42 V34 A12 12 0 0 0 18 34 V56 Z"/><circle cx="52" cy="14" r="5" fill="#F08A3C"/></g></svg><span>Orbit</span></button>
+            <button type="button" data-icon="candy" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#FFD6E5" stroke="#000" stroke-opacity=".1" stroke-width=".8"/><g transform="translate(10.67 10.67) scale(.6667)"><path fill="#FF4F8B" d="M10 50 V30 A22 22 0 0 1 54 30 V50 H42 V30 A10 10 0 0 0 22 30 V50 Z"/><circle cx="16" cy="50" r="6" fill="#FF4F8B"/><circle cx="48" cy="50" r="6" fill="#FF4F8B"/><rect x="13" y="24" width="4" height="12" rx="2" fill="#FFFFFF" opacity="0.7"/></g></svg><span>Candy</span></button>
+            <button type="button" data-icon="keystone" aria-pressed="false"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x=".4" y=".4" width="63.2" height="63.2" rx="14.3" fill="#13201A"/><g transform="translate(10.67 10.67) scale(.6667)"><g fill="#E8EDE6"><path d="M6 32 A26 26 0 0 1 10.34 17.61 L21.17 24.81 A13 13 0 0 0 19 32 Z"/><path d="M11.13 16.5 A26 26 0 0 1 23.19 7.54 L27.6 19.77 A13 13 0 0 0 21.56 24.25 Z"/><path d="M40.81 7.54 A26 26 0 0 1 52.87 16.5 L42.44 24.25 A13 13 0 0 0 36.4 19.77 Z"/><path d="M53.66 17.61 A26 26 0 0 1 58 32 L45 32 A13 13 0 0 0 42.83 24.81 Z"/><rect x="6" y="34.5" width="13" height="10.5"/><rect x="6" y="47.5" width="13" height="10.5"/><rect x="45" y="34.5" width="13" height="10.5"/><rect x="45" y="47.5" width="13" height="10.5"/></g><path fill="#55B860" d="M24.49 7.11 A26 26 0 0 1 39.51 7.11 L35.76 19.55 A13 13 0 0 0 28.24 19.55 Z"/></g></svg><span>Keystone</span></button>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Claude -->
+    <div class="space" data-space="claude" id="agents">
+      <div class="row lean-left">
+        <section class="page" id="claude" aria-labelledby="claude-title">
+          <h2 id="claude-title">Claude next to your tabs.</h2>
+          <p class="body">Press <kbd>⌘E</kbd> and a chat opens beside the page. Ask about what you are reading, add other tabs with <kbd>@</kbd>, or hand it the work: it reads the page, looks at it, scrolls, clicks and types in your real tabs, signed in as you.</p>
+          <p class="body">Before it clicks or types the first time, it asks.</p>
+          <p class="body">All of it runs Claude Code on your Mac, on your own login. No API key, and nothing in between.</p>
+          <p class="fine"><a href="https://docs.openarch.app/ai/how-it-works/">How OpenArch talks to Claude</a></p>
+        </section>
+
+        <div class="page night chat" role="img" aria-label="A chat beside a page: a question about two tabs, the steps Claude took to read them, a click that waits for permission, and the answer">
+          <p class="chat-you">Which of <span class="chat-tab">@Delicate Arch</span> and <span class="chat-tab">@Canyonlands</span> fits a half day?</p>
+          <ul class="chat-tools">
+            <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Read 2 tabs</li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Took a screenshot of the trail map</li>
+            <li class="chat-ask"><span>Click “Reserve a timed entry”</span><span class="chat-allow">Allow and Continue</span></li>
+          </ul>
+          <p class="chat-claude">Delicate Arch. The trail is 3 miles there and back and takes two to three hours; Canyonlands is a day’s drive on its own. You need a timed entry before 4 pm. Shall I reserve one?</p>
+          <p class="chat-field">Ask about this page<kbd>⌘E</kbd></p>
         </div>
       </div>
-    </section>
 
-    <section class="feature work" aria-labelledby="work-title">
-      <div class="wrap split-row">
+      <section class="page" id="agent-chats" aria-labelledby="agents-title">
+        <h2 id="agents-title">Agents that keep working while you browse.</h2>
+        <dl class="grid-list">
+          <div><dt>Agent chats</dt><dd>A chat with Claude Code sits in the sidebar like a tab, in a folder of your choice. A wheel while it works, a dot when it has answered.</dd></div>
+          <div><dt>Every session in one place</dt><dd>The ✨ in the space bar (<kbd>⌃0</kbd>) lists every agent chat and every Claude Code session on your Mac, by status or by project.</dd></div>
+          <div><dt>Skills in the command bar</dt><dd>Type the name of one of your Claude Code skills or slash commands, and it runs on the page in front.</dd></div>
+          <div><dt>Morning Brief</dt><dd>Each morning a page about your day opens as a tab: calendar, mail, chats and open tasks, read with the connectors you already have.</dd></div>
+          <div><dt>A question in the command bar</dt><dd>Type a whole question and it opens as a new chat on Claude or ChatGPT, signed in as you there.</dd></div>
+          <div><dt>Tidy up tabs</dt><dd>A crowded space sorts itself into folders with short names. You see the plan first, and <kbd>⌘Z</kbd> puts everything back.</dd></div>
+        </dl>
+      </section>
+
+      <section class="page night terminal-page" id="terminal" aria-labelledby="terminal-title">
         <div class="copy">
-          <p class="kicker">Spaces · ⌃1–9</p>
-          <h2 id="work-title">A space for every part of your day.</h2>
-          <p>Each space has its own color, pinned folders and tabs. Give it a profile and it keeps its own logins and extensions, so work and private never mix.</p>
-        </div>
-        <img src="assets/library.jpg" width="2400" height="1500" loading="lazy" alt="The library in the green Work space, listing the spaces Work, Home and Travel">
-      </div>
-    </section>
-
-    <section class="wrap little" aria-labelledby="little-title">
-      <h2 id="little-title">And all the little things.</h2>
-      <dl class="little-grid">
-        <div><dt>Peek</dt><dd>Links open in a card over the page. Keep, split, or Esc.</dd></div>
-        <div><dt>Boosts</dt><dd>Recolor a site, zap what annoys you, add your own CSS and JS.</dd></div>
-        <div><dt>Site search and questions</dt><dd>Type yt or gh, press Tab, search that site. A whole question goes to Claude or ChatGPT.</dd></div>
-        <div><dt>Link rules</dt><dd>Links from Mail or Slack go straight to the right space.</dd></div>
-        <div><dt>Now playing</dt><dd>What plays in another tab, or in Spotify, sits in the sidebar with its cover. Rest on it to scrub, skip or pause.</dd></div>
-        <div><dt>Hover sidebar</dt><dd>Hide it, touch the left edge, and it floats back.</dd></div>
-        <div><dt>Glass and grain</dt><dd>Let the desktop shine through. On macOS 26 the whole window is one sheet of Liquid Glass in your space’s color. Or put Arc’s grain on it.</dd></div>
-        <div><dt>Tab previews</dt><dd>Rest the pointer on a tab and see its page, without leaving the one you are on.</dd></div>
-        <div><dt>Meetings</dt><dd>Your next meeting at the bottom of the sidebar, a nudge before it starts, and a button that joins the call.</dd></div>
-        <div><dt>Screen sharing</dt><dd>While a call shares a tab or your screen, the sidebar says what, and ends it with one click.</dd></div>
-        <div><dt>new doc</dt><dd>Type new doc, new sheet or new ticket in the command bar and start on a fresh one.</dd></div>
-        <div><dt>GitHub live folders</dt><dd>Pinned folders that fill themselves with your pull requests, reviews or issues, with their checks.</dd></div>
-        <div><dt>Sleeping tabs</dt><dd>Tabs you have not looked at in a while free their memory and wake up when you come back.</dd></div>
-        <div><dt>Private windows</dt><dd>Their own profile in memory, no history, gone when you close them.</dd></div>
-        <div><dt>Your own shortcuts</dt><dd>Any menu command, the keys you like, in Settings › Tastatur.</dd></div>
-        <div><dt>Closed windows come back</dt><dd>⌘⇧T reopens the window you just closed, where it was, tabs and all.</dd></div>
-        <div><dt>Real Chrome tabs</dt><dd>Every extension from the Chrome Web Store, DevTools included.</dd></div>
-        <div><dt>Updates by themselves</dt><dd>Each new Chromium build, checked and installed when you quit.</dd></div>
-      </dl>
-    </section>
-
-    <section class="wrap shortcuts" id="shortcuts" aria-labelledby="shortcuts-title">
-      <h2 id="shortcuts-title">Your hands already know it.</h2>
-      <ul class="keys">
-        <li><kbd>⌘T</kbd>Command bar</li>
-        <li><kbd>⌘E</kbd>Chat with the page</li>
-        <li><kbd>⌘S</kbd>Sidebar</li>
-        <li><kbd>⌘D</kbd>Pin tab</li>
-        <li><kbd>⌃1–9</kbd>Spaces</li>
-        <li><kbd>⌃⇧=</kbd>Split View</li>
-        <li><kbd>⌥⌘N</kbd>Little OpenArch</li>
-        <li><kbd>⌘⇧L</kbd>Library</li>
-        <li><kbd>⌃⌘B</kbd>Boost</li>
-        <li><kbd>⌘⇧T</kbd>Reopen tab</li>
-        <li><kbd>⌃0</kbd>Agents</li>
-      </ul>
-    </section>
-
-    <section class="wrap agents" id="agents" aria-labelledby="agents-title">
-      <div class="agents-card dark">
-        <div class="copy">
-          <h2 id="agents-title">Claude next to your tabs.</h2>
-          <p>Press <kbd>⌘E</kbd> and a chat opens beside the page. Ask about what you are reading, add other tabs with @, or hand it the work: it reads the page, looks at it, scrolls, clicks and types in your real tabs, signed in as you. Before it acts the first time, it asks.</p>
-          <p>Your Claude Code skills run on the page from the command bar. A Morning Brief of your calendar, mail and tasks opens as a tab each morning. And a crowded space sorts itself into folders, once you have seen the plan.</p>
-          <p>Agent chats sit in the sidebar like tabs and keep working while you browse. The ✨ in the space bar (<kbd>⌃0</kbd>) shows every agent chat and every Claude Code session on your Mac, by status or by project.</p>
-          <p>All of it runs Claude Code on your Mac, on your own login, without an API key. Rather stay in your terminal? Let Claude Code, Playwright or Puppeteer drive OpenArch with your logins. Off by default; turn it on under Settings › KI.</p>
-          <p>What runs on your Mac, what Claude gets and what it may do: <a href="https://docs.openarch.app/ai/how-it-works/">How OpenArch talks to Claude</a>.</p>
+          <h2 id="terminal-title">Rather stay in your terminal?</h2>
+          <p class="body">Let Claude Code, Playwright or Puppeteer drive OpenArch itself, in your real tabs with your logins. It is off until you turn it on under <strong>Settings › AI</strong>.</p>
+          <p class="fine"><a href="https://docs.openarch.app/ai/ai-control/">AI control</a></p>
         </div>
         <div class="terminal">
-          <div class="terminal-bar">
-            <button type="button" data-copy="mcp-command">Copy</button>
-          </div>
           <pre id="mcp-command">claude mcp add openarch -- npx -y chrome-devtools-mcp@latest --browser-url=http://127.0.0.1:9222</pre>
+          <button type="button" data-copy="mcp-command">Copy</button>
           <p class="sr-only" id="copy-status" aria-live="polite"></p>
         </div>
+      </section>
+    </div>
+
+    <!-- Everywhere -->
+    <div class="space" data-space="everywhere">
+      <div class="row">
+        <section class="page" id="sharing" aria-labelledby="sharing-title">
+          <h2 id="sharing-title">Share a folder. No account.</h2>
+          <p class="body">A pinned folder or a whole space becomes a link and a QR code. Keep it up to date, and everyone who added it follows your changes.</p>
+          <figure class="link-anatomy">
+            <p class="link" translate="no"><span class="link-open">openarch.app/s/</span><span class="link-hash">#</span><span class="link-key">1.l.Qm9vb2tza…kAAECAwQ</span></p>
+            <figcaption><span class="cap-open">What the server gets</span><span class="cap-key">The key. Browsers never send this part, so neither the relay nor openarch.app can read your bookmarks.</span></figcaption>
+          </figure>
+          <ul class="ticks">
+            <li>A password on top, if you like</li>
+            <li>Only the Mac or iPhone that shared it can change it</li>
+            <li>Opens in OpenArch, and on the web for everyone else</li>
+          </ul>
+          <p class="fine"><a href="https://docs.openarch.app/sharing/how-it-works/">How sharing works</a></p>
+        </section>
+
+        <section class="page" id="iphone" aria-labelledby="iphone-title">
+          <h2 id="iphone-title">Your spaces in your pocket.</h2>
+          <p class="body">OpenArch for iPhone and iPad has the same sidebar: spaces in their colors, swiped through sideways, with favorites, pinned folders and today’s tabs. On the iPad the sidebar sits beside the page, as on the Mac.</p>
+          <p class="body">Share a space on your Mac, scan the code with your iPhone, and it keeps following the Mac.</p>
+          <div class="actions">
+            <a class="button" href="https://apps.apple.com/at/app/openarch/id6828950867">Download on the App Store</a>
+          </div>
+          <p class="fine">Free. iOS and iPadOS 18 or later, in five languages.</p>
+        </section>
       </div>
-    </section>
+    </div>
 
-    <section class="wrap iphone" id="iphone" aria-labelledby="iphone-title">
-      <h2 id="iphone-title">Your spaces in your pocket.</h2>
-      <p>OpenArch for iPhone and iPad has the same sidebar: spaces in their colors, swiped through sideways, with favorites, pinned folders and today’s tabs. On the iPad the sidebar sits beside the page, as on the Mac. Share a space on your Mac, scan the code with your iPhone, and it keeps following the Mac.</p>
-      <a class="button" href="https://apps.apple.com/at/app/openarch/id6828950867">Download on the App Store</a>
-      <p class="meta">Free · iOS and iPadOS 18 or later</p>
-    </section>
+    <!-- Back where it started -->
+    <div class="space" data-space="move">
+      <section class="page faq" id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Questions</h2>
+        <div class="faq-list">
+          <details id="q-company" open>
+            <summary>Is this made by The Browser Company?</summary>
+            <p>No. OpenArch is an independent open-source project. It is not affiliated with The Browser Company or Atlassian, and it contains no code from Arc.</p>
+          </details>
+          <details id="q-arc-data">
+            <summary>What happens to my Arc data?</summary>
+            <p>OpenArch only reads it. For logins and passwords, macOS asks you once whether OpenArch may use Arc’s key from your keychain. Arc keeps working as it was.</p>
+          </details>
+          <details id="q-gatekeeper">
+            <summary>Will macOS let me open it?</summary>
+            <p>Yes. Every build is signed with OpenArch’s Developer ID and notarized by Apple. macOS asks once whether to open an app downloaded from the internet.</p>
+          </details>
+          <details id="q-collect">
+            <summary>What does OpenArch collect?</summary>
+            <p>Nothing. There is no account, no analytics and no telemetry. After a crash it asks whether to send a report, and shows it to you first. Everything OpenArch itself sends anywhere is listed under <a href="https://docs.openarch.app/reference/data-and-privacy/">Data and privacy</a>.</p>
+          </details>
+          <details id="q-streaming">
+            <summary>Do Netflix and Spotify work?</summary>
+            <p>Yes, with Safari’s engine, in the same tab. Chrome extensions do not run on those pages, and you sign in to each service once more.</p>
+          </details>
+          <details id="q-update">
+            <summary>How does OpenArch update?</summary>
+            <p>By itself, on a Stable or Nightly channel. It checks GitHub at launch and every six hours, only installs builds signed with OpenArch’s Developer ID, and never goes back to an older one.</p>
+          </details>
+          <details id="q-claude">
+            <summary>Do I need Claude?</summary>
+            <p>No. The AI features need the Claude Code command line tool on your Mac, signed in. Without it they say so, and the rest of OpenArch works as usual.</p>
+          </details>
+          <details id="q-missing">
+            <summary>What is not there yet?</summary>
+            <p>Arc’s Easels and Notes have no counterpart yet, Google does not offer Chrome sync to other browsers, and there is no build for Intel Macs. The whole list is under <a href="https://docs.openarch.app/reference/limitations/">Known limitations</a>.</p>
+          </details>
+        </div>
+      </section>
 
-    <section class="faq" aria-labelledby="faq-title">
-      <h2 id="faq-title">Questions</h2>
-      <details open>
-        <summary>Is this made by The Browser Company?</summary>
-        <p>No. OpenArch is an independent open-source project. It is not affiliated with The Browser Company or Atlassian, and it contains no code from Arc.</p>
-      </details>
-      <details>
-        <summary>macOS says it can’t check OpenArch for malware.</summary>
-        <p>Early builds are not notarized yet. Move OpenArch to Applications, then allow it once under System Settings › Privacy &amp; Security, or run <code>xattr -dr com.apple.quarantine /Applications/OpenArch.app</code> in Terminal. Updates install themselves after that.</p>
-      </details>
-      <details>
-        <summary>How does OpenArch update?</summary>
-        <p>It checks GitHub at launch and every six hours, verifies the checksum, and swaps itself the next time you quit.</p>
-      </details>
-      <details>
-        <summary>Does it run on Intel Macs?</summary>
-        <p>Not yet. Builds are for Apple silicon and macOS 15 or later.</p>
-      </details>
-      <details>
-        <summary>What happens to my Arc data?</summary>
-        <p>OpenArch only reads it. For logins and passwords, macOS asks you once whether OpenArch may use Arc’s key from your keychain.</p>
-      </details>
-    </section>
-
-    <section class="wrap closing" aria-labelledby="closing-title">
-      <div class="closing-card">
+      <section class="page night closing" id="download" aria-labelledby="closing-title">
         <h2 id="closing-title">Ready when Arc isn’t.</h2>
-        <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip">Download for Mac</a>
-        <img src="assets/hero.jpg" width="2400" height="1500" loading="lazy" alt="OpenArch with a green sidebar and an article about arches">
-      </div>
-    </section>
+        <div class="actions">
+          <a class="button" href="https://github.com/dpfaffenbauer/OpenArch/releases/latest/download/OpenArch.zip"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download for Mac</a>
+          <a class="button ghost" href="https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly">Nightly</a>
+        </div>
+        <img src="assets/library.jpg" width="2400" height="1500" loading="lazy" alt="OpenArch’s library, listing the spaces Work, Home and Travel in their colors">
+      </section>
+    </div>
+
+    <footer class="foot">
+      <p><a href="https://docs.openarch.app/">Documentation</a><a href="https://apps.apple.com/at/app/openarch/id6828950867">App Store</a><a href="https://github.com/dpfaffenbauer/OpenArch">OpenArch on GitHub</a><span>MIT license</span></p>
+      <p>OpenArch is an independent open-source project and is not affiliated with or endorsed by The Browser Company of New York or Atlassian. Arc is a trademark of The Browser Company of New York.</p>
+    </footer>
   </main>
 
-  <footer>
-    <p><a href="https://docs.openarch.app/">Documentation</a> · <a href="https://apps.apple.com/at/app/openarch/id6828950867">App Store</a> · <a href="https://github.com/dpfaffenbauer/OpenArch">OpenArch on GitHub</a> · MIT license</p>
-    <p>OpenArch is an independent open-source project and is not affiliated with or endorsed by The Browser Company of New York or Atlassian. Arc is a trademark of The Browser Company of New York.</p>
-  </footer>
+  <!-- On small screens: the bar of OpenArch for iPhone, below the page. -->
+  <div class="phone-bar">
+    <button class="icon-button" type="button" data-sidebar-toggle aria-controls="sidebar">
+      <svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg>
+      <span class="sr-only">Show the sidebar</span>
+    </button>
+    <button class="address" type="button" data-open-bar>
+      <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span>Search openarch.app</span>
+    </button>
+    <a class="icon-button" href="#download">
+      <svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>
+      <span class="sr-only">Download</span>
+    </a>
+  </div>
 
-  <script>
-    // The header gets an edge once the page scrolls under it.
-    const topbar = document.querySelector('.topbar');
-    const markScroll = () => topbar.toggleAttribute('data-scrolled', window.scrollY > 4);
-    addEventListener('scroll', markScroll, { passive: true });
-    markScroll();
+  <!-- The command bar: ⌘T in OpenArch, ⌘K or / here. -->
+  <dialog class="bar" id="bar" aria-label="Command bar">
+    <div class="bar-field">
+      <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="bar-input" type="text" role="combobox" aria-expanded="true" aria-controls="bar-list" aria-autocomplete="list" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Find a feature, a section or a command">
+    </div>
+    <ul id="bar-list" role="listbox" aria-label="Results"></ul>
+    <p class="bar-foot">In OpenArch this is <kbd>⌘T</kbd>. On this page it is <kbd>⌘K</kbd> or <kbd>/</kbd>.</p>
+  </dialog>
 
-    // Days until Arc stops.
-    const days = Math.ceil((new Date('2026-12-22T00:00:00') - Date.now()) / 86400000);
-    if (days > 0) {
-      const countdown = document.querySelector('.countdown');
-      countdown.textContent = ` · ${days} ${days === 1 ? 'day' : 'days'} to go`;
-      countdown.hidden = false;
-    }
-
-    // The screenshot tabs. The frame takes the space color of the shot (style.css).
-    const shots = {
-      sidebar: { src: 'assets/hero.jpg', alt: 'OpenArch with a green sidebar: favorites, pinned folders and open tabs', caption: 'Favorites, pinned folders and today’s tabs, in the sidebar you already know.' },
-      command: { src: 'assets/commandbar.jpg', alt: 'The command bar in the blue Travel space', caption: 'One field for addresses, searches, tabs, history and commands.' },
-      split: { src: 'assets/split.jpg', alt: 'Split View in the orange Home space', caption: 'Up to four pages side by side or stacked, with dividers you can drag.' },
-      library: { src: 'assets/library.jpg', alt: 'The library listing the spaces Work, Home and Travel', caption: 'Media, downloads, spaces and archive in one place.' },
-    };
-    const tabs = [...document.querySelectorAll('[role="tab"]')];
-    const panel = document.getElementById('shot-panel');
-    const shotImage = panel.querySelector('img');
-    const caption = document.querySelector('.shot-caption');
-    const pick = (tab, focus) => {
-      const shot = shots[tab.dataset.shot];
-      for (const other of tabs) {
-        const selected = other === tab;
-        other.setAttribute('aria-selected', selected);
-        other.tabIndex = selected ? 0 : -1;
-      }
-      panel.setAttribute('aria-labelledby', tab.id);
-      panel.dataset.shot = tab.dataset.shot;
-      shotImage.src = shot.src;
-      shotImage.alt = shot.alt;
-      caption.textContent = shot.caption;
-      if (focus) tab.focus();
-    };
-    tabs.forEach((tab, index) => {
-      tab.addEventListener('click', () => pick(tab, false));
-      tab.addEventListener('keydown', (event) => {
-        const target = {
-          ArrowRight: (index + 1) % tabs.length,
-          ArrowLeft: (index - 1 + tabs.length) % tabs.length,
-          Home: 0,
-          End: tabs.length - 1,
-        }[event.key];
-        if (target === undefined) return;
-        event.preventDefault();
-        pick(tabs[target], true);
-      });
-    });
-    // Load the other screenshots early, so switching is instant.
-    for (const shot of Object.values(shots)) new Image().src = shot.src;
-
-    // Copy the Claude Code command.
-    document.querySelectorAll('[data-copy]').forEach((button) => {
-      button.addEventListener('click', async () => {
-        const text = document.getElementById(button.dataset.copy).textContent;
-        const status = document.getElementById('copy-status');
-        try {
-          await navigator.clipboard.writeText(text);
-          button.textContent = status.textContent = 'Copied';
-        } catch {
-          button.textContent = 'Select and copy';
-          status.textContent = 'Copying failed. Select the command and copy it.';
-        }
-        setTimeout(() => { button.textContent = 'Copy'; status.textContent = ''; }, 2500);
-      });
-    });
-  </script>
+  <script src="site.js" defer></script>
 </body>
 </html>
