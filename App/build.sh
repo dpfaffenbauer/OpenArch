@@ -109,8 +109,6 @@ write_plist "$APP/Contents/Info.plist" "$NAME" "$BUNDLE_ID" "$NAME" "
   <key>NSCalendarsFullAccessUsageDescription</key><string>OpenArch shows your next meeting in the sidebar, with a button to join the call.</string>
   <key>NSCalendarsUsageDescription</key><string>OpenArch shows your next meeting in the sidebar, with a button to join the call.</string>"
 # Chrome's framework, with its helper apps inside (Versions/<v>/Helpers).
-# What a CEF build of OpenArch left in an older build folder goes.
-rm -rf "$APP/Contents/Frameworks/Chromium Embedded Framework.framework" "$APP/Contents/Frameworks/$NAME Helper"*.app
 rsync -a --delete "$OPENARCH_ENGINE_FRAMEWORKS/Chromium Framework.framework" "$APP/Contents/Frameworks/"
 FRAMEWORK="$APP/Contents/Frameworks/Chromium Framework.framework"
 rsync -a --delete "$APP_DIR/Resources/" "$APP/Contents/Resources/"

@@ -55,4 +55,3 @@ The sharing format, its cryptography and the relay client are a Swift package of
 | `docs/` | The sharing format and App Store notes |
 | `engine/chromium/` | OpenArch's layer in Chrome's framework, its hooks and the Chrome version |
 | `scripts/` | Building, fetching and updating the engine; drawing the icons |
-| `spikes/` | The first experiments, with CEF and with Chromium |
