@@ -311,6 +311,14 @@ private struct GeneralPage: View {
                 Toggle("", isOn: $library.settings.protectedMediaWebKit).labelsHidden().toggleStyle(.switch)
                     .onChange(of: library.settings.protectedMediaWebKit) { library.settings.applyToChromium() }
             }
+            Row(symbol: "play.rectangle", color: .green, title: "Streamingdienste in Chromium abspielen",
+                detail: FairPlay.isAvailable
+                    ? "Spotify, Netflix und Disney+ bleiben Chromium-Seiten, mit deinen Erweiterungen und Logins; Bild und Ton spielt Apples FairPlay. Neu, und standardmäßig aus: Spielt etwas nicht, bietet OpenArch Safaris Engine an. Gilt für Seiten, die du ab jetzt öffnest, für Netflix nach einem Neustart von OpenArch."
+                    : "In diesem Build nicht enthalten.") {
+                Toggle("", isOn: $library.settings.fairPlayInChromium).labelsHidden().toggleStyle(.switch)
+                    .disabled(!FairPlay.isAvailable)
+                    .onChange(of: library.settings.fairPlayInChromium) { library.settings.applyToChromium() }
+            }
             Row(symbol: "lock.rectangle", color: .gray, title: "Geschützte Inhalte (Widevine)",
                 detail: "Chromiums Widevine für Seiten, die es ohne Zertifizierung annehmen; Netflix und Spotify gehören nicht dazu. Gilt nach einem Neustart von OpenArch.",
                 showsDivider: false) {

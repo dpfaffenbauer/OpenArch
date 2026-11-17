@@ -28,6 +28,7 @@
 "%@ nicht erlaubt" = "%@ non consentito";
 "%@ offen" = "%@ aperta/e";
 "%@ spielt geschützte Videos und Musik nur mit Apples FairPlay, darum läuft sie mit Safaris Engine. Chrome-Erweiterungen und Chromes DevTools gibt es hier nicht (⌥⌘I öffnet den Web Inspector), und Logins aus Chromium gelten hier nicht: Du meldest dich einmal neu an." = "%@ riproduce video e musica protetti solo con FairPlay di Apple, per questo funziona con il motore di Safari. Le estensioni di Chrome e i DevTools di Chrome qui non sono disponibili (⌥⌘I apre Web Inspector), e i login di Chromium qui non valgono: dovrai accedere di nuovo una volta.";
+"%@ spielt in Chromium gerade nicht" = "%@ al momento non riproduce in Chromium";
 "%@ spielt mit Safaris Engine" = "%@ riproduce con il motore di Safari";
 "%@ · %lld Lesezeichen · %@" = "%@ · %lld segnalibri · %@";
 "%@-Lesezeichen" = "Segnalibri di %@";
@@ -478,6 +479,7 @@
 "In Split View öffnen" = "Apri in Split View";
 "In den Papierkorb" = "Sposta nel cestino";
 "In der Befehlsleiste das Kürzel oder den Namen tippen und Tab drücken, dann den Suchbegriff. %s steht für den Suchbegriff." = "Nella barra dei comandi digita l’abbreviazione o il nome e premi Tab, poi il termine di ricerca. %s sta per il termine di ricerca.";
+"In diesem Build nicht enthalten." = "Non incluso in questa build.";
 "In diesem Ordner ist keine Sicherung von OpenArch (Library.json fehlt)." = "In questa cartella non c’è alcun backup di OpenArch (manca Library.json).";
 "In neuem Tab öffnen" = "Apri in una nuova scheda";
 "In welchem Ordner soll der Agent arbeiten?" = "In quale cartella deve lavorare l’agente?";
@@ -593,6 +595,7 @@
 "Mit Claude Code verbinden" = "Connetti a Claude Code";
 "Mit Google anmelden" = "Accedi con Google";
 "Mit Passwort schützen" = "Proteggi con password";
+"Mit Safaris Engine öffnen" = "Apri con il motore di Safari";
 "Mit der KI-Steuerung (Einstellungen › KI) kann er auch deine Tabs bedienen." = "Con il controllo IA (Impostazioni › IA) può usare anche le tue schede.";
 "Mit der KI-Steuerung kann er auch deine Tabs bedienen." = "Con il controllo IA può usare anche le tue schede.";
 "Mit der Seite chatten" = "Chatta con la pagina";
@@ -615,6 +618,7 @@
 "Neben dem aktuellen Tab öffnen …" = "Apri accanto alla scheda corrente…";
 "Nebeneinander anzeigen" = "Mostra affiancate";
 "Nein" = "No";
+"Netflix und Disney+ in Chromium" = "Netflix e Disney+ in Chromium";
 "Neu anfangen" = "Ricomincia";
 "Neu laden" = "Ricarica";
 "Neu laden (⌘R)" = "Ricarica (⌘R)";
@@ -822,6 +826,7 @@
 "Split View mit aktuellem Tab" = "Split View con la scheda corrente";
 "Spotify" = "Spotify";
 "Spotify öffnen" = "Apri Spotify";
+"Spotify, Netflix und Disney+ bleiben Chromium-Seiten, mit deinen Erweiterungen und Logins; Bild und Ton spielt Apples FairPlay. Neu, und standardmäßig aus: Spielt etwas nicht, bietet OpenArch Safaris Engine an. Gilt für Seiten, die du ab jetzt öffnest, für Netflix nach einem Neustart von OpenArch." = "Spotify, Netflix e Disney+ restano pagine Chromium, con le tue estensioni e i tuoi accessi; immagine e audio li riproduce FairPlay di Apple. Nuovo, e disattivato di default: se qualcosa non viene riprodotto, OpenArch propone il motore di Safari. Si applica alle pagine che aprirai da ora in poi, a Netflix dopo il riavvio di OpenArch.";
 "Spotify, Netflix, Disney+, Prime Video und andere Streamingdienste spielen ihre Videos und Musik nur mit Apples FairPlay. Ihre Seiten öffnen deshalb mit Safaris Engine (WebKit), im selben Tab; Chrome-Erweiterungen laufen dort nicht. Pro Website änderst du das im Site Control Center." = "Spotify, Netflix, Disney+, Prime Video e altri servizi di streaming riproducono video e musica solo con FairPlay di Apple. Le loro pagine si aprono quindi con il motore di Safari (WebKit), nella stessa scheda; le estensioni di Chrome non vi funzionano. Puoi cambiare questa impostazione per ogni sito nel Site Control Center.";
 "Sprache" = "Lingua";
 "Sprache geändert" = "Lingua modificata";
@@ -835,6 +840,8 @@
 "Starte OpenArch bitte noch einmal. Wenn es wieder passiert, hilft ein Neustart des Macs." = "Avvia di nuovo OpenArch. Se succede ancora, riavvia il Mac.";
 "Status" = "Stato";
 "Storage.clearDataForOrigin" = "Storage.clearDataForOrigin";
+"Streamingdienste in Chromium" = "Servizi di streaming in Chromium";
+"Streamingdienste in Chromium abspielen" = "Riproduci i servizi di streaming in Chromium";
 "Stummschalten" = "Muto";
 "Suche Browser …" = "Ricerca dei browser…";
 "Suche nach Arc …" = "Ricerca di Arc…";

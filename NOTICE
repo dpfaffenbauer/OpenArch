@@ -17,6 +17,32 @@ OpenArch includes code adapted from other projects, under their own licences:
     is deleted, and put back after an interrupted take-over) follows Airc's
     apps/browser/Sources/Airc/App/SafeStorageKey.swift.
 
+- Ardia (https://github.com/ardia-browser/ardia), Copyright 2026 Mantra Patel,
+  Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0): Ardia's
+  FairPlay bridges (commit 8a07d45). Changed for OpenArch.
+  - Spotify's music. App/Sources/OpenArchFairPlay/main.swift adapts
+    packages/ardiacore/fairplay/main.swift: the helper process with Apple's
+    player, the key requests and Now Playing.
+    App/Resources/BuiltinExtensions/openarch/fairplay.js adapts the FairPlay
+    part of packages/ardiacore/ios/page_script.js: the key system offered to
+    the page, the media element's answers and the playlist's hand-over.
+    App/Sources/OpenArch/Browser/FairPlay.swift follows
+    packages/ardiacore/ios/ArdiaFairPlay.mm: what a page may send, the
+    helper's messages and its life cycle.
+  - Netflix's and Disney+'s video. App/Sources/OpenArchProtectedVideo
+    adapts packages/ardiacore/ios: ArdiaProtectedVideo.mm,
+    ArdiaProtectedVideoInternal.h, ArdiaProtectedVideoMedia.mm,
+    ArdiaPVSession*.mm (the sample-buffer player, its keys, buffers and
+    Picture in Picture) and ArdiaVideoMirror.mm (the copy of the site's
+    controls), with helpers from ArdiaRuntime.h, ArdiaWebView.mm and
+    ArdiaSystemPictureInPicture.mm.
+    App/Resources/ProtectedVideo/video_mirror.js is
+    packages/ardiacore/ios/video_mirror.js, unchanged.
+    App/Resources/BuiltinExtensions/openarch/protected-video.js adapts
+    page_script.js: its protected video bridge and its video mirror.
+    App/Resources/OptionalExtensions/safari-user-agent adapts
+    packages/ardiacore/extensions/protected-video-ua.
+
 - Cra (https://github.com/VictorKildahl/cra), MIT License:
   App/Sources/OpenArch/Model/ProtectedMedia.swift (the list of streaming
   services and its rules) and parts of

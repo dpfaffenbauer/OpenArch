@@ -891,6 +891,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let wasShown = visibleTabs.contains { $0 === tab }
         let hadFocus = state.activeItem === tab
         itemsByPane[ObjectIdentifier(old)] = nil
+        forgetFairPlay(old)
         old.delegate = nil
         old.hide()
         old.close()
@@ -932,6 +933,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         }
         if let pane = tab.pane {
             itemsByPane[ObjectIdentifier(pane)] = nil
+            forgetFairPlay(pane)
             pane.delegate = nil
             pane.close()
         }
@@ -1078,7 +1080,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let url = InternalURL.resolve(url)
         if let pane = item.pane {
             // OpenArch's own navigations pick the engine again.
-            let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
+            let engine = ProtectedMedia.engine(forAddress: url, current: pane)
             if engine != pane.engine {
                 replacePage(of: item, with: url, engine: engine)
             } else {
@@ -1629,6 +1631,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     private(set) var toast: ToastWindow?
+    /// Pages whose track or video OpenArch could not play, told once.
+    private var fairPlayFailures = Set<ObjectIdentifier>()
+
+    /// |page| closes: what OpenArch plays for it stops with it.
+    private func forgetFairPlay(_ page: any OACPage) {
+        FairPlay.shared.pageGone(page)
+        ProtectedVideo.shared.pageGone(page)
+        fairPlayFailures.remove(ObjectIdentifier(page))
+    }
 
     func showToast(_ text: String, symbol: String = "checkmark.circle.fill", action: ToastAction? = nil,
                    closable: Bool = false) {
@@ -1776,7 +1787,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     /// A Chromium page going to a streaming service: the tab moves to
     /// WebKit at that address, in its place (a POST stays).
     func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
-        guard let item = item(for: pane), ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        guard let item = item(for: pane), ProtectedMedia.handsOff(from: pane, to: url, method: method) else { return false }
         DispatchQueue.main.async {
             MainActor.assumeIsolated { [weak self] in
                 guard let self, item.pane === pane else { return }
@@ -1824,6 +1835,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     func paneDidClose(_ pane: any OACPage) {
         // The page closed itself (window.close()) or its browser went away;
         // while OpenArch quits, every browser goes, and the tabs stay.
+        forgetFairPlay(pane)
         guard !library.isFrozen, let item = item(for: pane) else { return }
         itemsByPane[ObjectIdentifier(pane)] = nil
         item.pane = nil
@@ -1934,6 +1946,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     func pane(_ pane: any OACPage, consoleMessage message: String, source: String, line: Int) {
+        if FairPlay.shared.receive(message, from: pane) || ProtectedVideo.shared.receive(message, from: pane) { return }
         let zapPrefix = "__openarch_zap__"
         if message.hasPrefix(zapPrefix), let editor = BoostPanelController.current?.model, editor.item === item(for: pane) {
             if message.hasPrefix(zapPrefix + " ") {
@@ -1979,8 +1992,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         if message.hasPrefix(prefix), let item = item(for: pane),
            let data = message.dropFirst(prefix.count).data(using: .utf8),
            let state = try? JSONSerialization.jsonObject(with: data) as? [String: Bool] {
-            item.isAudible = state["audible"] ?? false
+            // Chromium hears nothing of what OpenArch plays with FairPlay.
+            item.isAudible = (state["audible"] ?? false) || FairPlay.shared.isPlaying(in: pane)
+                || ProtectedVideo.shared.isPlaying(in: pane)
             item.isMuted = state["muted"] ?? false
+            FairPlay.shared.muteChanged(in: pane)
+            ProtectedVideo.shared.muteChanged(in: pane)
             return
         }
         SelfTest.current?.consoleMessage(message, from: item(for: pane))
@@ -2070,6 +2087,43 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard let pane = item.pane else { return }
         item.isMuted.toggle()
         pane.setAudioMuted(item.isMuted)
+        FairPlay.shared.muteChanged(in: pane)
+        ProtectedVideo.shared.muteChanged(in: pane)
+    }
+}
+
+// MARK: - Streaming services in Chromium
+
+extension BrowserWindowController: FairPlayHost {
+    func fairPlayIsMuted(_ page: any OACPage) -> Bool {
+        item(for: page)?.isMuted ?? false
+    }
+
+    func fairPlay(_ page: any OACPage, isPlaying: Bool) {
+        item(for: page)?.isAudible = isPlaying
+    }
+
+    /// Picture in Picture's "back to the tab": the tab, in front.
+    func fairPlayBackToTab(_ page: any OACPage) {
+        guard let item = item(for: page) else { return }
+        if state.activeItem !== item { select(item) }
+        window?.makeKeyAndOrderFront(nil)
+        NSApp.activate()
+    }
+
+    /// The track or video did not play in Chromium (the service changed its
+    /// player, or OpenArch's part failed): Safari's engine plays it. Once
+    /// per page.
+    func fairPlayFailed(_ page: any OACPage) {
+        guard let item = item(for: page), fairPlayFailures.insert(ObjectIdentifier(page)).inserted else { return }
+        let service = ProtectedMediaSites().serviceName(for: item.currentURL) ?? L("Diese Seite")
+        showToast(L("%@ spielt in Chromium gerade nicht", service), symbol: "exclamationmark.circle.fill",
+                  action: ToastAction(title: L("Mit Safaris Engine öffnen")) { [weak self, weak item] in
+                      guard let self, let item, item.pane === page else { return }
+                      let url = item.currentURL
+                      ProtectedMedia.choose(.webKit, for: url)
+                      self.replacePage(of: item, with: url, engine: .webKit)
+                  }, closable: true)
     }
 }
 
