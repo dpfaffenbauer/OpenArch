@@ -8,6 +8,7 @@
 " OpenArch beginnt mit einem leeren Space; Einstellungen › Import holt Arc später." = " OpenArch empieza con un Space vacío; Ajustes › Importar permite importar Arc más tarde.";
 " OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr." = " Después, OpenArch se queda con la clave y las actualizaciones tampoco volverán a preguntar.";
 " · mit Passwort" = " · con contraseña";
+" – auf dieser Seite nicht aktiv" = " – no activa en esta página";
 "#%02X%02X%02X" = "#%02X%02X%02X";
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nLa carpeta se mantiene mientras el chat esté activo: Claude Code solo puede continuar la sesión allí.";
 "%@ angeheftet" = "%@ fijada(s)";
@@ -126,6 +127,7 @@
 "Als Standard festlegen" = "Establecer como predeterminado";
 "Als Standardbrowser festlegen" = "Establecer como navegador predeterminado";
 "Als Tab öffnen" = "Abrir como pestaña";
+"An die Leiste heften" = "Fijar en la barra";
 "Andere" = "Otros";
 "Andere ausblenden" = "Ocultar otras";
 "Angehalten." = "Detenido.";
@@ -210,6 +212,7 @@
 "Bildschirmfoto" = "Captura de pantalla";
 "Bitte beende %@ selbst und starte den Import dann noch einmal." = "Sal tú de %@ y vuelve a iniciar la importación.";
 "Blockieren" = "Bloquear";
+"Boost" = "Boost";
 "Boost ausschalten" = "Desactivar Boost";
 "Boost bearbeiten" = "Editar Boost";
 "Boost bearbeiten …" = "Editar Boost…";
@@ -350,6 +353,7 @@
 "Eigenes Fenster" = "Ventana independiente";
 "Ein Agent-Chat steht in der Sidebar wie ein Tab. Claude Code arbeitet darin in einem Ordner auf diesem Mac, mit dem Login von claude im Terminal und damit deinem Abo, ganz ohne API-Schlüssel. Ist die KI-Steuerung an, kann der Agent auch deine Tabs bedienen." = "Un chat con agente aparece en la barra lateral como una pestaña. Claude Code trabaja en él dentro de una carpeta de este Mac, con el inicio de sesión de claude en el terminal y, por tanto, con tu suscripción, sin ninguna clave de API. Si el control por IA está activado, el agente también puede usar tus pestañas.";
 "Ein Bericht enthält Versionen, die Art des Prozesses und die Stelle im Code, nie Adressen, Titel oder Seiteninhalte. Er geht nur als GitHub-Issue raus, das du selbst abschickst." = "Un informe contiene las versiones, el tipo de proceso y el punto del código, nunca direcciones, títulos ni contenido de páginas. Solo se envía como issue de GitHub, y lo envías tú.";
+"Ein Bild der Seite in die Zwischenablage" = "Copiar una imagen de la página al portapapeles";
 "Ein Browser im Geist von Arc: Spaces mit eigenen Profilen, eine Sidebar statt Tab-Leiste, echte Chrome-Extensions. In zwei Minuten eingerichtet, jeder Schritt lässt sich überspringen." = "Un navegador con el espíritu de Arc: Spaces con sus propios perfiles, una barra lateral en lugar de una barra de pestañas y extensiones de Chrome de verdad. Se configura en dos minutos y puedes omitir cualquier paso.";
 "Ein Kürzel braucht ⌘ oder ⌃." = "Un atajo necesita ⌘ o ⌃.";
 "Ein Link möchte diese App öffnen." = "Un enlace quiere abrir esta app.";
@@ -368,6 +372,7 @@
 "Einmal im Terminal ausführen. Danach kann Claude in jedem Projekt OpenArch steuern, etwa um eine lokale Seite zu testen. Nutzt Googles MCP-Server chrome-devtools-mcp." = "Ejecútalo una vez en el terminal. Después, Claude podrá controlar OpenArch en cualquier proyecto, por ejemplo para probar una página local. Usa el servidor MCP de Google chrome-devtools-mcp.";
 "Einsetzen" = "Pegar";
 "Einsetzen und Stil anpassen" = "Pegar con el mismo estilo";
+"Einstellungen" = "Ajustes";
 "Einstellungen …" = "Ajustes…";
 "Element untersuchen" = "Inspeccionar elemento";
 "Elemente ausblenden" = "Ocultar elementos";
@@ -387,6 +392,8 @@
 "Erscheinungsbild" = "Apariencia";
 "Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite." = "Crea mi Morning Brief de hoy, {{DATUM}}, como una página HTML independiente.";
 "Erstellen" = "Crear";
+"Erweiterungen" = "Extensiones";
+"Erweiterungen im Chrome Web Store" = "Extensiones en Chrome Web Store";
 "Es gibt noch keine Stable-Version." = "Todavía no hay ninguna versión Stable.";
 "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden." = "Exportación de Chrome, Edge, Brave, Firefox, Safari (app Contraseñas), 1Password o Bitwarden.";
 "Export und Import" = "Exportar e importar";
@@ -402,6 +409,7 @@
 "Fenster schließen" = "Cerrar ventana";
 "Fertig" = "Hecho";
 "Formulardaten" = "Datos de formularios";
+"Foto" = "Foto";
 "Frag Claude zu dieser Seite" = "Pregunta a Claude sobre esta página";
 "Frag zu dieser Seite … (@ für Tabs)" = "Pregunta sobre esta página… (@ para pestañas)";
 "Frag zur Auswahl …" = "Pregunta sobre la selección…";
@@ -481,6 +489,7 @@
 "Installiert die neue Version und startet OpenArch neu. Tabs bleiben erhalten." = "Instala la nueva versión y reinicia OpenArch. Las pestañas se conservan.";
 "Intensität" = "Intensidad";
 "Iowan Old Style" = "Iowan Old Style";
+"Ist die Adresse schon in einem Tab offen, wechselt OpenArch dorthin, statt sie noch einmal zu öffnen." = "Si la dirección ya está abierta en una pestaña, OpenArch cambia a ella en lugar de abrirla de nuevo.";
 "Ja" = "Sí";
 "JavaScript" = "JavaScript";
 "JavaScript-Konsole" = "Consola de JavaScript";
@@ -540,6 +549,7 @@
 "Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser" = "Lee archivos; pregunta antes de hacer cambios, ejecutar comandos o usar el navegador";
 "Liest die Seite" = "Lee la página";
 "Liest die Seite …" = "Leyendo la página…";
+"Link" = "Enlace";
 "Link erstellen" = "Crear enlace";
 "Link in neuem Tab öffnen" = "Abrir enlace en una nueva pestaña";
 "Link kopieren" = "Copiar enlace";
@@ -676,7 +686,7 @@
 "Ohne Logins" = "Sin inicios de sesión";
 "Ohne Ordner" = "Sin carpeta";
 "Ohne den Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und Logins nicht öffnen. Versuch es noch einmal und wähle „Immer erlauben“, oder beende OpenArch." = "Sin la clave “%@” de tu llavero de inicio de sesión no se pueden abrir tus contraseñas ni tus inicios de sesión. Vuelve a intentarlo y elige “Permitir siempre”, o sal de OpenArch.";
-"Open Source unter der MIT-Lizenz · mit Chromium und CEF gebaut" = "Código abierto con licencia MIT · creado con Chromium y CEF";
+"Open Source unter der MIT-Lizenz · mit Chromium gebaut" = "Código abierto con licencia MIT · creado con Chromium";
 "Open Source · keine Anmeldung, kein Konto" = "Código abierto · sin registro, sin cuenta";
 "OpenArch" = "OpenArch";
 "OpenArch als Standardbrowser" = "OpenArch como navegador predeterminado";
@@ -712,6 +722,7 @@
 "Ordner wählen …" = "Elegir carpeta…";
 "Ordner „%@“ löschen?" = "¿Eliminar la carpeta “%@”?";
 "Originalgröße" = "Tamaño real";
+"Page.captureScreenshot" = "Page.captureScreenshot";
 "Passwort" = "Contraseña";
 "Passwort (mindestens 4 Zeichen)" = "Contraseña (al menos 4 caracteres)";
 "Passwörter" = "Contraseñas";
@@ -898,6 +909,7 @@
 "Videos und Musik" = "Vídeos y música";
 "Vollbild" = "Pantalla completa";
 "Vom Besitzer beendet" = "El propietario ha dejado de compartirlo";
+"Von der Leiste lösen" = "Quitar de la barra";
 "Von diesem Mac geteilt" = "Compartido desde este Mac";
 "Von keinem Space benutzt" = "No lo usa ningún Space";
 "Vorherige Seite der Split View" = "Panel anterior de la vista dividida";
@@ -957,6 +969,7 @@
 "Zu Favoriten hinzufügen" = "Añadir a favoritos";
 "Zu Space „%@“ wechseln" = "Ir al Space “%@”";
 "Zu Tab wechseln" = "Ir a la pestaña";
+"Zu offenem Tab wechseln" = "Cambiar a la pestaña abierta";
 "Zu viele Lesezeichen für eine Freigabe." = "Demasiados marcadores para compartir.";
 "Zu viele Lesezeichen für einen QR-Code. Sende den Link stattdessen." = "Hay demasiados marcadores para un código QR. Envía el enlace en su lugar.";
 "Zu wenige Tabs zum Aufräumen" = "Hay muy pocas pestañas para ordenar";

@@ -186,7 +186,7 @@ extension BrowserWindowController {
         item.favicon = favicon
         pane.delegate = self
         pane.cornerRadius = 8
-        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.activatesOnShow = AppPaths.panesActivate
         pane.toolbarVisible = library.settings.showChromeToolbar
         registerPane(pane, for: item)
         space.today.insert(item, at: 0)

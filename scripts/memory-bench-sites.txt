@@ -1,0 +1,21 @@
+# 20 everyday sites for scripts/memory-bench.sh sites; no logins needed.
+https://www.wikipedia.org/
+https://en.wikipedia.org/wiki/Web_browser
+https://github.com/
+https://github.com/chromium/chromium
+https://news.ycombinator.com/
+https://www.reddit.com/r/programming/
+https://stackoverflow.com/questions
+https://developer.apple.com/documentation/swiftui
+https://developer.mozilla.org/en-US/
+https://www.youtube.com/
+https://www.nytimes.com/
+https://www.theverge.com/
+https://www.bbc.com/news
+https://www.orf.at/
+https://www.derstandard.at/
+https://www.figma.com/
+https://www.notion.com/
+https://www.apple.com/
+https://maps.google.com/
+https://www.amazon.de/

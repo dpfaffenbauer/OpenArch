@@ -2,11 +2,24 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// NSApplication subclass Chromium needs on macOS (CefAppProtocol).
-/// Set it as NSPrincipalClass and create it before anything else.
-@interface OACApplication : NSApplication
+/// Exported from Chrome's framework, which builds with hidden visibility
+/// (engine/chromium).
+#ifndef OAC_EXPORT
+#define OAC_EXPORT __attribute__((visibility("default")))
+#endif
+
+/// The NSApplication subclass Chrome needs on macOS. Set it as
+/// NSPrincipalClass and create it before anything else. In Chrome's
+/// framework (engine/chromium) it is a BrowserCrApplication, which the
+/// engine sets with OAC_APPLICATION_SUPERCLASS.
+#ifndef OAC_APPLICATION_SUPERCLASS
+#define OAC_APPLICATION_SUPERCLASS NSApplication
+#endif
+OAC_EXPORT
+@interface OACApplication : OAC_APPLICATION_SUPERCLASS
 @end
 
+OAC_EXPORT
 @interface OACEngineSettings : NSObject
 /// Chromium's user data directory. Profiles live directly below it.
 @property(copy) NSString* rootCachePath;
@@ -28,6 +41,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 /// Process-wide Chromium lifecycle.
 NS_SWIFT_UI_ACTOR
+OAC_EXPORT
 @interface OACEngine : NSObject
 
 /// Loads the Chromium Embedded Framework. Call first, before NSApp exists.

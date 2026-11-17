@@ -7,14 +7,14 @@ OpenArch is open source under the MIT license. The code is on [GitHub](https://g
 
 ## The Mac app
 
-You need Xcode 16 or later (Swift 6), CMake and Ninja.
+You need Xcode 16 or later (Swift 6).
 
 ```sh
-App/build.sh                      # fetches CEF, builds App/build/OpenArch.app
+App/build.sh                      # fetches the engine, builds App/build/OpenArch.app
 open App/build/OpenArch.app
 ```
 
-The first build downloads OpenArch's Chromium (CEF with the codecs) into `Vendor/cef`. Builds made this way are signed ad hoc. With `SIGN_IDENTITY` set to a Developer ID, `build.sh` signs with it and the hardened runtime instead, as the releases are.
+The first build downloads OpenArch's engine into `Vendor/engine`: Chrome's own framework with OpenArch's layer, built by CI for the Chrome version in `engine/chromium/VERSION` and the layer in `engine/chromium`. A change to the layer needs a new engine build: CI makes it for the pull request (two to three days), or `scripts/build-chromium.sh` makes it on your Mac (about 1 hour and 35 GB to check out, about 2.5 hours to build the first time, minutes after that), which `build.sh` then uses. [docs/chromium-engine.md](https://github.com/dpfaffenbauer/OpenArch/blob/main/docs/chromium-engine.md) has the details. Builds made this way are signed ad hoc. With `SIGN_IDENTITY` set to a Developer ID, `build.sh` signs with it and the hardened runtime instead, as the releases are.
 
 ### The self-test
 
@@ -34,7 +34,7 @@ Open `iOS/OpenArch.xcodeproj` in Xcode and run it; choose your team under **Sign
 
 GitHub Actions builds every push (`.github/workflows/build.yml`) and publishes the newest build of `main` as the [nightly release](https://github.com/dpfaffenbauer/OpenArch/releases/tag/nightly), which OpenArch updates itself from.
 
-OpenArch's Chromium is its own build of CEF with the proprietary codecs (H.264, AAC, HEVC) that the official CEF builds leave out. `cef-codecs.yml` makes it on GitHub, in about ten hours. Once a day `update-cef.yml` looks for a newer stable CEF, starts that build when there is one, and then opens the update as a pull request, which merges itself once the checks have passed.
+OpenArch's engine is an official build of Chrome's framework with OpenArch's layer and the proprietary codecs (H.264, AAC). `chromium-engine.yml` makes it on GitHub, in two to three days, as a chain of jobs, whenever the layer changes, and publishes it as the release `engine-<version>-<key>`. Once a day `update-chromium-engine.yml` looks for a newer stable Chrome, starts that build when there is one, and then opens the update as a pull request, which merges itself once the checks have passed.
 
 ## These docs
 

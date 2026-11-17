@@ -1,0 +1,24 @@
+# The OpenArch spike embedder, linked into Chrome's framework
+# (//chrome:chrome_dll on macOS). See ../setup.sh for the hooks in Chrome.
+
+assert(is_mac)
+
+source_set("openarch") {
+  sources = [
+    "embedder_parts.mm",
+    "pane.h",
+    "pane.mm",
+  ]
+  frameworks = [ "AppKit.framework" ]
+  deps = [
+    "//base",
+    "//chrome/browser",
+    "//chrome/browser:main_extra_parts",
+    "//chrome/browser/profiles:profile",
+    "//chrome/browser/profiles:profile_manager",
+    "//chrome/browser/ui:tab_helpers",
+    "//content/public/browser",
+    "//ui/gfx",
+    "//url",
+  ]
+}

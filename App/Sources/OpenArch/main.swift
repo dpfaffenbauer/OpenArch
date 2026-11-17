@@ -25,10 +25,10 @@ if AppPaths.isSelfTest, arguments.contains("--keychain-test") {
 }
 
 guard OACEngine.loadFramework() else {
-    fatalError("Could not load the Chromium Embedded Framework")
+    fatalError("Could not load Chromium Framework")
 }
 
-// Must exist before CEF starts (CefAppProtocol).
+// Must exist before Chrome starts (it subclasses Chrome's BrowserCrApplication).
 let app = OACApplication.shared
 let delegate = AppDelegate(selfTest: AppPaths.isSelfTest)
 app.delegate = delegate

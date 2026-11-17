@@ -28,7 +28,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 60
     outputs:
-      cef: ${{ steps.package.outputs.cef }}
+      chrome: ${{ steps.package.outputs.chrome }}
       notarized: ${{ steps.package.outputs.notarized }}
     steps:
       - uses: actions/checkout@v4
@@ -39,15 +39,24 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
-          brew list ninja >/dev/null 2>&1 || brew install ninja
 
-      # CEF (~350 MB) and its wrapper library only change with the pinned
-      # version or the patch.
-      - name: Cache CEF
+      # OpenArch's engine (Chrome's framework with OpenArch's layer, ~550 MB)
+      # changes only with the Chrome version or the layer: the release
+      # engine-<version>-<key> that chromium-engine.yml built for them.
+      - name: Engine release
+        id: engine
+        run: echo "tag=$(scripts/fetch-chromium-engine.sh --tag)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the engine
         uses: actions/cache@v4
         with:
-          path: Vendor/cef
-          key: cef-${{ runner.arch }}-${{ hashFiles('scripts/fetch-cef.sh', 'scripts/patch-cef.*') }}
+          path: Vendor/engine
+          key: engine-${{ steps.engine.outputs.tag }}
+
+      # Until chromium-engine.yml has built the engine for this version and
+      # layer (2–3 days after a change to engine/chromium), this fails.
+      - name: Fetch the engine
+        run: scripts/fetch-chromium-engine.sh
 
       # The Developer ID from the repository's secrets: the build is signed
       # with it (hardened runtime) and notarized below. Without the secrets,
@@ -134,7 +143,7 @@ jobs:
           NOTARY_ISSUER_ID: ${{ github.event_name != 'pull_request' && secrets.NOTARY_ISSUER_ID || '' }}
         run: |
           codesign --verify --deep --strict --verbose=2 App/build/OpenArch.app
-          echo "cef=$(cat Vendor/cef/.version)" >> "$GITHUB_OUTPUT"
+          echo "chrome=$(cat engine/chromium/VERSION)" >> "$GITHUB_OUTPUT"
           if [[ -n "${SIGN_IDENTITY:-}" ]]; then
             # The requirement OpenArch's updater checks downloads against
             # (Updater.codeRequirement): keep the two the same.
@@ -182,7 +191,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      CEF: ${{ needs.build.outputs.cef }}
+      CHROME: ${{ needs.build.outputs.chrome }}
       NOTARIZED: ${{ needs.build.outputs.notarized }}
     steps:
       - uses: actions/checkout@v4
@@ -211,14 +220,14 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           if [[ "$NOTARIZED" == 1 ]]; then
-            notes="Build of $(git rev-parse --short HEAD) with CEF $CEF. Signed with a Developer ID and notarized."
+            notes="Build of $(git rev-parse --short HEAD) on Chrome $CHROME. Signed with a Developer ID and notarized."
           else
-            notes="Build of $(git rev-parse --short HEAD) with CEF $CEF. Not notarized: after downloading, run
+            notes="Build of $(git rev-parse --short HEAD) on Chrome $CHROME. Not notarized: after downloading, run
           xattr -dr com.apple.quarantine OpenArch.app"
           fi
           # What OpenArch's updater reads; uploaded after the zip it points to.
           cat > latest.json <<JSON
-          {"build": ${{ github.run_number }}, "commit": "$(git rev-parse --short HEAD)", "chromium": "$CEF",
+          {"build": ${{ github.run_number }}, "commit": "$(git rev-parse --short HEAD)", "chromium": "$CHROME",
            "sha256": "$(sha256sum OpenArch.zip | cut -d' ' -f1)", "size": $(stat -c%s OpenArch.zip),
            "url": "https://github.com/${{ github.repository }}/releases/download/nightly/OpenArch.zip"}
           JSON
@@ -239,7 +248,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           cat > latest.json <<JSON
-          {"build": ${{ github.run_number }}, "version": "$version", "commit": "$(git rev-parse --short HEAD)", "chromium": "$CEF",
+          {"build": ${{ github.run_number }}, "version": "$version", "commit": "$(git rev-parse --short HEAD)", "chromium": "$CHROME",
            "sha256": "$(sha256sum OpenArch.zip | cut -d' ' -f1)", "size": $(stat -c%s OpenArch.zip),
            "url": "https://github.com/${{ github.repository }}/releases/download/$GITHUB_REF_NAME/OpenArch.zip"}
           JSON
@@ -248,8 +257,8 @@ jobs:
             notes=(--notes-file ".github/release-notes/$GITHUB_REF_NAME.md")
           fi
           # Same file name in every release: releases/latest/download/OpenArch.zip
-          # always points to the newest one. --latest: a Chromium build's
-          # release (cef-…-codecs) published since must not take that place.
+          # always points to the newest one. --latest: an engine release
+          # (engine-…) published since must not take that place.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             # Made by hand before the build was done: keep its notes.
             gh release upload "$GITHUB_REF_NAME" OpenArch.zip --clobber

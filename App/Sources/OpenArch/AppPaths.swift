@@ -4,6 +4,13 @@ enum AppPaths {
     /// Set once at startup, before anything reads a path.
     nonisolated(unsafe) static var isSelfTest = false
 
+    /// Whether showing a tab activates OpenArch, as in everyday use. The
+    /// self-test keeps it in the background, except the memory bench, which
+    /// has to show and hide tabs the way everyday use does.
+    static var panesActivate: Bool {
+        !isSelfTest || CommandLine.arguments.contains("--memory-bench")
+    }
+
     static let support: URL = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         // OPENARCH_DATA_DIR: a data folder of its own, so a test build runs

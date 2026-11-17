@@ -8,6 +8,7 @@
 " OpenArch beginnt mit einem leeren Space; Einstellungen › Import holt Arc später." = " OpenArch beginnt mit einem leeren Space; Einstellungen › Import holt Arc später.";
 " OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr." = " OpenArch übernimmt den Schlüssel danach, auch Updates fragen nicht mehr.";
 " · mit Passwort" = " · mit Passwort";
+" – auf dieser Seite nicht aktiv" = " – auf dieser Seite nicht aktiv";
 "#%02X%02X%02X" = "#%02X%02X%02X";
 "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort." = "%@\nDer Ordner bleibt, solange der Chat läuft: Claude Code setzt die Sitzung nur dort fort.";
 "%@ angeheftet" = "%@ angeheftet";
@@ -126,6 +127,7 @@
 "Als Standard festlegen" = "Als Standard festlegen";
 "Als Standardbrowser festlegen" = "Als Standardbrowser festlegen";
 "Als Tab öffnen" = "Als Tab öffnen";
+"An die Leiste heften" = "An die Leiste heften";
 "Andere" = "Andere";
 "Andere ausblenden" = "Andere ausblenden";
 "Angehalten." = "Angehalten.";
@@ -210,6 +212,7 @@
 "Bildschirmfoto" = "Bildschirmfoto";
 "Bitte beende %@ selbst und starte den Import dann noch einmal." = "Bitte beende %@ selbst und starte den Import dann noch einmal.";
 "Blockieren" = "Blockieren";
+"Boost" = "Boost";
 "Boost ausschalten" = "Boost ausschalten";
 "Boost bearbeiten" = "Boost bearbeiten";
 "Boost bearbeiten …" = "Boost bearbeiten …";
@@ -350,6 +353,7 @@
 "Eigenes Fenster" = "Eigenes Fenster";
 "Ein Agent-Chat steht in der Sidebar wie ein Tab. Claude Code arbeitet darin in einem Ordner auf diesem Mac, mit dem Login von claude im Terminal und damit deinem Abo, ganz ohne API-Schlüssel. Ist die KI-Steuerung an, kann der Agent auch deine Tabs bedienen." = "Ein Agent-Chat steht in der Sidebar wie ein Tab. Claude Code arbeitet darin in einem Ordner auf diesem Mac, mit dem Login von claude im Terminal und damit deinem Abo, ganz ohne API-Schlüssel. Ist die KI-Steuerung an, kann der Agent auch deine Tabs bedienen.";
 "Ein Bericht enthält Versionen, die Art des Prozesses und die Stelle im Code, nie Adressen, Titel oder Seiteninhalte. Er geht nur als GitHub-Issue raus, das du selbst abschickst." = "Ein Bericht enthält Versionen, die Art des Prozesses und die Stelle im Code, nie Adressen, Titel oder Seiteninhalte. Er geht nur als GitHub-Issue raus, das du selbst abschickst.";
+"Ein Bild der Seite in die Zwischenablage" = "Ein Bild der Seite in die Zwischenablage";
 "Ein Browser im Geist von Arc: Spaces mit eigenen Profilen, eine Sidebar statt Tab-Leiste, echte Chrome-Extensions. In zwei Minuten eingerichtet, jeder Schritt lässt sich überspringen." = "Ein Browser im Geist von Arc: Spaces mit eigenen Profilen, eine Sidebar statt Tab-Leiste, echte Chrome-Extensions. In zwei Minuten eingerichtet, jeder Schritt lässt sich überspringen.";
 "Ein Kürzel braucht ⌘ oder ⌃." = "Ein Kürzel braucht ⌘ oder ⌃.";
 "Ein Link möchte diese App öffnen." = "Ein Link möchte diese App öffnen.";
@@ -368,6 +372,7 @@
 "Einmal im Terminal ausführen. Danach kann Claude in jedem Projekt OpenArch steuern, etwa um eine lokale Seite zu testen. Nutzt Googles MCP-Server chrome-devtools-mcp." = "Einmal im Terminal ausführen. Danach kann Claude in jedem Projekt OpenArch steuern, etwa um eine lokale Seite zu testen. Nutzt Googles MCP-Server chrome-devtools-mcp.";
 "Einsetzen" = "Einsetzen";
 "Einsetzen und Stil anpassen" = "Einsetzen und Stil anpassen";
+"Einstellungen" = "Einstellungen";
 "Einstellungen …" = "Einstellungen …";
 "Element untersuchen" = "Element untersuchen";
 "Elemente ausblenden" = "Elemente ausblenden";
@@ -387,6 +392,8 @@
 "Erscheinungsbild" = "Erscheinungsbild";
 "Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite." = "Erstelle meinen Morning Brief für heute, {{DATUM}}, als eigenständige HTML-Seite.";
 "Erstellen" = "Erstellen";
+"Erweiterungen" = "Erweiterungen";
+"Erweiterungen im Chrome Web Store" = "Erweiterungen im Chrome Web Store";
 "Es gibt noch keine Stable-Version." = "Es gibt noch keine Stable-Version.";
 "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden." = "Export aus Chrome, Edge, Brave, Firefox, Safari (Passwörter-App), 1Password oder Bitwarden.";
 "Export und Import" = "Export und Import";
@@ -402,6 +409,7 @@
 "Fenster schließen" = "Fenster schließen";
 "Fertig" = "Fertig";
 "Formulardaten" = "Formulardaten";
+"Foto" = "Foto";
 "Frag Claude zu dieser Seite" = "Frag Claude zu dieser Seite";
 "Frag zu dieser Seite … (@ für Tabs)" = "Frag zu dieser Seite … (@ für Tabs)";
 "Frag zur Auswahl …" = "Frag zur Auswahl …";
@@ -481,6 +489,7 @@
 "Installiert die neue Version und startet OpenArch neu. Tabs bleiben erhalten." = "Installiert die neue Version und startet OpenArch neu. Tabs bleiben erhalten.";
 "Intensität" = "Intensität";
 "Iowan Old Style" = "Iowan Old Style";
+"Ist die Adresse schon in einem Tab offen, wechselt OpenArch dorthin, statt sie noch einmal zu öffnen." = "Ist die Adresse schon in einem Tab offen, wechselt OpenArch dorthin, statt sie noch einmal zu öffnen.";
 "Ja" = "Ja";
 "JavaScript" = "JavaScript";
 "JavaScript-Konsole" = "JavaScript-Konsole";
@@ -540,6 +549,7 @@
 "Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser" = "Liest Dateien, fragt vor Änderungen, Befehlen und dem Browser";
 "Liest die Seite" = "Liest die Seite";
 "Liest die Seite …" = "Liest die Seite …";
+"Link" = "Link";
 "Link erstellen" = "Link erstellen";
 "Link in neuem Tab öffnen" = "Link in neuem Tab öffnen";
 "Link kopieren" = "Link kopieren";
@@ -676,7 +686,7 @@
 "Ohne Logins" = "Ohne Logins";
 "Ohne Ordner" = "Ohne Ordner";
 "Ohne den Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und Logins nicht öffnen. Versuch es noch einmal und wähle „Immer erlauben“, oder beende OpenArch." = "Ohne den Schlüssel „%@“ aus deinem Anmelde-Schlüsselbund lassen sich deine Passwörter und Logins nicht öffnen. Versuch es noch einmal und wähle „Immer erlauben“, oder beende OpenArch.";
-"Open Source unter der MIT-Lizenz · mit Chromium und CEF gebaut" = "Open Source unter der MIT-Lizenz · mit Chromium und CEF gebaut";
+"Open Source unter der MIT-Lizenz · mit Chromium gebaut" = "Open Source unter der MIT-Lizenz · mit Chromium gebaut";
 "Open Source · keine Anmeldung, kein Konto" = "Open Source · keine Anmeldung, kein Konto";
 "OpenArch" = "OpenArch";
 "OpenArch als Standardbrowser" = "OpenArch als Standardbrowser";
@@ -712,6 +722,7 @@
 "Ordner wählen …" = "Ordner wählen …";
 "Ordner „%@“ löschen?" = "Ordner „%@“ löschen?";
 "Originalgröße" = "Originalgröße";
+"Page.captureScreenshot" = "Page.captureScreenshot";
 "Passwort" = "Passwort";
 "Passwort (mindestens 4 Zeichen)" = "Passwort (mindestens 4 Zeichen)";
 "Passwörter" = "Passwörter";
@@ -898,6 +909,7 @@
 "Videos und Musik" = "Videos und Musik";
 "Vollbild" = "Vollbild";
 "Vom Besitzer beendet" = "Vom Besitzer beendet";
+"Von der Leiste lösen" = "Von der Leiste lösen";
 "Von diesem Mac geteilt" = "Von diesem Mac geteilt";
 "Von keinem Space benutzt" = "Von keinem Space benutzt";
 "Vorherige Seite der Split View" = "Vorherige Seite der Split View";
@@ -957,6 +969,7 @@
 "Zu Favoriten hinzufügen" = "Zu Favoriten hinzufügen";
 "Zu Space „%@“ wechseln" = "Zu Space „%@“ wechseln";
 "Zu Tab wechseln" = "Zu Tab wechseln";
+"Zu offenem Tab wechseln" = "Zu offenem Tab wechseln";
 "Zu viele Lesezeichen für eine Freigabe." = "Zu viele Lesezeichen für eine Freigabe.";
 "Zu viele Lesezeichen für einen QR-Code. Sende den Link stattdessen." = "Zu viele Lesezeichen für einen QR-Code. Sende den Link stattdessen.";
 "Zu wenige Tabs zum Aufräumen" = "Zu wenige Tabs zum Aufräumen";

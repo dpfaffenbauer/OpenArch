@@ -1,29 +1,30 @@
 ---
 title: "Architecture"
-description: "How OpenArch is put together: a Swift app around Chromium, where every tab is a real Chrome tab in a window of its own."
+description: "How OpenArch is put together: a Swift app on Chrome's own framework, where every tab is a real Chrome tab."
 ---
 
-OpenArch is a native Mac app around Chromium. The sidebar, the command bar and everything else you see around the page are Swift. The pages are Chrome.
+OpenArch is a native Mac app on Chrome's own framework. The sidebar, the command bar and everything else you see around the page are Swift. The pages are Chrome.
 
 ```
 Swift / AppKit / SwiftUI app        App/Sources/OpenArch
   sidebar, command bar, spaces, library, Arc import, AI features
         │  a narrow Objective-C API
-OpenArchCore (Objective-C++)        App/Sources/OpenArchCore
+OpenArchCore (the bridge's headers)  App/Sources/OpenArchCore
   OACEngine, OACProfile, OACPage, OACPane
         │
-CEF (Chromium) with codecs          Vendor/cef
+OpenArch's layer (Objective-C++)    engine/chromium/openarch
+  inside Chrome's framework (Chromium Framework.framework)
 ```
 
 ## Every tab is a real Chrome tab
 
-Each tab is an `OACPane`: a Chrome-style CEF browser in a borderless window of its own, attached as a child window over OpenArch's content area. To Chromium it is an ordinary Chrome tab, so extensions, `chrome.tabs`, side panels, DevTools, the password manager and `chrome://` pages work as in Chrome. Browsers embedded the simpler way ("Alloy" style) lack most of that; `spikes/01-cef/RESULTS.md` has the details.
+Each tab is an `OACPane`: a tab in a Chrome window of its profile that never shows. Its page's view is shown in OpenArch's window, where the sidebar, split view, Peek or Little OpenArch put it. To Chrome it is an ordinary tab, so extensions, `chrome.tabs`, side panels, DevTools, the password manager and `chrome://` pages work as in Chrome. OpenArch's toolbar above the page has the extensions' buttons and popups.
 
-CEF allows one Chrome-style browser per window. Split view therefore places several of these windows side by side.
+OpenArch's layer is compiled into Chrome's framework, with a few hooks in Chrome's code (`engine/chromium/apply.sh`): new tabs, keys, navigations, dialogs, permission prompts and the context menu reach OpenArch instead of Chrome's window. All tabs in one window take a fraction of the memory one window per tab did (about 0.6 GB for 20 tabs, against 3.5 GB). `docs/chromium-engine.md` has the details.
 
 ## Pages with Safari's engine
 
-Streaming services open in a `WebKitPage` instead (`App/Sources/OpenArch/Browser/WebKitPage.swift`): a `WKWebView` in a borderless window of its own, attached the same way. Both kinds of page meet the `OACPage` protocol (`OACPage.h`) and report to the same delegate, so the sidebar, split view, Peek, Little OpenArch, previews, the media player and sleeping tabs treat them alike. `ProtectedMedia.swift` holds the list of services and decides which engine a page gets; a Chromium page's navigation to a listed site is stopped in `OnBeforeBrowse` and the tab gets a WebKit page at that address. The built-in extension's media scripts run in WebKit pages as user scripts. See [Streaming services](/browsing/protected-media/).
+Streaming services open in a `WebKitPage` instead (`App/Sources/OpenArch/Browser/WebKitPage.swift`): a `WKWebView` in a borderless window of its own, attached the same way. Both kinds of page meet the `OACPage` protocol (`OACPage.h`) and report to the same delegate, so the sidebar, split view, Peek, Little OpenArch, previews, the media player and sleeping tabs treat them alike. `ProtectedMedia.swift` holds the list of services and decides which engine a page gets; a Chromium page's navigation to a listed site is stopped before its request goes out and the tab gets a WebKit page at that address. The built-in extension's media scripts run in WebKit pages as user scripts. See [Streaming services](/browsing/protected-media/).
 
 ## Profiles
 
@@ -52,5 +53,6 @@ The sharing format, its cryptography and the relay client are a Swift package of
 | `website/` | openarch.app, and `website/s/`, which shows shared links to people without OpenArch |
 | `docs-site/` | These docs |
 | `docs/` | The sharing format and App Store notes |
-| `scripts/` | Fetching, updating and building CEF; drawing the icons |
-| `spikes/` | The first experiments with CEF |
+| `engine/chromium/` | OpenArch's layer in Chrome's framework, its hooks and the Chrome version |
+| `scripts/` | Building, fetching and updating the engine; drawing the icons |
+| `spikes/` | The first experiments, with CEF and with Chromium |

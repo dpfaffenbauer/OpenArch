@@ -92,7 +92,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         applyColor()
         pane.delegate = self
         pane.cornerRadius = 8
-        pane.activatesOnShow = !AppPaths.isSelfTest
+        pane.activatesOnShow = AppPaths.panesActivate
         pane.toolbarVisible = false
         model.toolbarVisible = false
     }
@@ -310,11 +310,14 @@ private struct LittleOpenArchBar: View {
         let model = controller.model
         HStack(spacing: 8) {
             Spacer().frame(width: 66)
-            IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.goBack() }
-                .disabled(!model.canGoBack)
-            IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.goForward() }
-                .disabled(!model.canGoForward)
-            IconButton(symbol: model.isLoading ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") { controller.reload() }
+            // The toolbar above the page has them while it shows (as Arc).
+            if !model.toolbarVisible {
+                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.goBack() }
+                    .disabled(!model.canGoBack)
+                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.goForward() }
+                    .disabled(!model.canGoForward)
+                IconButton(symbol: model.isLoading ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") { controller.reload() }
+            }
             if model.isEditing {
                 TextField("Suchen oder URL eingeben", text: $text)
                     .textFieldStyle(.plain)

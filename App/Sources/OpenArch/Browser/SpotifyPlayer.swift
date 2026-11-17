@@ -32,7 +32,10 @@ final class SpotifyPlayer {
         return appIcon
     }
 
-    func start() {
+    /// |readState|: ask Spotify for what plays now (needs macOS's permission
+    /// to control it, a check that can block where Apple events are not
+    /// allowed, so the self-test leaves it out).
+    func start(readState: Bool = true) {
         guard !started else { return }
         started = true
         DistributedNotificationCenter.default().addObserver(
@@ -48,7 +51,7 @@ final class SpotifyPlayer {
             guard app?.bundleIdentifier == SpotifyPlayer.bundleID else { return }
             MainActor.assumeIsolated { SpotifyPlayer.shared.update(nil) }
         }
-        readIfAllowed()
+        if readState { readIfAllowed() }
     }
 
     func update(_ state: SpotifyState?) {
@@ -151,8 +154,18 @@ final class SpotifyPlayer {
     /// that permission the player waits for the next change instead of
     /// making macOS ask out of nowhere.
     private func readIfAllowed() {
-        guard !NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).isEmpty,
-              Self.mayControl() else { return }
+        guard !NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).isEmpty else { return }
+        // Asking macOS about the permission can block for a long time (or for
+        // good, when OpenArch was started by a process that may not send Apple
+        // events): never on the main thread, where it kept the window from
+        // ever showing.
+        DispatchQueue.global(qos: .utility).async {
+            guard Self.mayControl() else { return }
+            Self.readPlayingTrack()
+        }
+    }
+
+    private nonisolated static func readPlayingTrack() {
         let script = """
             tell application id "\(Self.bundleID)"
                 if player state is stopped then return ""
@@ -162,7 +175,7 @@ final class SpotifyPlayer {
                     & ((player position * 1000) as integer)
             end tell
             """
-        Self.osascript(script) { output in
+        osascript(script) { output in
             let state = output.flatMap(SpotifyState.init(appleScript:))
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {

@@ -38,6 +38,10 @@ final class SelfTest {
             popupTest()
             return
         }
+        if let index = CommandLine.arguments.firstIndex(of: "--memory-bench"), index + 1 < CommandLine.arguments.count {
+            memoryBench(urlFile: CommandLine.arguments[index + 1])
+            return
+        }
         if let index = CommandLine.arguments.firstIndex(of: "--show"), index + 1 < CommandLine.arguments.count {
             // Just one tab with this page, for driving OpenArch from outside.
             library.replace(with: LibraryData(
@@ -546,6 +550,32 @@ final class SelfTest {
         poll()
     }
 
+    /// `--memory-bench <file>`: one tab per URL in the file (one per line),
+    /// each selected once so all of them load, then the first one in front.
+    /// Prints "STEP bench ready" and stays open; scripts/memory-bench.sh
+    /// measures the processes from outside and quits OpenArch.
+    private func memoryBench(urlFile: String) {
+        let urls = ((try? String(contentsOfFile: urlFile, encoding: .utf8)) ?? "")
+            .split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+        library.replace(with: LibraryData(
+            profiles: [ProfileData(id: "Default", name: "Bench", favorites: [])],
+            spaces: [SpaceData(id: UUID(), name: "Bench", icon: "gauge.with.dots.needle.33percent", colorHex: "#9C99BA",
+                               profileID: "Default", pinned: [], today: urls.map { tab($0, $0) })]))
+        browser.libraryWasReplaced()
+        let items = library.spaces.first?.today.items ?? []
+        func open(_ index: Int) {
+            guard index < items.count else {
+                if let first = items.first { browser.select(first) }
+                Swift.print("[selftest] STEP bench ready \(items.count) tabs")
+                return
+            }
+            browser.select(items[index])
+            after(1.5) { open(index + 1) }
+        }
+        open(0)
+    }
+
     /// Quits, and makes sure the process ends even if Chromium's shutdown
     /// stalls (a test run must never hang a CI job).
     static func quit() {
@@ -722,7 +752,7 @@ final class SelfTest {
             return expect(false, "a tab is shown before closing the window")
         }
         browser.window?.performClose(nil)
-        expect(browser.window?.isVisible == false && shown.window?.isVisible == false,
+        expect(browser.window?.isVisible == false && shown.window?.isVisible != true,
                "closing the window hides it with its panes")
         browser.showWindow(nil)
         expect(browser.window?.isVisible == true && shown.window?.isVisible == true,
@@ -762,7 +792,7 @@ final class SelfTest {
             let home = self.browser.state.space
             let separate = self.browser.openInSeparateWindow(tab, at: point)
             self.expect(separate?.isSeparate == true && separate?.state.activeItem === tab && tab.pane === pane
-                        && pane.window?.parent === separate?.window && separate?.state.space.today.items.first === tab
+                        && self.host(of: pane) === separate?.window && separate?.state.space.today.items.first === tab
                         && !home.today.allTabs.contains { $0 === tab } && self.library.space(containing: tab) == nil
                         && separate?.window?.frame.contains(NSPoint(x: point.x, y: point.y - 10)) == true,
                         "a tab dragged out of the sidebar opens with its page in a window of its own where it was dropped")
@@ -987,15 +1017,24 @@ final class SelfTest {
         expect(saved.spaces.count == library.spaces.count, "library saved with \(saved.spaces.count) spaces")
     }
 
+    /// The window that shows a page: the window holding a Chromium page's
+    /// view, the parent of a WebKit page's own window.
+    func host(of pane: (any OACPage)?) -> NSWindow? {
+        guard let window = pane?.window else { return nil }
+        return pane is OACPane && !OACPane.panesHaveWindows ? window : window.parent
+    }
+
     /// Panes must sit exactly over the content area after the window changes.
     func checkPaneFrames(_ label: String) {
         let frames = browser.expectedPaneFrames
         let wrong = frames.filter { item, expected in
-            guard let actual = item.pane?.window?.frame else { return true }
+            guard let actual = item.pane?.screenFrame, actual != .zero else { return true }
             return abs(actual.minX - expected.minX) > 1 || abs(actual.minY - expected.minY) > 1
                 || abs(actual.width - expected.width) > 1 || abs(actual.height - expected.height) > 1
         }
-        expect(!frames.isEmpty && wrong.isEmpty, "panes match the content area \(label) (\(frames.count) pane(s), \(wrong.count) off)")
+        let detail = wrong.map { item, expected in "\(item.pane?.screenFrame ?? .zero) not \(expected)" }
+        expect(!frames.isEmpty && wrong.isEmpty,
+               "panes match the content area \(label) (\(frames.count) pane(s), \(wrong.count) off\(detail.isEmpty ? "" : ": " + detail.joined(separator: ", ")))")
     }
 
     private func layoutAfterResize() {
@@ -1134,7 +1173,8 @@ final class SelfTest {
             let page = self.browser.state.activeItem?.pane?.window
             let content = self.browser.window?.contentView
             let edge = content?.hitTest(NSPoint(x: self.browser.sidebarWidth - 1, y: (content?.bounds.midY ?? 0)))
-            self.expect(page != nil && page?.styleMask.contains(.resizable) == false && edge is SplitDividerView,
+            self.expect(page != nil && (!OACPane.panesHaveWindows || page?.styleMask.contains(.resizable) == false)
+                        && edge is SplitDividerView,
                         "the sidebar's edge can be dragged; the page's window cannot be resized (\(String(describing: edge)))")
             self.browser.resizeSidebar(to: 280)
         }
@@ -1373,7 +1413,9 @@ final class SelfTest {
             }
             after(0.5) {
                 let panes = [hidden, front].compactMap(\.pane)
-                let windows = panes.compactMap(\.window)
+                // A page with a window of its own (WebKit); a Chromium page is a
+                // view in the window that shows it, which stays.
+                let windows = OACPane.panesHaveWindows ? panes.compactMap(\.window) : []
                 self.browser.close(hidden)
                 self.browser.close(front)
                 if let shown { self.browser.select(shown, focus: false) }
@@ -1464,7 +1506,7 @@ final class SelfTest {
         }
     }
 
-    /// chrome://help, which CEF does not have, opens Über OpenArch and the tab
+    /// chrome://help (Chrome's About page) opens Über OpenArch and the tab
     /// stays on its page. A tab whose first page it is (restored at launch)
     /// opens no window.
     private func aboutPage(then next: @escaping () -> Void) {
@@ -1617,7 +1659,8 @@ final class SelfTest {
         expect(tab.pane != nil && browser.state.activeItem === shown, "⌘-click loads a tab without showing it")
         eventually({ tab.liveTitle == "Example Domain" }, timeout: 8) { titled in
             self.expect(titled && tab.pane?.isVisible == false && self.browser.state.activeItem === shown,
-                        "the tab loaded in the background shows its page's title (\(tab.displayTitle))")
+                        "the tab loaded in the background shows its page's title (\(tab.displayTitle), "
+                        + "shown \(tab.pane?.isVisible == true), front kept \(self.browser.state.activeItem === shown))")
             self.expect(tab.loadingProgress > 0,
                         "Chrome reports how far the page has loaded (\(Int(tab.loadingProgress * 100)) %)")
             self.browser.unload(tab)
@@ -1811,16 +1854,16 @@ final class SelfTest {
     /// says, and the page gets its whole frame back when they close. (A
     /// window of their own is left out: it would show on screen.)
     private func devToolsDock(then next: @escaping () -> Void) {
-        guard let pane = browser.activePane, let page = pane.window else { return expect(false, "a tab for DevTools") }
+        guard let pane = browser.activePane, pane.window != nil else { return expect(false, "a tab for DevTools") }
         let content = browser.window.map { $0.convertToScreen(browser.contentRect) } ?? .zero
-        let full = page.frame
+        let full = pane.screenFrame
         pane.showDevTools()
         after(3) {
-            let right = page.frame
+            let right = pane.screenFrame
             OACPane.devToolsDock = .left
-            let left = page.frame
+            let left = pane.screenFrame
             OACPane.devToolsDock = .bottom
-            let bottom = page.frame
+            let bottom = pane.screenFrame
             self.expect(right.minX == full.minX && right.width < full.width * 0.7
                         && left.maxX == full.maxX && left.width == right.width
                         && bottom.maxY == full.maxY && bottom.width == full.width && bottom.height < full.height * 0.7,
@@ -1828,7 +1871,7 @@ final class SelfTest {
             OACPane.devToolsDock = .right
             _ = pane.closeDevTools()
             after(1.5) {
-                self.expect(page.frame == full, "closing DevTools gives the page its whole frame back (\(page.frame))")
+                self.expect(pane.screenFrame == full, "closing DevTools gives the page its whole frame back (\(pane.screenFrame))")
                 next()
             }
         }
@@ -1848,9 +1891,21 @@ final class SelfTest {
                 self.expect(value == "true", "HTTPS-only turns on Chromium's HTTPS-First mode (\(value ?? "no value"))")
                 self.library.settings.httpsOnly = false
                 self.library.settings.applyToChromium()
-                if let shown { self.browser.select(shown, focus: false) }
-                self.browser.close(tab)
-                next()
+                // The same page, while it is open: pages speak the system's
+                // language, not en-US — a time field on a German Mac reads
+                // 20:30, not 8:30 PM.
+                let system = String((Locale.preferredLanguages.first ?? "en").prefix(2))
+                let language = "navigator.language + ' ' + new Date(2026, 0, 1, 20, 30).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })"
+                tab.pane?.callDevToolsMethod("Runtime.evaluate", params: ["expression": language, "returnByValue": true]) { result in
+                    let spoken = (result?["result"] as? [String: Any])?["value"] as? String ?? ""
+                    self.expect(spoken.hasPrefix(system), "pages speak the system's language \(system) (\(spoken))")
+                    if system != "en" {
+                        self.expect(!spoken.contains("PM"), "times on a page follow the system, no AM/PM (\(spoken))")
+                    }
+                    if let shown { self.browser.select(shown, focus: false) }
+                    self.browser.close(tab)
+                    next()
+                }
             }
         }
     }
@@ -1951,7 +2006,11 @@ final class SelfTest {
             self.expect(little.model.url.hasSuffix("/little") && little.model.canGoForward,
                         "Little OpenArch goes back and can go forward (\(little.model.url))")
             little.toggleToolbar()
-            self.expect(little.pane.toolbarVisible, "the puzzle button shows Chrome's toolbar with the extensions")
+            // On the Chromium engine the toolbar is OpenArch's own, a view
+            // above the page in the window.
+            let bar = little.pane.window?.contentView?.subviews.contains { $0.className == "OAExtensionToolbar" } == true
+            self.expect(little.pane.toolbarVisible && (OACPane.panesHaveWindows || bar),
+                        "the puzzle button shows Chrome's toolbar with the extensions (own bar \(bar))")
             little.toggleToolbar()
             let before = self.browser.state.space.today.allTabs.count
             little.moveToSpace()
@@ -2322,7 +2381,8 @@ final class SelfTest {
 
     private func floatingSidebarTest() {
         let pane = browser.activePane
-        expect(pane?.window?.canBecomeMain == false, "tab windows never become main, so the window buttons stay active")
+        expect(!OACPane.panesHaveWindows || pane?.window?.canBecomeMain == false,
+               "tab windows never become main, so the window buttons stay active")
         browser.toggleSidebar()
         browser.floatingSidebar.mouseLocation = { NSPoint(x: -10_000, y: -10_000) }
         browser.floatingSidebar.pressedMouseButtons = { 0 }
@@ -2498,13 +2558,13 @@ final class SelfTest {
         expect(app.browsers.count == 2 && second.state.space === browser.state.space, "⌘N opens a second window on the same space")
         second.select(shown)
         expect(second.shownTabs.contains { $0 === shown } && !browser.shownTabs.contains { $0 === shown }
-               && shown.pane?.window?.parent === second.window && browser.state.activeItem == nil,
+               && host(of: shown.pane) === second.window && browser.state.activeItem == nil,
                "a tab moves to the window that shows it")
         second.window?.performClose(nil)
         expect(app.browsers.count == 1 && shown.pane?.delegate === browser && shown.pane != nil,
                "closing the second window keeps its tabs open for the first")
         browser.select(shown)
-        expect(shown.pane?.window?.parent === browser.window, "the tab shows in the first window again")
+        expect(host(of: shown.pane) === browser.window, "the tab shows in the first window again")
 
         let privateWindow = app.openWindow(isPrivate: true)
         privateWindow.commandBar.hide()
@@ -2767,4 +2827,10 @@ final class SelfTest {
             }
         }
     }
+}
+
+extension OACPage {
+    /// Where the page is on screen: its view's frame on the Chromium engine
+    /// (OACPane.screenFrame), its own window's for WebKit.
+    var screenFrame: NSRect { (self as? OACPane)?.screenFrame ?? window?.frame ?? .zero }
 }

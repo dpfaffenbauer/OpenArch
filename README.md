@@ -42,26 +42,29 @@ Everything in detail: [docs.openarch.app](https://docs.openarch.app).
 ## Build and run
 
 ```sh
-App/build.sh                      # fetches CEF, builds App/build/OpenArch.app
+App/build.sh                      # fetches the engine, builds App/build/OpenArch.app
 open App/build/OpenArch.app
 App/build/OpenArch.app/Contents/MacOS/OpenArch --selftest   # automated checks
 ```
 
-Requires Xcode 16+ (Swift 6), CMake and Ninja. The iOS app is in
-`iOS/OpenArch.xcodeproj`. More, including CI, the CEF build with codecs and
-the architecture: [Build from source](https://docs.openarch.app/development/build/)
+Requires Xcode 16+ (Swift 6). The engine, Chrome's own framework with
+OpenArch's layer (`engine/chromium`), comes from CI's release; building it
+yourself is `scripts/build-chromium.sh` ([docs/chromium-engine.md](docs/chromium-engine.md)).
+The iOS app is in `iOS/OpenArch.xcodeproj`. More, including CI and the
+architecture: [Build from source](https://docs.openarch.app/development/build/)
 and [Architecture](https://docs.openarch.app/development/architecture/).
 
 ## Layout
 
-- `App/`: the browser (Swift/AppKit on top of CEF 156)
+- `App/`: the browser (Swift/AppKit on Chrome 158's own framework)
+- `engine/chromium/`: OpenArch's layer in Chrome's framework and the hooks into Chrome
 - `iOS/`: OpenArch for iPhone and iPad
 - `Shared/`: the Swift package both use for sharing
 - `relay/`: the relay for live shares, a Cloudflare Worker ([README](relay/README.md))
 - `docs/`: sharing format and threat model ([sharing.md](docs/sharing.md)), App Store notes
 - `docs-site/`: the documentation at docs.openarch.app ([how the pages are written](docs-site/WRITING.md))
 - `website/`: openarch.app
-- `scripts/`: CEF fetch, update and codec build, icons, App Store previews, the README banner (`banner.html`)
+- `scripts/`: the engine's build, fetch and update, icons, App Store previews, the README banner (`banner.html`)
 
 openarch.app, docs.openarch.app and share.openarch.app are Cloudflare Workers,
 deployed from `main` by Cloudflare's GitHub connection (each folder's

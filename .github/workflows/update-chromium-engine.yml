@@ -1,0 +1,81 @@
+name: Update Chrome engine
+
+# Every day: if Chrome has a newer stable version for Mac, start the build of
+# OpenArch's engine on it (chromium-engine.yml, two to three days). Once that
+# has published its release, build OpenArch on it and, when that works, open
+# the update of engine/chromium/VERSION as a pull request that merges itself
+# once main's required checks have passed. A failing build (often a hook in
+# engine/chromium/apply.sh that no longer fits Chrome's code) stops here and
+# GitHub reports the failed run.
+#
+# The pull request is pushed, opened and set to auto-merge with a token of
+# OpenArch's GitHub App: repository variable UPDATE_APP_CLIENT_ID (its Client
+# ID) and secret UPDATE_APP_PRIVATE_KEY (a private key of it); the app needs
+# Contents and Pull requests, read and write. Done with github.token, the pull
+# request's checks would wait for someone to approve them, and its merge would
+# not start the build of main.
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+# update-chromium.sh starts chromium-engine.yml. Everything that writes to
+# the repository uses the app's token.
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  update:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Look for a newer Chrome
+        id: chrome
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/update-chromium.sh
+
+      - name: Build OpenArch on it
+        if: steps.chrome.outputs.updated == 'true'
+        run: CONFIG=release App/build.sh
+
+      # After the build: the token is valid for an hour.
+      - name: Token of the app
+        id: app
+        if: steps.chrome.outputs.updated == 'true'
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.UPDATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.UPDATE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # Always the branch update-chrome-engine: an update pull request that
+      # is still open gets the new commit instead of a second one beside it.
+      - name: Open the update as a pull request
+        if: steps.chrome.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          VERSION: ${{ steps.chrome.outputs.version }}
+          PREVIOUS: ${{ steps.chrome.outputs.previous }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update the Chrome engine to $VERSION" -m "Automatic update from Chrome $PREVIOUS. OpenArch built successfully on it."
+          git push --force "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" HEAD:refs/heads/update-chrome-engine
+          title="Update the Chrome engine to $VERSION"
+          body="Automatic update from Chrome $PREVIOUS. OpenArch built successfully on it in [this run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID). Merges itself once the required checks have passed."
+          pr="$(gh pr list --head update-chrome-engine --state open --json url --jq '.[0].url // empty')"
+          if [[ -n "$pr" ]]; then
+            gh pr edit "$pr" --title "$title" --body "$body"
+          else
+            pr="$(gh pr create --base main --head update-chrome-engine --title "$title" --body "$body")"
+            gh pr merge "$pr" --auto --merge
+          fi
+          echo "$pr"

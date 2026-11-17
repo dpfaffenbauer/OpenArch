@@ -55,7 +55,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated { CrashReports.shared.rendererGone(status: status, code: code) }
         }
         AppIcons.repairBundle()
-        SpotifyPlayer.shared.start()
+        SpotifyPlayer.shared.start(readState: !selfTest)
         library = Library.load()
         // A library from a backup may carry a language the preferences did
         // not know yet (for example on a fresh Mac). The next launch uses it.
