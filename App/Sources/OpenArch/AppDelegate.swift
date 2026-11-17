@@ -12,6 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// All browser windows, the first one opened at launch.
     private(set) var browsers: [BrowserWindowController] = []
     private weak var lastActiveBrowser: BrowserWindowController?
+    /// The blank page that tells Chrome to quit when no other page is open.
+    private var quitHelperPage: OACPane?
+    /// Quitting has started: Chrome is closing.
+    private var isQuitting = false
 
     /// The window menu commands act on: the one used last.
     var browser: BrowserWindowController? {
@@ -208,6 +212,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             quitProbe()
             return .terminateCancel
         }
+        // Chrome, while it closes its windows, asks NSApp to terminate again
+        // (its own path to the end): that must not start the quit once more,
+        // or Chrome waits for the pages' "Leave site?" after all.
+        if isQuitting { return .terminateCancel }
+        isQuitting = true
         AgentSession.stopAll()
         for browser in browsers { browser.archiveTabs() }
         library?.freeze()
@@ -215,7 +224,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppIcons.saveForDock()
             Updater.shared.installOnQuit()
         }
+        releaseChromeForQuit()
         return .terminateNow
+    }
+
+    /// Chrome started without a window of its own and with a DevTools port
+    /// (KI-Steuerung) takes itself for driven by an automation tool and keeps
+    /// running until told so over DevTools ("Browser.close"), whatever else
+    /// asks it to quit. A page's own DevTools connection tells it, then Chrome
+    /// quits as usual (pages close without "Leave site?", as OpenArch closes
+    /// tabs anyway).
+    private func releaseChromeForQuit() {
+        log("quitting")
+        let loaded = browsers.lazy.flatMap(\.allTabs).compactMap { $0.pane as? OACPane }.first { $0.isLoaded }
+        if let loaded {
+            loaded.callDevToolsMethod("Browser.close", params: [:], completion: nil)
+            return
+        }
+        // No page is open (every tab asleep): a blank one, only for this.
+        let page = OACPane(profile: OACProfile.default, url: "about:blank")
+        page.load()
+        page.callDevToolsMethod("Browser.close", params: [:], completion: nil)
+        quitHelperPage = page
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
