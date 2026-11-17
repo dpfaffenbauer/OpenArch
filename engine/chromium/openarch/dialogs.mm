@@ -36,7 +36,14 @@
 #include "content/public/browser/web_contents.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/size.h"
+#include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/native_ui_types.h"
+#include "ui/views/widget/widget.h"
+
+// Set here, read by components/constrained_window (apply.sh, 3f).
+extern bool (*openarch_dialog_place_hook)(gfx::NativeWindow parent,
+                                          const gfx::Size& size,
+                                          gfx::Rect* bounds);
 
 namespace {
 
@@ -213,9 +220,27 @@ void StopHostingDialogs(content::WebContents* contents) {
   }
 }
 
+// Chrome's dialogs over a window of OpenArch's (extension install and
+// remove, ...): centred on it, a little below its top, as Chrome puts them
+// under its toolbar. Chrome's own windows place theirs themselves.
+bool PlaceDialog(gfx::NativeWindow parent, const gfx::Size& size, gfx::Rect* bounds) {
+  NSWindow* window = parent.GetNativeNSWindow();
+  if (!window || !window.visible || views::Widget::GetWidgetForNativeWindow(parent)) {
+    return false;
+  }
+  NSRect frame = window.frame;
+  CGFloat x = NSMidX(frame) - size.width() / 2;
+  CGFloat top = NSMaxY(frame) - 64;
+  // Views' screen coordinates start at the top left of the first screen.
+  CGFloat primary = NSMaxY(NSScreen.screens.firstObject.frame);
+  *bounds = gfx::Rect(x, primary - top, size.width(), size.height());
+  return true;
+}
+
 void InstallDialogHooks() {
   g_page_foremost_hook = &PageForemost;
   g_permission_prompt_hook = &CreatePermissionPrompt;
+  openarch_dialog_place_hook = &PlaceDialog;
 }
 
 }  // namespace openarch

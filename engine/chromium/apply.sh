@@ -297,6 +297,57 @@ edit(bpi, '''      providers.emplace_back(
     } else {
 ''', "OpenArch: read \"v11\"")
 
+# 3e. A page asking to be activated (window.focus(), the extension install
+# prompt, ...) never brings the hidden Chrome window holding its tab to the
+# front: closing that window would close all of the profile's pages.
+edit(wcd, '''void BrowserWebContentsDelegate::ActivateContents(
+    content::WebContents* contents) {
+''', '''void BrowserWebContentsDelegate::ActivateContents(
+    content::WebContents* contents) {
+  if (openarch::g_embedder_owns_app) {  // OpenArch
+    return;
+  }
+''', "openarch::g_embedder_owns_app) {  // OpenArch\n    return;\n  }\n  // A WebContents can ask")
+
+# 3f. Chrome's dialogs over a window of OpenArch's (install, remove, ...):
+# Views can't attach them as sheets to a window that isn't its own, and
+# without a host they'd sit at the screen's top; OpenArch places them.
+cwv = "components/constrained_window/constrained_window_views.cc"
+edit(cwv, '''  views::Widget* widget = views::DialogDelegate::CreateDialogWidget(
+      dialog, gfx::NativeWindow(), parent_view);
+''', '''  views::Widget* widget = views::DialogDelegate::CreateDialogWidget(
+      dialog, gfx::NativeWindow(), parent_view);
+  if (parent && openarch_dialog_place_hook) {  // OpenArch
+    // Once shown (both callers show it right away), at its real size.
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::BindOnce(
+                       [](base::WeakPtr<views::Widget> widget, gfx::NativeWindow parent) {
+                         gfx::Rect bounds;
+                         if (widget && widget->IsVisible() &&
+                             openarch_dialog_place_hook(
+                                 parent, widget->GetWindowBoundsInScreen().size(), &bounds)) {
+                           widget->SetBounds(bounds);
+                         }
+                       },
+                       widget->GetWeakPtr(), parent));
+  }
+''', "openarch_dialog_place_hook(\n")
+edit(cwv, '''#include "components/constrained_window/constrained_window_views.h"
+''', '''#include "components/constrained_window/constrained_window_views.h"
+
+#include "base/functional/bind.h"  // OpenArch
+#include "base/task/sequenced_task_runner.h"  // OpenArch
+''', "#include \"base/task/sequenced_task_runner.h\"  // OpenArch")
+edit(cwv, '''namespace constrained_window {
+''', '''// OpenArch: places a dialog over a window that isn't Chrome's (set by
+// OpenArch's layer); false leaves it where Views put it.
+bool (*openarch_dialog_place_hook)(gfx::NativeWindow parent,
+                                   const gfx::Size& size,
+                                   gfx::Rect* bounds) = nullptr;
+
+namespace constrained_window {
+''', "bool (*openarch_dialog_place_hook)")
+
 # 3b. Chrome's keychain item can be named at run time, so the engine uses
 # OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {
