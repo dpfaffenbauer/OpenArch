@@ -2016,12 +2016,26 @@ final class SelfTest {
             if let pane = little.pane as? OACPane,
                let probe = pane.extensions.first(where: { $0.name == "OpenArch Probe" }) {
                 let before = Set(NSApp.windows.map(ObjectIdentifier.init))
-                func popup() -> NSWindow? {
-                    NSApp.windows.first { !before.contains(ObjectIdentifier($0)) && $0.isVisible && $0.className.contains("Popup") }
+                func popups() -> [NSWindow] {
+                    NSApp.windows.filter { !before.contains(ObjectIdentifier($0)) && $0.className.contains("Popup") }
+                }
+                func popup() -> NSWindow? { popups().first { $0.isVisible } }
+                // What the popup windows did, for a failure: when each state
+                // was first seen (s after the click), visible or not, size.
+                let start = Date()
+                var seen: [String] = []
+                func note() {
+                    let states = popups().map { "\($0.isVisible ? "visible" : "hidden") \(Int($0.frame.width))x\(Int($0.frame.height))" }
+                    let state = states.isEmpty ? "no window" : states.joined(separator: ", ")
+                    if seen.last.map({ !$0.hasSuffix(state) }) ?? true {
+                        seen.append(String(format: "%.1fs ", Date().timeIntervalSince(start)) + state)
+                    }
                 }
                 pane.runExtension(probe.identifier, from: NSRect(x: 400, y: 400, width: 20, height: 20))
-                self.eventually({ (popup()?.frame.width ?? 0) > 100 }, timeout: 5) { shown in
-                    self.expect(shown, "an extension's popup opens at its page's size (\(popup().map { "\($0.frame.size)" } ?? "none"))")
+                // A slow machine starts the extension's renderer cold: up to 15 s.
+                self.eventually({ note(); return (popup()?.frame.width ?? 0) > 100 }, timeout: 15) { shown in
+                    note()
+                    self.expect(shown, "an extension's popup opens at its page's size (\(popup().map { "\($0.frame.size)" } ?? "none"); \(seen.joined(separator: " → ")))")
                     popup()?.close()
                 }
             } else {
