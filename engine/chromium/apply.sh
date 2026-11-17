@@ -262,6 +262,41 @@ edit(install_ui, '''  if (IsUiDisabled() || skip_post_install_ui() || extension-
 edit(install_ui, '#include "chrome/browser/ui/extensions/extension_install_ui_desktop.h"\n',
      '#include "chrome/browser/ui/extensions/extension_install_ui_desktop.h"\n' + hooks, hooks)
 
+# 3c. Dialogs extension APIs open (chrome://extensions' "Remove" confirmation,
+# chrome.management.uninstall, ...) go over the window the page is shown in,
+# not over the hidden Chrome window holding its tab.
+details = "chrome/browser/extensions/chrome_extension_function_details.cc"
+edit(details, '''gfx::NativeWindow ChromeExtensionFunctionDetails::GetNativeWindowForUI() {
+''', '''gfx::NativeWindow ChromeExtensionFunctionDetails::GetNativeWindowForUI() {
+  if (openarch::g_embedder_owns_app) {  // OpenArch
+    content::WebContents* sender = function_->GetSenderWebContents();
+    if (sender && sender->GetTopLevelNativeWindow()) {
+      return sender->GetTopLevelNativeWindow();
+    }
+  }
+''', "openarch::g_embedder_owns_app")
+edit(details, '#include "chrome/browser/extensions/chrome_extension_function_details.h"\n',
+     '#include "chrome/browser/extensions/chrome_extension_function_details.h"\n' + hooks, hooks)
+
+# 3d. Data an engine with KeychainKeyProviderUserDataDirProtection on wrote
+# (nightly 181: "v11", the keychain password with the salt "pepper") stays
+# readable now that it is off: that key decrypts, "v10" still encrypts.
+bpi = "chrome/browser/browser_process_impl.cc"
+edit(bpi, '''      providers.emplace_back(
+          /*precedence=*/10u,
+          std::make_unique<os_crypt_async::KeychainKeyProvider>());
+    } else {
+''', '''      providers.emplace_back(
+          /*precedence=*/10u,
+          std::make_unique<os_crypt_async::KeychainKeyProvider>());
+      // OpenArch: read "v11" (written with the protection on), never write it.
+      providers.emplace_back(
+          /*precedence=*/1u,
+          std::make_unique<os_crypt_async::KeychainKeyProvider>(
+              "v11", std::to_array<uint8_t>({'p', 'e', 'p', 'p', 'e', 'r'})));
+    } else {
+''', "OpenArch: read \"v11\"")
+
 # 3b. Chrome's keychain item can be named at run time, so the engine uses
 # OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {

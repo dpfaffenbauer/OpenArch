@@ -22,6 +22,7 @@
 #include "components/tabs/public/tab_interface.h"
 #include "chrome/browser/extensions/extension_action_runner.h"
 #include "chrome/browser/extensions/extension_tab_util.h"
+#include "chrome/browser/extensions/extension_uninstall_dialog.h"
 #include "chrome/browser/extensions/extension_view.h"
 #include "chrome/browser/extensions/extension_view_host.h"
 #include "chrome/browser/extensions/extension_view_host_factory.h"
@@ -35,6 +36,9 @@
 #include "extensions/browser/extension_action.h"
 #include "extensions/browser/extension_action_manager.h"
 #include "extensions/browser/extension_registry.h"
+#include "extensions/browser/extension_system.h"
+#include "extensions/browser/management_policy.h"
+#include "extensions/browser/uninstall_reason.h"
 #include "extensions/common/extension.h"
 #include "extensions/common/manifest_handlers/options_page_info.h"
 #include "components/favicon/content/content_favicon_driver.h"
@@ -84,6 +88,10 @@ constexpr CGFloat kSpacing = 2;
 // The one extension popup on screen.
 class Popup;
 Popup* g_popup = nullptr;
+
+// The uninstall dialog wants a delegate; the toolbar's needs no answer.
+class UninstallDelegate : public extensions::ExtensionUninstallDialog::Delegate {};
+UninstallDelegate g_uninstall_delegate;
 
 // An extension's popup: its ExtensionViewHost's page in a small window below
 // the button, sized by the page (25×25 to 800×600, as in Chrome), shown once
@@ -505,6 +513,7 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   raw_ptr<content::WebContents> _contents;
   raw_ptr<BrowserWindowInterface> _browser;
   raw_ptr<Profile> _profile;
+  std::unique_ptr<extensions::ExtensionUninstallDialog> _uninstallDialog;
   std::unique_ptr<ToolbarObserver> _observer;
   void (^_openURL)(NSString*);
   NSVisualEffectView* _background;
@@ -990,6 +999,9 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   }
   [menu addItem:[NSMenuItem separatorItem]];
   add(@"Erweiterung verwalten", @"slider.horizontal.3", @selector(manageExtension:));
+  if (extensions::ExtensionSystem::Get(_profile)->management_policy()->UserMayModifySettings(extension, nullptr)) {
+    add(@"Entfernen …", @"trash", @selector(removeExtension:));
+  }
   return menu;
 }
 
@@ -1065,6 +1077,19 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   if (extension && _openURL) {
     _openURL(base::SysUTF8ToNSString(extensions::OptionsPageInfo::GetOptionsPage(extension).spec()));
   }
+}
+
+// As Chrome's toolbar menu: its confirmation dialog, over this window.
+- (void)removeExtension:(NSMenuItem*)sender {
+  const extensions::Extension* extension =
+      [self extensionWithID:base::SysNSStringToUTF8(sender.representedObject)];
+  if (!extension || !_profile) {
+    return;
+  }
+  _uninstallDialog = extensions::ExtensionUninstallDialog::Create(
+      _profile, gfx::NativeWindow(self.window), &g_uninstall_delegate);
+  _uninstallDialog->ConfirmUninstall(extension, extensions::UNINSTALL_REASON_USER_INITIATED,
+                                     extensions::UNINSTALL_SOURCE_TOOLBAR_CONTEXT_MENU);
 }
 
 - (void)manageExtension:(NSMenuItem*)sender {
