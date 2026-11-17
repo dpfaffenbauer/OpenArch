@@ -55,13 +55,23 @@ esac
 
 TAG="$(tag)"
 NAME="$(archive_name)"
-if [[ -f "$TARGET/.tag" && "$(cat "$TARGET/.tag")" == "$TAG" && -d "$TARGET/Chromium.app" ]]; then
-  echo "Engine $TAG already present"
-  exit 0
+base="https://github.com/$REPO_SLUG/releases/download/$TAG"
+# A release's archive can be replaced (a local build published first, CI's
+# official one later): the one here is kept only while its SHA-256 is still
+# the release's. Offline, it is kept as it is.
+if [[ -f "$TARGET/.tag" && -d "$TARGET/Chromium.app" ]]; then
+  read -r have_tag have_sha < "$TARGET/.tag" || true
+  if [[ "$have_tag" == "$TAG" ]]; then
+    remote_sha="$(curl -fsSL "$base/$NAME.sha256" 2>/dev/null | awk '{ print $1 }' || true)"
+    if [[ -z "$remote_sha" || "$remote_sha" == "${have_sha:-}" ]]; then
+      echo "Engine $TAG already present"
+      exit 0
+    fi
+    echo "Engine $TAG was replaced in its release; downloading it again"
+  fi
 fi
 
 mkdir -p "$TARGET"
-base="https://github.com/$REPO_SLUG/releases/download/$TAG"
 echo "Downloading $base/$NAME"
 if ! curl -fL --progress-bar -o "$TARGET/$NAME.part" "$base/$NAME"; then
   rm -f "$TARGET/$NAME.part"
@@ -79,5 +89,5 @@ ditto -x -k "$TARGET/$NAME" "$TARGET"
 rm -f "$TARGET/$NAME"
 [[ -d "$TARGET/Chromium.app/Contents/Frameworks/Chromium Framework.framework" ]] ||
   { echo "The archive has no Chromium.app with its framework" >&2; exit 1; }
-echo "$TAG" > "$TARGET/.tag"
+echo "$TAG $expected" > "$TARGET/.tag"
 echo "Engine $TAG ready in $TARGET/Chromium.app"

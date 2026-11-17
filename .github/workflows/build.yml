@@ -43,15 +43,25 @@ jobs:
       # OpenArch's engine (Chrome's framework with OpenArch's layer, ~550 MB)
       # changes only with the Chrome version or the layer: the release
       # engine-<version>-<key> that chromium-engine.yml built for them.
+      # The SHA-256 is part of the cache key: a release's archive can be
+      # replaced (a local build published first, then CI's official one), and
+      # the cache must not keep the first.
       - name: Engine release
         id: engine
-        run: echo "tag=$(scripts/fetch-chromium-engine.sh --tag)" >> "$GITHUB_OUTPUT"
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          tag="$(scripts/fetch-chromium-engine.sh --tag)"
+          name="$(scripts/fetch-chromium-engine.sh --archive)"
+          sha="$(curl -fsSL "https://github.com/$REPO/releases/download/$tag/$name.sha256" | awk '{ print $1 }' || true)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "sha=${sha:-none}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the engine
         uses: actions/cache@v4
         with:
           path: Vendor/engine
-          key: engine-${{ steps.engine.outputs.tag }}
+          key: engine-${{ steps.engine.outputs.tag }}-${{ steps.engine.outputs.sha }}
 
       # Until chromium-engine.yml has built the engine for this version and
       # layer (2–3 days after a change to engine/chromium), this fails.
