@@ -87,7 +87,8 @@ Popup* g_popup = nullptr;
 
 // An extension's popup: its ExtensionViewHost's page in a small window below
 // the button, sized by the page (25×25 to 800×600, as in Chrome), shown once
-// loaded, gone on window.close(), Escape, or a click elsewhere.
+// loaded, gone on window.close(), Escape, a click elsewhere or when OpenArch
+// goes to the background.
 class Popup : public extensions::ExtensionView {
  public:
   Popup(std::unique_ptr<extensions::ExtensionViewHost> host, NSRect anchor)
@@ -123,10 +124,23 @@ class Popup : public extensions::ExtensionView {
     page.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     [card addSubview:page];
     page.hidden = NO;
+    // Gone on a click elsewhere or when OpenArch goes to the background, as
+    // Chrome's popups: not on losing key, which another window of OpenArch
+    // (or a page taking focus) can take for a moment while the popup stays.
     __block Popup* popup = this;
+    NSPanel* panel = panel_;
+    click_monitor_ = [NSEvent
+        addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown | NSEventMaskRightMouseDown |
+                                             NSEventMaskOtherMouseDown
+                                     handler:^NSEvent*(NSEvent* event) {
+                                       if (event.window != panel) {
+                                         popup->CloseSoon();
+                                       }
+                                       return event;
+                                     }];
     resign_observer_ = [[NSNotificationCenter defaultCenter]
-        addObserverForName:NSWindowDidResignKeyNotification
-                    object:panel_
+        addObserverForName:NSApplicationDidResignActiveNotification
+                    object:NSApp
                      queue:nil
                 usingBlock:^(NSNotification*) {
                   popup->CloseSoon();
@@ -139,6 +153,7 @@ class Popup : public extensions::ExtensionView {
       g_popup = nullptr;
     }
     [[NSNotificationCenter defaultCenter] removeObserver:resign_observer_];
+    [NSEvent removeMonitor:click_monitor_];
     [panel_ orderOut:nil];
     host_->set_view(nullptr);
   }
@@ -262,6 +277,7 @@ class Popup : public extensions::ExtensionView {
   gfx::Size size_;
   NSPanel* __strong panel_;
   id __strong resign_observer_;
+  id __strong click_monitor_;
   bool closing_ = false;
   bool loaded_ = false;
   bool shown_ = false;

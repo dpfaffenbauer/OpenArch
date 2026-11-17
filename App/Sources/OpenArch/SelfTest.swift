@@ -2036,7 +2036,20 @@ final class SelfTest {
                 self.eventually({ note(); return (popup()?.frame.width ?? 0) > 100 }, timeout: 15) { shown in
                     note()
                     self.expect(shown, "an extension's popup opens at its page's size (\(popup().map { "\($0.frame.size)" } ?? "none"); \(seen.joined(separator: " → ")))")
-                    popup()?.close()
+                    // A click in another window closes it, as in Chrome.
+                    guard shown, let window = self.browser.window else { popup()?.close(); return }
+                    for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                        if let event = NSEvent.mouseEvent(with: type, location: NSPoint(x: 20, y: 20), modifierFlags: [],
+                                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                                          windowNumber: window.windowNumber, context: nil,
+                                                          eventNumber: 0, clickCount: 1, pressure: 1) {
+                            NSApp.postEvent(event, atStart: false)
+                        }
+                    }
+                    self.eventually({ popup() == nil }, timeout: 3) { closed in
+                        self.expect(closed, "a click elsewhere closes the extension's popup")
+                        popup()?.close()
+                    }
                 }
             } else {
                 self.expect(false, "the probe extension has an action, for the popup")
