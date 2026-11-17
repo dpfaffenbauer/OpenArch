@@ -102,7 +102,7 @@ std::vector<std::string> EngineArguments(int argc, const char** argv) {
   if (g_settings.useMockKeychain) {
     args.push_back("--use-mock-keychain");
   } else {
-    // The login keychain item with the encryption key, as on CEF
+    // The login keychain item with the encryption key, OpenArch's
     // ("OpenArch Safe Storage"), not Chromium's.
     if (g_settings.keychainServiceName.length) {
       KeychainPassword::GetServiceName() = ToStdString(g_settings.keychainServiceName);
@@ -148,8 +148,8 @@ std::vector<std::string> EngineArguments(int argc, const char** argv) {
 }
 
 // BrowserCrApplication asks Chrome's AppController to terminate, which
-// OpenArch doesn't have (making it would replace OpenArch's delegate). As on
-// CEF: ask OpenArch's delegate, then close every browser and quit.
+// OpenArch doesn't have (making it would replace OpenArch's delegate).
+// Instead: ask OpenArch's delegate, then close every browser and quit.
 - (void)terminate:(id)sender {
   if ([self.delegate respondsToSelector:@selector(applicationShouldTerminate:)] &&
       [self.delegate applicationShouldTerminate:self] == NSTerminateCancel) {

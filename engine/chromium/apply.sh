@@ -246,8 +246,24 @@ edit("ui/views/controls/webview/BUILD.gn", '''component("webview") {
     "openarch_hosted_page.h",
 ''', '"openarch_hosted_page.h"')
 
-# 3b. Chrome's keychain item can be named at run time (as CEF does), so the
-# engine uses OpenArch's ("OpenArch Safe Storage").
+# 3a. No "<extension> was added" bubble after an install: Chrome anchors it
+# to its own (hidden) window's toolbar, or opens a window for it.
+install_ui = "chrome/browser/ui/extensions/extension_install_ui_desktop.cc"
+edit(install_ui, '''  if (IsUiDisabled() || skip_post_install_ui() || extension->is_theme()) {
+    return;
+  }
+''', '''  if (IsUiDisabled() || skip_post_install_ui() || extension->is_theme()) {
+    return;
+  }
+  if (openarch::g_embedder_owns_app) {  // OpenArch
+    return;
+  }
+''', "openarch::g_embedder_owns_app")
+edit(install_ui, '#include "chrome/browser/ui/extensions/extension_install_ui_desktop.h"\n',
+     '#include "chrome/browser/ui/extensions/extension_install_ui_desktop.h"\n' + hooks, hooks)
+
+# 3b. Chrome's keychain item can be named at run time, so the engine uses
+# OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {
   source_set("keychain_password_mac") {
 ''', '''if (is_apple) {

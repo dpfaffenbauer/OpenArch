@@ -2011,6 +2011,58 @@ final class SelfTest {
             let bar = little.pane.window?.contentView?.subviews.contains { $0.className == "OAExtensionToolbar" } == true
             self.expect(little.pane.toolbarVisible && (OACPane.panesHaveWindows || bar),
                         "the puzzle button shows Chrome's toolbar with the extensions (own bar \(bar))")
+            // An extension's popup opens in OpenArch's popup window, at the
+            // size its page asks for (not stuck at the smallest, off screen).
+            if let pane = little.pane as? OACPane,
+               let probe = pane.extensions.first(where: { $0.name == "OpenArch Probe" }) {
+                let before = Set(NSApp.windows.map(ObjectIdentifier.init))
+                func popups() -> [NSWindow] {
+                    NSApp.windows.filter { !before.contains(ObjectIdentifier($0)) && $0.className.contains("Popup") }
+                }
+                func popup() -> NSWindow? { popups().first { $0.isVisible } }
+                // What the popup windows did, for a failure: when each state
+                // was first seen (s after the click), visible or not, size.
+                let start = Date()
+                var seen: [String] = []
+                func note() {
+                    let states = popups().map { "\($0.isVisible ? "visible" : "hidden") \(Int($0.frame.width))x\(Int($0.frame.height))" }
+                    let state = states.isEmpty ? "no window" : states.joined(separator: ", ")
+                    if seen.last.map({ !$0.hasSuffix(state) }) ?? true {
+                        seen.append(String(format: "%.1fs ", Date().timeIntervalSince(start)) + state)
+                    }
+                }
+                pane.runExtension(probe.identifier, from: NSRect(x: 400, y: 400, width: 20, height: 20))
+                // A slow machine starts the extension's renderer cold: up to 15 s.
+                self.eventually({ note(); return (popup()?.frame.width ?? 0) > 100 }, timeout: 15) { shown in
+                    note()
+                    self.expect(shown, "an extension's popup opens at its page's size (\(popup().map { "\($0.frame.size)" } ?? "none"); \(seen.joined(separator: " → ")))")
+                    guard shown, let window = self.browser.window else { popup()?.close(); return }
+                    // Another page closing (here a tab with OpenArch's
+                    // toolbar) leaves it open: only its own page closes it.
+                    let other = self.browser.openInNewTab("https://example.com/popup-other", select: false)
+                    (other.pane as? OACPane)?.toolbarVisible = true
+                    _ = (other.pane as? OACPane)?.extensions
+                    after(1) { self.browser.close(other) }
+                    after(2.5) {
+                    self.expect(popup() != nil, "closing another tab leaves an extension's popup open")
+                    // A click in another window closes it, as in Chrome.
+                    for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                        if let event = NSEvent.mouseEvent(with: type, location: NSPoint(x: 20, y: 20), modifierFlags: [],
+                                                          timestamp: ProcessInfo.processInfo.systemUptime,
+                                                          windowNumber: window.windowNumber, context: nil,
+                                                          eventNumber: 0, clickCount: 1, pressure: 1) {
+                            NSApp.postEvent(event, atStart: false)
+                        }
+                    }
+                    self.eventually({ popup() == nil }, timeout: 3) { closed in
+                        self.expect(closed, "a click elsewhere closes the extension's popup")
+                        popup()?.close()
+                    }
+                    }
+                }
+            } else {
+                self.expect(false, "the probe extension has an action, for the popup")
+            }
             little.toggleToolbar()
             let before = self.browser.state.space.today.allTabs.count
             little.moveToSpace()

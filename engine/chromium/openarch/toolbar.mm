@@ -9,10 +9,13 @@
 #include <string>
 #include <vector>
 
+#include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/task/single_thread_task_runner.h"
+#include "base/time/time.h"
 #include "chrome/browser/extensions/api/side_panel/side_panel_service.h"
 #include "chrome/browser/extensions/extension_action_dispatcher.h"
 #include "chrome/common/extensions/api/side_panel.h"
@@ -84,11 +87,14 @@ Popup* g_popup = nullptr;
 
 // An extension's popup: its ExtensionViewHost's page in a small window below
 // the button, sized by the page (25×25 to 800×600, as in Chrome), shown once
-// loaded, gone on window.close(), Escape, or a click elsewhere.
+// loaded, gone on window.close(), Escape, a click elsewhere or when OpenArch
+// goes to the background.
 class Popup : public extensions::ExtensionView {
  public:
-  Popup(std::unique_ptr<extensions::ExtensionViewHost> host, NSRect anchor)
-      : host_(std::move(host)), anchor_(anchor) {
+  // |owner| is the toolbar whose page opened it: closing that page closes
+  // it, closing other pages does not.
+  Popup(std::unique_ptr<extensions::ExtensionViewHost> host, NSRect anchor, id owner)
+      : host_(std::move(host)), anchor_(anchor), owner_(owner) {
     g_popup = this;
     host_->set_view(this);
     host_->SetCloseHandler(base::BindOnce(&Popup::HostWantsToClose, weak_factory_.GetWeakPtr()));
@@ -120,10 +126,23 @@ class Popup : public extensions::ExtensionView {
     page.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
     [card addSubview:page];
     page.hidden = NO;
+    // Gone on a click elsewhere or when OpenArch goes to the background, as
+    // Chrome's popups: not on losing key, which another window of OpenArch
+    // (or a page taking focus) can take for a moment while the popup stays.
     __block Popup* popup = this;
+    NSPanel* panel = panel_;
+    click_monitor_ = [NSEvent
+        addLocalMonitorForEventsMatchingMask:NSEventMaskLeftMouseDown | NSEventMaskRightMouseDown |
+                                             NSEventMaskOtherMouseDown
+                                     handler:^NSEvent*(NSEvent* event) {
+                                       if (event.window != panel) {
+                                         popup->CloseSoon();
+                                       }
+                                       return event;
+                                     }];
     resign_observer_ = [[NSNotificationCenter defaultCenter]
-        addObserverForName:NSWindowDidResignKeyNotification
-                    object:panel_
+        addObserverForName:NSApplicationDidResignActiveNotification
+                    object:NSApp
                      queue:nil
                 usingBlock:^(NSNotification*) {
                   popup->CloseSoon();
@@ -136,9 +155,12 @@ class Popup : public extensions::ExtensionView {
       g_popup = nullptr;
     }
     [[NSNotificationCenter defaultCenter] removeObserver:resign_observer_];
+    [NSEvent removeMonitor:click_monitor_];
     [panel_ orderOut:nil];
     host_->set_view(nullptr);
   }
+
+  bool IsOwnedBy(id toolbar) const { return owner_ == toolbar; }
 
   void CloseSoon() {
     if (closing_) {
@@ -157,12 +179,16 @@ class Popup : public extensions::ExtensionView {
     size.SetToMin(extensions::kExtensionPopupMaxSize);
     size_ = size;
     Place();
+    // The first answer is often the smallest size, before the page laid
+    // out; a popup that small shows once the moment below has passed.
+    if (loaded_ && size_ != extensions::kExtensionPopupMinSize) {
+      Show();
+    }
   }
 
   void RenderFrameCreated(content::RenderFrameHost* frame) override {
-    if (frame->IsInPrimaryMainFrame() && frame->GetView()) {
-      frame->GetView()->EnableAutoResize(extensions::kExtensionPopupMinSize,
-                                         extensions::kExtensionPopupMaxSize);
+    if (frame->IsInPrimaryMainFrame()) {
+      EnableAutoResize();
     }
   }
 
@@ -175,8 +201,45 @@ class Popup : public extensions::ExtensionView {
     return false;
   }
 
+  // The page tells its size once auto-resize is on, which needs its view:
+  // it may not have one yet when its frame is created, so again once loaded.
+  // The popup shows when both are there (or, failing a size, at the
+  // smallest after a moment).
   void OnLoaded() override {
     host_->host_contents()->WasShown();
+    EnableAutoResize();
+    loaded_ = true;
+    if (!size_.IsEmpty() && size_ != extensions::kExtensionPopupMinSize) {
+      Show();
+      return;
+    }
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+        FROM_HERE,
+        base::BindOnce(
+            [](base::WeakPtr<Popup> popup) {
+              if (popup) {
+                if (popup->size_.IsEmpty()) {
+                  popup->size_ = extensions::kExtensionPopupMinSize;
+                }
+                popup->Show();
+              }
+            },
+            weak_factory_.GetWeakPtr()),
+        base::Milliseconds(500));
+  }
+
+ private:
+  void EnableAutoResize() {
+    if (auto* view = host_->host_contents()->GetRenderWidgetHostView()) {
+      view->EnableAutoResize(extensions::kExtensionPopupMinSize, extensions::kExtensionPopupMaxSize);
+    }
+  }
+
+  void Show() {
+    if (shown_) {
+      return;
+    }
+    shown_ = true;
     Place();
     // In softly, a few points up from the button.
     NSRect frame = panel_.frame;
@@ -192,7 +255,6 @@ class Popup : public extensions::ExtensionView {
     host_->host_contents()->Focus();
   }
 
- private:
   void HostWantsToClose(extensions::ExtensionHost*) { CloseSoon(); }
 
   // Below the button, its right edge at the button's, on screen.
@@ -216,10 +278,14 @@ class Popup : public extensions::ExtensionView {
 
   std::unique_ptr<extensions::ExtensionViewHost> host_;
   NSRect anchor_;
+  __weak id owner_;
   gfx::Size size_;
   NSPanel* __strong panel_;
   id __strong resign_observer_;
+  id __strong click_monitor_;
   bool closing_ = false;
+  bool loaded_ = false;
+  bool shown_ = false;
   base::WeakPtrFactory<Popup> weak_factory_{this};
 };
 
@@ -464,6 +530,13 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   }
 }
 
+// Closes the popup if this toolbar's page opened it.
+- (void)closeOwnPopup {
+  if (g_popup && g_popup->IsOwnedBy(self)) {
+    g_popup->CloseSoon();
+  }
+}
+
 - (instancetype)initWithWebContents:(content::WebContents*)contents
                             browser:(BrowserWindowInterface*)browser
                             openURL:(void (^)(NSString*))openURL {
@@ -552,7 +625,7 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   _observer.reset();
   _contents = nullptr;
   _browser = nullptr;
-  [OAExtensionToolbar closePopup];
+  [self closeOwnPopup];
 }
 
 - (void)setFrame:(NSRect)frame {
@@ -893,7 +966,7 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   if (!host) {
     return;
   }
-  new Popup(std::move(host), anchor);  // deletes itself when closed
+  new Popup(std::move(host), anchor, self);  // deletes itself when closed
 }
 
 // An extension's menu: open it, pin or unpin, its options, manage it.

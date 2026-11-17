@@ -122,8 +122,7 @@ void (^g_external_tab_handler_early)(NSString*) = nil;
 
 // A tab Chrome opened in a hidden window by itself (View Source, an
 // extension's chrome.tabs.create, ...): once its address is known it goes to
-// OACPane.externalTabHandler (OpenArch's sidebar), and Chrome's tab closes,
-// as on CEF.
+// OACPane.externalTabHandler (OpenArch's sidebar), and Chrome's tab closes.
 class ChromeTabWatcher : public content::WebContentsObserver {
  public:
   explicit ChromeTabWatcher(content::WebContents* contents)
@@ -667,8 +666,7 @@ class PrivatePageDelegate : public content::WebContentsDelegate {
 };
 
 // The pane's own DevTools protocol client: callDevToolsMethod and
-// executeJavaScript (Runtime.evaluate runs in the page's main world, as
-// CEF's ExecuteJavaScript does).
+// executeJavaScript (Runtime.evaluate runs in the page's main world).
 class DevToolsClient : public content::DevToolsAgentHostClient {
  public:
   using Callback = void (^)(NSDictionary<NSString*, id>*);
@@ -805,7 +803,7 @@ OACPane* PaneForWebContents(content::WebContents* contents) {
 }
 
 // "Ask about selection" (OACPane.askAboutSelectionTitle) atop the menu of
-// selected text, as on CEF.
+// selected text.
 void AddMenuItems(content::WebContents* contents,
                   const content::ContextMenuParams& params,
                   ui::SimpleMenuModel* menu) {
@@ -1049,8 +1047,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
     return NSZeroRect;
   }
   NSRect frame = [view convertRect:view.bounds toView:nil];
-  // The pane's toolbar is part of the pane (on CEF it is inside the tab's
-  // window).
+  // The pane's toolbar is part of the pane.
   if (_toolbarVisible && _toolbar.superview == view.superview) {
     frame = NSUnionRect(frame, [_toolbar convertRect:_toolbar.bounds toView:nil]);
   }
@@ -1334,8 +1331,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
     }
   }
   view.frame = page;
-  // The toolbar spans the page's column (on CEF it is inside the tab's
-  // window, beside which DevTools dock).
+  // The toolbar spans the page's column, beside which DevTools dock.
   if (_toolbarVisible && _toolbar.superview == content) {
     NSRect bar = _toolbar.frame;
     _toolbar.frame = NSMakeRect(NSMinX(page), NSMinY(bar), NSWidth(page), NSHeight(bar));
@@ -1427,7 +1423,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
     return;
   }
   // Going to Chrome's About page from a page already open shows OpenArch's
-  // own; a tab that starts there keeps it (as on CEF).
+  // own; a tab that starts there keeps it.
   if ([OACPane isAboutPageURL:url] && g_about_page_handler &&
       !_contents->GetController().IsInitialNavigation()) {
     g_about_page_handler();
@@ -1870,8 +1866,8 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
   TabStripModel* tabs = browser->GetTabStripModel();
   int index = tabs->GetIndexOfWebContents(_contents);
   if (index != TabStripModel::kNoTab) {
-    // As on CEF: the page goes without asking ("Leave site?"), OpenArch
-    // already took its tab away.
+    // The page goes without asking ("Leave site?"): OpenArch already took
+    // its tab away.
     tabs->DetachAndDeleteWebContentsAt(index);
   }
 }
@@ -1925,7 +1921,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 - (void)gotFocus {
   // Chrome focuses the active tab of its (hidden) window by itself, which
   // may be a page in the background: only a page on screen, in the key
-  // window, becomes active (on CEF: its window became key).
+  // window, becomes active.
   if (!_visible || !_hostWindow.isKeyWindow) {
     return;
   }
@@ -1985,7 +1981,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
       break;
     default:
       // Real popups (window.open with features, OAuth flows) keep their
-      // opener in a small Chrome window of their own, as on CEF.
+      // opener in a small Chrome window of their own.
       return NO;
   }
   if (!IsWebScheme(url)) {
@@ -2048,7 +2044,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
     for (OACPane* pane in [[g_panes_by_window objectForKey:window] allObjects]) {
       if (wasWindow != isWindow && [pane hasDevTools]) {
         // Between docked and a window of their own: they close and open
-        // again (as on CEF).
+        // again.
         [pane closeDevTools];
         __weak OACPane* weakPane = pane;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 400 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
