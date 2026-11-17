@@ -584,8 +584,14 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
     _site.imageHugsTitle = YES;
     _site.lineBreakMode = NSLineBreakByTruncatingTail;
     _site.target = self;
-    _site.action = @selector(copyAddress:);
-    _site.toolTip = @"Adresse kopieren";
+    _site.action = @selector(editAddress:);
+    _site.toolTip = @"Adresse ändern (⌥-Klick kopiert sie)";
+    NSMenu* siteMenu = [[NSMenu alloc] init];
+    NSMenuItem* copyItem = [siteMenu addItemWithTitle:@"Adresse kopieren"
+                                               action:@selector(copyAddress:)
+                                        keyEquivalent:@""];
+    copyItem.target = self;
+    _site.menu = siteMenu;
     [self addSubview:_site];
 
     _puzzle = [[OAToolbarButton alloc] initWithFrame:NSMakeRect(0, 0, kButton, kButton)];
@@ -712,7 +718,7 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
       favicon.size = NSMakeSize(14, 14);
     }
   }
-  // As Arc: a link symbol before the domain (a click copies the address).
+  // As Arc: a link symbol before the domain (a click edits the address).
   NSImageSymbolConfiguration* symbol = [NSImageSymbolConfiguration configurationWithPointSize:11
                                                                                       weight:NSFontWeightSemibold];
   NSColor* text = _tint ?: NSColor.secondaryLabelColor;
@@ -728,6 +734,17 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
             NSForegroundColorAttributeName : _tint ? [_tint colorWithAlphaComponent:1] : NSColor.labelColor
           }];
   [self layoutContent];
+}
+
+// A click edits the address, as ⌘L does (OpenArch's "Adresse öffnen …");
+// ⌥-click and the context menu copy it.
+- (void)editAddress:(id)sender {
+  if (NSApp.currentEvent.modifierFlags & NSEventModifierFlagOption) {
+    [self copyAddress:sender];
+    return;
+  }
+  [self.window makeKeyAndOrderFront:nil];
+  [NSApp sendAction:NSSelectorFromString(@"openLocation:") to:nil from:self];
 }
 
 - (void)copyAddress:(id)sender {

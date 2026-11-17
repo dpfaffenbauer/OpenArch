@@ -9,6 +9,8 @@
 
 #include "ui/base/window_open_disposition.h"
 
+class BrowserWindow;
+class BrowserWindowInterface;
 class ChromeBrowserMainExtraParts;
 class GURL;
 
@@ -91,6 +93,12 @@ inline ContextMenuCommandHook g_context_menu_command_hook = nullptr;
 // opening a Chrome window.
 using RelaunchHook = void (*)(const base::CommandLine& command_line);
 inline RelaunchHook g_relaunch_hook = nullptr;
+
+// The window of a Browser Chrome makes (BrowserWindow::CreateBrowserWindow):
+// OpenArch's own, without a native window, for the Browsers that hold
+// OpenArch's pages; nullptr leaves Chrome's window for every other.
+using BrowserWindowHook = BrowserWindow* (*)(BrowserWindowInterface* browser);
+inline BrowserWindowHook g_browser_window_hook = nullptr;
 
 }  // namespace openarch
 

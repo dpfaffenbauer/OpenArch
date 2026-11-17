@@ -17,6 +17,8 @@ source_set("core") {
     "include/OACPane.h",
     "include/OACProfile.h",
     "internal.h",
+    "page_window.h",
+    "page_window.mm",
     "pane.mm",
     "profile.mm",
     "toolbar.h",

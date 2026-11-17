@@ -6,6 +6,7 @@
 
 #include "openarch/internal.h"
 #import "openarch/findbar.h"
+#import "openarch/page_window.h"
 #import "openarch/toolbar.h"
 
 #import <AppKit/AppKit.h>
@@ -32,6 +33,8 @@
 #include "components/prefs/scoped_user_pref_update.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_window/public/browser_collection_observer.h"
+#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
+#include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
@@ -97,6 +100,9 @@
 - (void)progressChanged:(double)progress;
 - (void)mainFrameLoad:(BOOL)started url:(const GURL&)url;
 - (void)webContentsDestroyed;
+- (BOOL)pageFullScreen;
+- (void)enterPageFullScreen;
+- (void)exitPageFullScreen;
 - (void)gotFocus;
 - (void)consoleMessage:(NSString*)message source:(NSString*)source line:(NSInteger)line;
 - (void)faviconChanged:(NSImage*)image;
@@ -288,6 +294,12 @@ class PaneObserver : public content::WebContentsObserver,
 
   // A renderer that ended unexpectedly, to OACPane.renderProcessGoneHandler.
   // Ones killed on purpose (closing, discarding) don't count.
+  // However the page left full screen, its own window goes too.
+  void DidToggleFullscreenModeForTab(bool entered, bool) override {
+    if (!entered) {
+      [pane_ exitPageFullScreen];
+    }
+  }
   void PrimaryMainFrameRenderProcessGone(base::TerminationStatus status) override {
     const char* name = nullptr;
     switch (status) {
@@ -472,10 +484,14 @@ int HandleKey(content::WebContents* source,
     return -1;
   }
   NSEvent* ns_event = event.os_event.Get();
-  if (!ns_event || ns_event.type != NSEventTypeKeyDown) {
-    return 0;
+  bool key_down = ns_event && ns_event.type == NSEventTypeKeyDown;
+  if (!unhandled) {
+    // Before the page: OpenArch's ⌘-shortcuts, else Chrome's own handling
+    // (Esc leaves full screen).
+    bool command = key_down && (ns_event.modifierFlags & NSEventModifierFlagCommand);
+    return command && [[NSApp mainMenu] performKeyEquivalent:ns_event] ? 1 : -1;
   }
-  if (!unhandled && !(ns_event.modifierFlags & NSEventModifierFlagCommand)) {
+  if (!key_down) {
     return 0;
   }
   return [[NSApp mainMenu] performKeyEquivalent:ns_event] ? 1 : 0;
@@ -802,6 +818,23 @@ OACPane* PaneForWebContents(content::WebContents* contents) {
   return PaneForContents(contents);
 }
 
+bool EnterPageFullScreen(content::WebContents* contents) {
+  OACPane* pane = contents ? PaneForContents(contents) : nil;
+  if (!pane) {
+    return false;
+  }
+  [pane enterPageFullScreen];
+  return true;
+}
+
+void ExitPageFullScreen(content::WebContents* contents) {
+  [(contents ? PaneForContents(contents) : nil) exitPageFullScreen];
+}
+
+bool IsPageFullScreen(content::WebContents* contents) {
+  return contents && [PaneForContents(contents) pageFullScreen];
+}
+
 // "Ask about selection" (OACPane.askAboutSelectionTitle) atop the menu of
 // selected text.
 void AddMenuItems(content::WebContents* contents,
@@ -825,13 +858,24 @@ void RunMenuCommand(content::WebContents* contents, const content::ContextMenuPa
   }
 }
 
+BrowserWindow* MakeWindowForBrowser(BrowserWindowInterface* browser);
+
 void InstallPaneHooks() {
   g_context_menu_hook = &AddMenuItems;
   g_context_menu_command_hook = &RunMenuCommand;
   g_new_tab_hook = &TakeNewTab;
   g_key_hook = &HandleKey;
   g_navigation_throttle_hook = &AddNavigationThrottle;
+  g_browser_window_hook = &MakeWindowForBrowser;
   CaptureWatcher::Ensure();
+}
+
+// Set while OpenArch makes the Browser that holds a profile's pages: its
+// window is OpenArch's own (page_window.mm), never a Chrome window.
+bool g_making_page_browser = false;
+
+BrowserWindow* MakeWindowForBrowser(BrowserWindowInterface* browser) {
+  return g_making_page_browser ? MakePageWindow(browser) : nullptr;
 }
 
 BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
@@ -841,40 +885,59 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
     return it->second;
   }
   // Private profiles of their own (one per private window) can't have a
-  // Chrome window; their pages live without one.
+  // Chrome browser; their pages live without one.
   if (GetBrowserWindowCreationStatusForProfile(*profile) !=
       BrowserWindowInterface::CreationStatus::kOk) {
     return nullptr;
   }
-  // A normal Chrome window, never shown: its tab strip holds the pages.
+  // A normal browser whose tab strip holds the pages; its window is
+  // OpenArch's (no native window), see page_window.h.
   BrowserWindowCreateParams params(profile, /*from_user_gesture=*/false);
   params.initial_show_state = ui::mojom::WindowShowState::kInactive;
+  g_making_page_browser = true;
   BrowserWindowInterface* browser = CreateBrowserWindow(std::move(params));
+  g_making_page_browser = false;
   browser->GetTabStripModel()->AddObserver(ChromeTabCatcher::Get());
-  // It must never show: it holds the profile's pages, and closing it would
-  // close them all. Should anything order it in (Chrome brings a tab's
-  // window to the front for many reasons), it goes again at once.
-  NSWindow* chrome_window = browser->GetWindow()->GetNativeWindow().GetNativeNSWindow();
-  base::WeakPtr<BrowserWindowInterface> weak_browser = browser->GetWeakPtr();
-  [[NSNotificationCenter defaultCenter]
-      addObserverForName:NSWindowDidChangeOcclusionStateNotification
-                  object:chrome_window
-                   queue:nil
-               usingBlock:^(NSNotification*) {
-                 if (!chrome_window.visible) {
-                   return;
-                 }
-                 base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
-                     FROM_HERE, base::BindOnce(
-                                    [](base::WeakPtr<BrowserWindowInterface> browser) {
-                                      if (browser && browser->GetWindow()->IsVisible()) {
-                                        browser->GetWindow()->Hide();
-                                      }
-                                    },
-                                    weak_browser));
-               }];
   HiddenBrowsers()[profile] = browser;
   return browser;
+}
+
+// The OpenArch window a Browser's pages are shown in: the key window's
+// page first, then any page on screen, then OpenArch's main window.
+NSWindow* HostWindowForBrowser(BrowserWindowInterface* browser) {
+  NSWindow* any = nil;
+  if (browser) {
+    TabStripModel* tabs = browser->GetTabStripModel();
+    for (int i = 0; i < tabs->count(); ++i) {
+      NSWindow* window = PaneForContents(tabs->GetWebContentsAt(i)).window;
+      if (!window) {
+        continue;
+      }
+      if (window.isKeyWindow || window == NSApp.keyWindow.parentWindow) {
+        return window;
+      }
+      any = any ?: window;
+    }
+  }
+  return any ?: (NSApp.mainWindow ?: NSApp.keyWindow);
+}
+
+// The page of |browser| the user is in: the one on screen in the key
+// window, else Chrome's active tab.
+content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser) {
+  TabStripModel* tabs = browser->GetTabStripModel();
+  for (int i = 0; i < tabs->count(); ++i) {
+    content::WebContents* contents = tabs->GetWebContentsAt(i);
+    NSWindow* window = PaneForContents(contents).window;
+    if (window && window.isKeyWindow) {
+      NSView* view = contents->GetNativeView().GetNativeNSView();
+      NSResponder* responder = window.firstResponder;
+      if ([responder isKindOfClass:[NSView class]] && [(NSView*)responder isDescendantOf:view]) {
+        return contents;
+      }
+    }
+  }
+  return tabs->GetActiveWebContents();
 }
 
 }  // namespace openarch
@@ -945,6 +1008,9 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
   CGFloat _cornerRadius;
   BOOL _offersAskAboutSelection;
   BOOL _refusesToCloseForTesting;
+  NSWindow* _fullScreenWindow;  // the page's own window while it is full screen
+  id _fullScreenEnterObserver;
+  id _fullScreenExitObserver;
   NSImage* _favicon;
 }
 
@@ -963,6 +1029,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 }
 
 - (void)dealloc {
+  [self leavePageFullScreenWindowNotifying:NO];
   [self detachView];
   _observer.reset();
   _devTools.reset();
@@ -1242,6 +1309,9 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 }
 
 - (void)attachViewToWindow:(NSWindow*)window {
+  if (_fullScreenWindow) {
+    return;  // back in place when full screen ends
+  }
   NSView* view = [self contentsView];
   NSView* content = window.contentView;
   if (!view || !content) {
@@ -1261,7 +1331,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 
 - (void)applyCornerRadius {
   NSView* view = [self contentsView];
-  if (!view) {
+  if (!view || _fullScreenWindow) {
     return;
   }
   view.wantsLayer = YES;
@@ -1287,7 +1357,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 - (void)layoutViews {
   NSView* view = [self contentsView];
   NSView* content = view.superview;
-  if (!_visible || !content) {
+  if (!_visible || !content || _fullScreenWindow) {
     return;
   }
   NSRect frame = [content convertRect:_frame fromView:nil];
@@ -1391,7 +1461,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 
 - (void)detachView {
   NSView* view = [self contentsView];
-  if (!view) {
+  if (!view || _fullScreenWindow) {
     return;
   }
   if (_contents) {
@@ -1429,6 +1499,127 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
   if (superview) {
     [view removeFromSuperview];
     [superview addSubview:view positioned:NSWindowAbove relativeTo:nil];
+  }
+}
+
+#pragma mark Page full screen
+
+// A page going full screen (a video's full screen button) gets a window of
+// its own on its own full screen space, as in Chrome. Its view goes back to
+// the pane when that window leaves full screen, however that happens: the
+// page, Esc, the green button.
+- (BOOL)pageFullScreen {
+  return _fullScreenWindow != nil;
+}
+
+- (void)enterPageFullScreen {
+  NSView* view = [self contentsView];
+  if (_fullScreenWindow || !view) {
+    return;
+  }
+  NSScreen* screen = _hostWindow.screen ?: NSScreen.mainScreen;
+  NSWindow* window = [[NSWindow alloc]
+      initWithContentRect:screen.frame
+                styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskResizable |
+                          NSWindowStyleMaskFullSizeContentView
+                  backing:NSBackingStoreBuffered
+                    defer:NO];
+  window.releasedWhenClosed = NO;
+  window.titlebarAppearsTransparent = YES;
+  window.titleVisibility = NSWindowTitleHidden;
+  window.backgroundColor = NSColor.blackColor;
+  window.collectionBehavior = NSWindowCollectionBehaviorFullScreenPrimary;
+  window.title = self.title ?: @"";
+
+  // The page alone: the extension toolbar, a side panel, the find bar and
+  // docked DevTools stay behind.
+  [self detachView];
+  _fullScreenWindow = window;
+  [view removeFromSuperview];
+  view.layer.cornerRadius = 0;
+  view.layer.masksToBounds = NO;
+  view.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+  view.frame = window.contentView.bounds;
+  view.hidden = NO;
+  [window.contentView addSubview:view];
+  if (_contents) {
+    _contents->WasShown();
+  }
+
+  __weak OACPane* weakSelf = self;
+  _fullScreenEnterObserver = [NSNotificationCenter.defaultCenter
+      addObserverForName:NSWindowDidEnterFullScreenNotification
+                  object:window
+                   queue:NSOperationQueue.mainQueue
+              usingBlock:^(NSNotification*) {
+                [weakSelf pageFullScreenChanged];
+              }];
+  _fullScreenExitObserver = [NSNotificationCenter.defaultCenter
+      addObserverForName:NSWindowDidExitFullScreenNotification
+                  object:window
+                   queue:NSOperationQueue.mainQueue
+              usingBlock:^(NSNotification*) {
+                [weakSelf leavePageFullScreenWindowNotifying:YES];
+              }];
+  [window makeKeyAndOrderFront:nil];
+  [window toggleFullScreen:nil];
+  if (_contents) {
+    _contents->Focus();
+  }
+}
+
+- (void)exitPageFullScreen {
+  NSWindow* window = _fullScreenWindow;
+  if (!window) {
+    return;
+  }
+  if (window.styleMask & NSWindowStyleMaskFullScreen) {
+    [window toggleFullScreen:nil];  // back in place once AppKit is done
+  } else {
+    [self leavePageFullScreenWindowNotifying:YES];
+  }
+}
+
+- (void)leavePageFullScreenWindowNotifying:(BOOL)notify {
+  NSWindow* window = _fullScreenWindow;
+  if (!window) {
+    return;
+  }
+  [NSNotificationCenter.defaultCenter removeObserver:_fullScreenEnterObserver];
+  [NSNotificationCenter.defaultCenter removeObserver:_fullScreenExitObserver];
+  _fullScreenEnterObserver = nil;
+  _fullScreenExitObserver = nil;
+  _fullScreenWindow = nil;
+  NSView* view = [self contentsView];
+  [view removeFromSuperview];
+  if (_visible && _hostWindow) {
+    [self attachViewToWindow:_hostWindow];
+    [_hostWindow makeKeyAndOrderFront:nil];
+  } else if (view) {
+    view.hidden = YES;
+    _contents->WasHidden();
+  }
+  [window orderOut:nil];
+  [window close];
+  if (!notify) {
+    return;
+  }
+  // Left by the user (Esc in AppKit's hands, the green button): the page
+  // leaves full screen too.
+  if (_contents && _contents->IsFullscreen()) {
+    _contents->ExitFullscreen(/*will_cause_resize=*/true);
+  }
+  [self pageFullScreenChanged];
+  if (_visible && _contents) {
+    _contents->Focus();
+  }
+}
+
+- (void)pageFullScreenChanged {
+  BrowserWindowInterface* browser = [self browser];
+  ExclusiveAccessManager* manager = browser ? ExclusiveAccessManager::From(browser) : nullptr;
+  if (manager) {
+    manager->fullscreen_controller()->WindowFullscreenStateChanged();
   }
 }
 
@@ -1953,6 +2144,7 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
 }
 
 - (void)webContentsDestroyed {
+  [self leavePageFullScreenWindowNotifying:NO];
   if (_contents) {
     RegisterContents(_contents, nil);
     openarch::StopHostingDialogs(_contents);
