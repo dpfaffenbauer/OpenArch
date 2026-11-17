@@ -269,7 +269,13 @@ final class PeekBackdropWindow: NSWindow {
         isReleasedWhenClosed = false
         collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
         hosting.sizingOptions = []
-        contentView = hosting
+        // The card's page (a Chromium page's view) goes in this plain view,
+        // above the SwiftUI backdrop: inside the NSHostingView itself an app
+        // linked against the macOS 26 SDK shows nothing of it.
+        let container = NSView()
+        hosting.autoresizingMask = [.width, .height]
+        container.addSubview(hosting)
+        contentView = container
     }
 
     override var canBecomeKey: Bool { true }
