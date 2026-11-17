@@ -851,6 +851,28 @@ BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile) {
   params.initial_show_state = ui::mojom::WindowShowState::kInactive;
   BrowserWindowInterface* browser = CreateBrowserWindow(std::move(params));
   browser->GetTabStripModel()->AddObserver(ChromeTabCatcher::Get());
+  // It must never show: it holds the profile's pages, and closing it would
+  // close them all. Should anything order it in (Chrome brings a tab's
+  // window to the front for many reasons), it goes again at once.
+  NSWindow* chrome_window = browser->GetWindow()->GetNativeWindow().GetNativeNSWindow();
+  base::WeakPtr<BrowserWindowInterface> weak_browser = browser->GetWeakPtr();
+  [[NSNotificationCenter defaultCenter]
+      addObserverForName:NSWindowDidChangeOcclusionStateNotification
+                  object:chrome_window
+                   queue:nil
+               usingBlock:^(NSNotification*) {
+                 if (!chrome_window.visible) {
+                   return;
+                 }
+                 base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+                     FROM_HERE, base::BindOnce(
+                                    [](base::WeakPtr<BrowserWindowInterface> browser) {
+                                      if (browser && browser->GetWindow()->IsVisible()) {
+                                        browser->GetWindow()->Hide();
+                                      }
+                                    },
+                                    weak_browser));
+               }];
   HiddenBrowsers()[profile] = browser;
   return browser;
 }
