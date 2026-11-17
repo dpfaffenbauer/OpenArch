@@ -348,6 +348,54 @@ bool (*openarch_dialog_place_hook)(gfx::NativeWindow parent,
 namespace constrained_window {
 ''', "bool (*openarch_dialog_place_hook)")
 
+# 3g. The Browsers that hold OpenArch's pages get OpenArch's window, which
+# has no native window (openarch/page_window.h): nothing of Chrome's own
+# window can show, take the focus or be closed.
+factory = "chrome/browser/ui/views/frame/browser_window_factory.cc"
+edit(factory, '''                                   bool in_tab_dragging) {
+''', '''                                   bool in_tab_dragging) {
+  if (openarch::g_browser_window_hook) {  // OpenArch
+    if (BrowserWindow* window = openarch::g_browser_window_hook(browser)) {
+      return std::unique_ptr<BrowserWindow, BrowserWindowDeleter>(window);
+    }
+  }
+''', "openarch::g_browser_window_hook(browser)")
+edit(factory, '#include "build/build_config.h"\n',
+     '#include "build/build_config.h"\n' + hooks, hooks)
+
+# 3h. What Chrome only lets a Browser without a BrowserView have in tests
+# (or for its own WebUI browser), OpenArch's page Browsers have too: DevTools
+# may dock (OpenArch shows the frontend beside the page), and reading mode
+# and toasts don't CHECK for a side panel or toolbar that isn't there.
+features = "chrome/browser/ui/browser_window/internal/browser_window_features.cc"
+edit(features, '''  if (browser_view) {
+    devtools_ui_controller_ =
+        GetUserDataFactory().CreateInstance<DevtoolsUIController>(
+            *browser, browser_, browser_view->GetContentsContainerViews());
+  }
+''', '''  if (browser_view) {
+    devtools_ui_controller_ =
+        GetUserDataFactory().CreateInstance<DevtoolsUIController>(
+            *browser, browser_, browser_view->GetContentsContainerViews());
+  } else if (openarch::g_embedder_owns_app) {  // OpenArch
+    devtools_ui_controller_ =
+        GetUserDataFactory().CreateInstance<DevtoolsUIController>(
+            *browser, browser_,
+            std::vector<raw_ptr<ContentsContainerView, DanglingUntriaged>>());
+  }
+''', "} else if (openarch::g_embedder_owns_app) {  // OpenArch\n    devtools_ui_controller_")
+edit(features, '#include "chrome/browser/ui/browser_window/public/browser_window_features.h"\n',
+     '#include "chrome/browser/ui/browser_window/public/browser_window_features.h"\n' + hooks, hooks)
+for path in ["chrome/browser/ui/read_anything/read_anything_side_panel_controller.cc",
+             "chrome/browser/ui/toasts/toast_controller.cc"]:
+    edit(path, "    if (!webui_browser::IsWebUIBrowserEnabled()) {\n      CHECK_IS_TEST();",
+         "    if (!webui_browser::IsWebUIBrowserEnabled() &&\n"
+         "        !openarch::g_embedder_owns_app) {  // OpenArch\n      CHECK_IS_TEST();",
+         "!openarch::g_embedder_owns_app) {  // OpenArch")
+    header = path.replace(".cc", ".h").split("/")[-1]
+    s_inc = '#include "' + path.replace(".cc", ".h") + '"\n'
+    edit(path, s_inc, s_inc + hooks, hooks)
+
 # 3b. Chrome's keychain item can be named at run time, so the engine uses
 # OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {

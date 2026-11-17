@@ -50,6 +50,12 @@ void InstallPaneHooks();
 // The pane showing |contents|, if OpenArch shows it.
 OACPane* PaneForWebContents(content::WebContents* contents);
 
+// A page's full screen: its own window on its own full screen space. Enter
+// returns false when OpenArch does not show |contents|.
+bool EnterPageFullScreen(content::WebContents* contents);
+void ExitPageFullScreen(content::WebContents* contents);
+bool IsPageFullScreen(content::WebContents* contents);
+
 // dialogs.mm: OpenArch's window hosts the page's dialogs and permission
 // prompts; the hooks for JavaScript dialogs and permission prompts.
 NSWindow* DialogWindowForPane(OACPane* pane);
@@ -57,9 +63,14 @@ void HostDialogsInPane(content::WebContents* contents, OACPane* pane);
 void StopHostingDialogs(content::WebContents* contents);
 void InstallDialogHooks();
 
-// The hidden Chrome window (a normal browser window) whose tab strip holds a
-// profile's pages. Made on first use, again after Chrome closed it.
+// The Browser whose tab strip holds a profile's pages (with OpenArch's own
+// window, page_window.h). Made on first use, again after it closed.
 BrowserWindowInterface* HiddenBrowserForProfile(Profile* profile);
+
+// The OpenArch window a Browser's pages are shown in (for Chrome's
+// dialogs, focus and bounds), and the page of it the user is in.
+NSWindow* HostWindowForBrowser(BrowserWindowInterface* browser);
+content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser);
 
 std::string ToStdString(NSString* string);
 NSString* ToNSString(const std::string& string);
