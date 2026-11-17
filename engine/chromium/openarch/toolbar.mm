@@ -9,10 +9,13 @@
 #include <string>
 #include <vector>
 
+#include "base/functional/bind.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/task/single_thread_task_runner.h"
+#include "base/time/time.h"
 #include "chrome/browser/extensions/api/side_panel/side_panel_service.h"
 #include "chrome/browser/extensions/extension_action_dispatcher.h"
 #include "chrome/common/extensions/api/side_panel.h"
@@ -157,12 +160,16 @@ class Popup : public extensions::ExtensionView {
     size.SetToMin(extensions::kExtensionPopupMaxSize);
     size_ = size;
     Place();
+    // The first answer is often the smallest size, before the page laid
+    // out; a popup that small shows once the moment below has passed.
+    if (loaded_ && size_ != extensions::kExtensionPopupMinSize) {
+      Show();
+    }
   }
 
   void RenderFrameCreated(content::RenderFrameHost* frame) override {
-    if (frame->IsInPrimaryMainFrame() && frame->GetView()) {
-      frame->GetView()->EnableAutoResize(extensions::kExtensionPopupMinSize,
-                                         extensions::kExtensionPopupMaxSize);
+    if (frame->IsInPrimaryMainFrame()) {
+      EnableAutoResize();
     }
   }
 
@@ -175,8 +182,45 @@ class Popup : public extensions::ExtensionView {
     return false;
   }
 
+  // The page tells its size once auto-resize is on, which needs its view:
+  // it may not have one yet when its frame is created, so again once loaded.
+  // The popup shows when both are there (or, failing a size, at the
+  // smallest after a moment).
   void OnLoaded() override {
     host_->host_contents()->WasShown();
+    EnableAutoResize();
+    loaded_ = true;
+    if (!size_.IsEmpty() && size_ != extensions::kExtensionPopupMinSize) {
+      Show();
+      return;
+    }
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+        FROM_HERE,
+        base::BindOnce(
+            [](base::WeakPtr<Popup> popup) {
+              if (popup) {
+                if (popup->size_.IsEmpty()) {
+                  popup->size_ = extensions::kExtensionPopupMinSize;
+                }
+                popup->Show();
+              }
+            },
+            weak_factory_.GetWeakPtr()),
+        base::Milliseconds(500));
+  }
+
+ private:
+  void EnableAutoResize() {
+    if (auto* view = host_->host_contents()->GetRenderWidgetHostView()) {
+      view->EnableAutoResize(extensions::kExtensionPopupMinSize, extensions::kExtensionPopupMaxSize);
+    }
+  }
+
+  void Show() {
+    if (shown_) {
+      return;
+    }
+    shown_ = true;
     Place();
     // In softly, a few points up from the button.
     NSRect frame = panel_.frame;
@@ -192,7 +236,6 @@ class Popup : public extensions::ExtensionView {
     host_->host_contents()->Focus();
   }
 
- private:
   void HostWantsToClose(extensions::ExtensionHost*) { CloseSoon(); }
 
   // Below the button, its right edge at the button's, on screen.
@@ -220,6 +263,8 @@ class Popup : public extensions::ExtensionView {
   NSPanel* __strong panel_;
   id __strong resign_observer_;
   bool closing_ = false;
+  bool loaded_ = false;
+  bool shown_ = false;
   base::WeakPtrFactory<Popup> weak_factory_{this};
 };
 

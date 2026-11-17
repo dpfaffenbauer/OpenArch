@@ -2011,6 +2011,22 @@ final class SelfTest {
             let bar = little.pane.window?.contentView?.subviews.contains { $0.className == "OAExtensionToolbar" } == true
             self.expect(little.pane.toolbarVisible && (OACPane.panesHaveWindows || bar),
                         "the puzzle button shows Chrome's toolbar with the extensions (own bar \(bar))")
+            // An extension's popup opens in OpenArch's popup window, at the
+            // size its page asks for (not stuck at the smallest, off screen).
+            if let pane = little.pane as? OACPane,
+               let probe = pane.extensions.first(where: { $0.name == "OpenArch Probe" }) {
+                let before = Set(NSApp.windows.map(ObjectIdentifier.init))
+                func popup() -> NSWindow? {
+                    NSApp.windows.first { !before.contains(ObjectIdentifier($0)) && $0.isVisible && $0.className.contains("Popup") }
+                }
+                pane.runExtension(probe.identifier, from: NSRect(x: 400, y: 400, width: 20, height: 20))
+                self.eventually({ (popup()?.frame.width ?? 0) > 100 }, timeout: 5) { shown in
+                    self.expect(shown, "an extension's popup opens at its page's size (\(popup().map { "\($0.frame.size)" } ?? "none"))")
+                    popup()?.close()
+                }
+            } else {
+                self.expect(false, "the probe extension has an action, for the popup")
+            }
             little.toggleToolbar()
             let before = self.browser.state.space.today.allTabs.count
             little.moveToSpace()
