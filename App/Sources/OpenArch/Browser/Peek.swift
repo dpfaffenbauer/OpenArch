@@ -193,12 +193,23 @@ final class PeekController: NSObject, OACPaneDelegate {
     /// Keeps the card above the window's panes after they were re-added.
     func layout() {
         guard isOpen, let window = browser.window, let backdrop, let pane else { return }
-        backdrop.setFrame(window.convertToScreen(browser.contentRect), display: true)
+        let frame = window.convertToScreen(browser.contentRect)
+        if backdrop.frame != frame {
+            backdrop.setFrame(frame, display: true)
+        }
         backdrop.cardFrame = window.convertToScreen(cardFrame)
-        window.removeChildWindow(backdrop)
-        window.addChildWindow(backdrop, ordered: .above)
-        pane.setFrame(OACPane.panesHaveWindows ? cardFrame : backdrop.convertFromScreen(backdrop.cardFrame))
-        pane.orderFront()
+        if OACPane.panesHaveWindows {
+            window.removeChildWindow(backdrop)
+            window.addChildWindow(backdrop, ordered: .above)
+            pane.setFrame(cardFrame)
+            pane.orderFront()
+        } else {
+            // The page is a view on top of the backdrop's own content, which
+            // nothing re-adds: taking it out and in again (orderFront) on
+            // every layout, three times per step of a moving window, made
+            // Chromium redraw it from scratch, and it flickered.
+            pane.setFrame(backdrop.convertFromScreen(backdrop.cardFrame))
+        }
     }
 
     // MARK: OACPaneDelegate
@@ -269,7 +280,13 @@ final class PeekBackdropWindow: NSWindow {
         isReleasedWhenClosed = false
         collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
         hosting.sizingOptions = []
-        contentView = hosting
+        // The card's page (a Chromium page's view) goes in this plain view,
+        // above the SwiftUI backdrop: inside the NSHostingView itself an app
+        // linked against the macOS 26 SDK shows nothing of it.
+        let container = NSView()
+        hosting.autoresizingMask = [.width, .height]
+        container.addSubview(hosting)
+        contentView = container
     }
 
     override var canBecomeKey: Bool { true }
