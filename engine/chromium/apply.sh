@@ -246,8 +246,8 @@ edit("ui/views/controls/webview/BUILD.gn", '''component("webview") {
     "openarch_hosted_page.h",
 ''', '"openarch_hosted_page.h"')
 
-# 3b. Chrome's keychain item can be named at run time (as CEF does), so the
-# engine uses OpenArch's ("OpenArch Safe Storage").
+# 3b. Chrome's keychain item can be named at run time, so the engine uses
+# OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {
   source_set("keychain_password_mac") {
 ''', '''if (is_apple) {
