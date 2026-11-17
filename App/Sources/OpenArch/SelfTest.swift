@@ -163,6 +163,18 @@ final class SelfTest {
             }
             return
         }
+        // --fairplay-test: only Spotify, Netflix and Disney+ in Chromium (SelfTestFairPlay.swift).
+        if CommandLine.arguments.contains("--fairplay-test") {
+            populate()
+            after(0.5) { self.selectToday() }
+            after(4) {
+                self.fairPlayFeatures {
+                    Swift.print("[selftest] DONE failures=\(self.failures.count) \(self.failures)")
+                    if !CommandLine.arguments.contains("--stay") { Self.quit() }
+                }
+            }
+            return
+        }
         // --onboarding-test: the first-run flow with an Arc fixture (SelfTestOnboarding.swift).
         if CommandLine.arguments.contains("--onboarding-test") {
             if CommandLine.arguments.contains("--shots") { return onboardingShots() }

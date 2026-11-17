@@ -127,6 +127,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {
         if !transferred {
+            FairPlay.shared.pageGone(pane)
+            ProtectedVideo.shared.pageGone(pane)
             pane.delegate = nil
             pane.close()
         }
@@ -140,7 +142,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         guard !text.isEmpty else { return }
         let url = CommandBarModel.url(fromInput: text) ?? app.library.settings.searchEngine.url(for: text)
         model.isEditing = false
-        let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
+        let engine = ProtectedMedia.engine(forAddress: url, current: pane)
         if engine != pane.engine {
             replacePage(with: url, engine: engine)
         } else {
@@ -153,6 +155,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     /// service moves to WebKit).
     private func replacePage(with url: String, engine: OACPageEngine) {
         let old = pane
+        FairPlay.shared.pageGone(old)
+        ProtectedVideo.shared.pageGone(old)
         old.delegate = nil
         old.hide()
         old.close()
@@ -272,7 +276,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     /// A link here to a streaming service moves the window's page to WebKit.
     func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
-        guard pane === self.pane, ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        guard pane === self.pane, ProtectedMedia.handsOff(from: pane, to: url, method: method) else { return false }
         DispatchQueue.main.async {
             MainActor.assumeIsolated { [weak self] in
                 guard let self, self.pane === pane else { return }
@@ -284,6 +288,11 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     func paneDidClose(_ pane: any OACPage) {
         if !transferred { window?.close() }
+    }
+
+    /// Spotify, Netflix and Disney+ play in Little OpenArch like in a tab.
+    func pane(_ pane: any OACPage, consoleMessage message: String, source: String, line: Int) {
+        _ = FairPlay.shared.receive(message, from: pane) || ProtectedVideo.shared.receive(message, from: pane)
     }
 }
 

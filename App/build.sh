@@ -128,6 +128,17 @@ write_plist "$PLUGIN/Contents/Info.plist" "OpenArchDockTile" "$BUNDLE_ID.docktil
   "<key>NSPrincipalClass</key><string>OpenArchDockTile</string>"
 sed -i '' 's|<key>CFBundlePackageType</key><string>APPL</string>|<key>CFBundlePackageType</key><string>BNDL</string>|' "$PLUGIN/Contents/Info.plist"
 
+# The helper that plays Spotify's FairPlay tracks for Chromium pages
+# (Sources/OpenArchFairPlay, FairPlay.swift): an app of its own, without a
+# Dock icon, so macOS shows it under Now Playing with OpenArch's name.
+FAIRPLAY="$APP/Contents/Helpers/OpenArchFairPlay.app"
+mkdir -p "$FAIRPLAY/Contents/MacOS" "$FAIRPLAY/Contents/Resources"
+install_file "$BIN/OpenArchFairPlay" "$FAIRPLAY/Contents/MacOS/OpenArchFairPlay"
+install_file "$APP_DIR/Resources/AppIcon.icns" "$FAIRPLAY/Contents/Resources/AppIcon.icns"
+write_plist "$FAIRPLAY/Contents/Info.plist" "OpenArchFairPlay" "$BUNDLE_ID.fairplay" "$NAME" "
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>LSUIElement</key><true/>"
+
 # Signatures, inside out. SIGN_IDENTITY (a Developer ID, set by CI) signs
 # with the hardened runtime for notarization; without it, ad hoc.
 SIGNING="$APP_DIR/Signing"
@@ -154,6 +165,7 @@ for library in "$FRAMEWORK"/Libraries/*.dylib; do
 done
 sign "$FRAMEWORK"
 sign "$PLUGIN"
+sign --entitlements "$SIGNING/FairPlay.entitlements" "$FAIRPLAY"
 sign --entitlements "$SIGNING/OpenArch.entitlements" "$APP"
 
 # Let LaunchServices (and the Dock) pick up the rebuilt bundle and its icon.

@@ -55,6 +55,7 @@ The settings of OpenArch for iPhone and iPad are on
 | Setting | What it does | Default |
 | --- | --- | --- |
 | **DRM-Seiten mit Safaris Engine abspielen** | Spotify, Netflix and the other listed streaming services open with Safari's engine, which plays their DRM. Applies to pages you open from then on. See [Streaming services](/browsing/protected-media/). | On |
+| **Streamingdienste in Chromium abspielen** | Spotify, Netflix and Disney+ stay Chromium pages, with your extensions and logins, and OpenArch plays their picture and sound with Apple's FairPlay. Applies to pages you open from then on, to Netflix after OpenArch starts again. See [Streaming services in Chromium](/browsing/protected-media/#streaming-services-in-chromium). | Off |
 | **Geschützte Inhalte (Widevine)** | Lets pages use Chromium's Widevine module, for streams that ask for no certification. Takes effect after OpenArch starts again. | Off |
 
 ### Sidebar

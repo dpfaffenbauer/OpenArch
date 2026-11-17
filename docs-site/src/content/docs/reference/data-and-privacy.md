@@ -52,6 +52,8 @@ These are the only things OpenArch itself sends. Each row says what goes where, 
 | A crash report | github.com, as an issue you send yourself | Only when you choose **Bericht senden …** after a crash | **Settings › Info › Absturzberichte** |
 | Your GitHub pull requests and issues | github.com, signed in as the space's profile | Every five minutes, for each [live folder](/sidebar/live-folders/) | Delete the live folder |
 | Folders and spaces you share with **Aktuell halten** | share.openarch.app, encrypted | When you change them, and every five minutes for links you follow | **Settings › Teilen › Von diesem Mac geteilt › Beenden**; see [How sharing works](/sharing/how-it-works/) |
+| A Spotify track's audio and its cover | Spotify's servers, fetched by OpenArch's helper instead of the page | While a track plays with [Streaming services in Chromium](/browsing/protected-media/#streaming-services-in-chromium) on | **Settings › Allgemein › Geschützte Inhalte › Streamingdienste in Chromium abspielen** (off unless you turn it on) |
+| The style sheets, fonts and images of Netflix's or Disney+'s player | The service's servers, fetched once more by Safari's engine, without cookies, for the copy of the player's controls | While a film plays with that setting on | The same setting |
 | What the AI features give Claude | Anthropic, through Claude Code on your Mac | When you use them | Don't use them; see [How OpenArch talks to Claude](/ai/how-it-works/) |
 | A question for Claude or ChatGPT on the web | claude.ai or chatgpt.com, in the address | When you choose it in the command bar | See [Claude and ChatGPT on the web](/ai/web-chats/) |
 
@@ -86,7 +88,7 @@ Turn it off in **Settings › Info › Absturzberichte › Nach einem Absturz fr
 
 A feature that a new version of Chromium broke can be switched off without holding back an update. At launch and every six hours OpenArch reads a short list from `https://openarch.app/feature-switches.json`: only from that address, and without following a redirect. If the list cannot be read, every feature stays on. The request carries nothing about you; the list says which build and Chromium version a switch applies to, and OpenArch compares that on your Mac. A feature switched off shows in **Settings › Info › Absturzberichte** with the reason.
 
-The switches: `peek`, `tabPreviews`, `agentChats` and `boosts`. To switch one off on your Mac only:
+The switches: `peek`, `tabPreviews`, `agentChats`, `boosts`, `drmWebKit` (streaming services with Safari's engine), `fairPlay` (streaming services in Chromium) and `fairPlayVideo` (only Netflix and Disney+ of those). To switch one off on your Mac only:
 
 ```sh
 defaults write dev.openarch.browser disabledFeatures -array peek

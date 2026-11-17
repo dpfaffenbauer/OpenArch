@@ -122,6 +122,7 @@
 1d19d17752	Search commands	Rechercher une commande	Buscar comando	Cerca comando
 1d27f02473	No link in this code	Aucun lien dans ce code	Este código no contiene ningún enlace	Nessun link in questo codice
 1d5e086f05	The shared data is damaged or has been altered.	Les données partagées sont endommagées ou ont été modifiées.	Los datos compartidos están dañados o se han modificado.	I dati condivisi sono danneggiati o sono stati modificati.
+1d874b3f17	Open with Safari's engine	Ouvrir avec le moteur de Safari	Abrir con el motor de Safari	Apri con il motore di Safari
 1da6909f55	OpenArch	OpenArch	OpenArch	OpenArch
 1db6fafb05	Playing	Lecture en cours	Reproduciendo	In riproduzione
 1e0d391c6b	Show Toolbar	Afficher la barre	Mostrar barra	Mostra barra
@@ -258,6 +259,7 @@
 3779202e34	Zoom In	Zoom avant	Ampliar	Ingrandisci
 37d761e1cb	Open OpenArch	Ouvrir OpenArch	Abrir OpenArch	Apri OpenArch
 37e52feb23	Open as tab	Ouvrir dans un onglet	Abrir como pestaña	Apri come scheda
+37eda2a09c	%@ isn't playing in Chromium right now	%@ ne se lit pas dans Chromium pour le moment	%@ no se reproduce en Chromium ahora mismo	%@ al momento non riproduce in Chromium
 3886575bb9	If the address is already open in a tab, OpenArch switches to it instead of opening it again.	Si l’adresse est déjà ouverte dans un onglet, OpenArch y bascule au lieu de l’ouvrir à nouveau.	Si la dirección ya está abierta en una pestaña, OpenArch cambia a ella en lugar de abrirla de nuevo.	Se l’indirizzo è già aperto in una scheda, OpenArch passa a quella invece di aprirlo di nuovo.
 388dc92584	Security	Sécurité	Seguridad	Sicurezza
 38ab8bc145	#%02X%02X%02X	#%02X%02X%02X	#%02X%02X%02X	#%02X%02X%02X
@@ -298,6 +300,7 @@
 3f84ef531f	Icon	Symbole	Símbolo	Icona
 3f97665007	Keep up to date	Maintenir à jour	Mantener actualizado	Mantieni aggiornato
 3fac47b17d	Hide elements	Masquer les éléments	Ocultar elementos	Nascondi elementi
+3fb57e8bc3	Netflix and Disney+ in Chromium	Netflix et Disney+ dans Chromium	Netflix y Disney+ en Chromium	Netflix e Disney+ in Chromium
 3fbf8018db	Duplicate Tab	Dupliquer l’onglet	Duplicar pestaña	Duplica scheda
 3fd1e7ec87	The ZIP file could not be written.	Le fichier ZIP n’a pas pu être écrit.	No se ha podido escribir el archivo ZIP.	Non è stato possibile scrivere il file ZIP.
 3ff806771f	Bookmarks file (HTML)	Fichier de signets (HTML)	Archivo de marcadores (HTML)	File dei segnalibri (HTML)
@@ -310,10 +313,12 @@
 4186a39a56	Unpin: move to the tabs below the line	Désépingler : vers les onglets sous la ligne	Dejar de fijar: pasa a las pestañas debajo de la línea	Non fissare: sposta tra le schede sotto la linea
 41c792ce62	On the left like in Arc, or on the right. Applies to all windows; the window controls stay at the top left.	À gauche comme dans Arc, ou à droite. S’applique à toutes les fenêtres ; les boutons de fenêtre restent en haut à gauche.	A la izquierda como en Arc, o a la derecha. Se aplica a todas las ventanas; los botones de la ventana siguen arriba a la izquierda.	A sinistra come in Arc, oppure a destra. Si applica a tutte le finestre; i pulsanti della finestra restano in alto a sinistra.
 41d80d31ed	Open Library	Ouvrir la bibliothèque	Abrir Biblioteca	Apri Libreria
+420796157a	Spotify, Netflix and Disney+ stay Chromium pages, with your extensions and logins; Apple's FairPlay plays picture and sound. New, and off by default: if something doesn't play, OpenArch offers Safari's engine. Applies to pages you open from now on, to Netflix after OpenArch starts again.	Spotify, Netflix et Disney+ restent des pages Chromium, avec vos extensions et vos connexions ; l’image et le son sont lus par FairPlay d’Apple. Nouveau, et désactivé par défaut : si quelque chose ne se lit pas, OpenArch propose le moteur de Safari. S’applique aux pages que vous ouvrez à partir de maintenant, à Netflix après un redémarrage d’OpenArch.	Spotify, Netflix y Disney+ siguen siendo páginas de Chromium, con tus extensiones e inicios de sesión; la imagen y el sonido los reproduce FairPlay de Apple. Nuevo, y desactivado por defecto: si algo no se reproduce, OpenArch ofrece el motor de Safari. Se aplica a las páginas que abras a partir de ahora, a Netflix tras reiniciar OpenArch.	Spotify, Netflix e Disney+ restano pagine Chromium, con le tue estensioni e i tuoi accessi; immagine e audio li riproduce FairPlay di Apple. Nuovo, e disattivato di default: se qualcosa non viene riprodotto, OpenArch propone il motore di Safari. Si applica alle pagine che aprirai da ora in poi, a Netflix dopo il riavvio di OpenArch.
 422c4f38b8	Hide info	Masquer les informations	Ocultar información	Nascondi informazioni
 425863cbb1	“%@” added	« %@ » ajouté	«%@» añadido	“%@” aggiunto
 42774e68e6	Choose…	Choisir…	Elegir…	Scegli…
 42796dd563	Menlo	Menlo	Menlo	Menlo
+4294213549	Streaming services in Chromium	Services de streaming dans Chromium	Servicios de streaming en Chromium	Servizi di streaming in Chromium
 432678bedf	Developer Tools	Outils de développement	Herramientas de desarrollo	Strumenti di sviluppo
 4376cda1c9	Go to sharing tab	Aller à l’onglet qui partage	Ir a la pestaña que comparte	Vai alla scheda che condivide
 437ac679ac	(binary file)	(Fichier binaire)	(archivo binario)	(file binario)
@@ -631,6 +636,7 @@
 93f9fc36b7	Apple Intelligence is off. Turn it on in System Settings under “Apple Intelligence & Siri.”	Apple Intelligence est désactivé. Activez-le dans Réglages Système, sous « Apple Intelligence et Siri ».	Apple Intelligence está desactivado. Actívalo en Ajustes del Sistema, en “Apple Intelligence y Siri”.	Apple Intelligence è disattivata. Attivala in Impostazioni di Sistema, in “Apple Intelligence e Siri”.
 93fed5649c	New Folder with 1 Tab	Nouveau dossier avec 1 onglet	Nueva carpeta con 1 pestaña	Nuova cartella con 1 scheda
 9409eedce5	After 7 Days	Après 7 jours	Después de 7 días	Dopo 7 giorni
+9418ed8de0	Not included in this build.	Non inclus dans cette version.	No incluido en esta versión.	Non incluso in questa build.
 943cb6a70f	Stop sharing…	Arrêter le partage…	Dejar de compartir…	Interrompi condivisione…
 943e268194	Drag to reorder, click the name to rename, click the icon for color and profile.	Faites glisser pour trier, cliquez sur le nom pour renommer, sur le symbole pour la couleur et le profil.	Arrastra para ordenar, haz clic en el nombre para renombrar y en el símbolo para cambiar el color y el perfil.	Trascina per ordinare, fai clic sul nome per rinominare, sull’icona per colore e profilo.
 945fb68b00	An agent chat sits in the sidebar like a tab. In it, Claude Code works in a folder on this Mac, using the login of claude in Terminal and thus your subscription, no API key needed. If AI control is on, the agent can also operate your tabs.	Une discussion avec un agent apparaît dans la barre latérale comme un onglet. Claude Code y travaille dans un dossier de ce Mac, avec la connexion de claude dans Terminal et donc votre abonnement, sans aucune clé d’API. Si le contrôle par l’IA est activé, l’agent peut aussi utiliser vos onglets.	Un chat con agente aparece en la barra lateral como una pestaña. Claude Code trabaja en él dentro de una carpeta de este Mac, con el inicio de sesión de claude en el terminal y, por tanto, con tu suscripción, sin ninguna clave de API. Si el control por IA está activado, el agente también puede usar tus pestañas.	Una chat dell’agente sta nella barra laterale come una scheda. Al suo interno Claude Code lavora in una cartella su questo Mac, con il login di claude nel Terminale e quindi il tuo abbonamento, senza alcuna chiave API. Se il controllo IA è attivo, l’agente può usare anche le tue schede.
@@ -658,6 +664,7 @@
 98df77e610	Which folder should the agent work in?	Dans quel dossier l’agent doit-il travailler ?	¿En qué carpeta debería trabajar el agente?	In quale cartella deve lavorare l’agente?
 98f492b5e0	Restore	Restaurer	Restaurar	Ripristina
 992d8257ec	Shortcut	Raccourci	Atajo	Abbreviazione
+9973a5d820	Play streaming services in Chromium	Lire les services de streaming dans Chromium	Reproducir servicios de streaming en Chromium	Riproduci i servizi di streaming in Chromium
 99eef7d21d	Open shared link…	Ouvrir un lien partagé…	Abrir enlace compartido…	Apri link condiviso…
 99ef5da0a6	Requires Apple Intelligence, so macOS 26 or later.	Nécessite Apple Intelligence, donc macOS 26 ou version ultérieure.	Requiere Apple Intelligence, es decir, macOS 26 o posterior.	Richiede Apple Intelligence, ovvero macOS 26 o successivo.
 99fc153d41	Import from Arc	Importer depuis Arc	Importar desde Arc	Importa da Arc

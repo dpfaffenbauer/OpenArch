@@ -72,6 +72,14 @@ settings.keychainServiceName = SafeStorage.service
 settings.keychainAccountName = SafeStorage.account
 settings.extensionPaths = AppPaths.bundledExtensions("BuiltinExtensions")
 ProtectedContent.prepare(extensions: settings.extensionPaths)
+// Netflix in Chromium needs requests that say they come from Safari: an
+// extension of its own, loaded only while the setting is on (see
+// ProtectedVideo.safariUserAgentLoaded).
+if ProtectedVideo.wasOnAtLaunch() || (AppPaths.isSelfTest && arguments.contains("--fairplay-test")) {
+    let optional = AppPaths.bundledExtensions("OptionalExtensions")
+    settings.extensionPaths += optional
+    ProtectedVideo.safariUserAgentLoaded = !optional.isEmpty
+}
 if AppPaths.isSelfTest {
     // The probe extension checks extension APIs. The self-test window sits
     // behind other windows, so Chromium must not treat it as hidden, and its
