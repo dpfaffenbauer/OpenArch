@@ -918,15 +918,31 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
 }
 
 - (void)goBack:(id)sender {
+  if ([self openHistoryInNewTab:-1]) {
+    return;
+  }
   if (_contents && _contents->GetController().CanGoBack()) {
     _contents->GetController().GoBack();
   }
 }
 
 - (void)goForward:(id)sender {
+  if ([self openHistoryInNewTab:1]) {
+    return;
+  }
   if (_contents && _contents->GetController().CanGoForward()) {
     _contents->GetController().GoForward();
   }
+}
+
+// ⌘-click on Back or Forward: the page in a new tab, as in Chrome.
+- (BOOL)openHistoryInNewTab:(NSInteger)offset {
+  NSEventModifierFlags flags = NSApp.currentEvent.modifierFlags;
+  if (!(flags & NSEventModifierFlagCommand) || !_historyTabHandler) {
+    return NO;
+  }
+  _historyTabHandler(offset, !(flags & NSEventModifierFlagShift));
+  return YES;
 }
 
 - (void)reload:(id)sender {

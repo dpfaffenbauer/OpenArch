@@ -220,6 +220,7 @@ OAC_EXPORT
 - (void)loadURL:(NSString*)url;
 - (void)goBack;
 - (void)goForward;
+- (nullable NSString*)historyURLAtOffset:(NSInteger)offset;
 - (void)reload;
 - (void)stopLoading;
 - (void)executeJavaScript:(NSString*)script;
