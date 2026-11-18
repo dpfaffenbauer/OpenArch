@@ -26,6 +26,7 @@
 #include "chrome/browser/devtools/devtools_contents_resizing_strategy.h"
 #include "chrome/browser/devtools/devtools_window.h"
 #include "chrome/browser/download/download_core_service.h"
+#include "chrome/browser/file_select_helper.h"
 #include "chrome/browser/openarch_engine_hooks.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/common/pref_names.h"
@@ -69,6 +70,7 @@
 #include "content/public/browser/devtools_agent_host.h"
 #include "content/public/browser/devtools_agent_host_client.h"
 #include "content/public/browser/download_manager.h"
+#include "content/public/browser/file_select_listener.h"
 #include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/navigation_handle.h"
@@ -622,7 +624,8 @@ class PrivatePopup : public content::WebContentsDelegate {
 };
 
 // What Chrome's window does for its tabs, for pages without one (private
-// windows' own profiles): JavaScript dialogs, new tabs and keys to OpenArch.
+// windows' own profiles): JavaScript dialogs, file choosers, new tabs and
+// keys to OpenArch.
 class PrivatePageDelegate : public content::WebContentsDelegate {
  public:
   explicit PrivatePageDelegate(content::WebContents* contents) {
@@ -679,6 +682,19 @@ class PrivatePageDelegate : public content::WebContentsDelegate {
   bool HandleKeyboardEvent(content::WebContents* source,
                            const input::NativeWebKeyboardEvent& event) override {
     return HandleKey(source, event, /*unhandled=*/true) == 1;
+  }
+
+  // File choosers, as Chrome's window runs them (over the pane's window).
+  void RunFileChooser(content::RenderFrameHost* render_frame_host,
+                      scoped_refptr<content::FileSelectListener> listener,
+                      const blink::mojom::FileChooserParams& params) override {
+    FileSelectHelper::RunFileChooser(render_frame_host, std::move(listener), params);
+  }
+
+  void EnumerateDirectory(content::WebContents* source,
+                          scoped_refptr<content::FileSelectListener> listener,
+                          const base::FilePath& path) override {
+    FileSelectHelper::EnumerateDirectory(source, std::move(listener), path);
   }
 };
 

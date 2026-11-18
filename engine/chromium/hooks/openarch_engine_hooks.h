@@ -69,8 +69,9 @@ using NavigationThrottleHook = void (*)(content::NavigationThrottleRegistry& reg
 inline NavigationThrottleHook g_navigation_throttle_hook = nullptr;
 
 // Whether a page counts as the one in front, for JavaScript dialogs
-// (alert, confirm, beforeunload), which Chrome shows only for its window's
-// active tab: -1 for a page that isn't OpenArch's, else 1 (on screen) or 0.
+// (alert, confirm, beforeunload) and file choosers, which Chrome shows only
+// for its window's active tab: -1 for a page that isn't OpenArch's, else 1
+// (on screen) or 0.
 using PageForemostHook = int (*)(content::WebContents* contents);
 inline PageForemostHook g_page_foremost_hook = nullptr;
 

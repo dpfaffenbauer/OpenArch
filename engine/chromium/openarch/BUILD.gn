@@ -37,6 +37,7 @@ source_set("core") {
     "//chrome/browser:main_extra_parts",
     "//chrome/browser/content_settings:content_settings_factory",
     "//chrome/browser/devtools",
+    "//chrome/browser:file_select_helper",
     "//chrome/browser/lifetime",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/profiles:profile_manager",

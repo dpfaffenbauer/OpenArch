@@ -168,6 +168,25 @@ edit(jsd, '''bool JavaScriptTabModalDialogManagerDelegateDesktop::IsWebContentsF
 edit(jsd, '#include "chrome/browser/ui/javascript_dialogs/javascript_tab_modal_dialog_manager_delegate_desktop.h"\n',
      '#include "chrome/browser/ui/javascript_dialogs/javascript_tab_modal_dialog_manager_delegate_desktop.h"\n' + hooks, hooks)
 
+# File choosers (<input type=file>, showOpenFilePicker): Chrome shows one
+# only for its window's active tab, and OpenArch's pages on screen aren't
+# the active tab of the hidden window holding them (any pane on screen can
+# ask). For OpenArch's pages, being on screen is what counts.
+fsh = "chrome/browser/file_select_helper.cc"
+edit(fsh, '''  if (tab && !tab->IsActivated()) {
+    RunFileChooserEnd();
+    return;
+  }''', '''  int openarch_foremost = openarch::g_page_foremost_hook  // OpenArch
+                              ? openarch::g_page_foremost_hook(web_contents_)
+                              : -1;
+  if (openarch_foremost == 0 ||
+      (openarch_foremost < 0 && tab && !tab->IsActivated())) {
+    RunFileChooserEnd();
+    return;
+  }''', "int openarch_foremost")
+edit(fsh, '#include "chrome/browser/file_select_helper.h"\n',
+     '#include "chrome/browser/file_select_helper.h"\n' + hooks, hooks)
+
 # Permission prompts of OpenArch's pages are OpenArch's.
 ppf = "chrome/browser/ui/views/permissions/permission_prompt_factory.cc"
 edit(ppf, '''    permissions::PermissionPrompt::Delegate* delegate) {
