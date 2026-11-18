@@ -35,7 +35,9 @@ The shape follows Cra (github.com/VictorKildahl/cra, MIT,
     (`CreateThrottlesForNavigation`), "the tab in front" for JavaScript
     dialogs (`IsWebContentsForemost`), permission prompts
     (`CreatePermissionPrompt`), the context menu (`RenderViewContextMenu`,
-    command ids 71001–71099), Chrome's WebView never taking OpenArch's pages;
+    command ids 71001–71099; `RenderViewContextMenuMacCocoa::Show` shows
+    it without a Views widget, in OpenArch's window), Chrome's WebView never
+    taking OpenArch's pages;
   - the keychain item's name configurable at run time ("OpenArch Safe
     Storage");
   - the framework exports `OpenArchEngineMain` and the bridge's classes;
