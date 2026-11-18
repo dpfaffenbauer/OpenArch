@@ -48,6 +48,16 @@ struct ProtectedMediaSites: Equatable {
         "rakuten.tv",
     ]
 
+    /// Entries OpenArch can play in Chromium itself with Apple's FairPlay:
+    /// Spotify's music in a helper process (FairPlay.swift), Netflix's and
+    /// Disney+'s video in a view over the page (ProtectedVideo.swift). While
+    /// that is on they are not on the list, unless the person sends the
+    /// site to WebKit by hand.
+    /// In groups that can be on or off by themselves: Spotify, Disney+,
+    /// Netflix (which also needs an extension loaded at launch, see
+    /// ProtectedVideo.safariUserAgentLoaded).
+    static let inChromiumGroups = [["open.spotify.com"], ["disneyplus.com"], ["netflix.com"]]
+
     /// Sign-in and account hosts under a listed entry that never count.
     static let signInHosts = ["accounts.spotify.com", "login.tidal.com", "connect.deezer.com", "account.deezer.com"]
 
@@ -69,12 +79,15 @@ struct ProtectedMediaSites: Equatable {
     private(set) var entries: [String]
 
     /// |extraHosts| add to the list (sites sent to WebKit, the self-test's
-    /// stand-in), |removedHosts| take entries off it.
-    init(isEnabled: Bool = true, extraHosts: [String] = [], removedHosts: [String] = []) {
+    /// stand-in), |removedHosts| take entries off it. |inChromium|: the
+    /// entries of services OpenArch plays in Chromium, which stay there.
+    init(isEnabled: Bool = true, extraHosts: [String] = [], removedHosts: [String] = [],
+         inChromium: [String] = []) {
         self.isEnabled = isEnabled
         let removed = Set(removedHosts.compactMap(Self.normalizedEntry))
+        let defaults = Self.defaultEntries.filter { !inChromium.contains($0) }
         var seen = Set<String>()
-        entries = (Self.defaultEntries + extraHosts).compactMap(Self.normalizedEntry)
+        entries = (defaults + extraHosts).compactMap(Self.normalizedEntry)
             .filter { !removed.contains($0) && seen.insert($0).inserted }
     }
 
@@ -143,20 +156,21 @@ struct ProtectedMediaSites: Equatable {
     /// Controls): the sites added to WebKit and the listed entries taken off.
     /// |listed| are hosts on the list besides the defaults (the self-test's).
     static func choosing(_ engine: OACPageEngine, for url: String, added: [String], removed: [String],
-                         listed: [String] = []) -> (added: [String], removed: [String]) {
+                         listed: [String] = [], inChromium: [String] = []) -> (added: [String], removed: [String]) {
         guard let host = webHost(of: url) else { return (added, removed) }
         var added = added.compactMap(normalizedEntry), removed = removed.compactMap(normalizedEntry)
+        func sites(_ extra: [String], _ removed: [String] = []) -> ProtectedMediaSites {
+            ProtectedMediaSites(extraHosts: extra, removedHosts: removed, inChromium: inChromium)
+        }
         switch engine {
         case .webKit:
-            if let entry = ProtectedMediaSites(extraHosts: listed).entry(for: url) { removed.removeAll { $0 == entry } }
-            if ProtectedMediaSites(extraHosts: listed + added, removedHosts: removed).engine(for: url) == .chromium,
-               !added.contains(host) {
+            if let entry = sites(listed).entry(for: url) { removed.removeAll { $0 == entry } }
+            if sites(listed + added, removed).engine(for: url) == .chromium, !added.contains(host) {
                 added.append(host)
             }
         case .chromium:
             added.removeAll { entry in let h = split(entry).host; return host == h || host.hasSuffix("." + h) }
-            if let entry = ProtectedMediaSites(extraHosts: listed, removedHosts: removed).entry(for: url),
-               !removed.contains(entry) {
+            if let entry = sites(listed, removed).entry(for: url), !removed.contains(entry) {
                 removed.append(entry)
             }
         @unknown default:
@@ -239,11 +253,11 @@ struct ProtectedMediaChoices: Codable, Equatable {
 enum ProtectedMedia {
     /// Settings › Allgemein › „DRM-Seiten mit Safaris Engine abspielen“.
     static var isEnabled = true {
-        didSet { sites = load() }
+        didSet { lists = load() }
     }
     /// The self-test's stand-in for a streaming service.
     static var testHosts: [String] = [] {
-        didSet { sites = load() }
+        didSet { lists = load() }
     }
 
     private static let file = AppPaths.support.appendingPathComponent("protected-media.json")
@@ -251,29 +265,56 @@ enum ProtectedMedia {
         guard let data = try? Data(contentsOf: file) else { return ProtectedMediaChoices() }
         return (try? JSONDecoder().decode(ProtectedMediaChoices.self, from: data)) ?? ProtectedMediaChoices()
     }()
-    private(set) static var sites = load()
+    /// The list in force. The services OpenArch plays in Chromium right now
+    /// (the setting and the kill switches, asked every time) are not on it.
+    static var sites: ProtectedMediaSites { lists[playedInChromium] }
 
-    private static func load() -> ProtectedMediaSites {
-        ProtectedMediaSites(isEnabled: isEnabled, extraHosts: testHosts + choices.added, removedHosts: choices.removed)
+    /// Which of ProtectedMediaSites.inChromiumGroups OpenArch plays in
+    /// Chromium right now, as bits.
+    private static var playedInChromium: Int {
+        (FairPlay.isOn ? 1 : 0) + (ProtectedVideo.isOn ? 2 : 0) + (ProtectedVideo.playsNetflix ? 4 : 0)
+    }
+
+    private static func entries(_ groups: Int) -> [String] {
+        ProtectedMediaSites.inChromiumGroups.enumerated().flatMap { groups & (1 << $0.offset) != 0 ? $0.element : [] }
+    }
+
+    /// One list for every combination of those groups.
+    private static var lists = load()
+
+    private static func load() -> [ProtectedMediaSites] {
+        (0..<(1 << ProtectedMediaSites.inChromiumGroups.count)).map { groups in
+            ProtectedMediaSites(isEnabled: isEnabled, extraHosts: testHosts + choices.added, removedHosts: choices.removed,
+                                inChromium: entries(groups))
+        }
     }
 
     private static func save() {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         if let data = try? encoder.encode(choices) { try? data.write(to: file, options: .atomic) }
-        sites = load()
+        lists = load()
     }
 
     /// The kill switch `drmWebKit` (FeatureSwitches) sends every page to
     /// Chromium, as if the setting were off.
     private static var switchedOff: Bool { !FeatureSwitches.shared.isOn(.drmWebKit) }
 
-    static func engine(for url: String) -> OACPageEngine { switchedOff ? .chromium : sites.engine(for: url) }
+    /// The list for a page of |profile|. What plays in Chromium is played
+    /// by the built-in extension's scripts, which Chromium keeps out of
+    /// private windows: there, every service keeps Safari's engine.
+    private static func sites(for profile: OACProfile?) -> ProtectedMediaSites {
+        profile?.directoryName.isEmpty == true ? lists[0] : sites
+    }
+
+    static func engine(for url: String, profile: OACProfile? = nil) -> OACPageEngine {
+        switchedOff ? .chromium : sites(for: profile).engine(for: url)
+    }
 
     /// A page for |url| in the engine the rules pick: every page OpenArch
     /// opens itself comes from here.
     static func makePage(url: String, profile: OACProfile) -> any OACPage {
-        makePage(url: url, profile: profile, engine: engine(for: url))
+        makePage(url: url, profile: profile, engine: engine(for: url, profile: profile))
     }
 
     static func makePage(url: String, profile: OACProfile, engine: OACPageEngine) -> any OACPage {
@@ -287,19 +328,19 @@ enum ProtectedMedia {
 
     /// An address field's pick for a page now in |current|'s engine (a
     /// sign-in host stays where it is).
-    static func engine(forAddress url: String, current: OACPageEngine) -> OACPageEngine {
-        switchedOff ? .chromium : sites.engine(forAddress: url, current: current)
+    static func engine(forAddress url: String, current: any OACPage) -> OACPageEngine {
+        switchedOff ? .chromium : sites(for: current.profile).engine(forAddress: url, current: current.engine)
     }
 
-    /// Whether a page's own navigation has to move to WebKit.
-    static func handsOff(from current: OACPageEngine, to url: String, method: String) -> Bool {
-        !switchedOff && sites.handsOff(from: current, to: url, method: method)
+    /// Whether |page|'s own navigation has to move to WebKit.
+    static func handsOff(from page: any OACPage, to url: String, method: String) -> Bool {
+        !switchedOff && sites(for: page.profile).handsOff(from: page.engine, to: url, method: method)
     }
 
     /// The person's choice for |url|'s site (Site Controls).
     static func choose(_ engine: OACPageEngine, for url: String) {
         let result = ProtectedMediaSites.choosing(engine, for: url, added: choices.added, removed: choices.removed,
-                                                  listed: testHosts)
+                                                  listed: testHosts, inChromium: entries(playedInChromium))
         choices.added = result.added
         choices.removed = result.removed
         save()

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "OpenArch: Safari for Netflix",
+  "version": "1.0",
+  "description": "Built into OpenArch, loaded only while Settings › Allgemein › Geschützte Inhalte › Streamingdienste in Chromium abspielen is on: requests to Netflix say they come from Safari, as Netflix's player in a Chromium page needs.",
+  "permissions": [
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://*.netflix.com/*"
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "safari",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  }
+}
