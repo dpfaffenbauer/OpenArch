@@ -1600,6 +1600,15 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func goBack() { activePane?.goBack() }
     func goForward() { activePane?.goForward() }
+
+    /// A click on the Back (-1) or Forward (1) button. With ⌘ the page
+    /// opens in a new tab, in the background (⌘⇧ in front), as in Chrome.
+    func historyButtonClicked(offset: Int) {
+        let modifiers = NSEvent.modifierFlags
+        guard modifiers.contains(.command) else { return offset < 0 ? goBack() : goForward() }
+        guard let url = activePane?.historyURL(atOffset: offset) else { return }
+        openInNewTab(url, after: state.activeItem, select: modifiers.contains(.shift))
+    }
     func reload() { activePane?.reload() }
 
     /// Set while OpenArch runs a Chrome command itself, so the command is

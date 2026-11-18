@@ -686,9 +686,9 @@ private struct SidebarTopBar: View {
             }
             // The toolbar above the page has them while it shows (as Arc).
             if !browser.library.settings.showChromeToolbar {
-                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.goBack() }
+                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.historyButtonClicked(offset: -1) }
                     .disabled(!(active?.canGoBack ?? false))
-                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.goForward() }
+                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.historyButtonClicked(offset: 1) }
                     .disabled(!(active?.canGoForward ?? false))
                 IconButton(symbol: active?.isLoading == true ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") {
                     if active?.isLoading == true { browser.activePane?.stopLoading() } else { browser.reload() }

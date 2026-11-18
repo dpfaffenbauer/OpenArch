@@ -396,6 +396,63 @@ for path in ["chrome/browser/ui/read_anything/read_anything_side_panel_controlle
     s_inc = '#include "' + path.replace(".cc", ".h") + '"\n'
     edit(path, s_inc, s_inc + hooks, hooks)
 
+# 3i. A page's context menu shows in OpenArch's window too: Chrome's looks
+# for the Views Widget around the page, which OpenArch's window doesn't
+# have, and shows nothing without one. The menu's colors come from the page.
+cocoa_menu = "chrome/browser/ui/cocoa/renderer_context_menu/render_view_context_menu_mac_cocoa.mm"
+edit(cocoa_menu, '''  if (!widget || headless::IsHeadlessMode()) {
+    return;
+  }
+
+  menu_controller_delegate_ = [[MenuControllerCocoaDelegateImpl alloc]
+      initWithParams:MenuControllerParamsForWidget(widget)];
+''', '''  if ((!widget && !openarch::g_embedder_owns_app) ||  // OpenArch
+      headless::IsHeadlessMode()) {
+    return;
+  }
+
+  menu_controller_delegate_ = [[MenuControllerCocoaDelegateImpl alloc]
+      initWithParams:widget ? MenuControllerParamsForWidget(widget)
+                            : OpenArchMenuParams(source_web_contents_)];
+''', "OpenArchMenuParams(source_web_contents_)")
+edit(cocoa_menu, '''                      views::ElementTrackerViews::GetContextForWidget(widget));
+''', '''                      widget ? views::ElementTrackerViews::GetContextForWidget(widget)
+                             : ui::ElementContext());  // OpenArch
+''', ": ui::ElementContext());  // OpenArch")
+edit(cocoa_menu, '''namespace {
+
+// Retrieves an NSMenuItem''', '''namespace {
+
+// OpenArch: MenuControllerParamsForWidget, with the page's colors.
+remote_cocoa::mojom::MenuControllerParamsPtr OpenArchMenuParams(
+    content::WebContents* contents) {
+  const ui::ColorProvider& colors = contents->GetColorProvider();
+  auto params = remote_cocoa::mojom::MenuControllerParams::New();
+  params->badge_font =
+      views::BadgePainter::GetBadgeFont(views::MenuConfig::instance().font_list)
+          .GetPrimaryFont();
+  params->badge_color = colors.GetColor(ui::kColorBadgeInCocoaMenuBackground);
+  params->badge_text_color =
+      colors.GetColor(ui::kColorBadgeInCocoaMenuForeground);
+  params->badge_horizontal_margin = views::BadgePainter::kBadgeHorizontalMargin;
+  params->badge_internal_padding = views::BadgePainter::kBadgeInternalPadding;
+  params->badge_min_height = views::BadgePainter::kBadgeMinHeightCocoa;
+  params->badge_radius = base::checked_cast<uint32_t>(
+      views::LayoutProvider::Get()->GetCornerRadiusMetric(
+          views::ShapeContextTokens::kBadgeRadius));
+  params->iph_dot_color = colors.GetColor(ui::kColorButtonBackgroundProminent);
+  return params;
+}
+
+// Retrieves an NSMenuItem''', "OpenArchMenuParams(\n    content::WebContents* contents)")
+cocoa_includes = ('#include "base/numerics/safe_conversions.h"  // OpenArch\n'
+                  '#include "components/remote_cocoa/common/menu.mojom.h"  // OpenArch\n'
+                  '#include "ui/views/badge_painter.h"  // OpenArch\n'
+                  '#include "ui/views/controls/menu/menu_config.h"  // OpenArch\n'
+                  '#include "ui/views/layout/layout_provider.h"  // OpenArch\n' + hooks)
+edit(cocoa_menu, '#include "ui/views/widget/widget.h"\n',
+     '#include "ui/views/widget/widget.h"\n' + cocoa_includes, cocoa_includes)
+
 # 3b. Chrome's keychain item can be named at run time, so the engine uses
 # OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {

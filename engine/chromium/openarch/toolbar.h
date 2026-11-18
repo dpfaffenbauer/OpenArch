@@ -37,6 +37,10 @@ class WebContents;
 /// extensions.
 @property(nonatomic, copy, nullable) void (^siteControlsHandler)(NSRect screenRect);
 
+/// Back (-1) or Forward (1) was ⌘-clicked: open that page in a new tab,
+/// in the background unless ⇧ is held too.
+@property(nonatomic, copy, nullable) void (^historyTabHandler)(NSInteger offset, BOOL background);
+
 /// The extensions with an action, for OACPane.extensions.
 - (NSArray*)extensionInfos;
 /// Runs an extension's action, its popup below |screenRect|.
