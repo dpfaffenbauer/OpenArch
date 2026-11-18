@@ -98,6 +98,8 @@ final class PeekController: NSObject, OACPaneDelegate {
         if let pane {
             let url = model.url.isEmpty ? pane.url : model.url
             if url.hasPrefix("http") { remember(url, source: source) }
+            FairPlay.shared.pageGone(pane)
+            ProtectedVideo.shared.pageGone(pane)
             pane.delegate = nil
             pane.close()
         }
@@ -241,7 +243,7 @@ final class PeekController: NSObject, OACPaneDelegate {
 
     /// A link in the card to a streaming service: the card shows it in WebKit.
     func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
-        guard pane === self.pane, ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        guard pane === self.pane, ProtectedMedia.handsOff(from: pane, to: url, method: method) else { return false }
         let source = self.source
         DispatchQueue.main.async {
             MainActor.assumeIsolated { [weak self] in
@@ -254,6 +256,11 @@ final class PeekController: NSObject, OACPaneDelegate {
 
     func paneDidClose(_ pane: any OACPage) {
         if pane === self.pane { close() }
+    }
+
+    /// Spotify, Netflix and Disney+ play in a Peek like in a tab.
+    func pane(_ pane: any OACPage, consoleMessage message: String, source: String, line: Int) {
+        _ = FairPlay.shared.receive(message, from: pane) || ProtectedVideo.shared.receive(message, from: pane)
     }
 }
 

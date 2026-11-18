@@ -113,6 +113,7 @@
 - (BOOL)handsOffNavigationToURL:(const GURL&)url method:(NSString*)method;
 - (void)mediaAccessChangedVideo:(BOOL)video audio:(BOOL)audio;
 - (void)wantsExternalURL:(const GURL&)url;
+- (void)openHistoryEntryInNewTab:(NSInteger)offset background:(BOOL)background;
 - (void)pageColorChanged;
 - (void)devToolsClosed;
 - (void)layoutViews;
@@ -1389,6 +1390,9 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
         [weakSelf toggleSidePanel:panel];
       };
       _toolbar.siteControlsHandler = [self siteControlsHandler];
+      _toolbar.historyTabHandler = ^(NSInteger offset, BOOL background) {
+        [weakSelf openHistoryEntryInNewTab:offset background:background];
+      };
     }
     CGFloat height = OAExtensionToolbar.height;
     NSRect bar = content.isFlipped
@@ -1675,6 +1679,24 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
   }
 }
 
+- (nullable NSString*)historyURLAtOffset:(NSInteger)offset {
+  if (!_contents || offset == 0) {
+    return nil;
+  }
+  content::NavigationEntry* entry =
+      _contents->GetController().GetEntryAtOffset(static_cast<int>(offset));
+  return entry ? openarch::ToNSString(entry->GetURL().spec()) : nil;
+}
+
+// ⌘-click on the toolbar's Back or Forward: that page in a new tab, in
+// the background (⌘⇧ in front), as Chrome does.
+- (void)openHistoryEntryInNewTab:(NSInteger)offset background:(BOOL)background {
+  NSString* url = [self historyURLAtOffset:offset];
+  if (url && [_delegate respondsToSelector:@selector(pane:wantsNewTabWithURL:background:)]) {
+    [_delegate pane:self wantsNewTabWithURL:url background:background];
+  }
+}
+
 - (void)reload {
   if (_contents) {
     _contents->GetController().Reload(content::ReloadType::NORMAL, /*check_for_repost=*/true);
@@ -1859,6 +1881,9 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
       [weakSelf toggleSidePanel:panel];
     };
     _toolbar.siteControlsHandler = [self siteControlsHandler];
+    _toolbar.historyTabHandler = ^(NSInteger offset, BOOL background) {
+      [weakSelf openHistoryEntryInNewTab:offset background:background];
+    };
   }
   return _toolbar;
 }

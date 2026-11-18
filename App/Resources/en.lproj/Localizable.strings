@@ -28,6 +28,7 @@
 "%@ nicht erlaubt" = "%@ not allowed";
 "%@ offen" = "%@ open";
 "%@ spielt geschützte Videos und Musik nur mit Apples FairPlay, darum läuft sie mit Safaris Engine. Chrome-Erweiterungen und Chromes DevTools gibt es hier nicht (⌥⌘I öffnet den Web Inspector), und Logins aus Chromium gelten hier nicht: Du meldest dich einmal neu an." = "%@ only plays protected videos and music with Apple's FairPlay, so it runs on Safari's engine. Chrome extensions and Chrome's DevTools aren't available here (⌥⌘I opens the Web Inspector), and logins from Chromium don't apply here: you'll need to sign in once more.";
+"%@ spielt in Chromium gerade nicht" = "%@ isn't playing in Chromium right now";
 "%@ spielt mit Safaris Engine" = "%@ is playing through Safari's engine";
 "%@ · %lld Lesezeichen · %@" = "%@ · %lld bookmarks · %@";
 "%@-Lesezeichen" = "%@ bookmarks";
@@ -478,6 +479,7 @@
 "In Split View öffnen" = "Open in Split View";
 "In den Papierkorb" = "Move to Trash";
 "In der Befehlsleiste das Kürzel oder den Namen tippen und Tab drücken, dann den Suchbegriff. %s steht für den Suchbegriff." = "Type the shortcut or name in the command bar and press Tab, then the search term. %s stands for the search term.";
+"In diesem Build nicht enthalten." = "Not included in this build.";
 "In diesem Ordner ist keine Sicherung von OpenArch (Library.json fehlt)." = "There is no OpenArch backup in this folder (Library.json is missing).";
 "In neuem Tab öffnen" = "Open in New Tab";
 "In welchem Ordner soll der Agent arbeiten?" = "Which folder should the agent work in?";
@@ -593,6 +595,7 @@
 "Mit Claude Code verbinden" = "Connect to Claude Code";
 "Mit Google anmelden" = "Sign in with Google";
 "Mit Passwort schützen" = "Protect with password";
+"Mit Safaris Engine öffnen" = "Open with Safari's engine";
 "Mit der KI-Steuerung (Einstellungen › KI) kann er auch deine Tabs bedienen." = "With AI control (Settings › AI), it can also operate your tabs.";
 "Mit der KI-Steuerung kann er auch deine Tabs bedienen." = "With AI control, it can also operate your tabs.";
 "Mit der Seite chatten" = "Chat with Page";
@@ -615,6 +618,7 @@
 "Neben dem aktuellen Tab öffnen …" = "Open next to the current tab…";
 "Nebeneinander anzeigen" = "Show Side by Side";
 "Nein" = "No";
+"Netflix und Disney+ in Chromium" = "Netflix and Disney+ in Chromium";
 "Neu anfangen" = "Start fresh";
 "Neu laden" = "Reload";
 "Neu laden (⌘R)" = "Reload (⌘R)";
@@ -822,6 +826,7 @@
 "Split View mit aktuellem Tab" = "Split View with Current Tab";
 "Spotify" = "Spotify";
 "Spotify öffnen" = "Open Spotify";
+"Spotify, Netflix und Disney+ bleiben Chromium-Seiten, mit deinen Erweiterungen und Logins; Bild und Ton spielt Apples FairPlay. Neu, und standardmäßig aus: Spielt etwas nicht, bietet OpenArch Safaris Engine an. Gilt für Seiten, die du ab jetzt öffnest, für Netflix nach einem Neustart von OpenArch." = "Spotify, Netflix and Disney+ stay Chromium pages, with your extensions and logins; Apple's FairPlay plays picture and sound. New, and off by default: if something doesn't play, OpenArch offers Safari's engine. Applies to pages you open from now on, to Netflix after OpenArch starts again.";
 "Spotify, Netflix, Disney+, Prime Video und andere Streamingdienste spielen ihre Videos und Musik nur mit Apples FairPlay. Ihre Seiten öffnen deshalb mit Safaris Engine (WebKit), im selben Tab; Chrome-Erweiterungen laufen dort nicht. Pro Website änderst du das im Site Control Center." = "Spotify, Netflix, Disney+, Prime Video, and other streaming services only play their videos and music with Apple's FairPlay. Their pages therefore open with Safari's engine (WebKit), in the same tab; Chrome extensions do not run there. You can change this per website in the Site Control Center.";
 "Sprache" = "Language";
 "Sprache geändert" = "Language changed";
@@ -835,6 +840,8 @@
 "Starte OpenArch bitte noch einmal. Wenn es wieder passiert, hilft ein Neustart des Macs." = "Please restart OpenArch. If it happens again, restarting your Mac will help.";
 "Status" = "Status";
 "Storage.clearDataForOrigin" = "Storage.clearDataForOrigin";
+"Streamingdienste in Chromium" = "Streaming services in Chromium";
+"Streamingdienste in Chromium abspielen" = "Play streaming services in Chromium";
 "Stummschalten" = "Mute";
 "Suche Browser …" = "Looking for browsers…";
 "Suche nach Arc …" = "Looking for Arc…";

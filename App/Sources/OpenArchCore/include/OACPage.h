@@ -75,6 +75,10 @@ NS_SWIFT_UI_ACTOR
 - (void)loadURL:(NSString*)url;
 - (void)goBack;
 - (void)goForward;
+/// The address of the history entry |offset| steps away (-1 the page
+/// before, 1 the page after), nil when there is none: ⌘-click on Back or
+/// Forward opens it in a new tab.
+- (nullable NSString*)historyURLAtOffset:(NSInteger)offset;
 - (void)reload;
 - (void)stopLoading;
 - (void)executeJavaScript:(NSString*)script;

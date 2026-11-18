@@ -127,6 +127,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {
         if !transferred {
+            FairPlay.shared.pageGone(pane)
+            ProtectedVideo.shared.pageGone(pane)
             pane.delegate = nil
             pane.close()
         }
@@ -140,7 +142,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         guard !text.isEmpty else { return }
         let url = CommandBarModel.url(fromInput: text) ?? app.library.settings.searchEngine.url(for: text)
         model.isEditing = false
-        let engine = ProtectedMedia.engine(forAddress: url, current: pane.engine)
+        let engine = ProtectedMedia.engine(forAddress: url, current: pane)
         if engine != pane.engine {
             replacePage(with: url, engine: engine)
         } else {
@@ -153,6 +155,8 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     /// service moves to WebKit).
     private func replacePage(with url: String, engine: OACPageEngine) {
         let old = pane
+        FairPlay.shared.pageGone(old)
+        ProtectedVideo.shared.pageGone(old)
         old.delegate = nil
         old.hide()
         old.close()
@@ -192,6 +196,15 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     }
     func goBack() { pane.goBack() }
     func goForward() { pane.goForward() }
+
+    /// A click on the Back (-1) or Forward (1) button. With ⌘ the page
+    /// opens as a tab in the space, in the background (⌘⇧ in front).
+    func historyButtonClicked(offset: Int) {
+        let modifiers = NSEvent.modifierFlags
+        guard modifiers.contains(.command) else { return offset < 0 ? goBack() : goForward() }
+        guard let url = pane.historyURL(atOffset: offset) else { return }
+        self.pane(pane, wantsNewTabWithURL: url, background: !modifiers.contains(.shift))
+    }
     func showDevTools() { pane.showDevTools() }
     func runChromeCommand(_ command: OACChromeCommand) { pane.executeChromeCommand(command.rawValue) }
     func editAddress() { model.isEditing = true }
@@ -272,7 +285,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     /// A link here to a streaming service moves the window's page to WebKit.
     func pane(_ pane: any OACPage, shouldHandOffNavigationToURL url: String, method: String) -> Bool {
-        guard pane === self.pane, ProtectedMedia.handsOff(from: pane.engine, to: url, method: method) else { return false }
+        guard pane === self.pane, ProtectedMedia.handsOff(from: pane, to: url, method: method) else { return false }
         DispatchQueue.main.async {
             MainActor.assumeIsolated { [weak self] in
                 guard let self, self.pane === pane else { return }
@@ -284,6 +297,11 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
 
     func paneDidClose(_ pane: any OACPage) {
         if !transferred { window?.close() }
+    }
+
+    /// Spotify, Netflix and Disney+ play in Little OpenArch like in a tab.
+    func pane(_ pane: any OACPage, consoleMessage message: String, source: String, line: Int) {
+        _ = FairPlay.shared.receive(message, from: pane) || ProtectedVideo.shared.receive(message, from: pane)
     }
 }
 
@@ -312,9 +330,9 @@ private struct LittleOpenArchBar: View {
             Spacer().frame(width: 66)
             // The toolbar above the page has them while it shows (as Arc).
             if !model.toolbarVisible {
-                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.goBack() }
+                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.historyButtonClicked(offset: -1) }
                     .disabled(!model.canGoBack)
-                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.goForward() }
+                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.historyButtonClicked(offset: 1) }
                     .disabled(!model.canGoForward)
                 IconButton(symbol: model.isLoading ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") { controller.reload() }
             }

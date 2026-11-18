@@ -21,7 +21,7 @@ import os
 /// Every key but "feature" is optional: a build range, and the start of the
 /// Chromium version (OACEngine.versionString) it applies to.
 enum Feature: String, CaseIterable, Identifiable, Sendable {
-    case peek, tabPreviews, agentChats, boosts, drmWebKit
+    case peek, tabPreviews, agentChats, boosts, drmWebKit, fairPlay, fairPlayVideo
 
     var id: String { rawValue }
 
@@ -32,6 +32,8 @@ enum Feature: String, CaseIterable, Identifiable, Sendable {
         case .agentChats: L("Agent-Chats")
         case .boosts: "Boosts"
         case .drmWebKit: L("Geschützte Videos über WebKit")
+        case .fairPlay: L("Streamingdienste in Chromium")
+        case .fairPlayVideo: L("Netflix und Disney+ in Chromium")
         }
     }
 }

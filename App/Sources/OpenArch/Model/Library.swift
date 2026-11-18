@@ -404,6 +404,11 @@ struct Settings: Codable, Equatable {
     /// Streaming services (Spotify, Netflix …) open in WebKit, which plays
     /// their DRM with Apple's FairPlay (see ProtectedMedia).
     var protectedMediaWebKit = true
+    /// Spotify, Netflix and Disney+ stay Chromium pages and play with
+    /// Apple's FairPlay: music in a helper process (FairPlay), video in a
+    /// view over the page (ProtectedVideo). Off: it is new and depends on
+    /// the services' players, and WebKit plays them too.
+    var fairPlayInChromium = false
     /// Chromium's Widevine for sites that accept it without Verified Media
     /// Path. Off until the licence question with Google is settled.
     var widevine = false
@@ -490,6 +495,7 @@ struct Settings: Codable, Equatable {
         httpsOnly = try container.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? defaults.httpsOnly
         devToolsDock = try container.decodeIfPresent(DevToolsDock.self, forKey: .devToolsDock) ?? defaults.devToolsDock
         protectedMediaWebKit = try container.decodeIfPresent(Bool.self, forKey: .protectedMediaWebKit) ?? defaults.protectedMediaWebKit
+        fairPlayInChromium = try container.decodeIfPresent(Bool.self, forKey: .fairPlayInChromium) ?? defaults.fairPlayInChromium
         widevine = try container.decodeIfPresent(Bool.self, forKey: .widevine) ?? defaults.widevine
         allowedExternalApps = try container.decodeIfPresent([String].self, forKey: .allowedExternalApps) ?? defaults.allowedExternalApps
         shareRelay = try container.decodeIfPresent(String.self, forKey: .shareRelay) ?? defaults.shareRelay
@@ -527,6 +533,7 @@ extension Settings {
         OACProfile.setPreference("https_only_mode_enabled", value: httpsOnly)
         OACPane.devToolsDock = devToolsDock.dock
         ProtectedMedia.isEnabled = protectedMediaWebKit
+        FairPlay.isEnabled = fairPlayInChromium
         appearance.apply()
     }
 

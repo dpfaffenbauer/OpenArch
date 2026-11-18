@@ -257,6 +257,10 @@ final class WebKitPage: NSObject, OACPage {
 
     func goBack() { webView?.goBack() }
     func goForward() { webView?.goForward() }
+    func historyURL(atOffset offset: Int) -> String? {
+        guard offset != 0 else { return nil }
+        return webView?.backForwardList.item(at: offset)?.url.absoluteString
+    }
     func reload() { webView?.reload() }
     func stopLoading() { webView?.stopLoading() }
 

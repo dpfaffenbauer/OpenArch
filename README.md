@@ -27,7 +27,9 @@ Status: early, but usable as a daily browser. Apple silicon, macOS 15 or later.
   up to four tabs side by side, downloads and media in one place.
 - **Real Chrome:** extensions with popups and side panels, DevTools, the
   password manager, H.264/AAC/HEVC, Chromium's sandbox. Netflix, Spotify
-  and other DRM streaming play with Safari's engine in the same tab.
+  and other DRM streaming play with Safari's engine in the same tab; with
+  a setting, Spotify, Netflix and Disney+ stay Chromium pages and play with
+  Apple's FairPlay.
 - **Import from Arc:** spaces with their themes, pinned folders and splits,
   and on request logins, passwords, history and extensions. Chrome, Edge,
   Brave, Firefox, Safari and others come over too.
