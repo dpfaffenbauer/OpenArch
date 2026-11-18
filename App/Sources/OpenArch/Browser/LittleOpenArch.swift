@@ -192,6 +192,15 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     }
     func goBack() { pane.goBack() }
     func goForward() { pane.goForward() }
+
+    /// A click on the Back (-1) or Forward (1) button. With ⌘ the page
+    /// opens as a tab in the space, in the background (⌘⇧ in front).
+    func historyButtonClicked(offset: Int) {
+        let modifiers = NSEvent.modifierFlags
+        guard modifiers.contains(.command) else { return offset < 0 ? goBack() : goForward() }
+        guard let url = pane.historyURL(atOffset: offset) else { return }
+        self.pane(pane, wantsNewTabWithURL: url, background: !modifiers.contains(.shift))
+    }
     func showDevTools() { pane.showDevTools() }
     func runChromeCommand(_ command: OACChromeCommand) { pane.executeChromeCommand(command.rawValue) }
     func editAddress() { model.isEditing = true }
@@ -312,9 +321,9 @@ private struct LittleOpenArchBar: View {
             Spacer().frame(width: 66)
             // The toolbar above the page has them while it shows (as Arc).
             if !model.toolbarVisible {
-                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.goBack() }
+                IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.historyButtonClicked(offset: -1) }
                     .disabled(!model.canGoBack)
-                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.goForward() }
+                IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.historyButtonClicked(offset: 1) }
                     .disabled(!model.canGoForward)
                 IconButton(symbol: model.isLoading ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") { controller.reload() }
             }
