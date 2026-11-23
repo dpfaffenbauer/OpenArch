@@ -1884,7 +1884,16 @@ final class SelfTest {
             _ = pane.closeDevTools()
             after(1.5) {
                 self.expect(pane.screenFrame == full, "closing DevTools gives the page its whole frame back (\(pane.screenFrame))")
-                next()
+                // Opened by Chrome itself (the console, Inspect, its own
+                // shortcut), DevTools dock beside the page too.
+                pane.executeChromeCommand(OACChromeCommand.devToolsConsole.rawValue)
+                after(3) {
+                    let docked = pane.screenFrame
+                    self.expect(docked.minX == full.minX && docked.width < full.width * 0.7,
+                                "DevTools Chrome opens itself (the console) dock beside the page (\(docked))")
+                    _ = pane.closeDevTools()
+                    after(1.5) { next() }
+                }
             }
         }
     }

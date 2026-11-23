@@ -116,6 +116,7 @@
 - (void)openHistoryEntryInNewTab:(NSInteger)offset background:(BOOL)background;
 - (void)pageColorChanged;
 - (void)devToolsClosed;
+- (void)adoptDevTools;
 - (void)layoutViews;
 @end
 
@@ -833,6 +834,13 @@ namespace openarch {
 
 OACPane* PaneForWebContents(content::WebContents* contents) {
   return PaneForContents(contents);
+}
+
+void AdoptDockedDevTools(BrowserWindowInterface* browser) {
+  TabStripModel* tabs = browser ? browser->GetTabStripModel() : nullptr;
+  for (int i = 0; tabs && i < tabs->count(); i++) {
+    [PaneForContents(tabs->GetWebContentsAt(i)) adoptDevTools];
+  }
 }
 
 bool EnterPageFullScreen(content::WebContents* contents) {

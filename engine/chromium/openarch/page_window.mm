@@ -317,8 +317,9 @@ class PageWindow : public BrowserWindow {
     return window ? gfx::ScreenRectFromNSRect(window.frame) : gfx::Rect();
   }
   // Chrome's window is never shown, hidden, moved or activated: OpenArch's
-  // windows do that themselves.
-  void Show() override {}
+  // windows do that themselves. Chrome shows its window when it has docked
+  // DevTools into it (DevToolsWindow::Show): the pane takes them instead.
+  void Show() override { AdoptDockedDevTools(browser_); }
   void Hide() override {}
   bool IsVisible() const override { return true; }
   void ShowInactive() override {}
