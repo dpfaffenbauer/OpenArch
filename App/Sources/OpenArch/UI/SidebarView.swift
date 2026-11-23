@@ -844,6 +844,7 @@ private struct FavoriteTile: View {
         .frame(height: 46)
         .contentShape(Rectangle())
         .onTapGesture { browser.click(item) }
+        .onMiddleClick { if item.pane != nil { browser.close(item) } }
         .onHover { hovering = $0 }
         .help(item.displayTitle)
         .onDrag {
@@ -1187,6 +1188,10 @@ private struct TabRow: View {
             browser.tabPreview.hide()
             browser.click(item)
         }
+        .onMiddleClick {
+            browser.tabPreview.hide()
+            browser.close(item)
+        }
         .onHover {
             hovering = $0
             browser.tabPreview.hover(item, row: frame, inside: $0)
@@ -1292,6 +1297,7 @@ private struct SplitRow: View {
                 .background(RoundedRectangle(cornerRadius: 7).fill(isActive && isShown ? theme.foreground.opacity(0.14) : .clear))
                 .contentShape(Rectangle())
                 .onTapGesture { browser.click(child) }
+                .onMiddleClick { browser.close(child) }
                 .contextMenu {
                     if browser.actsOnSelection(child) {
                         SelectionContextMenu(browser: browser)
@@ -1990,4 +1996,44 @@ func copy(_ string: String) {
 @MainActor
 var copyPasteboard: NSPasteboard {
     AppPaths.isSelfTest ? NSPasteboard(name: NSPasteboard.Name("dev.openarch.selftest")) : .general
+}
+
+// MARK: - Middle click
+
+/// A click with the middle button (the wheel) on a row closes it, as in Arc
+/// and other browsers: a tab under the line closes, a pinned tab or a
+/// favorite unloads. SwiftUI has no gesture for that button, so the row
+/// watches for it while the pointer is over it.
+private struct MiddleClick: ViewModifier {
+    let action: () -> Void
+    @State private var monitor: Any?
+
+    func body(content: Content) -> some View {
+        content
+            .onHover { inside in
+                if inside { start() } else { stop() }
+            }
+            .onDisappear { stop() }
+    }
+
+    private func start() {
+        guard monitor == nil else { return }
+        let action = action
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .otherMouseUp) { event in
+            guard event.buttonNumber == 2 else { return event }
+            MainActor.assumeIsolated { action() }
+            return nil
+        }
+    }
+
+    private func stop() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+    }
+}
+
+extension View {
+    fileprivate func onMiddleClick(perform action: @escaping () -> Void) -> some View {
+        modifier(MiddleClick(action: action))
+    }
 }
