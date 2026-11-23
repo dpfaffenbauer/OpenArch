@@ -10,6 +10,12 @@ const checks = {
   },
   tabs: async () => (await chrome.tabs.query({})).length + ' tab(s)',
   sender: async (sender) => 'tab id ' + (sender.tab?.id ?? 'none'),
+  // Whether the asking page is its window's active tab, as an extension
+  // that acts on "the current tab" (a password manager) finds it.
+  active: async (sender) => {
+    const [tab] = await chrome.tabs.query({ active: true, windowId: sender.tab?.windowId });
+    return tab && tab.id === sender.tab?.id ? 'self' : 'other (' + (tab?.url ?? 'none') + ')';
+  },
 };
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

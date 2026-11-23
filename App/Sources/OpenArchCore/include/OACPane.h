@@ -293,6 +293,12 @@ typedef NS_ENUM(NSInteger, OACDevToolsDock) {
 /// that closed after starting one.
 @property(class, nonatomic, copy, nullable) void (^downloadHandler)(OACDownload* download);
 
+/// An extension's toolbar action changed: one was installed, removed, pinned
+/// or unpinned, or its icon, badge or state on a page changed. Called often
+/// (each badge update, once per page that lists extensions); -extensions
+/// has the new state.
+@property(class, nonatomic, copy, nullable) void (^extensionsChangedHandler)(void);
+
 /// A tab's renderer process ended unexpectedly: |status| is "crashed",
 /// "oom", "abnormal", "launch-failed" or "integrity", |code| its exit code.
 /// Renderers that were killed on purpose (closing, discarding) do not count.

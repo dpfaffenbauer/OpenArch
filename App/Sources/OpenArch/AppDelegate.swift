@@ -118,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             OACPane.downloadHandler = { [weak self] download in
                 MainActor.assumeIsolated { Downloads.shared.update(download, in: self?.mainBrowser) }
             }
+            ExtensionChanges.shared.start()
             // The first launch starts with the onboarding; the browser window
             // comes in behind it. --skip-onboarding leaves it out.
             let onboarding = !selfTest && library.settings.onboardingPending
