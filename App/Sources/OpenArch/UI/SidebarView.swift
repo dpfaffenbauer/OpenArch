@@ -703,6 +703,8 @@ private struct SidebarTopBar: View {
             }
         }
         .frame(height: 30)
+        // A double-click on its free space zooms the window.
+        .background(TitleBarArea())
         .padding(.bottom, 6)
     }
 

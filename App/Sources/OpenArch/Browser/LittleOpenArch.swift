@@ -57,7 +57,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         self.app = app
         profileID = space.profileID
         pane = ProtectedMedia.makePage(url: url ?? "about:blank", profile: app.library.profile(id: space.profileID).chromium)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
+        let window = TitleBarWindow(contentRect: NSRect(x: 0, y: 0, width: 960, height: 680),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
         window.titlebarAppearsTransparent = true
@@ -384,6 +384,8 @@ private struct LittleOpenArchBar: View {
         }
         .padding(.trailing, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A double-click on its free space zooms the window.
+        .background(TitleBarArea())
         // The bar sits in the transparent title bar, next to the window
         // buttons; without this SwiftUI pushes it below the title bar.
         .ignoresSafeArea()

@@ -1320,6 +1320,22 @@ final class SelfTest {
         expect(browser.windowGlassFrame == nil && browser.background.underlayOpacity > 0.75,
                "and without it the window has the theme on white or black again (\(browser.background.underlayOpacity))")
 
+        // Since macOS 27.2.1 AppKit no longer zooms a window with a
+        // transparent title bar on a double-click; the window does it for
+        // the free parts of the title bar, not for its buttons or the page.
+        if let window = browser.window as? TitleBarWindow, browser.state.sidebarVisible {
+            let height = window.frame.height, room = browser.sidebarButtonRoom(floating: false)
+            func at(_ x: CGFloat, _ fromTop: CGFloat) -> Bool {
+                let point = browser.mirrored(NSRect(x: x, y: height - fromTop, width: 0, height: 0)).origin
+                return window.isTitleBarBackground(at: point)
+            }
+            let free = at(8 + room + IconButton.width + 4, 15), toggle = at(8 + room + IconButton.width / 2, 15)
+            let strip = at(browser.sidebarWidth + 200, 4), below = at(browser.sidebarWidth + 200, window.titleBarHeight + 20)
+            expect(free && strip && !toggle && !below,
+                   "a double-click on the free title bar zooms the window, not on a button or the page "
+                   + "(sidebar \(free), strip \(strip), toggle \(toggle), page \(below))")
+        }
+
         guard let chat = browser.newAgentChat(prompt: "Was liegt hier?"), let session = chat.agentSession else {
             expect(false, "a new agent chat")
             return done()

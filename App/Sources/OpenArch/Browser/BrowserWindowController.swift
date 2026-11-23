@@ -43,7 +43,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     private var agentHost: NSHostingView<AgentContentView>!
     /// The chat beside the page (⌘E, see PageChat).
     private(set) var pageChatHost: NSHostingView<PageChatContainer>!
-    private var loadingLine: NSHostingView<PageLoadingLine>!
+    private var loadingLine: ClickThroughHostingView<PageLoadingLine>!
     private var dividers: [SplitDividerView] = []
     private let focusRing = FocusRingView()
     private let sidebarHandle = SplitDividerView()
@@ -128,7 +128,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         rootView.addSubview(pageChatHost)
         rootView.addSubview(sidebarHost)
         rootView.addSubview(focusRing)
-        loadingLine = NSHostingView(rootView: PageLoadingLine(browser: self))
+        loadingLine = ClickThroughHostingView(rootView: PageLoadingLine(browser: self))
         loadingLine.sizingOptions = []
         loadingLine.safeAreaRegions = []  // it sits under the title bar
         rootView.addSubview(loadingLine)
@@ -2144,7 +2144,7 @@ extension BrowserWindowController: FairPlayHost {
 
 // MARK: - Views
 
-final class BrowserWindow: NSWindow {
+final class BrowserWindow: TitleBarWindow {
     /// The background self-test keeps its window behind all others.
     override func makeKeyAndOrderFront(_ sender: Any?) {
         if AppPaths.isSelfTest {
