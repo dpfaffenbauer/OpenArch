@@ -50,6 +50,11 @@ void InstallPaneHooks();
 // The pane showing |contents|, if OpenArch shows it.
 OACPane* PaneForWebContents(content::WebContents* contents);
 
+// Chrome docked DevTools for a page of |browser| (opened by Chrome itself:
+// Inspect, the console, its own shortcut): the pane shows them beside the
+// page.
+void AdoptDockedDevTools(BrowserWindowInterface* browser);
+
 // A page's full screen: its own window on its own full screen space. Enter
 // returns false when OpenArch does not show |contents|.
 bool EnterPageFullScreen(content::WebContents* contents);
