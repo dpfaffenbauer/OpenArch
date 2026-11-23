@@ -249,6 +249,7 @@ final class SelfTest {
             (0.5, "today tab", { self.selectToday() }),
             (6, "command bar", { self.commandBar() }),
             (9, "split view", { self.split() }),
+            (11, "active tab for extensions", { self.activeTabForExtensions() }),
             (15, "second space", { self.secondSpace() }),
             (18, "shortcuts", { self.shortcuts() }),
             (20.5, "copy link", { self.copyLinkShortcut() }),
@@ -692,6 +693,62 @@ final class SelfTest {
                     console.log('[selftest-probe] ' + (document.documentElement.dataset.openarchProbeChecks ?? 'none'));
                     """)
             }
+        }
+    }
+
+    /// Extensions see the tab in front as the active one (chrome.tabs), not
+    /// the one before it: a password manager offers the logins of the site
+    /// on screen (issue #60).
+    private func activeTabForExtensions() {
+        let first = browser.openInNewTab("https://example.com/active-first")
+        func ask(_ item: Item?) { item?.pane?.executeJavaScript("postMessage('openarch-probe-active', '*')") }
+        func answer(_ url: String) -> String? {
+            activeChecks.last { $0.hasPrefix(url + " ") }.map { String($0.dropFirst(url.count + 1)) }
+        }
+        after(1.2) {
+            self.sidebarExtensions(on: first) {
+                let second = self.browser.openInNewTab("https://example.com/active-second")
+                after(1.5) { ask(second) }
+                after(1.7) { self.browser.select(first) }
+                after(1.9) { ask(first) }
+                after(2) {
+                    let urls = ["https://example.com/active-second", "https://example.com/active-first"]
+                    self.eventually({ urls.allSatisfy { answer($0) != nil } }) { _ in
+                        let answers = urls.map { answer($0) ?? "none" }
+                        self.expect(answers == ["self", "self"],
+                                    "extensions see the tab in front as the active tab (\(answers.joined(separator: ", ")))")
+                        self.browser.close(second)
+                        self.browser.close(first)
+                    }
+                }
+            }
+        }
+    }
+
+    /// A pinned extension shows in the sidebar while the toolbar above the
+    /// page is hidden (issue #59), and pinning it tells the sidebar.
+    private func sidebarExtensions(on item: Item, then done: @escaping () -> Void) {
+        guard let pane = item.pane as? OACPane,
+              let probe = pane.extensions.first(where: { $0.name == "OpenArch Probe" }) else {
+            expect(false, "the probe extension has an action, for the sidebar")
+            return done()
+        }
+        let revision = ExtensionChanges.shared.revision
+        let toolbar = library.settings.showChromeToolbar
+        if toolbar { browser.toggleChromeToolbar() }
+        pane.setExtension(probe.identifier, pinned: true)
+        eventually({ ExtensionChanges.shared.revision > revision
+                     && pane.extensions.contains { $0.identifier == probe.identifier && $0.pinned } }) { changed in
+            self.expect(changed, "pinning an extension tells the sidebar, which shows it")
+            if let view = self.browser.window?.contentView, let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: bitmap)
+                let url = AppPaths.support.appendingPathComponent("sidebar-extensions.png")
+                try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+                Swift.print("[selftest] sidebar with a pinned extension rendered to \(url.path)")
+            }
+            pane.setExtension(probe.identifier, pinned: false)
+            if toolbar { self.browser.toggleChromeToolbar() }
+            done()
         }
     }
 
@@ -2850,6 +2907,8 @@ final class SelfTest {
     private var boostChecks: [String] = []
     /// The page's media session actions the player called.
     private var mediaChecks: [String] = []
+    /// "<url> <answer>" of the probe's active tab check.
+    private var activeChecks: [String] = []
 
     /// A boost recolors the page background and zaps the paragraphs, live and
     /// again after a reload; deleting it restores the page.
@@ -2891,6 +2950,10 @@ final class SelfTest {
         }
         if message.hasPrefix("__selftest_boost__ ") {
             boostChecks.append(String(message.dropFirst("__selftest_boost__ ".count)))
+            return
+        }
+        if message.hasPrefix("[probe] active ") {
+            activeChecks.append(String(message.dropFirst("[probe] active ".count)))
             return
         }
         if message.hasPrefix("[selftest-probe]") || message.hasPrefix("[probe] checks") {

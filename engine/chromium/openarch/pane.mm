@@ -118,6 +118,7 @@
 - (void)devToolsClosed;
 - (void)adoptDevTools;
 - (void)layoutViews;
+- (void)makeActiveTab;
 @end
 
 namespace {
@@ -267,6 +268,7 @@ void (^g_external_tab_handler)(NSString*) = nil;
 void (^g_about_page_handler)(void) = nil;
 NSString* g_ask_about_selection_title = nil;
 void (^g_download_handler)(OACDownload*) = nil;
+void (^g_extensions_changed_handler)(void) = nil;
 void (^g_render_process_gone_handler)(NSString*, int) = nil;
 
 // Forwards a WebContents' events to its pane.
@@ -1286,6 +1288,7 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
   }
   if (_visible && _hostWindow) {
     [self attachViewToWindow:_hostWindow];
+    [self makeActiveTab];
   }
 }
 
@@ -1299,6 +1302,21 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
     }
   }
   return nullptr;
+}
+
+// Chrome's tab strip learns which page is in front: extensions ask it for
+// the active tab (chrome.tabs.query({active: true}), a password manager's
+// popup, activeTab), and Chrome's commands act on it.
+- (void)makeActiveTab {
+  BrowserWindowInterface* browser = [self browser];
+  if (!browser) {
+    return;
+  }
+  TabStripModel* tabs = browser->GetTabStripModel();
+  int index = tabs->GetIndexOfWebContents(_contents);
+  if (index != TabStripModel::kNoTab && tabs->active_index() != index) {
+    tabs->ActivateTabAt(index);
+  }
 }
 
 #pragma mark Showing
@@ -1328,6 +1346,7 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
     return;  // attached once the tab exists
   }
   [self attachViewToWindow:window];
+  [self makeActiveTab];
   if (_activatesOnShow) {
     [NSApp activateIgnoringOtherApps:YES];
   }
@@ -1514,6 +1533,7 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
   if (!_contents) {
     return;
   }
+  [self makeActiveTab];
   if (_activatesOnShow) {
     [NSApp activateIgnoringOtherApps:YES];
     [_hostWindow makeKeyWindow];
@@ -1945,11 +1965,7 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
     return;
   }
   // Chrome's commands act on the active tab of their window.
-  TabStripModel* tabs = browser->GetTabStripModel();
-  int index = tabs->GetIndexOfWebContents(_contents);
-  if (index != TabStripModel::kNoTab && tabs->active_index() != index) {
-    tabs->ActivateTabAt(index);
-  }
+  [self makeActiveTab];
   chrome::ExecuteCommand(browser, static_cast<int>(commandID));
 }
 
@@ -2187,6 +2203,7 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
   if (!_visible || !_hostWindow.isKeyWindow) {
     return;
   }
+  [self makeActiveTab];
   if ([_delegate respondsToSelector:@selector(paneDidBecomeActive:)]) {
     [_delegate paneDidBecomeActive:self];
   }
@@ -2393,6 +2410,14 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
 
 + (void)setDownloadHandler:(void (^)(OACDownload*))handler {
   g_download_handler = [handler copy];
+}
+
++ (void (^)(void))extensionsChangedHandler {
+  return g_extensions_changed_handler;
+}
+
++ (void)setExtensionsChangedHandler:(void (^)(void))handler {
+  g_extensions_changed_handler = [handler copy];
 }
 
 + (BOOL)cancelDownload:(uint32_t)identifier {

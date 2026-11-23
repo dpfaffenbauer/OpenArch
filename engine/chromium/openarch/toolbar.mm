@@ -323,20 +323,28 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
     dispatcher_.Observe(extensions::ExtensionActionDispatcher::Get(profile));
   }
 
-  void OnToolbarActionAdded(const ToolbarActionsModel::ActionId&) override { [bar_ rebuild]; }
-  void OnToolbarActionRemoved(const ToolbarActionsModel::ActionId&) override { [bar_ rebuild]; }
-  void OnToolbarActionUpdated(const ToolbarActionsModel::ActionId&) override { [bar_ rebuild]; }
-  void OnToolbarModelInitialized() override { [bar_ rebuild]; }
-  void OnToolbarPinnedActionsChanged() override { [bar_ rebuild]; }
+  void OnToolbarActionAdded(const ToolbarActionsModel::ActionId&) override { Changed(); }
+  void OnToolbarActionRemoved(const ToolbarActionsModel::ActionId&) override { Changed(); }
+  void OnToolbarActionUpdated(const ToolbarActionsModel::ActionId&) override { Changed(); }
+  void OnToolbarModelInitialized() override { Changed(); }
+  void OnToolbarPinnedActionsChanged() override { Changed(); }
   void OnToolbarActionsModelShutdown() override { model_.Reset(); }
   void OnExtensionActionUpdated(extensions::ExtensionAction*,
                                 content::WebContents*,
                                 content::BrowserContext*) override {
-    [bar_ rebuild];
+    Changed();
   }
   void OnShuttingDown() override { dispatcher_.Reset(); }
 
  private:
+  // The bar, and OpenArch's own extension buttons (OACPane.extensionsChangedHandler).
+  void Changed() {
+    [bar_ rebuild];
+    if (void (^handler)(void) = OACPane.extensionsChangedHandler) {
+      handler();
+    }
+  }
+
   __weak OAExtensionToolbar* bar_;
   base::ScopedObservation<ToolbarActionsModel, ToolbarActionsModel::Observer> model_{this};
   base::ScopedObservation<extensions::ExtensionActionDispatcher,

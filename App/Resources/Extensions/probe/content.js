@@ -48,4 +48,15 @@ for (const [key, path] of [['blocked', 'openarch-probe-blocked'], ['control', 'o
     .finally(publish);
 }
 publish();
+
+// The self-test asks again later (postMessage 'openarch-probe-active'):
+// whether this page is the active tab now.
+window.addEventListener('message', (event) => {
+  if (event.source !== window || event.data !== 'openarch-probe-active') {
+    return;
+  }
+  withTimeout(chrome.runtime.sendMessage({ check: 'active' }), 2500).then((reply) => {
+    console.log('[probe] active ' + location.href + ' ' + (reply?.error ? 'error: ' + reply.error : reply?.result));
+  });
+});
 setTimeout(() => console.log('[probe] checks ' + JSON.stringify(results)), 3000);

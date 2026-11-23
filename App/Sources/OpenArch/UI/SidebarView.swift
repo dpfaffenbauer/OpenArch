@@ -70,6 +70,11 @@ struct SidebarView: View {
                 AddressPill(browser: browser, theme: theme)
                     .padding(.bottom, 8)
             }
+            // The toolbar above the page has them while it shows.
+            if !browser.library.settings.showChromeToolbar {
+                SidebarExtensions(browser: browser, theme: theme)
+                    .padding(.bottom, 6)
+            }
             if state.agentsVisible {
                 AgentsList(browser: browser, theme: theme)
                     .frame(maxHeight: .infinity, alignment: .top)
