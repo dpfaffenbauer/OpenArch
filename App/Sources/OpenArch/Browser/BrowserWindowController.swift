@@ -538,14 +538,17 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func windowDidEndLiveResize(_ notification: Notification) {
         relayoutSoon()
+        if isSeparate { library.setNeedsSave() }
     }
 
     func windowDidMove(_ notification: Notification) {
         relayoutSoon()
+        if isSeparate { library.setNeedsSave() }
     }
 
     func windowDidChangeScreen(_ notification: Notification) {
         relayoutSoon()
+        if isSeparate { library.setNeedsSave() }
     }
 
     func windowDidChangeBackingProperties(_ notification: Notification) {
@@ -699,7 +702,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
     }
 
     /// A separate window's tabs are not in the library: closing the window
-    /// (or quitting) puts them in the archive, for their home space.
+    /// puts them in the archive, for their home space. (Quitting keeps the
+    /// window: it comes back at the next launch.)
     func archiveTabs() {
         guard let homeSpace else { return }
         // Top to bottom: ⌘⇧T brings the bottom one back first and each next
@@ -708,6 +712,64 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             library.archive(tab, from: homeSpace)
         }
         library.setNeedsSave()
+    }
+
+    /// A separate window as it is now, for the next launch.
+    var separateWindowData: SeparateWindowData? {
+        guard let homeSpace, let window, !state.space.today.items.isEmpty else { return nil }
+        let screen = window.screen ?? NSScreen.screens.first { $0.frame.intersects(window.frame) }
+        return SeparateWindowData(homeSpaceID: homeSpace.id, frame: window.frame, screenID: screen?.displayUUID,
+                                  screenFrame: screen?.frame, tabs: state.space.today.items.map(\.data),
+                                  activeItemID: state.space.activeItemID)
+    }
+
+    /// Brings a saved separate window's tabs back, the one shown last in front.
+    func restoreSeparate(_ saved: SeparateWindowData) {
+        for data in saved.tabs {
+            state.space.today.insert(Item(data: data))
+        }
+        let active = saved.activeItemID.flatMap { state.space.today.find(id: $0) }
+        if let item = active ?? state.space.today.allTabs.first {
+            select(item)
+        } else {
+            layoutContent()
+        }
+    }
+
+    /// Where a saved window goes: on the display it was on (wherever that
+    /// display is now), otherwise on the display it overlaps most, otherwise
+    /// in the middle of the main display. Always fully on screen.
+    static func restoredFrame(_ saved: SeparateWindowData) -> NSRect {
+        var frame = saved.frame
+        let screens = NSScreen.screens
+        if let id = saved.screenID, let screen = screens.first(where: { $0.displayUUID == id }) {
+            if let old = saved.screenFrame {
+                frame.origin.x += screen.frame.minX - old.minX
+                frame.origin.y += screen.frame.minY - old.minY
+            }
+            return fit(frame, in: screen.visibleFrame)
+        }
+        func overlap(_ screen: NSScreen) -> CGFloat {
+            let common = screen.visibleFrame.intersection(frame)
+            return common.isNull ? 0 : common.width * common.height
+        }
+        if let screen = screens.max(by: { overlap($0) < overlap($1) }), overlap(screen) > 0 {
+            return fit(frame, in: screen.visibleFrame)
+        }
+        guard let main = NSScreen.main ?? screens.first else { return frame }
+        frame = fit(frame, in: main.visibleFrame)
+        frame.origin.x = main.visibleFrame.midX - frame.width / 2
+        frame.origin.y = main.visibleFrame.midY - frame.height / 2
+        return frame
+    }
+
+    private static func fit(_ frame: NSRect, in area: NSRect) -> NSRect {
+        var frame = frame
+        frame.size.width = min(frame.width, area.width)
+        frame.size.height = min(frame.height, area.height)
+        frame.origin.x = min(max(frame.minX, area.minX), area.maxX - frame.width)
+        frame.origin.y = min(max(frame.minY, area.minY), area.maxY - frame.height)
+        return frame
     }
 
     /// Watches a separate window's tabs: once the last one is gone (closed,
@@ -2139,4 +2201,14 @@ final class FocusRingView: NSView {
     }
 
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
+extension NSScreen {
+    /// The display's UUID: stays the same across launches and when the
+    /// displays are rearranged or plugged in again.
+    var displayUUID: String? {
+        guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(number)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
 }

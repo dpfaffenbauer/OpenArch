@@ -14,6 +14,11 @@ final class Library {
     /// Today tabs closed or archived, newest first (for ⌘⇧T and the command bar).
     private(set) var archive: [ArchivedTab] = []
     var selectedSpaceID: UUID?
+    /// The separate windows as last saved; at launch, the ones to bring back.
+    @ObservationIgnored private(set) var separateWindows: [SeparateWindowData] = []
+    /// The open separate windows, asked at every save. Set once the saved
+    /// ones are back, so a save before that keeps them.
+    @ObservationIgnored var separateWindowsSnapshot: (() -> [SeparateWindowData])?
 
     @ObservationIgnored private var saveScheduled = false
     @ObservationIgnored private let fileURL = AppPaths.support.appendingPathComponent("Library.json")
@@ -166,12 +171,14 @@ final class Library {
 
     func save() {
         guard !isFrozen else { return }
+        if let separateWindowsSnapshot { separateWindows = separateWindowsSnapshot() }
         let data = LibraryData(
             profiles: profiles.map { ProfileData(id: $0.id, name: $0.name, favorites: $0.favorites.items.map(\.data)) },
             spaces: spaces.map(\.data),
             settings: settings,
             archive: archive,
-            selectedSpaceID: selectedSpaceID)
+            selectedSpaceID: selectedSpaceID,
+            separateWindows: separateWindows.isEmpty ? nil : separateWindows)
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -233,6 +240,7 @@ final class Library {
         spaces = data.spaces.map { Space(data: $0, legacyGrain: settings.grain) }
         archive = data.archive ?? []
         selectedSpaceID = data.selectedSpaceID
+        separateWindows = data.separateWindows ?? []
     }
 
     /// Replaces spaces and favorites with an import (e.g. from Arc).

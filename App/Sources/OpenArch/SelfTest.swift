@@ -831,6 +831,28 @@ final class SelfTest {
                         && self.library.space(containing: third) == nil && self.library.space(containing: fourth) == nil
                         && self.browser.state.activeItem !== third && self.browser.state.activeItem !== fourth,
                         "a tab dragged from the main window onto the window's tabs or page moves in")
+            // Quit and launch again: the window comes back as it was saved.
+            if let separate, let saved = separate.separateWindowData,
+               let json = try? JSONEncoder().encode(saved),
+               let decoded = try? JSONDecoder().decode(SeparateWindowData.self, from: json) {
+                let restored = app.openSeparateWindow(home: home, from: self.browser, at: nil,
+                                                      frame: BrowserWindowController.restoredFrame(decoded))
+                restored.restoreSeparate(decoded)
+                self.expect(restored.window?.frame == separate.window?.frame
+                            && restored.window?.screen == separate.window?.screen
+                            && restored.state.space.today.items.map(\.currentURL) == separate.state.space.today.items.map(\.currentURL)
+                            && restored.state.activeItem?.id == fourth.id && restored.homeSpace === home,
+                            "a separate window comes back at the next launch with its tabs, where it was, on its display")
+                var gone = decoded
+                gone.screenID = "no such display"
+                gone.frame.origin = NSPoint(x: -100_000, y: -100_000)
+                let fallback = BrowserWindowController.restoredFrame(gone)
+                self.expect(NSScreen.screens.contains { $0.visibleFrame.contains(fallback) },
+                            "a window whose display is gone comes back fully on another one")
+                restored.window?.performClose(nil)
+            } else {
+                self.expect(false, "a separate window's saved state")
+            }
             let url = tab.currentURL
             separate?.window?.performClose(nil)
             self.expect(app.browsers.count == 1 && tab.pane == nil && self.library.archive.first?.url == url
