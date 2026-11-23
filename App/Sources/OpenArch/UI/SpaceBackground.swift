@@ -64,9 +64,19 @@ final class SpaceBackgroundView: NSView {
     /// |active|: the window is in front, so the desktop shows through and
     /// the grain is at full strength. |glassTint|: the glass look, with this
     /// much of the colors over the glass and no white or black under them.
+    /// Behind other windows the glass goes, as in Arc: the theme lies flat
+    /// on white or black, so a window in back is told apart at a glance.
     func apply(_ theme: SpaceTheme, active: Bool, glassTint: Double? = nil) {
         let reduced = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
-        let glass = glassTint != nil
+        let glass = glassTint != nil && active
+        if let wasActive = lastActive, wasActive != active, window != nil {
+            // Fade between the two looks rather than jump.
+            let fade = CATransition()
+            fade.type = .fade
+            fade.duration = 0.18
+            layer?.add(fade, forKey: "activeFade")
+        }
+        lastActive = active
         if theme != self.theme || renderedSize != bounds.size {
             self.theme = theme
             renderColors()
@@ -76,11 +86,13 @@ final class SpaceBackgroundView: NSView {
         // front, and none once it is not.
         underlayOpacity = glass ? 0 : (active && !reduced ? (theme.isDark ? 0.8 : 0.86) : 1)
         underlay.alphaValue = underlayOpacity
+        glassSheet?.isHidden = !glass
         blur.isHidden = (!glass && underlayOpacity >= 1) || glassSheet.map { !$0.isHidden } == true
-        colorOpacity = glassTint ?? theme.layerOpacity
+        colorOpacity = glass ? (glassTint ?? 0) : theme.layerOpacity
         colors.alphaValue = colorOpacity
         grain.amount = theme.grainAmount(active: active)
     }
+    private var lastActive: Bool?
 
     private func renderColors() {
         guard let theme else { return }

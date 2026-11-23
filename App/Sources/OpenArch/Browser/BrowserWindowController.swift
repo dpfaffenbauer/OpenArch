@@ -174,6 +174,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
                 MainActor.assumeIsolated { self?.applyTheme() }
             }
         }
+        // Another OpenArch window in front sends this one to the back too.
+        for name in [NSWindow.didBecomeMainNotification, NSWindow.didResignMainNotification] {
+            NotificationCenter.default.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.applyTheme() }
+            }
+        }
         archiveTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.archiveInactiveTabs()
@@ -234,8 +240,8 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let theme = self.theme
         let glassy = library.settings.glass
         // macOS 26: Liquid Glass with the colors over it; before, frosted
-        // glass and the colors over that.
-        windowGlass?.isHidden = !glassy
+        // glass and the colors over that. The background shows the glass
+        // only while the window is in front.
         background.apply(theme, active: isFrontmost, glassTint: glassy ? library.settings.glassTint : nil)
         // The desktop shows through: in the glass look, and faintly behind
         // the theme while the window is in front.

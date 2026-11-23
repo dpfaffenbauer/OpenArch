@@ -158,6 +158,13 @@ extension SelfTest {
                 probe.apply(shown, active: true, glassTint: 0.4)
                 self.expect(probe.underlayOpacity == 0 && probe.colorOpacity == 0.4,
                             "in the glass look the colors lie over the glass at the tint")
+                let sheet = NSView()
+                probe.setGlassSheet(sheet)
+                probe.apply(shown, active: false, glassTint: 0.4)
+                self.expect(sheet.isHidden && probe.underlayOpacity == 1 && probe.colorOpacity == shown.layerOpacity,
+                            "behind other windows the glass look turns flat and opaque, so a window in back shows at a glance")
+                probe.apply(shown, active: true, glassTint: 0.4)
+                self.expect(!sheet.isHidden && probe.underlayOpacity == 0, "and in front again the glass comes back")
             }
             self.renderThemeEditor()
             space.theme = before
