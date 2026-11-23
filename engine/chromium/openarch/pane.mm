@@ -11,6 +11,7 @@
 
 #import <AppKit/AppKit.h>
 
+#include <deque>
 #include <map>
 #include <memory>
 #include <string>
@@ -721,6 +722,18 @@ class DevToolsClient : public content::DevToolsAgentHostClient {
   }
 
   void Call(const std::string& method, base::DictValue params, Callback callback) {
+    // One screenshot at a time: Chrome takes a clipped or scaled one by
+    // emulating a smaller viewport and restoring the emulation it found
+    // when done. A second one started meanwhile finds the first one's
+    // emulation, restores that, and the page stays drawn small.
+    if (method == "Page.captureScreenshot") {
+      queued_screenshots_.push_back(Pending{method, std::move(params),
+                                            callback ? [callback copy] : nil, /*retries=*/1});
+      if (!screenshot_in_flight_) {
+        NextScreenshot();
+      }
+      return;
+    }
     Send(method, std::move(params), callback ? [callback copy] : nil, /*retries=*/1);
   }
 
@@ -777,6 +790,37 @@ class DevToolsClient : public content::DevToolsAgentHostClient {
 
  private:
 
+  void NextScreenshot() {
+    if (queued_screenshots_.empty()) {
+      screenshot_in_flight_ = false;
+      return;
+    }
+    screenshot_in_flight_ = true;
+    Pending call = std::move(queued_screenshots_.front());
+    queued_screenshots_.pop_front();
+    Callback done = call.callback;
+    base::WeakPtr<DevToolsClient> weak = weak_factory_.GetWeakPtr();
+    int turn = ++screenshot_turn_;
+    Callback next = ^(NSDictionary<NSString*, id>* result) {
+      if (done) {
+        done(result);
+      }
+      // After the restore Chrome does on answering.
+      base::SingleThreadTaskRunner::GetCurrentDefault()->PostTask(
+          FROM_HERE, base::BindOnce(&DevToolsClient::ScreenshotDone, weak, turn));
+    };
+    // One that never answers doesn't hold up the others for good.
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
+        FROM_HERE, base::BindOnce(&DevToolsClient::ScreenshotDone, weak, turn), base::Seconds(10));
+    Send(call.method, std::move(call.params), [next copy], call.retries);
+  }
+
+  void ScreenshotDone(int turn) {
+    if (turn == screenshot_turn_ && screenshot_in_flight_) {
+      NextScreenshot();
+    }
+  }
+
   void Send(const std::string& method, base::DictValue params, Callback callback, int retries) {
     if (!attached_) {
       host_ = contents_ ? content::DevToolsAgentHost::GetOrCreateFor(contents_) : nullptr;
@@ -811,6 +855,9 @@ class DevToolsClient : public content::DevToolsAgentHostClient {
   bool attached_ = false;
   int last_id_ = 0;
   std::map<int, Pending> pending_;
+  std::deque<Pending> queued_screenshots_;  // waiting for the one in flight
+  bool screenshot_in_flight_ = false;
+  int screenshot_turn_ = 0;  // the screenshot in flight
   base::WeakPtrFactory<DevToolsClient> weak_factory_{this};
 };
 
