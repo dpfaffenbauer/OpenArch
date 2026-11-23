@@ -129,6 +129,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 test?.start()
             } else {
                 browser.restoreSession()
+                restoreSeparateWindows(from: browser)
+                // The main window stays in front of the windows that came back.
+                if !onboarding { browser.window?.makeKeyAndOrderFront(nil) }
                 for url in pendingURLs { openExternal(url) }
                 pendingURLs = []
                 if onboarding {
@@ -219,7 +222,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if isQuitting { return .terminateCancel }
         isQuitting = true
         AgentSession.stopAll()
-        for browser in browsers { browser.archiveTabs() }
+        // Separate windows are saved with the library (see
+        // restoreSeparateWindows) and come back at the next launch.
         library?.freeze()
         if !selfTest {
             AppIcons.saveForDock()
@@ -276,11 +280,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// A window of its own for tabs dragged out of the sidebar, at |point|
     /// (under the mouse, fully on its screen). Smaller than the main window.
-    func openSeparateWindow(home: Space, from source: BrowserWindowController, at point: NSPoint?) -> BrowserWindowController {
+    func openSeparateWindow(home: Space, from source: BrowserWindowController, at point: NSPoint?,
+                            frame savedFrame: NSRect? = nil) -> BrowserWindowController {
         let browser = BrowserWindowController(library: library, history: history, separateFrom: home,
                                               cascadingFrom: source.window)
         browsers.append(browser)
-        if let window = browser.window {
+        if let window = browser.window, let savedFrame {
+            window.setFrame(savedFrame, display: false)
+        } else if let window = browser.window {
             var frame = window.frame
             frame.size = NSSize(width: min(frame.width, 1180), height: min(frame.height, 780))
             if let point {
@@ -298,6 +305,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             browser.showWindow(nil)
         }
         return browser
+    }
+
+    /// The separate windows open at the last quit come back, each on the
+    /// display it was on; from then on every save keeps the open ones.
+    private func restoreSeparateWindows(from source: BrowserWindowController) {
+        for saved in library.separateWindows where !saved.tabs.isEmpty {
+            guard let home = library.space(id: saved.homeSpaceID) ?? library.spaces.first else { continue }
+            let browser = openSeparateWindow(home: home, from: source, at: nil,
+                                             frame: BrowserWindowController.restoredFrame(saved))
+            browser.restoreSeparate(saved)
+        }
+        library.separateWindowsSnapshot = { [weak self] in
+            self?.browsers.compactMap(\.separateWindowData) ?? []
+        }
     }
 
     @objc func newWindow(_ sender: Any?) { openWindow(isPrivate: false) }

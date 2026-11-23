@@ -321,6 +321,23 @@ struct LibraryData: Codable {
     var settings: Settings?
     var archive: [ArchivedTab]?
     var selectedSpaceID: UUID?
+    /// Windows of their own (tabs dragged out of the sidebar), which come
+    /// back at the next launch where they were.
+    var separateWindows: [SeparateWindowData]? = nil
+}
+
+/// A window of its own for tabs dragged out of the sidebar, as it was saved.
+struct SeparateWindowData: Codable {
+    /// The space it came from: its profile and theme.
+    var homeSpaceID: UUID
+    var frame: CGRect
+    /// The display it was on (CGDisplay UUID) and that display's frame
+    /// then, so it goes back to the same display even after the displays
+    /// were rearranged.
+    var screenID: String?
+    var screenFrame: CGRect?
+    var tabs: [ItemData]
+    var activeItemID: UUID?
 }
 
 struct ProfileData: Codable {
