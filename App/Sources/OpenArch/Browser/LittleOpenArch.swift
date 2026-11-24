@@ -227,8 +227,9 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
     /// the space, in the background, like Ctrl-clicks.
     func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
         if background, openInSpace(url, modifiers: .command) { return }
-        app.mainBrowser?.openInNewTab(url, select: !background)
-        if !background { app.mainBrowser?.showWindow(nil) }
+        guard let browser = app.mainBrowser else { return }
+        let tab = browser.openInNewTab(url, select: !background)
+        if background { browser.loadInBackground(tab) } else { browser.showWindow(nil) }
     }
 
     func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
@@ -246,7 +247,7 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         guard !modifiers.intersection([.control, .command]).isEmpty, let browser = app.mainBrowser else { return false }
         let space = space(in: browser)
         if space === browser.state.space {
-            browser.openInNewTab(url, select: false)
+            browser.loadInBackground(browser.openInNewTab(url, select: false))
         } else {
             space.today.insert(Item.tab(url: url), at: 0)
             app.library.setNeedsSave()

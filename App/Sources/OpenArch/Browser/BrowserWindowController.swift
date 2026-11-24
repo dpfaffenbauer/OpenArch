@@ -1764,7 +1764,10 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
             peek.open(url, from: source)
             return
         }
-        openInNewTab(url, after: item(for: pane), select: !background)
+        let tab = openInNewTab(url, after: item(for: pane), select: !background)
+        // A ⌘-clicked link loads right away, so its page is there when you
+        // come to the tab.
+        if background { loadInBackground(tab) }
     }
 
     func pane(_ pane: any OACPage, wantsToOpenExternalURL url: String) {
