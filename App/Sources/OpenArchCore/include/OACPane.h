@@ -221,6 +221,8 @@ OAC_EXPORT
 - (void)goBack;
 - (void)goForward;
 - (nullable NSString*)historyURLAtOffset:(NSInteger)offset;
+- (nullable NSString*)historyTitleAtOffset:(NSInteger)offset;
+- (void)goToHistoryOffset:(NSInteger)offset;
 - (void)reload;
 - (void)stopLoading;
 - (void)executeJavaScript:(NSString*)script;

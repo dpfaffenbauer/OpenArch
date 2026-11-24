@@ -43,14 +43,23 @@
 #include "extensions/common/manifest_handlers/options_page_info.h"
 #include "components/favicon/content/content_favicon_driver.h"
 #include "url/gurl.h"
+#include "content/public/browser/favicon_status.h"
 #include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/reload_type.h"
 #include "skia/ext/skia_utils_mac.h"
 #include "ui/gfx/image/image.h"
 
-@interface OAExtensionToolbar ()
+@interface OAExtensionToolbar () <NSMenuDelegate>
 - (void)rebuild;
 @end
+
+namespace {
+// How many pages the history menu of Back or Forward lists, as Chrome's.
+constexpr int kHistoryMenuEntries = 12;
+// Longer titles are cut in the history menu.
+constexpr NSUInteger kHistoryMenuTitleLength = 60;
+}  // namespace
 
 @interface OACExtensionInfo ()
 @property(readwrite, copy) NSString* identifier;
@@ -615,6 +624,11 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
     _back = [self navigationButton:@"arrow.left" tip:@"Zurück" action:@selector(goBack:)];
     _forward = [self navigationButton:@"arrow.right" tip:@"Vorwärts" action:@selector(goForward:)];
     _reload = [self navigationButton:@"arrow.clockwise" tip:@"Neu laden" action:@selector(reload:)];
+    // A right-click on Back or Forward lists the pages that way.
+    for (OAToolbarButton* button in @[ _back, _forward ]) {
+      button.menu = [[NSMenu alloc] initWithTitle:button.toolTip];
+      button.menu.delegate = self;
+    }
 
     _observer = std::make_unique<ToolbarObserver>(_profile, self);
     [self rebuild];
@@ -940,6 +954,65 @@ class ToolbarObserver : public ToolbarActionsModel::Observer,
   }
   if (_contents && _contents->GetController().CanGoForward()) {
     _contents->GetController().GoForward();
+  }
+}
+
+// The history menu of Back or Forward (a right-click on it): the pages that
+// way, the nearest first, then the whole history, as in Chrome. ⌘ opens
+// one in a new tab.
+- (void)menuNeedsUpdate:(NSMenu*)menu {
+  [menu removeAllItems];
+  if (!_contents) {
+    return;
+  }
+  int direction = menu == _back.menu ? -1 : 1;
+  content::NavigationController& controller = _contents->GetController();
+  for (int step = 1; step <= kHistoryMenuEntries; ++step) {
+    content::NavigationEntry* entry = controller.GetEntryAtOffset(direction * step);
+    if (!entry) {
+      break;
+    }
+    NSString* title = base::SysUTF16ToNSString(entry->GetTitleForDisplay());
+    if (title.length > kHistoryMenuTitleLength) {
+      NSRange cut = [title rangeOfComposedCharacterSequenceAtIndex:kHistoryMenuTitleLength];
+      title = [[title substringToIndex:cut.location] stringByAppendingString:@"…"];
+    }
+    NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:title
+                                                  action:@selector(goToHistoryEntry:)
+                                           keyEquivalent:@""];
+    item.target = self;
+    item.tag = direction * step;
+    item.toolTip = base::SysUTF8ToNSString(entry->GetURL().spec());
+    const content::FaviconStatus& favicon = entry->GetFavicon();
+    NSImage* image = favicon.valid && !favicon.image.IsEmpty()
+                         ? [favicon.image.ToNSImage() copy]
+                         : [NSImage imageWithSystemSymbolName:@"globe" accessibilityDescription:nil];
+    image.size = NSMakeSize(16, 16);
+    item.image = image;
+    [menu addItem:item];
+  }
+  if (menu.numberOfItems && _openURL) {
+    [menu addItem:[NSMenuItem separatorItem]];
+    NSMenuItem* all = [[NSMenuItem alloc] initWithTitle:@"Gesamten Verlauf anzeigen"
+                                                 action:@selector(showFullHistory:)
+                                          keyEquivalent:@""];
+    all.target = self;
+    [menu addItem:all];
+  }
+}
+
+- (void)goToHistoryEntry:(NSMenuItem*)sender {
+  if ([self openHistoryInNewTab:sender.tag]) {
+    return;
+  }
+  if (_contents && _contents->GetController().CanGoToOffset(static_cast<int>(sender.tag))) {
+    _contents->GetController().GoToOffset(static_cast<int>(sender.tag));
+  }
+}
+
+- (void)showFullHistory:(id)sender {
+  if (_openURL) {
+    _openURL(@"chrome://history");
   }
 }
 

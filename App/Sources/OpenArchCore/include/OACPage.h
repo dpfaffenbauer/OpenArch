@@ -79,6 +79,12 @@ NS_SWIFT_UI_ACTOR
 /// before, 1 the page after), nil when there is none: ⌘-click on Back or
 /// Forward opens it in a new tab.
 - (nullable NSString*)historyURLAtOffset:(NSInteger)offset;
+/// The title of that history entry (its address when it has none), nil
+/// when there is none: the history menu of Back and Forward.
+- (nullable NSString*)historyTitleAtOffset:(NSInteger)offset;
+/// Goes |offset| steps through the history at once (a page picked in the
+/// history menu of Back or Forward).
+- (void)goToHistoryOffset:(NSInteger)offset;
 - (void)reload;
 - (void)stopLoading;
 - (void)executeJavaScript:(NSString*)script;

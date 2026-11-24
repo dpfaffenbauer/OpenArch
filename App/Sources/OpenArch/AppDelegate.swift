@@ -3,6 +3,7 @@ import OpenArchCore
 import OpenArchLocalization
 import OpenArchShared
 import SwiftUI
+import WebKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -1099,6 +1100,39 @@ final class SpacesMenuUpdater: NSObject, NSMenuDelegate {
     }
 }
 
+/// ⌘← and ⌘→ go back and forward, as in Safari, unless something else
+/// uses the keys: in a text field they move to the start or end of the
+/// line. Not menu items: Chrome's view hands keys of the menu straight to
+/// it, never to the page. A Chromium page decides before the page whether
+/// a text field has the focus (pane.mm, HandleKey); a WebKit page hands
+/// back the keys it did not use (WebKitPageView).
+@MainActor
+enum ArrowNavigation {
+    /// -1 for ⌘←, 1 for ⌘→, else 0.
+    static func direction(of event: NSEvent) -> Int {
+        guard event.type == .keyDown,
+              event.modifierFlags.intersection([.command, .control, .option, .shift]) == .command,
+              let key = event.charactersIgnoringModifiers?.utf16.first else { return 0 }
+        switch Int(key) {
+        case NSLeftArrowFunctionKey: return -1
+        case NSRightArrowFunctionKey: return 1
+        default: return 0
+        }
+    }
+
+    static func handle(_ event: NSEvent, target: AppDelegate) -> Bool {
+        let direction = direction(of: event)
+        guard direction != 0 else { return false }
+        let responder = (event.window ?? NSApp.keyWindow)?.firstResponder
+        if let text = responder as? NSTextView, text.isEditable { return false }
+        // The page decides.
+        if responder is WKWebView { return false }
+        if let responder, NSStringFromClass(type(of: responder)) == "RenderWidgetHostViewCocoa" { return false }
+        direction < 0 ? target.goBack(nil) : target.goForward(nil)
+        return true
+    }
+}
+
 /// OpenArch's own shortcuts win over the page, like in Arc: a page cannot
 /// take ⌘T, ⌘L or ⌃Tab, and Chrome's own meaning of a key (⌘⌥→ switches
 /// tabs in Chrome, spaces in Arc) never applies.
@@ -1117,6 +1151,7 @@ enum ShortcutMonitor {
     static func handle(_ event: NSEvent, target: AppDelegate) -> Bool {
         // Settings › Tastatur is recording a new shortcut.
         if ShortcutRecorder.shared.capture(event) { return true }
+        if ArrowNavigation.handle(event, target: target) { return true }
         let flags = event.modifierFlags.intersection([.command, .control, .option, .shift])
         guard !flags.intersection([.command, .control]).isEmpty, NSApp.modalWindow == nil,
               let menu = NSApp.mainMenu, let item = item(in: menu, matching: event, target: target),

@@ -1719,10 +1719,16 @@ final class SelfTest {
             return expect(false, "⌘⇧C key press setup")
         }
         NSApp.postEvent(event, atStart: false)
-        // Other steps may switch tabs before the key press is handled: any
-        // tab's address shows it went the way of a real one.
-        let addresses = Set(browser.allTabs.map(\.currentURL)).union([url])
-        eventually({ copyPasteboard.string(forType: .string).map(addresses.contains) ?? false }) { copied in
+        // Other steps open, switch and close tabs before the key press is
+        // handled (it waits behind the tab switcher's keys): the address of
+        // any tab there was meanwhile, open or closed since, shows it went
+        // the way of a real one.
+        var addresses = Set(browser.allTabs.map(\.currentURL)).union([url])
+        eventually({
+            addresses.formUnion(self.browser.allTabs.map(\.currentURL))
+            addresses.formUnion(self.library.archive.map(\.url))
+            return copyPasteboard.string(forType: .string).map(addresses.contains) ?? false
+        }) { copied in
             self.expect(copied, "⌘⇧C pressed in the page copies its address (copied \(copyPasteboard.string(forType: .string) ?? "nothing"))")
         }
     }
@@ -2127,6 +2133,22 @@ final class SelfTest {
             let bar = little.pane.window?.contentView?.subviews.contains { $0.className == "OAExtensionToolbar" } == true
             self.expect(little.pane.toolbarVisible && (OACPane.panesHaveWindows || bar),
                         "the puzzle button shows Chrome's toolbar with the extensions (own bar \(bar))")
+            // A right-click on Forward lists the page ahead, then the whole
+            // history; Back has nothing to list here.
+            let ahead = little.historyMenu(direction: 1)?.items.compactMap(\.toolTip) ?? []
+            self.expect(ahead.count == 1 && ahead[0].hasSuffix("/little/next") && little.historyMenu(direction: -1) == nil,
+                        "the history menu of Forward lists the page ahead (\(ahead))")
+            // The toolbar above the page has the same menu on its buttons.
+            func toolbarButtons(_ view: NSView) -> [NSButton] {
+                view.subviews.flatMap { ($0.className == "OAToolbarButton" ? [$0 as? NSButton].compactMap { $0 } : []) + toolbarButtons($0) }
+            }
+            let forwardButton = little.pane.window?.contentView.map(toolbarButtons)?.first { $0.toolTip == "Vorwärts" }
+            if let menu = forwardButton?.menu {
+                menu.delegate?.menuNeedsUpdate?(menu)
+            }
+            let toolbarAhead = forwardButton?.menu?.items.compactMap(\.toolTip) ?? []
+            self.expect(OACPane.panesHaveWindows || (toolbarAhead.count == 1 && toolbarAhead[0].hasSuffix("/little/next")),
+                        "the toolbar's Forward button has the history menu (\(toolbarAhead))")
             // An extension's popup opens in OpenArch's popup window, at the
             // size its page asks for (not stuck at the smallest, off screen).
             if let pane = little.pane as? OACPane,

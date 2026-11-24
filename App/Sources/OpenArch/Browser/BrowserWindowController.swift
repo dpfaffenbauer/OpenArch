@@ -1677,6 +1677,17 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         guard let url = activePane?.historyURL(atOffset: offset) else { return }
         openInNewTab(url, after: state.activeItem, select: modifiers.contains(.shift))
     }
+
+    /// The history menu of Back (-1) or Forward (1): a right-click on the
+    /// sidebar's buttons.
+    func historyMenu(direction: Int) -> NSMenu? {
+        HistoryMenu.menu(for: activePane, direction: direction, openInNewTab: { [weak self] offset, background in
+            guard let self, let url = activePane?.historyURL(atOffset: offset) else { return }
+            openInNewTab(url, after: state.activeItem, select: !background)
+        }, showHistory: { [weak self] in
+            self?.openChromePage("chrome://history")
+        })
+    }
     func reload() { activePane?.reload() }
 
     /// Set while OpenArch runs a Chrome command itself, so the command is

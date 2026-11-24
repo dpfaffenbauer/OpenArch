@@ -693,8 +693,10 @@ private struct SidebarTopBar: View {
             if !browser.library.settings.showChromeToolbar {
                 IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { browser.historyButtonClicked(offset: -1) }
                     .disabled(!(active?.canGoBack ?? false))
+                    .secondaryClickMenu { browser.historyMenu(direction: -1) }
                 IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { browser.historyButtonClicked(offset: 1) }
                     .disabled(!(active?.canGoForward ?? false))
+                    .secondaryClickMenu { browser.historyMenu(direction: 1) }
                 IconButton(symbol: active?.isLoading == true ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") {
                     if active?.isLoading == true { browser.activePane?.stopLoading() } else { browser.reload() }
                 }
