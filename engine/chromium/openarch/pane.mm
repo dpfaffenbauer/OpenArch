@@ -482,16 +482,48 @@ bool TakeNewTab(content::WebContents* source, const GURL& url, WindowOpenDisposi
   return pane && [pane takeNewTabWithURL:url disposition:disposition];
 }
 
+// ⌘← (-1) or ⌘→ (1), else 0.
+int HistoryArrow(NSEvent* event) {
+  NSEventModifierFlags modifiers =
+      event.modifierFlags & (NSEventModifierFlagCommand | NSEventModifierFlagShift |
+                             NSEventModifierFlagOption | NSEventModifierFlagControl);
+  if (modifiers != NSEventModifierFlagCommand || event.charactersIgnoringModifiers.length != 1) {
+    return 0;
+  }
+  switch ([event.charactersIgnoringModifiers characterAtIndex:0]) {
+    case NSLeftArrowFunctionKey:
+      return -1;
+    case NSRightArrowFunctionKey:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
 // OpenArch's menus get the shortcuts of its pages: ⌘-keys before the page
 // (like Chrome's reserved shortcuts), any key the page leaves unhandled.
 int HandleKey(content::WebContents* source,
               const input::NativeWebKeyboardEvent& event,
               bool unhandled) {
-  if (!PaneForContents(source)) {
+  OACPane* pane = PaneForContents(source);
+  if (!pane) {
     return -1;
   }
   NSEvent* ns_event = event.os_event.Get();
   bool key_down = ns_event && ns_event.type == NSEventTypeKeyDown;
+  // ⌘← and ⌘→ go back and forward, as in Safari, unless a text field has
+  // the focus: there they move to the start or end of the line. (Not in
+  // the menu: Chrome's view would hand them to the menu and never to the
+  // page.)
+  if (!unhandled && key_down && event.GetType() == blink::WebInputEvent::Type::kRawKeyDown) {
+    if (int arrow = HistoryArrow(ns_event)) {
+      if (source->IsFocusedElementEditable()) {
+        return -1;
+      }
+      arrow < 0 ? [pane goBack] : [pane goForward];
+      return 1;
+    }
+  }
   if (!unhandled) {
     // Before the page: OpenArch's ⌘-shortcuts, else Chrome's own handling
     // (Esc leaves full screen).
@@ -1761,6 +1793,21 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
   content::NavigationEntry* entry =
       _contents->GetController().GetEntryAtOffset(static_cast<int>(offset));
   return entry ? openarch::ToNSString(entry->GetURL().spec()) : nil;
+}
+
+- (nullable NSString*)historyTitleAtOffset:(NSInteger)offset {
+  if (!_contents || offset == 0) {
+    return nil;
+  }
+  content::NavigationEntry* entry =
+      _contents->GetController().GetEntryAtOffset(static_cast<int>(offset));
+  return entry ? base::SysUTF16ToNSString(entry->GetTitleForDisplay()) : nil;
+}
+
+- (void)goToHistoryOffset:(NSInteger)offset {
+  if (_contents && offset != 0 && _contents->GetController().CanGoToOffset(static_cast<int>(offset))) {
+    _contents->GetController().GoToOffset(static_cast<int>(offset));
+  }
 }
 
 // ⌘-click on the toolbar's Back or Forward: that page in a new tab, in

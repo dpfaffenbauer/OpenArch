@@ -261,6 +261,14 @@ final class WebKitPage: NSObject, OACPage {
         guard offset != 0 else { return nil }
         return webView?.backForwardList.item(at: offset)?.url.absoluteString
     }
+    func historyTitle(atOffset offset: Int) -> String? {
+        guard offset != 0, let item = webView?.backForwardList.item(at: offset) else { return nil }
+        return item.title?.isEmpty == false ? item.title : item.url.absoluteString
+    }
+    func go(toHistoryOffset offset: Int) {
+        guard offset != 0, let web = webView, let item = web.backForwardList.item(at: offset) else { return }
+        web.go(to: item)
+    }
     func reload() { webView?.reload() }
     func stopLoading() { webView?.stopLoading() }
 
@@ -836,6 +844,17 @@ final class WebKitPageView: WKWebView {
         let accepted = super.becomeFirstResponder()
         if accepted { MainActor.assumeIsolated { page?.didBecomeActive() } }
         return accepted
+    }
+
+    /// ⌘← and ⌘→ go back and forward when the page did not use them (a text
+    /// field moves to the start or end of the line): WebKit sends the keys
+    /// the page left once more, and then lets them by (ArrowNavigation).
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if super.performKeyEquivalent(with: event) { return true }
+        let direction = MainActor.assumeIsolated { ArrowNavigation.direction(of: event) }
+        guard direction != 0, window?.firstResponder === self else { return false }
+        direction < 0 ? goBack() : goForward()
+        return true
     }
 
     /// "Link in neuem Fenster öffnen" opens a tab in OpenArch.

@@ -205,6 +205,17 @@ final class LittleOpenArchWindowController: NSWindowController, NSWindowDelegate
         guard let url = pane.historyURL(atOffset: offset) else { return }
         self.pane(pane, wantsNewTabWithURL: url, background: !modifiers.contains(.shift))
     }
+
+    /// The history menu of Back (-1) or Forward (1): a right-click on the
+    /// buttons.
+    func historyMenu(direction: Int) -> NSMenu? {
+        HistoryMenu.menu(for: pane, direction: direction, openInNewTab: { [weak self] offset, background in
+            guard let self, let url = pane.historyURL(atOffset: offset) else { return }
+            self.pane(pane, wantsNewTabWithURL: url, background: background)
+        }, showHistory: {
+            (NSApp.delegate as? AppDelegate)?.showHistory(nil)
+        })
+    }
     func showDevTools() { pane.showDevTools() }
     func runChromeCommand(_ command: OACChromeCommand) { pane.executeChromeCommand(command.rawValue) }
     func editAddress() { model.isEditing = true }
@@ -333,8 +344,10 @@ private struct LittleOpenArchBar: View {
             if !model.toolbarVisible {
                 IconButton(symbol: "arrow.left", help: "Zurück (⌘[)") { controller.historyButtonClicked(offset: -1) }
                     .disabled(!model.canGoBack)
+                    .secondaryClickMenu { controller.historyMenu(direction: -1) }
                 IconButton(symbol: "arrow.right", help: "Vorwärts (⌘])") { controller.historyButtonClicked(offset: 1) }
                     .disabled(!model.canGoForward)
+                    .secondaryClickMenu { controller.historyMenu(direction: 1) }
                 IconButton(symbol: model.isLoading ? "xmark" : "arrow.clockwise", help: "Neu laden (⌘R)") { controller.reload() }
             }
             if model.isEditing {
