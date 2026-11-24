@@ -5,7 +5,9 @@ import UIKit
 /// with -selftest (ios.yml does that in the simulator), it opens a page,
 /// pins it into a folder, shares the folder as a link, adds the link again
 /// and checks what came out, with screenshots of the sheets on the way into
-/// Documents/selftest. Prints "[selftest] DONE failures=N" and quits.
+/// Documents/selftest. Prints "[selftest] DONE failures=N" and quits. Every
+/// line also goes to Documents/selftest/selftest.log, which ios.yml reads:
+/// simctl's console has lost the app before while it ran on.
 ///
 /// With -relay <url> (say a local relay: relay/README.md), it also shares a
 /// folder live and follows it in the same library. With -hold it stays open
@@ -37,8 +39,23 @@ final class SelfTest {
         self.browser = browser
     }
 
+    /// Prints |line| and adds it to selftest.log.
+    private func report(_ line: String) {
+        print("[selftest] \(line)")
+        fflush(stdout)
+        let log = shots.appendingPathComponent("selftest.log")
+        let data = Data("[selftest] \(line)\n".utf8)
+        if let handle = try? FileHandle(forWritingTo: log) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            try? handle.close()
+        } else {
+            try? data.write(to: log)
+        }
+    }
+
     private func check(_ condition: Bool, _ name: String) {
-        print("[selftest] \(condition ? "ok" : "FAIL") \(name)")
+        report("\(condition ? "ok" : "FAIL") \(name)")
         if !condition { failures += 1 }
     }
 
@@ -60,7 +77,7 @@ final class SelfTest {
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
         }
         try? image.pngData()?.write(to: shots.appendingPathComponent("\(name).png"))
-        print("[selftest] screenshot \(name)")
+        report("screenshot \(name)")
     }
 
     private func dismiss() async {
@@ -69,7 +86,7 @@ final class SelfTest {
     }
 
     func run() async {
-        print("[selftest] START")
+        report("START")
         let library = browser.library
         let space = browser.space
         check(library.spaces.count == 1 && library.favorites.count == 4, "a first library: one space, four favorites")
@@ -100,7 +117,7 @@ final class SelfTest {
         // Shared as a snapshot link, and opened again.
         do {
             let link = try await browser.sharing.snapshotLink(for: .folder(folder), password: nil)
-            print("[selftest] snapshot link \(link.url.absoluteString)")
+            report("snapshot link \(link.url.absoluteString)")
             let parsed = ShareURL(url: link.url)
             check(parsed == link, "the snapshot link reads back")
             let opened = try await ShareReader.open(link)
@@ -130,7 +147,7 @@ final class SelfTest {
         // With a password.
         do {
             let link = try await browser.sharing.snapshotLink(for: .folder(folder), password: "geheim")
-            print("[selftest] password link \(link.url.absoluteString)")
+            report("password link \(link.url.absoluteString)")
             check(link.needsPassword, "a password link asks for it")
             do {
                 _ = try await ShareReader.open(link, password: "falsch")
@@ -182,7 +199,7 @@ final class SelfTest {
         do {
             let share = try await sharing.makeLiveShare(for: .folder(folder), password: nil)
             check(share.version == 1 && share.link.isLive, "the folder is uploaded as version 1")
-            print("[selftest] live link \(share.link.appURL.absoluteString)")
+            report("live link \(share.link.appURL.absoluteString)")
             check(ShareURL(url: share.link.url) == share.link, "the live link reads back")
 
             let opened = try await ShareReader.open(share.link)
@@ -286,8 +303,7 @@ final class SelfTest {
     }
 
     private func finish() {
-        print("[selftest] DONE failures=\(failures)")
-        fflush(stdout)
+        report("DONE failures=\(failures)")
         if ProcessInfo.processInfo.arguments.contains("-hold") { return }
         exit(failures == 0 ? 0 : 1)
     }
