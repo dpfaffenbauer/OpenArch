@@ -220,7 +220,8 @@ final class PeekController: NSObject, OACPaneDelegate {
     func pane(_ pane: any OACPage, addressDidChange url: String) { model.url = url }
 
     func pane(_ pane: any OACPage, wantsNewTabWithURL url: String, background: Bool) {
-        browser.openInNewTab(url, select: !background)
+        let tab = browser.openInNewTab(url, select: !background)
+        if background { browser.loadInBackground(tab) }
     }
 
     func pane(_ pane: any OACPage, handleChromeCommand commandID: Int) -> Bool {
