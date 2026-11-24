@@ -23,6 +23,9 @@ class Profile;
 namespace content {
 class WebContents;
 }
+namespace web_modal {
+class WebContentsModalDialogHost;
+}
 
 @interface OACProfile (Internal)
 /// Chrome's profile, once loaded (nullptr before).
@@ -66,6 +69,9 @@ bool IsPageFullScreen(content::WebContents* contents);
 NSWindow* DialogWindowForPane(OACPane* pane);
 void HostDialogsInPane(content::WebContents* contents, OACPane* pane);
 void StopHostingDialogs(content::WebContents* contents);
+// The host of |contents|' tab-modal dialogs (FedCM sign-in, ...), for
+// Chrome's window: the pane's, or one over the main window; never null.
+web_modal::WebContentsModalDialogHost* DialogHostForContents(content::WebContents* contents);
 void InstallDialogHooks();
 
 // The Browser whose tab strip holds a profile's pages (with OpenArch's own
