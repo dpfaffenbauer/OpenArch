@@ -413,12 +413,14 @@ class PageWindow : public BrowserWindow {
   }
   bool HandleKeyboardEvent(const input::NativeWebKeyboardEvent&) override { return false; }
   std::unique_ptr<FindBar> CreateFindBar() override { return std::make_unique<SilentFindBar>(); }
+  // The pane's host, as for the page's web-modal dialogs: Chrome's tab
+  // dialogs (FedCM's sign-in) observe it and crash on none.
   web_modal::WebContentsModalDialogHost* GetWebContentsModalDialogHost() override {
-    return nullptr;
+    return DialogHostForContents(browser_->GetTabStripModel()->GetActiveWebContents());
   }
   web_modal::WebContentsModalDialogHost* GetWebContentsModalDialogHostFor(
-      content::WebContents*) override {
-    return nullptr;
+      content::WebContents* contents) override {
+    return DialogHostForContents(contents);
   }
   void ShowAvatarBubbleFromAvatarButton(bool) override {}
   void ShowHatsDialog(const std::string&,

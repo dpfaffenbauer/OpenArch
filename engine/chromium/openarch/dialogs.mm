@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "base/no_destructor.h"
 #include "base/observer_list.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/supports_user_data.h"
@@ -212,6 +213,17 @@ void HostDialogsInPane(content::WebContents* contents, OACPane* pane) {
   auto dialogs = std::make_unique<PaneDialogs>(pane);
   manager->SetDelegate(dialogs.get());
   contents->SetUserData(kPaneDialogsKey, std::move(dialogs));
+}
+
+web_modal::WebContentsModalDialogHost* DialogHostForContents(content::WebContents* contents) {
+  if (contents) {
+    if (auto* dialogs = static_cast<PaneDialogs*>(contents->GetUserData(kPaneDialogsKey))) {
+      return dialogs;
+    }
+  }
+  // Chrome's tab dialogs observe the host they get and crash on none.
+  static base::NoDestructor<PaneDialogs> fallback(nil);
+  return fallback.get();
 }
 
 void StopHostingDialogs(content::WebContents* contents) {
