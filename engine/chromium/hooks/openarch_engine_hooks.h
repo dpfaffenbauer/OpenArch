@@ -101,6 +101,13 @@ inline RelaunchHook g_relaunch_hook = nullptr;
 using BrowserWindowHook = BrowserWindow* (*)(BrowserWindowInterface* browser);
 inline BrowserWindowHook g_browser_window_hook = nullptr;
 
+// Docked DevTools changed their layout (the frontend's splitter was dragged,
+// the dock side changed): DevTools fill the area beside and under the page,
+// and the page sits at the bounds the frontend asks for. Returns true for a
+// page OpenArch shows, which OpenArch then lays out; false leaves it Chrome's.
+using DevToolsLayoutHook = bool (*)(content::WebContents* inspected);
+inline DevToolsLayoutHook g_devtools_layout_hook = nullptr;
+
 }  // namespace openarch
 
 #endif  // CHROME_BROWSER_OPENARCH_ENGINE_HOOKS_H_

@@ -1971,29 +1971,37 @@ final class SelfTest {
         let content = browser.window.map { $0.convertToScreen(browser.contentRect) } ?? .zero
         let full = pane.screenFrame
         pane.showDevTools()
+        // Another side reopens them there; the page then sits where their
+        // own splitter puts it.
         after(3) {
             let right = pane.screenFrame
             OACPane.devToolsDock = .left
-            let left = pane.screenFrame
-            OACPane.devToolsDock = .bottom
-            let bottom = pane.screenFrame
-            self.expect(right.minX == full.minX && right.width < full.width * 0.7
-                        && left.maxX == full.maxX && left.width == right.width
-                        && bottom.maxY == full.maxY && bottom.width == full.width && bottom.height < full.height * 0.7,
-                        "DevTools dock right, left and below the page (\(right), \(left), \(bottom), content \(content))")
-            OACPane.devToolsDock = .right
-            _ = pane.closeDevTools()
             after(1.5) {
-                self.expect(pane.screenFrame == full, "closing DevTools gives the page its whole frame back (\(pane.screenFrame))")
-                // Opened by Chrome itself (the console, Inspect, its own
-                // shortcut), DevTools dock beside the page too.
-                pane.executeChromeCommand(OACChromeCommand.devToolsConsole.rawValue)
-                after(3) {
-                    let docked = pane.screenFrame
-                    self.expect(docked.minX == full.minX && docked.width < full.width * 0.7,
-                                "DevTools Chrome opens itself (the console) dock beside the page (\(docked))")
-                    _ = pane.closeDevTools()
-                    after(1.5) { next() }
+                let left = pane.screenFrame
+                OACPane.devToolsDock = .bottom
+                after(1.5) {
+                    let bottom = pane.screenFrame
+                    self.expect(right.minX == full.minX && right.width < full.width * 0.8 && right.height == full.height
+                                && left.maxX == full.maxX && left.width < full.width * 0.8 && left.height == full.height
+                                && bottom.maxY == full.maxY && bottom.width == full.width && bottom.height < full.height * 0.8,
+                                "DevTools dock right, left and below the page (\(right), \(left), \(bottom), content \(content))")
+                    OACPane.devToolsDock = .right
+                    after(1.5) {
+                        _ = pane.closeDevTools()
+                        after(1) {
+                            self.expect(pane.screenFrame == full, "closing DevTools gives the page its whole frame back (\(pane.screenFrame))")
+                            // Opened by Chrome itself (the console, Inspect, its own
+                            // shortcut), DevTools dock beside the page too.
+                            pane.executeChromeCommand(OACChromeCommand.devToolsConsole.rawValue)
+                            after(2) {
+                                let docked = pane.screenFrame
+                                self.expect(docked.minX == full.minX && docked.width < full.width * 0.8,
+                                            "DevTools Chrome opens itself (the console) dock beside the page (\(docked))")
+                                _ = pane.closeDevTools()
+                                after(1) { next() }
+                            }
+                        }
+                    }
                 }
             }
         }

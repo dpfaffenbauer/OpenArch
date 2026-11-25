@@ -472,6 +472,27 @@ cocoa_includes = ('#include "base/numerics/safe_conversions.h"  // OpenArch\n'
 edit(cocoa_menu, '#include "ui/views/widget/widget.h"\n',
      '#include "ui/views/widget/widget.h"\n' + cocoa_includes, cocoa_includes)
 
+# 3j. Docked DevTools' layout (the frontend's own splitter, its dock side)
+# reaches OpenArch, which places the page and the frontend: Chrome only
+# tells its window's DevtoolsUIController, which OpenArch's window has empty.
+dtviews = "chrome/browser/devtools/devtools_window_views.cc"
+edit(dtviews, '''  content::WebContents* inspected_web_contents = GetInspectedWebContents();
+  if (!inspected_web_contents) {
+    return;
+  }
+  BrowserWindowInterface* inspected_browser =''', '''  content::WebContents* inspected_web_contents = GetInspectedWebContents();
+  if (!inspected_web_contents) {
+    return;
+  }
+  if (openarch::g_devtools_layout_hook &&  // OpenArch
+      openarch::g_devtools_layout_hook(inspected_web_contents)) {
+    return;
+  }
+  BrowserWindowInterface* inspected_browser =''', "openarch::g_devtools_layout_hook(inspected_web_contents)")
+dt_hooks = '#include "chrome/browser/openarch_engine_hooks.h"  // nogncheck\n'
+edit(dtviews, '#include "chrome/browser/devtools/devtools_window.h"\n',
+     '#include "chrome/browser/devtools/devtools_window.h"\n' + dt_hooks, dt_hooks)
+
 # 3b. Chrome's keychain item can be named at run time, so the engine uses
 # OpenArch's ("OpenArch Safe Storage").
 edit("components/os_crypt/common/BUILD.gn", '''if (is_apple) {

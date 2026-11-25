@@ -966,7 +966,19 @@ void RunMenuCommand(content::WebContents* contents, const content::ContextMenuPa
 
 BrowserWindow* MakeWindowForBrowser(BrowserWindowInterface* browser);
 
+// The DevTools frontend docked beside a page asks for a new layout (its
+// splitter was dragged): the pane places the page where it asks.
+bool LayOutDevTools(content::WebContents* inspected) {
+  OACPane* pane = PaneForContents(inspected);
+  if (!pane) {
+    return false;
+  }
+  [pane layoutViews];
+  return true;
+}
+
 void InstallPaneHooks() {
+  g_devtools_layout_hook = &LayOutDevTools;
   g_context_menu_hook = &AddMenuItems;
   g_context_menu_command_hook = &RunMenuCommand;
   g_new_tab_hook = &TakeNewTab;
@@ -1530,23 +1542,27 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
   }
   NSRect page = frame;
   NSRect tools = NSZeroRect;
+  DevToolsContentsResizingStrategy strategy;
+  if (_devToolsFrontend &&
+      DevToolsWindow::GetInTabWebContents(_contents, &strategy) != _devToolsFrontend) {
+    // Closing (Chrome lays out once more while the frontend goes): let go.
+    [_devToolsFrontend->GetNativeView().GetNativeNSView() removeFromSuperview];
+    _frontendObserver.reset();
+    _devToolsFrontend = nullptr;
+  }
   if (_devToolsFrontend && g_devtools_dock != OACDevToolsDockWindow) {
-    CGFloat width = floor(NSWidth(frame) / 3);
-    CGFloat height = floor(NSHeight(frame) / 3);
-    switch (g_devtools_dock) {
-      case OACDevToolsDockLeft:
-        tools = NSMakeRect(NSMinX(frame), NSMinY(frame), width, NSHeight(frame));
-        page = NSMakeRect(NSMinX(frame) + width, NSMinY(frame), NSWidth(frame) - width, NSHeight(frame));
-        break;
-      case OACDevToolsDockBottom:
-        tools = NSMakeRect(NSMinX(frame), NSMinY(frame), NSWidth(frame), height);
-        page = NSMakeRect(NSMinX(frame), NSMinY(frame) + height, NSWidth(frame), NSHeight(frame) - height);
-        break;
-      default:
-        page = NSMakeRect(NSMinX(frame), NSMinY(frame), NSWidth(frame) - width, NSHeight(frame));
-        tools = NSMakeRect(NSMaxX(page), NSMinY(frame), width, NSHeight(frame));
-        break;
-    }
+    // As in Chrome: the frontend fills the frame and draws its own splitter;
+    // the page lies over it at the bounds the frontend asks for (from the
+    // frame's top left), which follow the splitter.
+    gfx::Rect toolsBounds;
+    gfx::Rect pageBounds;
+    ApplyDevToolsContentsResizingStrategy(
+        strategy, gfx::Rect(0, 0, NSWidth(frame), NSHeight(frame)), &toolsBounds, &pageBounds);
+    tools = frame;
+    page = NSMakeRect(NSMinX(frame) + pageBounds.x(),
+                      content.isFlipped ? NSMinY(frame) + pageBounds.y()
+                                        : NSMaxY(frame) - pageBounds.bottom(),
+                      pageBounds.width(), pageBounds.height());
   }
   view.frame = page;
   // The toolbar spans the page's column, beside which DevTools dock.
@@ -1565,9 +1581,12 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
       toolsView.hidden = YES;
       [toolsView removeFromSuperview];
     } else {
-      if (toolsView.superview != content) {
+      // Under the page, which covers the frontend's placeholder for it.
+      NSArray<NSView*>* views = content.subviews;
+      if (toolsView.superview != content ||
+          [views indexOfObjectIdenticalTo:toolsView] > [views indexOfObjectIdenticalTo:view]) {
         [toolsView removeFromSuperview];
-        [content addSubview:toolsView positioned:NSWindowAbove relativeTo:view];
+        [content addSubview:toolsView positioned:NSWindowBelow relativeTo:view];
       }
       toolsView.frame = tools;
       toolsView.hidden = NO;
@@ -2411,25 +2430,21 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
 }
 
 + (void)setDevToolsDock:(OACDevToolsDock)dock {
-  BOOL wasWindow = g_devtools_dock == OACDevToolsDockWindow;
+  if (dock == g_devtools_dock) {
+    return;
+  }
   g_devtools_dock = dock;
-  BOOL isWindow = dock == OACDevToolsDockWindow;
   for (NSWindow* window in g_panes_by_window) {
     for (OACPane* pane in [[g_panes_by_window objectForKey:window] allObjects]) {
-      if (wasWindow != isWindow && [pane hasDevTools]) {
-        // Between docked and a window of their own: they close and open
-        // again.
+      if ([pane hasDevTools]) {
+        // Open DevTools read their dock side only when they open (their own
+        // ⋮ › Dock side aside), and lay out the page by it: they close and
+        // open again on the new side.
         [pane closeDevTools];
         __weak OACPane* weakPane = pane;
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 400 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
           [weakPane showDevTools];
         });
-      } else {
-        if ([pane hasDevTools]) {
-          // DevTools' own dock menu reads it, and must not undo this choice.
-          [pane applyDevToolsDockPreference];
-        }
-        [pane layoutViews];
       }
     }
   }
