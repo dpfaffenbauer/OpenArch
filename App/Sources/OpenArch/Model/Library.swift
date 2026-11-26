@@ -126,9 +126,13 @@ final class Library {
         while let parent = root.parent { root = parent }
         let space = space(containing: item) ?? home
         let index = space.map { root.container === $0.today } == true ? root.indexInParent : nil
+        // Its page's history, or the one it went to sleep with.
+        let session = item.pane.flatMap { PageSession(of: $0, at: item.currentURL) } ?? item.session
         archive.insert(ArchivedTab(title: item.displayTitle, url: item.currentURL, date: Date(),
-                                   spaceID: space?.id, index: index), at: 0)
+                                   spaceID: space?.id, index: index,
+                                   sessionID: session.flatMap(ClosedTabSessions.save)), at: 0)
         if archive.count > 500 {
+            for dropped in archive[500...] { ClosedTabSessions.delete(dropped.sessionID) }
             archive.removeLast(archive.count - 500)
         }
     }
@@ -137,6 +141,8 @@ final class Library {
         archive.isEmpty ? nil : archive.removeFirst()
     }
 
+    /// Takes |tab| out of the archive because it comes back: its history
+    /// stays for the tab it becomes (ClosedTabSessions.take).
     func removeArchived(_ tab: ArchivedTab) {
         if let index = archive.firstIndex(of: tab) {
             archive.remove(at: index)
@@ -144,8 +150,15 @@ final class Library {
         }
     }
 
+    /// Takes |tab| out of the archive for good, with its history.
+    func deleteArchived(_ tab: ArchivedTab) {
+        removeArchived(tab)
+        ClosedTabSessions.delete(tab.sessionID)
+    }
+
     func clearArchive() {
         archive.removeAll()
+        ClosedTabSessions.deleteAll()
         setNeedsSave()
     }
 
@@ -239,6 +252,7 @@ final class Library {
         // Before themes, grain was one setting for every space.
         spaces = data.spaces.map { Space(data: $0, legacyGrain: settings.grain) }
         archive = data.archive ?? []
+        ClosedTabSessions.deleteAll(besides: Set(archive.compactMap(\.sessionID)))
         selectedSpaceID = data.selectedSpaceID
         separateWindows = data.separateWindows ?? []
     }
@@ -336,6 +350,8 @@ struct ArchivedTab: Codable, Hashable {
     /// Where the tab was, so ⌘⇧T puts it back there.
     var spaceID: UUID?
     var index: Int?
+    /// Its back/forward history, if it had a page (ClosedTabSessions).
+    var sessionID: UUID?
 }
 
 struct Settings: Codable, Equatable {

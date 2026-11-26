@@ -196,11 +196,19 @@ extension BrowserWindowController {
 
     /// A separate window that comes back gets its tabs again, top to bottom.
     func adoptArchived(_ tabs: [ArchivedTab]) {
-        let items = tabs.map { Item.tab(url: $0.url, title: $0.title) }
+        let items = tabs.map(item(for:))
         for (index, item) in items.enumerated() {
             state.space.today.insert(item, at: index)
         }
         if let first = items.first { select(first) }
+    }
+
+    /// The tab an archive entry comes back as, with the back/forward history
+    /// it closed with.
+    private func item(for archived: ArchivedTab) -> Item {
+        let item = Item.tab(url: archived.url, title: archived.title)
+        item.session = ClosedTabSessions.take(archived.sessionID)
+        return item
     }
 
     func restoreArchived(_ tab: ArchivedTab) {
@@ -211,7 +219,7 @@ extension BrowserWindowController {
     /// An archived tab comes back where it was: in its space, at its place
     /// under the line.
     func restore(_ archived: ArchivedTab) {
-        let item = Item.tab(url: archived.url, title: archived.title)
+        let item = item(for: archived)
         let space = isStandalone ? state.space : (library.space(id: archived.spaceID) ?? state.space)
         space.today.insert(item, at: min(archived.index ?? 0, space.today.items.count))
         select(item)

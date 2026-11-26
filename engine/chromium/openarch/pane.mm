@@ -11,10 +11,12 @@
 
 #import <AppKit/AppKit.h>
 
+#include <algorithm>
 #include <deque>
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "base/functional/bind.h"
 #include "base/json/json_reader.h"
@@ -33,6 +35,10 @@
 #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_change_registrar.h"
 #include "components/prefs/scoped_user_pref_update.h"
+#include "base/apple/foundation_util.h"
+#include "base/pickle.h"
+#include "components/sessions/content/content_serialized_navigation_builder.h"
+#include "components/sessions/core/serialized_navigation_entry.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_window/public/browser_collection_observer.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
@@ -76,6 +82,7 @@
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/navigation_handle.h"
 #include "content/public/browser/render_frame_host.h"
+#include "content/public/browser/restore_type.h"
 #include "content/public/browser/web_contents.h"
 #include "chrome/browser/media/webrtc/media_capture_devices_dispatcher.h"
 #include "chrome/browser/media/webrtc/media_stream_capture_indicator.h"
@@ -1105,6 +1112,7 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
 @implementation OACPane {
   OACProfile* _profile;
   NSString* _initialURL;
+  NSData* _sessionState;  // -restoreSessionState:, until the tab exists
   raw_ptr<content::WebContents> _contents;  // owned by the hidden window's tab strip...
   std::unique_ptr<content::WebContents> _ownedContents;  // ...or by the pane (private pages)
   std::unique_ptr<PrivatePageDelegate> _privateDelegate;
@@ -1374,13 +1382,90 @@ content::WebContents* FocusedContentsForBrowser(BrowserWindowInterface* browser)
                                                 : NSMakeSize(1200, 800));
   [self contentsView].frame = NSMakeRect(0, 0, size.width, size.height);
   _contents->Resize(gfx::Rect(0, 0, size.width, size.height));
-  if (_initialURL.length) {
+  if (![self restoreNavigations] && _initialURL.length) {
     [self loadURL:_initialURL];
   }
   if (_visible && _hostWindow) {
     [self attachViewToWindow:_hostWindow];
     [self makeActiveTab];
   }
+}
+
+#pragma mark The tab's history
+
+// A saved session: its version, the entry the tab is on, the number of
+// entries, then each entry as Chrome's session files hold it.
+constexpr int kSessionVersion = 1;
+// An entry larger than this goes without its page state (scroll position,
+// form values): Chrome's own limit for its session files is about the same.
+constexpr int kMaxEntryBytes = 64 * 1024;
+
+- (NSData*)sessionState {
+  if (!_contents) {
+    return _sessionState;
+  }
+  content::NavigationController& controller = _contents->GetController();
+  int count = controller.IsInitialBlankNavigation() ? 0 : controller.GetEntryCount();
+  if (count == 0) {
+    return nil;
+  }
+  // The entry a back or forward navigation is on its way to counts as where
+  // the tab is, as for Chrome's own closed tabs.
+  int pending = controller.GetPendingEntryIndex();
+  int current = pending != -1 ? pending : controller.GetLastCommittedEntryIndex();
+  base::Pickle pickle;
+  pickle.WriteInt(kSessionVersion);
+  pickle.WriteInt(std::clamp(current, 0, count - 1));
+  pickle.WriteInt(count);
+  for (int index = 0; index < count; index++) {
+    content::NavigationEntry* entry =
+        index == pending ? controller.GetPendingEntry() : controller.GetEntryAtIndex(index);
+    sessions::ContentSerializedNavigationBuilder::FromNavigationEntry(index, entry)
+        .WriteToPickle(kMaxEntryBytes, &pickle);
+  }
+  return [NSData dataWithBytes:pickle.data() length:pickle.size()];
+}
+
+- (void)restoreSessionState:(NSData*)state {
+  if (!_contents) {
+    _sessionState = [state copy];
+  }
+}
+
+// Gives the new tab the history handed to -restoreSessionState: and loads
+// the page it was on. NO when there is none, or it cannot be read.
+- (BOOL)restoreNavigations {
+  NSData* state = _sessionState;
+  _sessionState = nil;
+  if (!state.length) {
+    return NO;
+  }
+  base::PickleIterator iterator = base::PickleIterator::WithData(base::apple::NSDataToSpan(state));
+  int version = 0;
+  int current = 0;
+  int count = 0;
+  if (!iterator.ReadInt(&version) || version != kSessionVersion || !iterator.ReadInt(&current) ||
+      !iterator.ReadInt(&count) || count <= 0 || count > 1000 || current < 0 || current >= count) {
+    return NO;
+  }
+  std::vector<sessions::SerializedNavigationEntry> navigations(count);
+  for (sessions::SerializedNavigationEntry& navigation : navigations) {
+    if (!navigation.ReadFromPickle(&iterator)) {
+      return NO;
+    }
+  }
+  std::vector<std::unique_ptr<content::NavigationEntry>> entries =
+      sessions::ContentSerializedNavigationBuilder::ToNavigationEntries(navigations,
+                                                                        _contents->GetBrowserContext());
+  if (static_cast<int>(entries.size()) != count) {
+    return NO;
+  }
+  content::NavigationController& controller = _contents->GetController();
+  controller.Restore(current, content::RestoreType::kRestored, &entries);
+  // A restored tab loads when it is first shown; this one may be a
+  // background tab that is never shown before it is looked at.
+  controller.LoadIfNecessary();
+  return YES;
 }
 
 - (BrowserWindowInterface*)browser {

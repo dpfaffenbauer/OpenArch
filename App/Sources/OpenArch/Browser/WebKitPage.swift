@@ -54,6 +54,8 @@ final class WebKitPage: NSObject, OACPage {
     private var popups: [WebKitPopup] = []
     /// The configuration WebKit gave for a popup this page shows.
     private var popupConfiguration: WKWebViewConfiguration?
+    /// restoreSessionState's, until the page exists.
+    private var pendingSession: Data?
 
     init(profile: OACProfile, url: String, serviceName: String = "") {
         self.profile = profile
@@ -105,9 +107,25 @@ final class WebKitPage: NSObject, OACPage {
         webView = web
         WebKitPage.pages.setObject(self, forKey: window)
         observe(web)
-        if popupConfiguration == nil, let target = URL(string: url) {
-            web.load(URLRequest(url: target))
+        if popupConfiguration == nil {
+            // WebKit loads the page a restored history stands on by itself.
+            if let state = pendingSession { web.interactionState = state }
+            if web.backForwardList.currentItem == nil, let target = URL(string: url) {
+                web.load(URLRequest(url: target))
+            }
         }
+        pendingSession = nil
+    }
+
+    /// WebKit's own form of a page's history (Safari's closed tabs).
+    var sessionState: Data? {
+        guard let web = webView else { return pendingSession }
+        guard web.backForwardList.currentItem != nil else { return nil }
+        return web.interactionState as? Data
+    }
+
+    func restoreSessionState(_ state: Data) {
+        if webView == nil { pendingSession = state }
     }
 
     /// The page WebKit asked for with window.open: shown in a window of its

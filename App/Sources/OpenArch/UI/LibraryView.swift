@@ -427,7 +427,7 @@ private struct ArchiveSection: View {
                         .contextMenu {
                             Button("Wiederherstellen") { browser.restoreArchived(tab) }
                             Button("URL kopieren") { copy(tab.url) }
-                            Button("Aus dem Archiv entfernen") { library.removeArchived(tab) }
+                            Button("Aus dem Archiv entfernen") { library.deleteArchived(tab) }
                         }
                     }
                 }

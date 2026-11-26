@@ -932,6 +932,9 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         let profile = privateProfile ?? library.profile(for: tab, in: state.space).chromium
         let url = tab.currentURL.isEmpty ? "about:blank" : tab.currentURL
         let pane = ProtectedMedia.makePage(url: url, profile: profile)
+        // With the history its last page had (it slept, or was closed).
+        tab.session?.restore(into: pane, at: tab.currentURL)
+        tab.session = nil
         configure(pane)
         tab.pane = pane
         tab.isAsleep = false
@@ -1019,6 +1022,7 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
         tab.mediaAccess = MediaAccess()
         tab.call = nil
         tab.isAsleep = false
+        tab.session = nil
         visibleTabs.removeAll { $0 === tab }
     }
 
@@ -1294,9 +1298,12 @@ final class BrowserWindowController: NSWindowController, NSWindowDelegate, OACPa
 
     func sleep(_ tab: Item) {
         let url = tab.liveURL, title = tab.liveTitle
+        // Back and forward still work when it wakes up.
+        let session = tab.pane.flatMap { PageSession(of: $0, at: tab.currentURL) }
         unload(tab)
         tab.liveURL = url
         tab.liveTitle = title
+        tab.session = session
         tab.isAsleep = true
     }
 
