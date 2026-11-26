@@ -184,8 +184,11 @@ final class PictureInPictureWindows {
 
     /// Chrome's picture-in-picture windows float (other Chrome windows of a
     /// tab, DevTools or a popup, do not), and are none of OpenArch's own.
+    /// Exactly at the floating level (ZOrderLevel::kFloatingWindow): the bar
+    /// "<site> is sharing your screen" floats higher (kFloatingUIElement, the
+    /// status level) and stays where Chrome put it, at the screen's bottom.
     static func isPictureInPicture(_ window: NSWindow) -> Bool {
-        guard window.isVisible, window.level.rawValue >= NSWindow.Level.floating.rawValue,
+        guard window.isVisible, window.level == .floating,
               !(window is NSPanel), OACPane(for: window) == nil else { return false }
         let name = NSStringFromClass(type(of: window))
         return name.contains("NativeWidget") || name.contains("Chrome") || name.contains("BrowserFrame")
