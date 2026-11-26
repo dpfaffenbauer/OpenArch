@@ -77,6 +77,11 @@ The shape follows Cra (github.com/VictorKildahl/cra, MIT,
   `OACPane.externalTabHandler` and close in Chrome.
 - Pictures of hidden tabs for the tab switcher: a capturer count, the view
   lent to the window underneath for the moment.
+- A tab's history for the page that takes its place (`sessionState`,
+  `restoreSessionState:`): its navigation entries as Chrome's session files
+  hold them (`SerializedNavigationEntry`), given back with
+  `NavigationController::Restore`. A closed tab that comes back and a
+  sleeping one that wakes up have Back and Forward again.
 - Camera and microphone (Chrome's `MediaStreamCaptureIndicator`), renderer
   crashes, Peek on ⇧-click, the hand-off of navigations to WebKit pages.
 - Chrome's language: the app bundle gets Chromium's (empty) `.lproj`

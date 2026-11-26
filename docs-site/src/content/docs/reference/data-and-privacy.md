@@ -12,6 +12,7 @@ Everything lives in `~/Library/Application Support/OpenArch`. **Settings › Inf
 | In the folder | What it holds |
 | --- | --- |
 | `Library.json` | Your spaces, favorites, pinned folders, today tabs, the archive and your settings |
+| `Closed Tabs/` | The back and forward history of each tab in the archive, so a tab you reopen has it again |
 | `Chromium/` | Chromium's profiles: cookies and logins, saved passwords, site data, extensions and their settings |
 | `History.sqlite` | The history the command bar searches |
 | `Shares.json` | Folders and spaces you share or follow, with their keys |

@@ -101,11 +101,19 @@ extension SelfTest {
                 TabSnapshots.capture(tab)
                 after(1.5) {
                     self.expect(tab.snapshot != nil, "the tab switcher and previews get a picture of the page")
-                    self.browser.sleep(tab)
-                    self.expect(tab.pane == nil && tab.isAsleep, "a WebKit page goes to sleep like any other")
-                    self.browser.select(tab)
-                    self.expect(tab.pane?.engine == .webKit, "and wakes up in WebKit")
-                    next()
+                    // A second page, so that there is a history to wake up with.
+                    let second = "https://\(Self.standIn)/?second"
+                    page.loadURL(second)
+                    self.eventually({ tab.canGoBack && !tab.isLoading }, timeout: 10) { _ in
+                        self.browser.sleep(tab)
+                        self.expect(tab.pane == nil && tab.isAsleep, "a WebKit page goes to sleep like any other")
+                        self.browser.select(tab)
+                        self.expect(tab.pane?.engine == .webKit, "and wakes up in WebKit")
+                        self.eventually({ tab.canGoBack && tab.pane?.url == second && !tab.isLoading }, timeout: 10) { woke in
+                            self.expect(woke, "on its page, with its history (\(tab.pane?.url ?? "no page"), back \(tab.canGoBack))")
+                            next()
+                        }
+                    }
                 }
             }
         }

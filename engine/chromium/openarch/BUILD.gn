@@ -61,6 +61,7 @@ source_set("core") {
     "//components/keep_alive_registry",
     "//components/permissions",
     "//components/prefs",
+    "//components/sessions",
     "//components/url_formatter",
     "//components/version_info",
     "//components/web_modal",

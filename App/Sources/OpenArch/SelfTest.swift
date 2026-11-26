@@ -299,7 +299,7 @@ final class SelfTest {
             (73, "sharing", { self.sharingTest() }),
             // After the updater step: both use the update download folder.
             (82, "release quality", { self.releaseQuality(crashRenderer: false) {} }),
-            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.aboutPage { self.externalAppLinks() } } } } } } }),
+            (68.5, "agent chats", { self.agentChats { self.sleepingTabs { self.tabHistory { self.closingPagesThatAsk { self.httpsOnly { self.devToolsDock { self.aboutPage { self.externalAppLinks() } } } } } } } }),
         ]
         for (time, name, step) in steps {
             after(time) {
@@ -1497,6 +1497,52 @@ final class SelfTest {
                         self.browser.close(sleepy)
                         self.browser.close(asking)
                         next()
+                    }
+                }
+            }
+        }
+    }
+
+    /// A tab's back/forward history outlives its page: a sleeping tab wakes
+    /// up with it, and ⌘⇧T brings a closed tab back with it.
+    private func tabHistory(then next: @escaping () -> Void) {
+        guard let space = library.spaces.first else { return next() }
+        browser.switchSpace(to: space)
+        let shown = browser.state.activeItem
+        let first = "https://example.com/?history-first", second = "https://example.com/?history-second"
+        // (A restored page's title comes with its history: the page does
+        // not report it again.)
+        func isOn(_ url: String, _ tab: Item) -> Bool {
+            tab.pane?.url == url && tab.displayTitle == "Example Domain" && !tab.isLoading
+        }
+        func state(_ tab: Item) -> String {
+            "\(tab.pane?.url ?? "no page"), back \(tab.canGoBack), forward \(tab.canGoForward)"
+        }
+        let tab = browser.openInNewTab(first, select: false)
+        browser.select(tab, focus: false)
+        eventually({ isOn(first, tab) }, timeout: 8) { _ in
+            tab.pane?.loadURL(second)
+            self.eventually({ isOn(second, tab) && tab.canGoBack }, timeout: 8) { _ in
+                if let shown { self.browser.select(shown, focus: false) }
+                self.browser.sleep(tab)
+                self.browser.select(tab, focus: false)
+                self.eventually({ isOn(second, tab) && tab.canGoBack }, timeout: 8) { woke in
+                    self.expect(woke, "a sleeping tab wakes up on its page, with its history (\(state(tab)))")
+                    self.browser.close(tab)
+                    self.browser.reopenClosedTab()
+                    guard let reopened = self.browser.state.activeItem, reopened !== tab, reopened.currentURL == second else {
+                        self.expect(false, "⌘⇧T brings the closed tab back")
+                        return next()
+                    }
+                    self.eventually({ isOn(second, reopened) && reopened.canGoBack }, timeout: 8) { back in
+                        self.expect(back, "⌘⇧T brings a closed tab back on its page, with its history (\(state(reopened)))")
+                        reopened.pane?.goBack()
+                        self.eventually({ isOn(first, reopened) && reopened.canGoForward }, timeout: 8) { wentBack in
+                            self.expect(wentBack, "back in a reopened tab goes to the page before (\(state(reopened)))")
+                            if let shown { self.browser.select(shown, focus: false) }
+                            self.browser.close(reopened)
+                            next()
+                        }
                     }
                 }
             }

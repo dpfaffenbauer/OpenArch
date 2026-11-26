@@ -121,6 +121,9 @@ final class Item: Identifiable {
     var isAsleep = false
     /// When its page was last made (shown, or loaded in the background).
     var loadedAt: Date?
+    /// The back/forward history its next page starts with: the one it went
+    /// to sleep with, or closed with before it came back from the archive.
+    @ObservationIgnored var session: PageSession?
     /// A small picture of the page for the ⌃Tab switcher (memory only).
     var snapshot: NSImage?
     /// Live folders: what fills them, and how the last refresh went.

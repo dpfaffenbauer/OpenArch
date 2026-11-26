@@ -237,6 +237,10 @@ OAC_EXPORT
                 completion:(nullable void (^)(NSDictionary<NSString*, id>* _Nullable result))completion;
 /// The page's zoom in percent (100 = normal). Chrome keeps it per site.
 @property(readonly) NSInteger zoomPercent;
+/// The tab's navigation entries (addresses, titles, scroll positions and
+/// form values, as Chrome's own session restore saves them).
+@property(readonly, nullable) NSData* sessionState;
+- (void)restoreSessionState:(NSData*)state;
 - (void)executeChromeCommand:(NSInteger)commandID;
 - (void)showDevTools;
 - (void)setAudioMuted:(BOOL)muted;

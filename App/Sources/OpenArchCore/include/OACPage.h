@@ -57,7 +57,16 @@ NS_SWIFT_UI_ACTOR
 @property(nonatomic) BOOL offersAskAboutSelection;
 /// The page's zoom in percent (100 = normal).
 @property(readonly) NSInteger zoomPercent;
+/// The page's back/forward history and where it stands in it, as its
+/// engine writes it down: what -restoreSessionState: takes on a new page of
+/// the same engine. nil while the page has not been anywhere.
+@property(readonly, nullable) NSData* sessionState;
 
+/// Before the page exists: it starts from another page's -sessionState,
+/// with its history and on the page it was on, instead of at its URL (a
+/// closed tab that comes back, a sleeping one that wakes up). A state the
+/// engine cannot read is ignored.
+- (void)restoreSessionState:(NSData*)state;
 /// Starts loading the page without showing it (a tab opened in the
 /// background).
 - (void)load;

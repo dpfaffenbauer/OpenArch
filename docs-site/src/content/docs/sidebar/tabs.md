@@ -17,7 +17,7 @@ To turn previews off, use **Settings › Allgemein › Sidebar › Vorschau beim
 
 ## Sleeping tabs
 
-A tab you have not looked at for two hours goes to sleep: its page closes and gives its memory back. The tab keeps its place, title and address. Its icon turns pale, and resting the pointer on the icon says **Schläft: lädt neu, wenn du den Tab öffnest**. Click it and the page loads again.
+A tab you have not looked at for two hours goes to sleep: its page closes and gives its memory back. The tab keeps its place, title and address. Its icon turns pale, and resting the pointer on the icon says **Schläft: lädt neu, wenn du den Tab öffnest**. Click it and the page loads again, with its history: Back and Forward go where they went before.
 
 This applies to today tabs, pinned tabs and favorites alike. A tab stays awake while:
 
@@ -51,7 +51,7 @@ Closing a today tab (<kbd>⌘W</kbd>, or its **×**) and deleting a pinned tab a
 
 ## Reopen a closed tab
 
-Press <kbd>⇧⌘T</kbd> (**Ablage › Geschlossenen Tab wieder öffnen**). The newest tab in the archive comes back where it was: in its space, at its place under the line. Press it again for the one before.
+Press <kbd>⇧⌘T</kbd> (**Ablage › Geschlossenen Tab wieder öffnen**). The newest tab in the archive comes back where it was: in its space, at its place under the line. It comes back with its history, so Back and Forward go where they went before it closed. Press it again for the one before.
 
 If you closed a window after the last tab you closed, <kbd>⇧⌘T</kbd> brings back that window first, as in Chrome. See [Windows](/browsing/windows/).
 
